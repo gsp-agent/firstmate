@@ -16,7 +16,14 @@ TMP_ROOT=$(fm_test_tmproot fm-spawn-defer-slot)
 install_fakes() { # <case-dir>
   local case_dir=$1 fakebin
   fakebin=$(fm_fakebin "$case_dir")
-  fm_test_fake_sleep_noop "$fakebin"
+  cat > "$fakebin/sleep" <<'SH'
+#!/usr/bin/env bash
+set -eu
+if [ "${1:-}" = 0.1 ] && [ -f "${FM_FAKE_CASE_DIR:?}/return-lock.ready" ] &&
+  mkdir "$FM_FAKE_CASE_DIR/return-lock.notified" 2>/dev/null; then
+  printf 'waiting\n' > "$FM_FAKE_CASE_DIR/return-lock.wait"
+fi
+SH
   cat > "$fakebin/tmux" <<'SH'
 #!/usr/bin/env bash
 set -u
@@ -82,21 +89,84 @@ if [ "${1:-}" = return ]; then
     esac
   done
   [ -n "$target" ] || exit 2
-  git -C "${FM_FAKE_PROJECT:?}" worktree remove --force "$target"
+  . "${FM_FAKE_CODE_ROOT:?}/bin/fm-wake-lib.sh"
+  for lock in "$STATE/.spawn-${FM_FAKE_TASK_ID:?}.lock" "$STATE/.meta-$FM_FAKE_TASK_ID.lock"; do
+    if fm_lock_try_acquire "$lock"; then
+      fm_lock_release "$lock"
+      printf 'return found an unlocked task: %s\n' "$lock" >&2
+      exit 2
+    fi
+  done
+  [ "${FM_FAKE_DETECTOR_MODE:-}" != stays ] || exit 0
+  git -C "$target" checkout --quiet --ignore-other-worktrees main
   exit $?
 fi
 exit 0
 SH
-  chmod +x "$fakebin/tmux" "$fakebin/treehouse"
+  cat > "$case_dir/hold-project-lock.sh" <<'SH'
+#!/usr/bin/env bash
+set -eu
+. "${FM_FAKE_CODE_ROOT:?}/bin/fm-wake-lib.sh"
+project_lock=$(fm_treehouse_project_lock_path "${FM_FAKE_PROJECT:?}")
+fm_lock_try_acquire "$project_lock"
+trap 'fm_lock_release "$project_lock"' EXIT
+: > "${FM_FAKE_CASE_DIR:?}/return-lock.ready"
+IFS= read -r -t 30 signal <> "$FM_FAKE_CASE_DIR/return-lock.wait"
+for kind in spawn meta; do
+  task_lock="$STATE/.$kind-${FM_FAKE_TASK_ID:?}.lock"
+  if fm_lock_try_acquire "$task_lock"; then
+    fm_lock_release "$task_lock"
+    printf 'unlocked %s\n' "$kind"
+    exit 1
+  fi
+  printf 'held %s\n' "$kind"
+done
+slot=$(cat "${FM_FAKE_PANE_FILE:?}")
+case "$1" in
+  meta) printf 'worktree=%s\nreplacement=yes\n' "$slot" > "$STATE/$FM_FAKE_TASK_ID.meta" ;;
+  branch) git -C "$slot" checkout --quiet -b replacement ;;
+  dirty) printf 'keep\n' > "$slot/keep-me.txt" ;;
+  commits)
+    printf 'keep\n' > "$slot/extra.txt"
+    git -C "$slot" add extra.txt
+    git -C "$slot" -c user.name='Firstmate Tests' -c user.email='tests@example.invalid' commit -qm extra
+    ;;
+  owner) printf 'task=replacement\nhome=%s\n' "$FM_HOME" > "${slot%/*}/.fm-slot-owner" ;;
+  *) exit 2 ;;
+esac
+: > "$FM_FAKE_CASE_DIR/return-lock.changed"
+SH
+  chmod +x "$fakebin/sleep" "$fakebin/tmux" "$fakebin/treehouse"
   printf '%s\n' "$fakebin"
 }
 
 write_detector() { # <path>
   cat > "$1" <<'PY'
 import os
+import subprocess
 import sys
+import time
 
 mode = os.environ.get("FM_FAKE_DETECTOR_MODE", "clean")
+if mode.startswith("lock-"):
+    case_dir = os.environ["FM_FAKE_CASE_DIR"]
+    with open(os.path.join(case_dir, "return-lock.log"), "w") as log:
+        holder = subprocess.Popen(
+            ["bash", os.path.join(case_dir, "hold-project-lock.sh"), mode[5:]],
+            stdin=subprocess.DEVNULL,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+        )
+    for _ in range(200):
+        if os.path.exists(os.path.join(case_dir, "return-lock.ready")):
+            break
+        if holder.poll() is not None:
+            sys.exit(2)
+        time.sleep(0.1)
+    else:
+        sys.exit(2)
+    print("live signal=person source=desktop")
+    sys.exit(75)
 if mode == "dirty":
     pane = open(os.environ["FM_FAKE_PANE_FILE"]).read().strip()
     with open(os.path.join(pane, "keep-me.txt"), "w") as handle:
@@ -144,7 +214,9 @@ Delivery contract: mode=no-mistakes
 Ship branch: fm/$id
 EOF
   fm_git_init_commit "$project"
-  fm_git_add_origin "$project" "$origin"
+  if [ "${3:-origin}" != originless ]; then
+    fm_git_add_origin "$project" "$origin"
+  fi
   mkdir -p "$slot_root"
   printf '{}\n' > "$slot_root/treehouse-state.json"
   for n in 1 2; do
@@ -155,6 +227,7 @@ EOF
   : > "$case_dir/pane-path"
   : > "$case_dir/treehouse.log"
   : > "$case_dir/detector-count"
+  mkfifo "$case_dir/return-lock.wait"
   write_detector "$case_dir/detector.py"
   install_fakes "$case_dir" >/dev/null
   printf '%s\n' "$case_dir"
@@ -164,6 +237,9 @@ run_spawn() { # <case-dir> <id> <mode> [fm-spawn args...]
   local case_dir=$1 id=$2 mode=$3
   shift 3
   FM_LIVE_SESSION_CHECK="$case_dir/detector.py" \
+    FM_FAKE_CASE_DIR="$case_dir" \
+    FM_FAKE_CODE_ROOT="$ROOT" \
+    FM_FAKE_TASK_ID="$id" \
     FM_FAKE_DETECTOR_MODE="$mode" \
     FM_FAKE_DETECTOR_COUNT="$case_dir/detector-count" \
     FM_FAKE_PANE_FILE="$case_dir/pane-path" \
@@ -176,8 +252,8 @@ run_spawn() { # <case-dir> <id> <mode> [fm-spawn args...]
 }
 
 test_clean_defer_returns_the_slot_and_the_retry_spawns() {
-  local id="defer-$$-retry" case_dir out rc slot1 slot2
-  case_dir=$(make_world clean-retry "$id")
+  local origin=${1:-origin} id="defer-$$-retry-${1:-origin}" case_dir out rc slot1 slot2
+  case_dir=$(make_world "clean-retry-$origin" "$id" "$origin")
   slot1=$(CDPATH='' cd -- "$case_dir/slots/1/project" && pwd -P)
   slot2=$(CDPATH='' cd -- "$case_dir/slots/2/project" && pwd -P)
 
@@ -186,15 +262,84 @@ test_clean_defer_returns_the_slot_and_the_retry_spawns() {
   expect_code 75 "$rc" "a live-session deferral did not defer"$'\n'"$out"
   assert_contains "$out" "deferred:" "the live-session deferral did not say it deferred"
   assert_absent "$case_dir/home/state/$id.meta" "the deferred spawn left a task record"
+  [ -d "$slot1" ] || fail "the deferred spawn removed its returned pool slot"
+  [ "$(git -C "$slot1" branch --show-current)" = main ] \
+    || fail "the deferred spawn did not park its returned pool slot on main"
+  assert_absent "$case_dir/slots/1/.fm-slot-owner" "the returned slot kept its owner claim"
 
   : > "$case_dir/pane-path"
   rc=0
   out=$(run_spawn "$case_dir" "$id" clean --mode no-mistakes --yolo off) || rc=$?
   expect_code 0 "$rc" "the retry after a clean live-session deferral did not spawn"$'\n'"$out"
-  [ ! -e "$slot1/.git" ] || fail "the deferred spawn left its ship-branch checkout at $slot1"
+  [ -d "$slot1" ] && [ "$(git -C "$slot1" branch --show-current)" != "fm/$id" ] \
+    || fail "the returned slot did not remain parked after the retry"
   [ "$(git -C "$slot2" branch --show-current)" = "fm/$id" ] \
     || fail "the retry did not check out fm/$id in the next pool slot"
-  pass "a clean live-session deferral returns its slot, and the retry spawns"
+  pass "a clean live-session deferral returns its slot in place, and the retry spawns ($origin)"
+}
+
+test_return_that_keeps_the_ship_branch_is_refused() {
+  local id="defer-$$-stays" case_dir out rc slot1
+  case_dir=$(make_world stays "$id")
+  slot1="$case_dir/slots/1/project"
+
+  rc=0
+  out=$(run_spawn "$case_dir" "$id" stays --mode no-mistakes --yolo off) || rc=$?
+  expect_code 1 "$rc" "a return that kept the ship branch was accepted"$'\n'"$out"
+  assert_contains "$out" "its ship branch was still checked out after treehouse return" \
+    "the refusal did not name the unchanged ship branch"
+  assert_grep 'treehouse return' "$case_dir/treehouse.log" "the return was not attempted"
+  [ "$(git -C "$slot1" branch --show-current)" = "fm/$id" ] \
+    || fail "the fake return did not preserve the ship branch"
+  assert_grep "task=$id" "$case_dir/slots/1/.fm-slot-owner" "the refused return lost its claim"
+  pass "a return that keeps the ship branch is refused with its claim intact"
+}
+
+test_slot_is_rechecked_after_retaking_the_project_lock() {
+  local change id case_dir out rc slot1 expected
+  for change in meta branch dirty commits owner; do
+    id="defer-$$-lock-$change"
+    case_dir=$(make_world "lock-$change" "$id")
+    slot1="$case_dir/slots/1/project"
+    rc=0
+    out=$(run_spawn "$case_dir" "$id" "lock-$change" --mode no-mistakes --yolo off) || rc=$?
+    expect_code 1 "$rc" "a slot changed while cleanup waited was returned ($change)"$'\n'"$out"
+    assert_grep 'held spawn' "$case_dir/return-lock.log" "cleanup released its task lock while waiting"
+    assert_grep 'held meta' "$case_dir/return-lock.log" "cleanup released its metadata lock while waiting"
+    [ -f "$case_dir/return-lock.changed" ] || fail "the concurrent change did not happen ($change)"
+    if grep -F 'treehouse return' "$case_dir/treehouse.log" >/dev/null; then
+      fail "cleanup returned a changed slot ($change)"
+    fi
+    case "$change" in
+      meta)
+        expected="its task record is still present"
+        assert_grep 'replacement=yes' "$case_dir/home/state/$id.meta" "cleanup removed the replacement record"
+        ;;
+      branch)
+        expected="its ship branch is no longer checked out"
+        [ "$(git -C "$slot1" branch --show-current)" = replacement ] \
+          || fail "cleanup changed the replacement branch"
+        ;;
+      dirty)
+        expected="it holds uncommitted changes"
+        assert_grep 'keep' "$slot1/keep-me.txt" "cleanup lost the uncommitted file"
+        ;;
+      commits)
+        expected="it holds commits origin does not have"
+        assert_grep 'keep' "$slot1/extra.txt" "cleanup lost the task commit"
+        [ "$(git -C "$slot1" log -1 --format=%s)" = extra ] || fail "cleanup reset the task commit"
+        ;;
+      owner)
+        expected="its claim reads other"
+        assert_grep 'task=replacement' "$case_dir/slots/1/.fm-slot-owner" "cleanup removed the replacement claim"
+        ;;
+    esac
+    assert_contains "$out" "$expected" "cleanup did not explain its refusal ($change)"
+    if [ "$change" != owner ]; then
+      assert_grep "task=$id" "$case_dir/slots/1/.fm-slot-owner" "cleanup removed the refused slot's claim"
+    fi
+    pass "cleanup keeps task ownership and rechecks $change under the project lock"
+  done
 }
 
 test_dirty_slot_is_not_returned() {
@@ -220,8 +365,8 @@ test_dirty_slot_is_not_returned() {
 }
 
 test_slot_with_unpushed_commits_is_not_returned() {
-  local id="defer-$$-commit" case_dir out rc slot1
-  case_dir=$(make_world commits "$id")
+  local origin=${1:-origin} id="defer-$$-commit-${1:-origin}" case_dir out rc slot1
+  case_dir=$(make_world "commits-$origin" "$id" "$origin")
   slot1="$case_dir/slots/1/project"
   git -C "$slot1" checkout --quiet -b "fm/$id"
   printf 'keep\n' > "$slot1/extra.txt"
@@ -244,9 +389,35 @@ test_slot_with_unpushed_commits_is_not_returned() {
     || fail "the refused spawn detached the ship branch that holds the commit"
   grep -Fxq -- "task=$id" "$case_dir/slots/1/.fm-slot-owner" \
     || fail "the refused spawn dropped the claim on the slot it kept"
-  pass "a slot holding commits origin does not have is kept and the spawn refuses"
+  pass "a slot holding task commits is kept and the spawn refuses ($origin)"
+}
+
+test_originless_slot_without_other_local_branches_is_refused() {
+  local id="defer-$$-no-peer" case_dir out rc slot1
+  case_dir=$(make_world no-peer "$id" originless)
+  slot1="$case_dir/slots/1/project"
+  git -C "$case_dir/project" checkout --quiet --detach HEAD
+  git -C "$case_dir/project" branch -m main "fm/$id"
+
+  rc=0
+  out=$(run_spawn "$case_dir" "$id" clean --mode no-mistakes --yolo off) || rc=$?
+  expect_code 1 "$rc" "a slot without any comparison branch was returned"$'\n'"$out"
+  assert_contains "$out" "its commits could not be compared with origin" \
+    "the refusal did not name the missing comparison"
+  if grep -F 'treehouse return' "$case_dir/treehouse.log" >/dev/null; then
+    fail "an originless slot without another local branch was returned"
+  fi
+  [ "$(git -C "$slot1" branch --show-current)" = "fm/$id" ] \
+    || fail "cleanup changed the incomparable ship branch"
+  assert_grep "task=$id" "$case_dir/slots/1/.fm-slot-owner" "cleanup removed the incomparable slot's claim"
+  pass "an originless slot without another local branch is refused"
 }
 
 test_clean_defer_returns_the_slot_and_the_retry_spawns
+test_clean_defer_returns_the_slot_and_the_retry_spawns originless
+test_return_that_keeps_the_ship_branch_is_refused
+test_slot_is_rechecked_after_retaking_the_project_lock
 test_dirty_slot_is_not_returned
 test_slot_with_unpushed_commits_is_not_returned
+test_slot_with_unpushed_commits_is_not_returned originless
+test_originless_slot_without_other_local_branches_is_refused

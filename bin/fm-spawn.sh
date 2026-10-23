@@ -1576,7 +1576,8 @@ spawn_slot_checked_out_ship_branch() {
 # Prints one reason and returns 0 when the checked-out slot must stay.
 # Returns 1 when the checkout is only the refreshed base.
 spawn_slot_return_blocked_reason() {
-  local porcelain unpushed
+  local porcelain unpushed origin_refs local_refs ref
+  local other_branches=()
   if ! porcelain=$(git -C "$WT" -c core.quotePath=false status --porcelain --untracked-files=all 2>/dev/null); then
     printf '%s\n' "its worktree could not be inspected"
     return 0
@@ -1585,9 +1586,30 @@ spawn_slot_return_blocked_reason() {
     printf '%s\n' "it holds uncommitted changes"
     return 0
   fi
-  if ! unpushed=$(git -C "$WT" rev-list --max-count=1 HEAD --not --remotes=origin 2>/dev/null); then
+  if ! origin_refs=$(git -C "$WT" for-each-ref --format='%(refname)' refs/remotes/origin 2>/dev/null); then
     printf '%s\n' "its commits could not be compared with origin"
     return 0
+  fi
+  if [ -n "$origin_refs" ]; then
+    if ! unpushed=$(git -C "$WT" rev-list --max-count=1 HEAD --not --remotes=origin 2>/dev/null); then
+      printf '%s\n' "its commits could not be compared with origin"
+      return 0
+    fi
+  else
+    if ! local_refs=$(git -C "$WT" for-each-ref --format='%(refname)' refs/heads 2>/dev/null); then
+      printf '%s\n' "its commits could not be compared with origin"
+      return 0
+    fi
+    while IFS= read -r ref; do
+      if [ -n "$ref" ] && [ "$ref" != "refs/heads/$BRANCH" ]; then
+        other_branches+=("$ref")
+      fi
+    done <<<"$local_refs"
+    if [ "${#other_branches[@]}" -eq 0 ] ||
+      ! unpushed=$(git -C "$WT" rev-list --max-count=1 HEAD --not "${other_branches[@]}" 2>/dev/null); then
+      printf '%s\n' "its commits could not be compared with origin"
+      return 0
+    fi
   fi
   if [ -n "$unpushed" ]; then
     printf '%s\n' "it holds commits origin does not have ($unpushed)"
@@ -1606,11 +1628,7 @@ spawn_refuse_unreturned_slot() { # <reason>
 # held for the release at the bottom of the abort trap. On refusal the claim
 # stays so the checkout is still named.
 spawn_return_checked_out_ship_slot() {
-  local reason slot_phys marker out listed
-  if reason=$(spawn_slot_return_blocked_reason); then
-    spawn_refuse_unreturned_slot "$reason"
-    return 1
-  fi
+  local reason marker out current_branch
   if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" != 1 ]; then
     if [ -n "${SPAWN_TREEHOUSE_PROJECT_LOCK:-}" ] &&
       fm_lock_acquire_wait_max "$SPAWN_TREEHOUSE_PROJECT_LOCK" "$FM_PROJECT_CAPACITY_RELEASE_WAIT"; then
@@ -1619,6 +1637,18 @@ spawn_return_checked_out_ship_slot() {
   fi
   if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" != 1 ]; then
     spawn_refuse_unreturned_slot "the Treehouse project lock could not be retaken"
+    return 1
+  fi
+  if [ -e "$STATE/$ID.meta" ] || [ -L "$STATE/$ID.meta" ]; then
+    spawn_refuse_unreturned_slot "its task record is still present"
+    return 1
+  fi
+  if ! spawn_slot_checked_out_ship_branch; then
+    spawn_refuse_unreturned_slot "its ship branch is no longer checked out"
+    return 1
+  fi
+  if reason=$(spawn_slot_return_blocked_reason); then
+    spawn_refuse_unreturned_slot "$reason"
     return 1
   fi
   fm_treehouse_slot_owner_state "$WT" "$ID"
@@ -1630,19 +1660,20 @@ spawn_return_checked_out_ship_slot() {
     spawn_refuse_unreturned_slot "its claim path could not be resolved"
     return 1
   }
-  slot_phys=$(CDPATH='' cd -- "$WT" && pwd -P) || {
-    spawn_refuse_unreturned_slot "its worktree path could not be resolved"
-    return 1
-  }
   if ! out=$(cd "$PROJ_ABS" && treehouse return --force "$WT" 2>&1); then
     [ -z "$out" ] || printf '%s\n' "$out" >&2
     spawn_refuse_unreturned_slot "treehouse return failed"
     return 1
   fi
-  listed=$(git -C "$PROJ_ABS" worktree list --porcelain 2>/dev/null || true)
-  if printf '%s\n' "$listed" | grep -F -x -- "worktree $slot_phys" >/dev/null; then
-    spawn_refuse_unreturned_slot "the checkout was still registered after treehouse return"
-    return 1
+  if [ -d "$WT" ]; then
+    if ! current_branch=$(git -C "$WT" branch --show-current 2>/dev/null); then
+      spawn_refuse_unreturned_slot "its branch could not be inspected after treehouse return"
+      return 1
+    fi
+    if [ "$current_branch" = "$BRANCH" ]; then
+      spawn_refuse_unreturned_slot "its ship branch was still checked out after treehouse return"
+      return 1
+    fi
   fi
   rm -f -- "$marker" 2>/dev/null || true
   SPAWN_SLOT_CLAIMED=0
@@ -1756,18 +1787,10 @@ spawn_abort_cleanup() {
     fi
     spawn_hold_launched_item "$status"
   fi
-  if [ "$SPAWN_TASK_LOCK_HELD" = 1 ]; then
-    SPAWN_TASK_LOCK_HELD=0
-    fm_lock_release "$SPAWN_TASK_LOCK" || true
-  fi
   if [ "$SPAWN_FRESH_COMMIT_PENDING" = 1 ]; then
     if ! spawn_fresh_commit_rollback; then
       status=1
     fi
-  fi
-  if [ "$SPAWN_META_LOCK_HELD" = 1 ]; then
-    SPAWN_META_LOCK_HELD=0
-    fm_lock_release "$SPAWN_META_LOCK" || true
   fi
   # A spawn that aborts after claiming its slot but before its record survives
   # must not leave a claim naming a task no record describes. A checked-out
@@ -1810,6 +1833,14 @@ spawn_abort_cleanup() {
   if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" = 1 ]; then
     SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=0
     fm_lock_release "$SPAWN_TREEHOUSE_PROJECT_LOCK" || true
+  fi
+  if [ "$SPAWN_META_LOCK_HELD" = 1 ]; then
+    SPAWN_META_LOCK_HELD=0
+    fm_lock_release "$SPAWN_META_LOCK" || true
+  fi
+  if [ "$SPAWN_TASK_LOCK_HELD" = 1 ]; then
+    SPAWN_TASK_LOCK_HELD=0
+    fm_lock_release "$SPAWN_TASK_LOCK" || true
   fi
   if [ "$SPAWN_TASK_SET_LOCK_HELD" = 1 ]; then
     SPAWN_TASK_SET_LOCK_HELD=0
