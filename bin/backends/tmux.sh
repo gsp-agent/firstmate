@@ -286,6 +286,28 @@ fm_backend_tmux_foreground_pids() {  # <target>
       done
 }
 
+# Foreground pids whose identity is a verified harness. These are the only
+# roots a Claude exit may walk when it stops that agent's own background
+# shells. A background harness in the same pane is not a root: the foreground
+# group is the agent the pane is attributed to.
+fm_backend_tmux_agent_root_pids() {  # <target>
+  local target=$1 pid comm args argv0
+  while IFS= read -r pid; do
+    case "$pid" in ''|*[!0-9]*) continue ;; esac
+    comm=$(LC_ALL=C ps -p "$pid" -o comm= 2>/dev/null) || continue
+    comm=${comm#"${comm%%[![:space:]]*}"}
+    comm=${comm%"${comm##*[![:space:]]}"}
+    args=$(LC_ALL=C ps -p "$pid" -o args= 2>/dev/null) || continue
+    args=${args#"${args%%[![:space:]]*}"}
+    argv0=${args%%[[:space:]]*}
+    if [ "$(fm_agent_process_classify "$comm" "$argv0" "$args" "$pid")" = agent ]; then
+      printf '%s\n' "$pid"
+    fi
+  done <<EOF
+$(fm_backend_tmux_foreground_pids "$target")
+EOF
+}
+
 fm_backend_tmux_foreground_argv0s() {  # <target>
   local target=$1 tty pid pgid tpgid comm args argv0
   tty=$(tmux display-message -p -t "$target" '#{pane_tty}' 2>/dev/null) || return 0

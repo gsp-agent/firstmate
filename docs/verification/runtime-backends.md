@@ -1401,8 +1401,14 @@ The picker is recognised by its recorded structure only: the heading on its own 
 The same strings quoted above a normal composer, as a diff, this note, or a test fixture shows them, are not a picker.
 Submit retries now stop after the Enter that opened the picker and report unknown.
 A typed submit to a pane that already shows the picker types nothing and sends no Enter.
-Exit reports that the worker is blocked on the Claude background-task exit picker and does not type another Enter.
-A submit can return before any read sees the picker, so exit reads the screen once more when its wait for the agent to stop times out, and names the picker there too.
+As of 2026-10-22, a Claude exit stops that agent's own background shells before `/exit`, so this picker does not open for shells the control plane can see in that agent's process tree.
+A pane already showing the picker is recovered the same way: the shells it lists are stopped, Escape closes the picker, and `/exit` is submitted again.
+Enter is never sent into the picker.
+This behavior change was not a new live Claude run.
+The 2026-10-05 screen structure above is still the recognition rule, and Escape is the cancel named by that recorded footer.
+`tests/fm-control.test.sh` covers a fake pane whose background shell exits cleanly, a pane already on the picker, a picker that opens on submit, an unrecognised dialog that still refuses, and the earlier refusals when no agent process tree can be seen.
+When the agent's process tree cannot be seen, exit still reports that the worker is blocked on the Claude background-task exit picker and does not type another Enter or send Escape.
+A submit can return before any read sees the picker, so exit reads the screen once more when its wait for the agent to stop times out, and names the picker there too when it cannot recover it.
 Exit does not report a stopped agent whose pane still shows the picker text as blocked on a prompt.
 The watcher does not read the picker: a pane parked on it keeps the ordinary stale triage.
 No recorded screen was available for a model-downgrade confirmation, an MCP approval, or a Claude exit confirmation other than this picker, so those dialogs are not covered.

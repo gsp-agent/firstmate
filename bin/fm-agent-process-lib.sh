@@ -114,3 +114,160 @@ fm_agent_process_classify() {  # <name> <argv0> <args> [pid] -> agent|shell|othe
     printf 'other'
   fi
 }
+
+# fm_agent_process_snapshot: one tab-separated row per live process:
+# pid, ppid, pgid, class, args. class is the argv0 verdict from
+# fm_agent_process_classify_name. Empty and nonzero when the process table
+# cannot be read, so a caller does not treat "no rows" as "no processes".
+fm_agent_process_snapshot() {
+  local raw line pid ppid pgid args argv0 class
+  raw=$(LC_ALL=C ps -axo pid=,ppid=,pgid=,command= 2>/dev/null) || return 1
+  [ -n "$raw" ] || return 1
+  printf '%s\n' "$raw" | while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    # A command line is data. Word-split it without globbing, or a `*` in
+    # argv would become a filename and the pid columns would shift.
+    set -f
+    # shellcheck disable=SC2086
+    set -- $line
+    set +f
+    pid=$1
+    ppid=$2
+    pgid=$3
+    shift 3 || continue
+    args=$*
+    case "$pid" in ''|*[!0-9]*) continue ;; esac
+    case "$ppid" in ''|*[!0-9]*) continue ;; esac
+    case "$pgid" in ''|*[!0-9]*) continue ;; esac
+    argv0=${args%%[[:space:]]*}
+    [ -n "$argv0" ] || continue
+    class=$(fm_agent_process_classify_name "$argv0" "$argv0")
+    printf '%s\t%s\t%s\t%s\t%s\n' "$pid" "$ppid" "$pgid" "$class" "$args"
+  done
+}
+
+# fm_agent_process_background_pids: pids to stop before a Claude exit.
+# <mode> is shells or commands. <roots> and <commands> are newline-separated.
+# The snapshot is stdin in fm_agent_process_snapshot's format.
+# shells selects shell-classified descendants of the roots that sit outside
+# every root's process group, plus the processes those shells have started.
+# commands selects descendants whose args contain one listed command as a
+# whole token sequence, then the same shell closure. Roots themselves are
+# never selected. Prints nothing when there is nothing to stop.
+fm_agent_process_background_pids() {  # <mode> <roots> <commands>
+  local mode=$1 roots=$2 commands=$3
+  {
+    printf '%s\n' "$roots" | while IFS= read -r _fm_root; do
+      case "$_fm_root" in
+        ''|*[!0-9]*) ;;
+        *) printf 'R\t%s\n' "$_fm_root" ;;
+      esac
+    done
+    printf '%s\n' "$commands" | while IFS= read -r _fm_cmd; do
+      [ -n "$_fm_cmd" ] || continue
+      printf 'C\t%s\n' "$_fm_cmd"
+    done
+    cat
+  } | awk -F '\t' -v mode="$mode" '
+    function match_cmd(args,    i, cmd, rest, pos, start, abs, before, after) {
+      for (i = 1; i <= ncmd; i++) {
+        cmd = cmds[i]
+        if (cmd == "") continue
+        rest = args
+        start = 1
+        while ((pos = index(rest, cmd)) > 0) {
+          abs = start + pos - 1
+          before = (abs == 1) ? "" : substr(args, abs - 1, 1)
+          after = substr(args, abs + length(cmd), 1)
+          if ((abs == 1 || before ~ /[[:space:]]/) && (after == "" || after !~ /[[:alnum:]_]/))
+            return 1
+          if (pos >= length(rest)) break
+          start = abs + 1
+          rest = substr(args, start)
+        }
+      }
+      return 0
+    }
+    $1 == "R" { if ($2 ~ /^[0-9]+$/) roots[$2] = 1; next }
+    $1 == "C" {
+      cmd = $2
+      for (i = 3; i <= NF; i++) cmd = cmd "\t" $i
+      if (cmd != "") cmds[++ncmd] = cmd
+      next
+    }
+    $1 ~ /^[0-9]+$/ && NF >= 5 {
+      pid = $1
+      ppid = $2
+      pgid = $3
+      class = $4
+      args = $5
+      for (i = 6; i <= NF; i++) args = args "\t" $i
+      ppid_of[pid] = ppid
+      pgid_of[pid] = pgid
+      class_of[pid] = class
+      args_of[pid] = args
+      kids[ppid] = kids[ppid] " " pid
+      next
+    }
+    END {
+      unsafe = 0
+      for (r in roots)
+        if (r in pgid_of) root_pgid[pgid_of[r]] = 1
+      for (r in roots) {
+        n = split(kids[r], arr, " ")
+        for (i = 1; i <= n; i++) if (arr[i] != "") queue[++qn] = arr[i]
+      }
+      qi = 1
+      while (qi <= qn) {
+        cur = queue[qi++]
+        if (cur in seen) continue
+        seen[cur] = 1
+        desc[cur] = 1
+        n = split(kids[cur], arr, " ")
+        for (i = 1; i <= n; i++)
+          if (arr[i] != "" && !(arr[i] in seen)) queue[++qn] = arr[i]
+      }
+      # A listed task that shares the agent process group cannot be stopped
+      # without signaling the agent. Name that and select nothing.
+      if (mode == "commands") {
+        for (p in desc)
+          if ((pgid_of[p] in root_pgid) && match_cmd(args_of[p])) unsafe = 1
+      }
+      for (p in desc)
+        if (pgid_of[p] in root_pgid) delete desc[p]
+      if (unsafe) {
+        print "UNSAFE"
+        exit
+      }
+      if (mode == "shells") {
+        for (p in desc)
+          if (class_of[p] == "shell") sel[p] = 1
+      } else if (mode == "commands") {
+        for (p in desc)
+          if (match_cmd(args_of[p])) sel[p] = 1
+        for (p in sel) {
+          a = ppid_of[p]
+          while (a != "" && (a in desc)) {
+            if (class_of[a] == "shell") sel[a] = 1
+            a = ppid_of[a]
+          }
+        }
+      }
+      changed = 1
+      while (changed) {
+        changed = 0
+        for (p in desc) {
+          if (p in sel) continue
+          a = ppid_of[p]
+          under = 0
+          while (a != "" && (a in desc)) {
+            if ((a in sel) && class_of[a] == "shell") { under = 1; break }
+            a = ppid_of[a]
+          }
+          if (under) { sel[p] = 1; changed = 1 }
+        }
+      }
+      for (p in sel) print p
+    }
+  '
+}

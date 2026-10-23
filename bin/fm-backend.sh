@@ -1021,6 +1021,20 @@ fm_backend_target_exists() {  # <backend> <target> [expected-label]
 # `missing` only in this recovery-grade view. Zellij remains unverified because
 # its secondmate ghost-tab and agent-process recovery path has not been
 # empirically validated. Orca and cmux do not support secondmate spawns.
+# Pids of the harness agent in <target>, one per line. Claude exit walks only
+# these processes' descendants when it stops that agent's background shells.
+# tmux uses the foreground process group. Herdr uses process-info, then
+# harness descendants of the pane shell when the foreground group is not one.
+# Other backends print nothing.
+fm_backend_agent_root_pids() {  # <backend> <target>
+  local backend=$1 target=$2
+  fm_backend_source "$backend" || return 0
+  case "$backend" in
+    tmux) fm_backend_tmux_agent_root_pids "$target" ;;
+    herdr) fm_backend_herdr_agent_root_pids "$target" ;;
+  esac
+}
+
 fm_backend_agent_state() {  # <backend> <target>
   local backend=$1 target=$2
   fm_backend_source "$backend" || { printf 'unverified'; return 0; }

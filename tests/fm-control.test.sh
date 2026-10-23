@@ -36,6 +36,8 @@ SEND="$ROOT/bin/fm-send.sh"
 TMP_ROOT=$(fm_test_tmproot fm-control)
 mkdir -p "$TMP_ROOT"
 TMP_ROOT=$(cd "$TMP_ROOT" && pwd)
+# read assigns _fm_pid when the trap runs; ShellCheck does not see that.
+# shellcheck disable=SC2154
 trap 'if [ -f "$TMP_ROOT/nursery.pids" ]; then
   while IFS= read -r _fm_pid; do
     case "$_fm_pid" in
@@ -142,7 +144,17 @@ case "${1:-}" in
          && { [ "$payload" = /exit ] || [ "$payload" = /quit ]; }; then
         printf 'zsh' > "$D/command"
         if [ -f "$D/agent-pid" ]; then
-          kill "$(tr -d '[:space:]' < "$D/agent-pid")" 2>/dev/null || true
+          _apid=$(tr -d '[:space:]' < "$D/agent-pid")
+          kill "$_apid" 2>/dev/null || true
+          # The holder reaps this pid on a wall-clock interval. A zombie whose
+          # command line still names claude still classifies as alive, so wait
+          # out the reap with the real sleep, not the fakebin one.
+          _i=0
+          while [ "$_i" -lt 40 ]; do
+            ps -p "$_apid" >/dev/null 2>&1 || break
+            /bin/sleep 0.05
+            _i=$((_i + 1))
+          done
         fi
       fi
       case "$payload" in
@@ -1309,8 +1321,9 @@ PY
   sibling=$!
   nursery_track "$sibling"
   printf '%s\n' "$sibling" > "$dir/sibling.pid"
-  pid_alive "$bash_pid" && pid_alive "$sleep_pid" && pid_alive "$sibling" \
-    || fail "the nursery processes were not alive"
+  if ! pid_alive "$bash_pid" || ! pid_alive "$sleep_pid" || ! pid_alive "$sibling"; then
+    fail "the nursery processes were not alive"
+  fi
 }
 
 run_exit_with_nursery() {  # <case-dir> [extra env]
