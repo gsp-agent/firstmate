@@ -183,7 +183,10 @@
 #                          again (FM_SECONDMATE_LIVENESS_MAX_ATTEMPTS and
 #                          FM_SECONDMATE_LIVENESS_WINDOW_SECS)
 # The periodic hold-domain sweep uses the tracked check runner with
-# FM_CHECK_TIMEOUT seconds (default 90 for this sweep). A failure queues a
+# FM_CHECK_TIMEOUT seconds (default 90 for this sweep). That bound is a slice:
+# fm-captain-hold.sh saves its place and the next pass continues. Exit 124 or
+# 137 with no row failure is that slice ending, and it does not wake. A row
+# failure, including one already printed when the bound then fires, queues a
 # `check: hold-domain routing failed: exit <code>` wake before ordinary checks
 # run; that reason closes the sweep's one collected delivery, after the other
 # check results. fm-captain-hold.sh owns row deadlines and resumable sweep
@@ -3093,8 +3096,24 @@ while :; do
       CHECK_TIMEOUT=${FM_CHECK_TIMEOUT:-90} FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" FM_CHECK_CAPTURE_STDERR=1 \
         run_check_capture "$SCRIPT_DIR/fm-captain-hold.sh" route-due || exit 1
       if [ "$FM_CHECK_STATUS" -ne 0 ]; then
-        hold_route_reason="check: hold-domain routing failed: exit $FM_CHECK_STATUS${FM_CHECK_RESULT:+: $FM_CHECK_RESULT}"
-        fm_wake_append check hold-domain "$hold_route_reason" || exit 1
+        # 124 and 137 are the sweep bound (timeout, or the kill that follows
+        # it). A row that already failed is named in the captured output;
+        # anything else resumes from the sweep cursor on the next pass.
+        case "$FM_CHECK_STATUS" in
+          124|137)
+            case "$FM_CHECK_RESULT" in
+              *'fm-captain-hold: routing row '*) ;;
+              *)
+                triage_log "hold-domain sweep reached its bound and resumes next pass"
+                FM_CHECK_STATUS=0
+                ;;
+            esac
+            ;;
+        esac
+        if [ "$FM_CHECK_STATUS" -ne 0 ]; then
+          hold_route_reason="check: hold-domain routing failed: exit $FM_CHECK_STATUS${FM_CHECK_RESULT:+: $FM_CHECK_RESULT}"
+          fm_wake_append check hold-domain "$hold_route_reason" || exit 1
+        fi
       fi
     fi
     rejected_checks=
