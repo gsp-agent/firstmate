@@ -1667,6 +1667,10 @@ families_for_changed_path() {
     bin/fm-peek.sh|bin/fm-composer*)
       printf '%s\n' backend-dispatch
       printf '%s\n' pure-contract-unit
+      # Stays on this script rather than the parallel backend-dispatch list:
+      # the deferral proof has to run alone, and a later spawn-only diff
+      # would otherwise never select it.
+      printf '%s\n' __script__:fm-spawn-defer-slot.test.sh
       ;;
     bin/fm-task-inbox-lib.sh)
       # The steering-inbox record/doorbell/ladder owner: fm-send's data plane

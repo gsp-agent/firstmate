@@ -71,3 +71,5 @@ pr: 92
 # The earlier "Install-time proof" list in drift-measurements.txt predates these cuts and is superseded; do not reinstall its whole-commit approvals.
 # Alternate --proof inputs apply only to manual checks (bin/fm-drift-nightly.sh owns selection).
 # Guard and proof files have no automatic exemption; their complete patches must match this sequence.
+# tests/fm-spawn-defer-slot.test.sh
+pending-pr: 98 .agent-config-onxre

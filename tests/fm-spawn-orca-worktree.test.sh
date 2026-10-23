@@ -185,7 +185,7 @@ test_orca_late_live_refusal_closes_the_new_terminal() {
   local case_dir home id=orca-deferred-a3 fb out status=0
   case_dir="$TMP_ROOT/deferred"
   home="$case_dir/home"
-  mkdir -p "$home/data/$id" "$home/projects" "$home/state" "$home/config"
+  mkdir -p "$home/data/$id" "$home/projects" "$home/state" "$home/config" "$case_dir/user-home"
   touch "$home/state/.last-watcher-beat"
   printf 'codex\n' > "$home/config/crew-harness"
   printf 'manual\n' > "$home/config/backlog-backend"
@@ -227,7 +227,58 @@ PY
   pass "an Orca live refusal closes only its newly allocated terminal and worktree"
 }
 
+test_orca_blocked_branch_deferral_still_closes_its_terminal() {
+  local case_dir home id=orca-blocked-a4 fb out status=0
+  case_dir="$TMP_ROOT/blocked"
+  home="$case_dir/home"
+  mkdir -p "$home/data/$id" "$home/projects" "$home/state" "$home/config" "$case_dir/user-home"
+  touch "$home/state/.last-watcher-beat"
+  printf 'codex\n' > "$home/config/crew-harness"
+  printf 'manual\n' > "$home/config/backlog-backend"
+  fm_git_init_commit "$case_dir/project"
+  git -C "$case_dir/project" checkout -q -b "fm/$id"
+  printf 'keep\n' > "$case_dir/project/extra.txt"
+  git -C "$case_dir/project" add extra.txt
+  git -C "$case_dir/project" -c user.name='Firstmate Tests' -c user.email='tests@example.invalid' commit -qm extra
+  git -C "$case_dir/project" checkout -q main
+  cat > "$home/data/$id/brief.md" <<EOF
+# Task
+## Captain's intent
+Defer an Orca launch whose ship branch already holds a commit.
+
+## Firstmate spec
+Close this attempt's terminal and remove its worktree. Do not exit without a reason.
+EOF
+  fb=$(make_orca_fakebin "$case_dir")
+  cat > "$case_dir/detector.py" <<'PY'
+import os
+import sys
+
+terminal = os.path.join(os.environ["FM_TEST_ORCA_DIR"], "live-terminal")
+if os.path.isfile(terminal):
+    with open(terminal) as source:
+        if source.read().strip():
+            print("live signal=person source=desktop")
+            sys.exit(75)
+PY
+  out=$(FM_ROOT_OVERRIDE='' FM_HOME="$home" HOME="$case_dir/user-home" \
+    FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+    FM_PROJECTS_OVERRIDE="$home/projects" FM_CONFIG_OVERRIDE="$home/config" \
+    FM_SPAWN_NO_GUARD=1 FM_TEST_ORCA_DIR="$case_dir" PATH="$fb:$PATH" \
+    FM_LIVE_SESSION_CHECK="$case_dir/detector.py" \
+    "$SPAWN" "$id" "$case_dir/project" --mode no-mistakes --yolo off --backend orca 2>&1) || status=$?
+  expect_code 75 "$status" "an Orca deferral of a ship branch that holds a commit did not stay a deferral: $out"
+  assert_contains "$out" 'deferred:' "the Orca deferral was silent"
+  assert_contains "$out" 'live signal=person source=desktop' "the Orca refusal omitted its live signal"
+  [ ! -s "$case_dir/live-terminal" ] || fail "the refused Orca attempt left its new terminal open: $out"
+  assert_contains "$(cat "$case_dir/calls.log")" 'terminal close --terminal term-1' "the refused Orca attempt did not close its terminal"
+  assert_contains "$(cat "$case_dir/calls.log")" "worktree rm --worktree id:wt-fm-$id" "the refused Orca attempt did not unwind its new worktree allocation"
+  assert_absent "$home/state/$id.meta" "the refused Orca attempt left a provisional task record"
+  pass "an Orca deferral whose ship branch holds a commit still closes its terminal and worktree"
+}
+
 test_orca_late_live_refusal_closes_the_new_terminal
+test_orca_blocked_branch_deferral_still_closes_its_terminal
 test_orca_fresh_spawn_enters_the_worktree_it_created
 test_orca_relaunch_is_refused_before_the_worktree_carveout_could_run
 
