@@ -1643,6 +1643,91 @@ fm_treehouse_slot_owner_marker() {  # <worktree>
   printf '%s/.fm-slot-owner\n' "$(dirname "$slot")"
 }
 
+# fm_treehouse_free_own_slot: print the worktree path of one free Treehouse
+# pool slot that belongs to the project's own clone, or nothing.
+#
+# One pool can hold slots from two clones of one origin (the clones share a
+# repository basename, so Treehouse gives them one pool), and a plain
+# `treehouse get` hands out the first free slot regardless of which clone
+# created it. A worktree of the project's own clone is listed by the
+# project's own `git worktree list`; a slot is free when Treehouse's state
+# records no live owner process and no durable lease for it, and no
+# Firstmate slot-owner claim names a task for it. It must also pass the
+# allocator's reuse test the caller cannot undo by entering it directly:
+# a clean worktree whose HEAD is already in the fetched reset target, so
+# the spawn's base freshen never has to refuse residue or reset away
+# commits. The lowest slot name wins so the choice is stable.
+# Any doubt - no jq, no pool layout, a live owner, an existing claim,
+# residue, or an unverifiable reset target - prints nothing, and the
+# caller keeps the plain `treehouse get` path, whose candidate screening
+# still refuses a foreign-clone slot.
+fm_treehouse_free_own_slot() {  # <project-dir> [<base-branch>]
+  local project=$1 base=${2:-} listed line wt slot pool state owner_pid marker name best="" best_key=""
+  local target_branch="" target_ref="" target_ready=0 status candidate
+  command -v jq >/dev/null 2>&1 || return 0
+  listed=$(git -C "$project" -c core.quotePath=false worktree list --porcelain 2>/dev/null) || return 0
+  while IFS= read -r line; do
+    case "$line" in
+      worktree\ *) wt=${line#worktree } ;;
+      *) continue ;;
+    esac
+    fm_treehouse_pool_slot "$project" "$wt" || continue
+    slot=$(CDPATH='' cd -- "$wt" 2>/dev/null && pwd -P) || continue
+    pool=$(dirname "$(dirname "$slot")")
+    state="$pool/treehouse-state.json"
+    name=$(basename "$(dirname "$slot")")
+    lease_line=$(jq -r --arg p "$slot" --arg n "$name" \
+      '.worktrees[]? | select(.path == $p or .name == $n) | "\(.owner_pid // "") \(.leased // false)"' \
+      "$state" 2>/dev/null) || continue
+    [ -n "$lease_line" ] || continue
+    owner_pid=${lease_line%% *}
+    if [ -n "$owner_pid" ] && fm_pid_alive "$owner_pid"; then
+      continue
+    fi
+    if [ "${lease_line##* }" = true ]; then
+      continue
+    fi
+    marker=$(fm_treehouse_slot_owner_marker "$wt") || continue
+    if [ -e "$marker" ] || [ -L "$marker" ]; then
+      continue
+    fi
+    if [ "$target_ready" -eq 0 ]; then
+      target_branch=$base
+      if [ -z "$target_branch" ]; then
+        target_branch=$(git -C "$project" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || true)
+        target_branch=${target_branch#origin/}
+      fi
+      if [ -z "$target_branch" ]; then
+        for candidate in main master; do
+          if git -C "$project" show-ref --verify --quiet "refs/heads/$candidate"; then
+            target_branch=$candidate
+            break
+          fi
+        done
+      fi
+      if [ -z "$target_branch" ] ||
+        ! git -C "$wt" fetch --quiet origin "+refs/heads/$target_branch:refs/remotes/origin/$target_branch" </dev/null 2>/dev/null; then
+        return 0
+      fi
+      target_ref="origin/$target_branch"
+      target_ready=1
+    fi
+    status=$(git -C "$wt" -c core.quotePath=false status --porcelain 2>/dev/null) || continue
+    [ -z "$status" ] || continue
+    git -C "$wt" merge-base --is-ancestor HEAD "$target_ref" 2>/dev/null || continue
+    case "$name" in
+      *[!0-9]* | "") name=999999 ;;
+    esac
+    if [ -z "$best" ] || [ "$name" -lt "$best_key" ]; then
+      best=$slot
+      best_key=$name
+    fi
+  done <<EOF
+$listed
+EOF
+  [ -z "$best" ] || printf '%s\n' "$best"
+}
+
 # Claim a pool slot for a task, replacing whatever the previous holder left.
 # The rename is atomic, so a reader either sees the old claim or the new one.
 fm_treehouse_slot_owner_claim() {  # <worktree> <task-id> <home>
