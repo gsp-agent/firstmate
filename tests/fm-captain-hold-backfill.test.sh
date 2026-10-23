@@ -152,9 +152,24 @@ SH
   pass "a failed row is reported and later rows still backfill"
 }
 
+test_backfill_preserves_long_reason() {
+  local home out body long_reason
+  home=$(make_home longreason)
+  long_reason="waiting on a go for the full end-to-end verification pass over every surface named in the call, including the second and third checks, before anyone touches the branch again, and then a final read of the whole record so the routing reason survives exactly as written here today, word for word, without any shortening at all"
+  tasks_in "$home" add long-widget "Ship the long widget" --kind ship --repo sample >/dev/null
+  run_captain "$home" hold long-widget --reason "$long_reason" >/dev/null
+  strip_owner_fields "$home"
+  out=$(run_captain "$home" backfill-owners) || fail "backfill failed on a long reason: $out"
+  body=$(tasks_in "$home" show long-widget --full)
+  printf '%s\n' "$body" | grep -q "Hold reason: $long_reason" \
+    || fail "long routing reason was not preserved whole: $body"
+  pass "backfill preserves a long routing reason whole"
+}
+
 test_backfill_derives_owner
 test_backfill_named_seat_and_dale
 test_backfill_skips_row_without_stamp
 test_backfill_fails_on_unreadable_backlog
 test_backfill_row_failure_does_not_strand_later_rows
+test_backfill_preserves_long_reason
 echo "all fm-captain-hold-backfill tests passed"
