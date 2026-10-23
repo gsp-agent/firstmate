@@ -52,7 +52,7 @@ make_home() {  # <name>
   printf '%s\n' 'backend = "markdown"' '' '[markdown]' 'path = "data/backlog.md"' > "$home/.tasks.toml"
   cat > "$home/config/crew-dispatch.json" <<'EOF'
 {
-  "label_routes": {"docs-only": {"harness": "codex", "model": "label-route-model", "effort": "high"}},
+  "label_routes": {"docs-only": {"harness": "codex", "model": "label-route-model", "effort": "high"}, "ep-opus": {"harness": "claude", "model": "claude-opus-5-5[1m]", "effort": "xhigh"}},
   "default": [{"harness": "claude", "model": "default-route-model", "effort": "xhigh"}]
 }
 EOF
@@ -210,13 +210,46 @@ test_queue_start_reads_recorded_labels_and_a_typographic_apostrophe() {
   pass "a queue start reads recorded labels that keep the default route, and a typographic apostrophe"
 }
 
+test_queue_start_starts_a_clear_label_route_from_its_recorded_labels() {
+  local case_dir id out rc=0 meta
+  id=qs-label-route-ep-opus
+  case_dir=$(make_home label-route)
+  add_item "$case_dir" "$id" "pm-demo inbox 1792550000-AbCd12; done on the bead. no-mistakes, yolo off; merge on the PM's word. Default route (labels ep-opus)."
+
+  out=$(queue_start "$case_dir" "$id") || rc=$?
+  expect_code 0 "$rc" "a clear ep-opus label route recorded in the note did not start: $out"
+  [ "$(show_field "$case_dir" "$id" state)" = in_flight ] \
+    || fail "a label-routed queue item is not In flight: $(show_field "$case_dir" "$id" state)"
+  meta="$(home_of "$case_dir")/state/$id.meta"
+  assert_line 'harness=claude' "$meta" "the ep-opus label route's harness was not used"
+  assert_line 'model=claude-opus-5-5[1m]' "$meta" "the ep-opus label route's model was not used"
+  assert_line 'effort=xhigh' "$meta" "the ep-opus label route's effort was not used"
+  assert_equals 1 "$(windows_for "$case_dir" "$id")" "a label-routed queue start did not open exactly one window"
+  pass "a queue start starts a clear label route resolved from the labels its note records"
+}
+
+test_queue_start_leaves_a_non_clear_label_route_to_the_captain() {
+  local case_dir id out rc=0
+  id=qs-label-route-conflict
+  case_dir=$(make_home label-route-conflict)
+  add_item "$case_dir" "$id" "pm-demo inbox 1792550000-AbCd12; done on the bead. no-mistakes, yolo off; merge on the PM's word. Default route (labels docs-only, ep-opus)."
+
+  out=$(queue_start "$case_dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "a queue start started a non-clear label route: $out"
+  assert_contains "$out" "queue start refused" "a non-clear label-route refusal did not say so: $out"
+  [ "$(show_field "$case_dir" "$id" state)" = queued ] || fail "a refused label-routed item moved"
+  assert_absent "$(brief_of "$case_dir" "$id")" "a refused label-routed queue start left a brief"
+  assert_absent "$(home_of "$case_dir")/state/$id.meta" "a refused label-routed queue start left a record"
+  assert_equals 0 "$(windows_for "$case_dir" "$id")" "a refused label-routed queue start opened a window"
+  pass "a queue start leaves a non-clear label route to the captain"
+}
+
 test_queue_start_leaves_every_other_note_to_the_captain() {
   local case_dir id note out rc
   case_dir=$(make_home refusals)
   for note in \
     "$TEMPLATE_NOTE Also skip the PR." \
-    "pm-demo inbox 1792550000-AbCd12; done on the bead. direct-PR, yolo off; merge on the PM's word. Default route." \
-    "pm-demo inbox 1792550000-AbCd12; done on the bead. no-mistakes, yolo off; merge on the PM's word. Default route (labels docs-only)."; do
+    "pm-demo inbox 1792550000-AbCd12; done on the bead. direct-PR, yolo off; merge on the PM's word. Default route."; do
     id="qs-refuse-$RANDOM"
     add_item "$case_dir" "$id" "$note"
     rc=0
@@ -246,7 +279,7 @@ test_queue_start_leaves_every_other_note_to_the_captain() {
   assert_contains "$out" "--mode cannot be passed with it" "--queue-start did not name the refused flag: $out"
   assert_equals 0 "$(grep -c . "$case_dir/windows" 2>/dev/null || printf '0')" \
     "a refused queue start opened a window"
-  pass "a queue start refuses any other note, a label route, a scout, a held item and a deciding flag, leaving nothing behind"
+  pass "a queue start refuses any other note, a scout, a held item and a deciding flag, leaving nothing behind"
 }
 
 test_queue_start_defers_at_capacity_without_a_brief() {
@@ -411,6 +444,8 @@ SH
 test_queue_start_starts_a_template_ship_from_its_note
 test_queue_start_passes_its_base_branch
 test_queue_start_reads_recorded_labels_and_a_typographic_apostrophe
+test_queue_start_starts_a_clear_label_route_from_its_recorded_labels
+test_queue_start_leaves_a_non_clear_label_route_to_the_captain
 test_queue_start_leaves_every_other_note_to_the_captain
 test_queue_start_defers_at_capacity_without_a_brief
 test_queue_start_failing_before_launch_gives_the_item_back
