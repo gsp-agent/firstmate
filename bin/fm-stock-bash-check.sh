@@ -110,8 +110,12 @@ WORK=$(mktemp -d "${TMPDIR:-/tmp}/fm-stock-bash.XXXXXX") || fm_stock_bash_refuse
 trap 'rm -rf "${WORK:?}"' EXIT
 
 # Print the summed RSS in KiB of <pid> and every process descended from it.
+# A failed process list is a failure: awk's status used to hide it, and a
+# denied ps then looked like a tree of 0 KiB (.agent-config-nd9sk).
 fm_stock_bash_tree_rss_kib() {  # <pid>
-  ps -A -o pid= -o ppid= -o rss= 2>/dev/null | awk -v root="$1" '
+  local listing
+  listing=$(ps -A -o pid= -o ppid= -o rss=) || return 1
+  printf '%s\n' "$listing" | awk -v root="$1" '
     { parent[$1] = $2; rss[$1] = $3 }
     END {
       total = 0
@@ -142,7 +146,11 @@ fm_stock_bash_run_bounded() {  # <step> <log> <command...>
   (cd "$ROOT" && fm_exec_timed "$STEP_SECONDS" "$GRACE_SECONDS" env PATH="$STOCK_PATH" "$@") >"$log" 2>&1 &
   pid=$!
   while kill -0 "$pid" 2>/dev/null; do
-    rss=$(fm_stock_bash_tree_rss_kib "$pid")
+    if ! rss=$(fm_stock_bash_tree_rss_kib "$pid"); then
+      STEP_CAP='unmeasured'
+      kill -TERM "$pid" 2>/dev/null
+      break
+    fi
     [ "$rss" -le "$peak" ] || peak=$rss
     if [ "$rss" -gt "$RSS_KIB" ]; then
       STEP_CAP='memory'
@@ -163,6 +171,7 @@ fm_stock_bash_cap_reason() {
   case "$STEP_CAP" in
     time) printf 'stopped at the %ss wall bound' "$STEP_SECONDS" ;;
     memory) printf 'stopped at the %s KiB process-tree memory cap' "$RSS_KIB" ;;
+    unmeasured) printf 'process list could not be read, so the %s KiB tree cap was not enforced' "$RSS_KIB" ;;
   esac
 }
 

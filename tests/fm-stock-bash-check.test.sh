@@ -138,6 +138,21 @@ test_the_memory_cap_stops_a_growing_step() {
   pass "a step past the memory cap is stopped and fails naming the cap"
 }
 
+test_a_failed_process_list_fails_the_step() {
+  stock_only "a failed process list fails the step instead of reporting 0 KiB" || return 0
+  local repo="$TMP_ROOT/badps" stub="$TMP_ROOT/badps-bin"
+  make_fixture "$repo"
+  mkdir -p "$stub"
+  printf '#!/bin/sh\nexit 1\n' > "$stub/ps"
+  chmod +x "$stub/ps"
+  run_check "$repo" PATH="$stub:$TOOLS:$PATH"
+  expect_code 1 "$RC" "a failed process list"$'\n'"$OUT"
+  assert_contains "$OUT" "process list could not be read, so the 2097152 KiB tree cap was not enforced" \
+    "the failure names the unread process list"
+  assert_not_contains "$OUT" "every stock Bash" "a failed read is not a pass"
+  pass "a failed process list fails the step instead of reporting 0 KiB"
+}
+
 test_the_wall_bound_stops_a_hung_step() {
   stock_only "a step past the wall bound is stopped and fails naming the bound" || return 0
   local repo="$TMP_ROOT/time" started elapsed
@@ -157,4 +172,5 @@ test_passes_when_every_check_passes
 test_a_bash4_only_construct_fails_the_parse_sweep
 test_a_count_mismatch_fails_naming_the_suite
 test_the_memory_cap_stops_a_growing_step
+test_a_failed_process_list_fails_the_step
 test_the_wall_bound_stops_a_hung_step
