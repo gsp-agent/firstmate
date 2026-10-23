@@ -206,7 +206,9 @@
 # direction). A send without the flag never closes anything: a routine steer,
 # working:, or done: event still cannot clear a captain decision. The flag is
 # refused with --key, with an explicit backend target (no task ledger in this
-# home), and with an empty message.
+# home), and with an empty message. A captain-held key additionally requires
+# a local inbox plane and recorded worker generation: remote and parser-native
+# deliveries decline before sending or creating a reply expectation.
 #
 # After a successful TYPED-plane submit fm-send pauses FM_SEND_SETTLE seconds
 # (default 1, 0 disables) before returning: submit confirmation only proves the
@@ -736,13 +738,17 @@ fm_send_close_resolved_keys() { # <answer-text>
 fm_send_feed_resolved_holds() { # <answer-text>
   local note=$1 k lines=''
   [ -n "$RESOLVE_HOLD_KEYS" ] || return 0
+  if [ -z "${INBOX_RECORD:-}" ] || [ -z "${CURRENT_INBOX_SPAWN_GEN:-}" ]; then
+    echo 'error: delivered answer has no verifiable inbox receipt; preserve the pending decision and do not resend' >&2
+    return 1
+  fi
   note=$(printf '%s' "$note" | tr '\n\r\t' '   ' | LC_ALL=C tr -d '\000-\037\177')
   for k in $RESOLVE_HOLD_KEYS; do
     lines="${lines}${k}"$'\t'"${note}"$'\t'$'\n'
   done
   if ! printf '%s' "$lines" | "$SCRIPT_DIR/fm-captain-hold.sh" answers \
-    --delivered-task "$RESOLVE_TASK_ID" --delivered-record "${INBOX_RECORD:-unavailable}" \
-    --delivered-generation "${CURRENT_INBOX_SPAWN_GEN:-${CURRENT_REMOTE_SPAWN_GEN:-}}" \
+    --delivered-task "$RESOLVE_TASK_ID" --delivered-record "$INBOX_RECORD" \
+    --delivered-generation "$CURRENT_INBOX_SPAWN_GEN" \
     --source "a firstmate answer sent to $RESOLVE_TASK_ID" >/dev/null 2>&1; then
     echo "error: the answer was delivered to $T, but this captain-held task could not be closed: ${RESOLVE_HOLD_KEYS}. Close it with fm-captain-hold.sh answer - do not resend the answer." >&2
     return 1
@@ -812,6 +818,40 @@ else
   # The pre-marker answer text, kept for the closing resolved note so the
   # durable ledger records the plain answer without marker or corr bytes.
   RESOLVE_ANSWER_TEXT=$MESSAGE
+  # Data-plane selection (see the header): text addressed to a task selector
+  # resolved through this home's metadata rides the inbox plane, unless it is
+  # a LOCAL harness-native invocation that must reach the harness's own parser
+  # - a leading "/" (slash command), or a leading "$" to a codex target (skill
+  # invocation). A remote secondmate selector always rides the inbox: its
+  # requests are marked, and a marked request reaches the harness as
+  # marker-prefixed chat rather than a parser command anyway, so no remote
+  # text has a typed plane to lose. An explicit backend target stays typed
+  # even when it happens to match local metadata: it names an endpoint, not a
+  # task, the same boundary that keeps it unmarked and outside --resolve-key.
+  # Classification reads the pre-marker text so a marked secondmate request
+  # and a plain crewmate steer classify identically. It deliberately does NOT
+  # promise that a marked parser-native secondmate request executes as a parser
+  # command: the pre-existing marker-first wire bytes are retained in stage 1.
+  INBOX_PLANE=0
+  if [ -n "$TARGET_SELECTOR" ]; then
+    if [ -n "$FIRE_AND_FORGET_ID" ] || [ "$TARGET_BACKEND" = remote ]; then
+      INBOX_PLANE=1
+    else
+      case "$RESOLVE_ANSWER_TEXT" in
+      /*) ;;
+      \$*) [ "$TARGET_HARNESS" = codex ] || INBOX_PLANE=1 ;;
+      *) INBOX_PLANE=1 ;;
+      esac
+    fi
+  fi
+  # A keyed hold answer needs a verifiable local inbox receipt. Refuse
+  # unsupported planes before creating a reply expectation or delivering text.
+  if [ -n "$RESOLVE_HOLD_KEYS" ] &&
+    { [ "$TARGET_BACKEND" = remote ] || [ "$INBOX_PLANE" != 1 ] ||
+      [ -z "$(fm_meta_get "$TARGET_META" spawn_gen)" ]; }; then
+    echo 'error: keyed captain-hold answers require a local task inbox and recorded generation; nothing was sent' >&2
+    exit 1
+  fi
   if [ "$MARK_FROM_FIRSTMATE" = 1 ] && [ -n "$FIRE_AND_FORGET_ID" ]; then
     fm_message_mark_from_firstmate "$MESSAGE" MESSAGE
     MESSAGE="${FM_FROMFIRST_MARK}delivery=${FIRE_AND_FORGET_ID} ${MESSAGE#"$FM_FROMFIRST_MARK"}"
@@ -864,32 +904,6 @@ else
         fm_pending_reply_discard_undelivered "$STATE" "$PENDING_REPLY_CORR" || true
       echo "error: failed to durably prepare pending-reply delivery for $TARGET_TASK_ID" >&2
       exit 1
-    fi
-  fi
-  # Data-plane selection (see the header): text addressed to a task selector
-  # resolved through this home's metadata rides the inbox plane, unless it is
-  # a LOCAL harness-native invocation that must reach the harness's own parser
-  # - a leading "/" (slash command), or a leading "$" to a codex target (skill
-  # invocation). A remote secondmate selector always rides the inbox: its
-  # requests are marked, and a marked request reaches the harness as
-  # marker-prefixed chat rather than a parser command anyway, so no remote
-  # text has a typed plane to lose. An explicit backend target stays typed
-  # even when it happens to match local metadata: it names an endpoint, not a
-  # task, the same boundary that keeps it unmarked and outside --resolve-key.
-  # Classification reads the pre-marker text so a marked secondmate request
-  # and a plain crewmate steer classify identically. It deliberately does NOT
-  # promise that a marked parser-native secondmate request executes as a parser
-  # command: the pre-existing marker-first wire bytes are retained in stage 1.
-  INBOX_PLANE=0
-  if [ -n "$TARGET_SELECTOR" ]; then
-    if [ -n "$FIRE_AND_FORGET_ID" ] || [ "$TARGET_BACKEND" = remote ]; then
-      INBOX_PLANE=1
-    else
-      case "$RESOLVE_ANSWER_TEXT" in
-      /*) ;;
-      \$*) [ "$TARGET_HARNESS" = codex ] || INBOX_PLANE=1 ;;
-      *) INBOX_PLANE=1 ;;
-      esac
     fi
   fi
   if [ "$INBOX_PLANE" = 1 ] && [ "$TARGET_BACKEND" = remote ]; then
@@ -1028,6 +1042,7 @@ else
     fi
     if [ "$CURRENT_INBOX_TARGET" != "$T" ] ||
       [ "$CURRENT_INBOX_BACKEND" != "$TARGET_BACKEND" ] ||
+      { [ -n "$RESOLVE_HOLD_KEYS" ] && [ -z "$CURRENT_INBOX_SPAWN_GEN" ]; } ||
       { [ -n "${FM_SEND_EXPECTED_SPAWN_GEN:-}" ] &&
         [ "$CURRENT_INBOX_SPAWN_GEN" != "$FM_SEND_EXPECTED_SPAWN_GEN" ]; } ||
       [ -n "$(fm_meta_get "$TARGET_META" remote_host)" ]; then

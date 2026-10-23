@@ -148,7 +148,10 @@
 # --delivered-generation from fm-send's completed enqueue. The answer validates
 # that receipt against the current task and generation and refuses to spend a
 # prior hold occurrence's receipt again. Missing or mismatched proof remains
-# pending; source provenance is never delivery authority.
+# pending; source provenance is never delivery authority. An exact answer retry
+# can replace those receipt fields with a verified existing inbox delivery,
+# retaining the original task, generation, decision and occurrence. It never
+# enqueues to repair an invalid receipt or infers a missing original generation.
 # A re-held task may record a new answer on top. On a task already closed outside this script,
 # `answer` records the missing resolution block (the old `repair` path) only
 # when the task still carries the captain-hold provenance tasks-axi preserves
@@ -325,6 +328,9 @@ DATA="${FM_DATA_OVERRIDE:-$FM_HOME/data}"
 # shellcheck source=bin/fm-task-inbox-lib.sh
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/fm-task-inbox-lib.sh"
+# shellcheck source=bin/fm-marker-lib.sh
+# shellcheck disable=SC1091
+. "$SCRIPT_DIR/fm-marker-lib.sh"
 
 PARENT_HOLD_PUBLISHED=0
 publish_parent_hold() {  # <task-id> <occurrence> <verb> <note>
@@ -1520,7 +1526,7 @@ prepare_answer_continuation() {  # <id> <mode> <shown-body>
 }
 
 continue_recorded_answer() {  # <id>; caller owns the answered task control lock
-  local id=$1 body mode digest target runtime show state held text record delivered dir gen lock='' rc=0 message name receipt_gen uses occurrence pending
+  local id=$1 body mode digest target runtime show state held text record delivered dir gen lock='' rc=0 message name receipt_gen uses occurrence pending original_body tmp
   task_show "$id" || fail "cannot read the recorded answer for $id"
   body=$(show_field_value "$TASK_SHOW_OUTPUT" body)
   target=$(answer_header "$body" 'Continuation task')
@@ -1532,9 +1538,9 @@ continue_recorded_answer() {  # <id>; caller owns the answered task control lock
   (umask 077; mkdir -p "$STATE/hold-domain/pending"
     printf 'Answer continuation: %s\n' "$digest" > "$pending") \
     || fail "cannot retain answer continuation for $id"
-  text=$(printf '%s' "$body" | python3 -c '
+  text=$(printf '%s' "$body" | python3 -I -c '
 import hashlib, sys
-body = sys.stdin.read()
+body = sys.stdin.buffer.read().decode("utf-8", "surrogateescape")
 digest = body.split("Decision digest: ", 1)[1].splitlines()[0]
 rest = body.split("\nCaptain decision:\n", 1)[1]
 lines = rest.splitlines(keepends=True)
@@ -1542,8 +1548,8 @@ candidate = ""
 for line in lines:
     candidate += line
     value = candidate.rstrip("\n")
-    if hashlib.sha256(value.encode()).hexdigest() == digest:
-        sys.stdout.write(value)
+    if hashlib.sha256(value.encode("utf-8", "surrogateescape")).hexdigest() == digest:
+        sys.stdout.buffer.write(value.encode("utf-8", "surrogateescape"))
         break
 else:
     raise SystemExit("recorded answer digest does not match")
@@ -1573,6 +1579,40 @@ else:
       delivered=$(answer_header "$body" 'Continuation inbox task')
       record=$(answer_header "$body" 'Continuation inbox record')
       gen=$(meta_value "$STATE/$runtime.meta" spawn_gen)
+      original_body=$body
+      if [ -n "$ANSWER_DELIVERED_TASK$ANSWER_DELIVERED_RECORD$ANSWER_DELIVERED_GENERATION" ]; then
+        # Repair only this recorded occurrence, preserving its original target,
+        # generation and exact decision. Never turn an unproven old send into
+        # a fresh enqueue, or infer its generation from the current worker.
+        receipt_gen=$(answer_header "$body" 'Continuation inbox generation')
+        if [ -z "$record" ] || [ -z "$delivered" ] || [ -z "$receipt_gen" ] ||
+          [ -z "$ANSWER_DELIVERED_TASK" ] || [ -z "$ANSWER_DELIVERED_RECORD" ] ||
+          [ "$ANSWER_DELIVERED_GENERATION" != "$receipt_gen" ] || [ "$receipt_gen" != "$gen" ] ||
+          [ "$(task_identity "$delivered")" != "$target" ] ||
+          [ "$(task_identity "$ANSWER_DELIVERED_TASK")" != "$target" ]; then
+          rc=1
+        else
+          validate_slug delivered-task "$ANSWER_DELIVERED_TASK"
+          validate_one_line delivered-record "$ANSWER_DELIVERED_RECORD"
+          body=$(printf '%s' "$body" | python3 -I -c '
+import sys
+body = sys.stdin.buffer.read()
+header, separator, decision = body.partition(b"\nCaptain decision:\n")
+if not separator:
+    raise SystemExit("missing recorded decision")
+values = dict(zip((b"Continuation inbox task", b"Continuation inbox record",
+                   b"Continuation inbox generation"),
+                  (value.encode("utf-8", "surrogateescape") for value in sys.argv[1:])))
+lines = []
+for line in header.split(b"\n"):
+    key, sep, value = line.partition(b": ")
+    lines.append(key + sep + values[key] if sep and key in values else line)
+sys.stdout.buffer.write(b"\n".join(lines) + separator + decision)
+' "$ANSWER_DELIVERED_TASK" "$ANSWER_DELIVERED_RECORD" "$ANSWER_DELIVERED_GENERATION") || rc=1
+          delivered=$(answer_header "$body" 'Continuation inbox task')
+          record=$(answer_header "$body" 'Continuation inbox record')
+        fi
+      fi
       if [ -n "$record" ]; then
         receipt_gen=$(answer_header "$body" 'Continuation inbox generation')
         [ -n "$gen" ] && [ "$receipt_gen" = "$gen" ] || rc=1
@@ -1600,12 +1640,38 @@ else:
           # A receipt is evidence only when its body is this keyed answer.
           local inbox_text answer
           inbox_text=$(fm_task_inbox_body "$record") || rc=1
+          # Strip only the native secondmate carrier; ordinary prose is data.
+          if [ "$(meta_value "$STATE/$runtime.meta" kind)" = secondmate ] &&
+            fm_message_from_firstmate "$inbox_text" &&
+            [[ "$inbox_text" = "$FM_FROMFIRST_MARK"* ]]; then
+            fm_operational_input_body "$inbox_text" inbox_text || rc=1
+            if [[ "$inbox_text" =~ ^corr=[0-9a-f]{16}' ' ]]; then
+              inbox_text=${inbox_text#* }
+            else
+              rc=1
+            fi
+          fi
           answer=$(printf '%s\n' "$text" | sed -n 's/^Answer: //p' | head -1)
           [ -n "$answer" ] && [ "$(sanitize_field "$inbox_text")" = "$answer" ] || rc=1
           [ "$(task_identity "$delivered")" = "$target" ] || rc=1
         fi
+        if [ "$rc" = 0 ] && [ "$body" != "$original_body" ]; then
+          # The control lock spans validation and replacement; recheck both
+          # durable inputs before archiving the original body and accepting it.
+          task_show "$id" || rc=1
+          [ "$(show_field_value "$TASK_SHOW_OUTPUT" body)" = "$original_body" ] || rc=1
+          [ "$(meta_value "$STATE/$runtime.meta" spawn_gen)" = "$gen" ] || rc=1
+          if [ "$rc" = 0 ]; then
+            tmp=$(umask 077; mktemp "${TMPDIR:-/tmp}/fm-answer-receipt.XXXXXX") || return 1
+            if ! printf '%s\n' "$body" > "$tmp" ||
+              ! tasks_axi update "$id" --body-file "$tmp" --archive-body >/dev/null; then
+              rc=1
+            fi
+            rm -f -- "$tmp"
+          fi
+        fi
       else
-        if [ -z "$gen" ]; then rc=1; else
+        if [ "$rc" != 0 ] || [ -z "$gen" ]; then rc=1; else
           occurrence=$(resolution_record_count "$body")
           message=$(printf 'Captain answer for %s occurrence %s worker %s [%s]. Continue the current task using this recorded decision:\n\n%s' "$id" "$occurrence" "$gen" "$digest" "$text")
           FM_SEND_IDEMPOTENT=1 FM_SEND_EXPECTED_SPAWN_GEN="$gen" \

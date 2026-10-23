@@ -873,6 +873,181 @@ test_answer_continuation_reuses_an_fm_send_delivery() {
   pass 'answer continuation reuses the instruction already delivered by fm-send'
 }
 
+test_answer_transport_receipt() {  # secondmate|typed|remote
+  local transport=$1 home remote='' answer='Use the approved option.' rc=0 retry=0 count pending=no record_dir before
+  home=$(make_home "answer-transport-$transport")
+  tasks_in "$home" add sample-worker 'Synthetic active work' --kind ship --repo sample --start >/dev/null || fail 'create active work'
+  write_origin_meta "$home" sample-worker ship
+  [ "$transport" = typed ] || write_origin_meta "$home" sample-worker secondmate
+  [ "$transport" != typed ] || answer='/approved-option'
+  cat > "$home/fakebin/tmux" <<'SH'
+#!/usr/bin/env bash
+case "${1:-}" in
+  send-keys)
+    shift
+    literal=0
+    while [ "$#" -gt 0 ]; do
+      case "$1" in -t) shift 2 ;; -l) literal=1; shift ;; *) break ;; esac
+    done
+    [ "$literal" != 1 ] || printf '%s\n' "${1:-}" >> "$FM_HOME/typed.log"
+    ;;
+  display-message)
+    for arg in "$@"; do case "$arg" in *cursor_y*) printf '1\n'; exit 0 ;; esac; done
+    printf 'fakepane\n'
+    ;;
+  capture-pane) printf '╭────╮\n│    │\n╰────╯\n' ;;
+esac
+exit 0
+SH
+  chmod +x "$home/fakebin/tmux"
+  record_dir="$home/state/sample-worker.inbox"
+  if [ "$transport" = remote ]; then
+    remote="$home/remote-home"
+    mkdir -p "$remote/state/parent-route" "$remote/bin"
+    printf 'sample-worker\n' > "$remote/.fm-secondmate-home"
+    printf '# Synthetic remote home\n' > "$remote/AGENTS.md"
+    fm_write_meta "$remote/state/parent-route/sample-worker.meta" \
+      'window=fm-remote:p1' 'worktree=-' 'project=-' 'backend=herdr' 'endpoint_task_id=sample-worker' 'harness=claude' \
+      'herdr_session=fm-remote' 'herdr_workspace_id=w1' 'herdr_tab_id=t1' 'herdr_pane_id=p1'
+    fm_write_meta "$home/state/sample-worker.meta" \
+      'window=fm-remote:p1' 'endpoint_task_id=sample-worker' 'harness=claude' \
+      'kind=secondmate' 'mode=secondmate' 'spawn_gen=fixture-sample-worker' \
+      'remote_host=fixture-host' 'remote_root=/fixture/root' 'remote_backend=herdr' \
+      'remote_herdr_session=fm-remote' 'remote_target=fm-remote:p1'
+    printf '%s\n' "- sample-worker - synthetic domain (host: fixture-host; root: /fixture/root; home: $remote; scope: test; projects: sample; added 2026-10-23)" > "$home/data/secondmates.md"
+    cat > "$home/fakebin/fake-ssh" <<'SH'
+#!/usr/bin/env bash
+cat >/dev/null
+printf 'call\n' >> "$FM_HOME/remote-calls.log"
+while [ "$#" -gt 0 ]; do
+  case "$1" in -o) shift 2 ;; --) shift; break ;; *) exit 90 ;; esac
+done
+shift 2
+remote_home=$(perl -MMIME::Base64=decode_base64 -e 'print decode_base64($ARGV[0])' "$3")
+args=()
+while IFS= read -r -d '' arg; do args+=("$arg"); done \
+  < <(perl -MMIME::Base64=decode_base64 -e 'print decode_base64($ARGV[0])' "$4")
+env FM_HOME="$remote_home" FM_ROOT_OVERRIDE="$FM_TEST_REMOTE_CODE_ROOT" \
+  FM_STATE_OVERRIDE="$remote_home/state" FM_DATA_OVERRIDE="$remote_home/data" \
+  FM_CONFIG_OVERRIDE="$remote_home/config" \
+  bash "$FM_TEST_REMOTE_CODE_ROOT/bin/${args[0]}" "${args[@]:1}"
+SH
+    chmod +x "$home/fakebin/fake-ssh"
+    fm_fake_exit0 "$home/fakebin" herdr
+    record_dir="$remote/state/parent-route/sample-worker.inbox"
+  fi
+  run_captain "$home" hold sample-call --title 'Choose an option' --origin sample-worker --reason 'Captain chooses the sample option' >/dev/null || fail 'hold question'
+  before=$(tasks_in "$home" show sample-call --full)
+  PATH="$home/fakebin:$PATH" FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+    FM_CONFIG_OVERRIDE="$home/config" FM_SEND_SETTLE=0 FM_SSH_BIN="$home/fakebin/fake-ssh" \
+    FM_ROOT_OVERRIDE="$ROOT" FM_TEST_REMOTE_CODE_ROOT="$ROOT" \
+    bash "$ROOT/bin/fm-send.sh" sample-worker --resolve-key sample-call "$answer" >"$home/send.out" 2>"$home/send.err" || rc=$?
+  [ ! -f "$home/state/hold-domain/pending/sample-call.body" ] || pending=yes
+  run_captain "$home" route-due sample-call >"$home/retry.out" 2>"$home/retry.err" || retry=$?
+  if [ "$transport" = typed ]; then
+    count=$(grep -cFx -- "$answer" "$home/typed.log" 2>/dev/null || true)
+    count=${count:-0}
+  else
+    count=$(find "$record_dir" -name '*.msg' 2>/dev/null | wc -l | tr -d ' ')
+  fi
+  printf 'answer transport=%s send=%s replay=%s deliveries=%s pending=%s\n' "$transport" "$rc" "$retry" "$count" "$pending"
+  if [ "$transport" != secondmate ]; then
+    cat "$home/send.err" >&2
+    [ "$rc" != 0 ] && [ "$count" = 0 ] || fail "$transport keyed hold answer must refuse before delivery"
+    [ "$before" = "$(tasks_in "$home" show sample-call --full)" ] || fail "$transport refusal changed the held task"
+    assert_absent "$home/state/pending-replies" "$transport refusal created a reply expectation"
+    assert_absent "$home/state/hold-domain/pending/sample-call.body" "$transport refusal created an answer continuation"
+    assert_absent "$home/remote-calls.log" "$transport refusal called remote transport"
+    # The unsupported keyed operation must not change the ordinary transport.
+    PATH="$home/fakebin:$PATH" FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+      FM_CONFIG_OVERRIDE="$home/config" FM_SEND_SETTLE=0 FM_SSH_BIN="$home/fakebin/fake-ssh" \
+      FM_ROOT_OVERRIDE="$ROOT" FM_TEST_REMOTE_CODE_ROOT="$ROOT" \
+      bash "$ROOT/bin/fm-send.sh" sample-worker "$answer" >"$home/ordinary.out" 2>"$home/ordinary.err" \
+      || { cat "$home/ordinary.err" >&2; fail "$transport ordinary send changed"; }
+    if [ "$transport" = typed ]; then
+      [ "$(grep -cFx -- "$answer" "$home/typed.log")" = 1 ] || fail 'ordinary slash command lost typed semantics'
+      assert_absent "$home/state/sample-worker.inbox/001.msg" 'ordinary slash command became inbox prose'
+    else
+      [ "$(find "$record_dir" -name '*.msg' | wc -l | tr -d ' ')" = 1 ] || fail 'ordinary remote send changed'
+    fi
+    pass "$transport keyed hold answer refuses before side effects; ordinary transport still delivers once"
+    return
+  fi
+  assert_contains "$(tasks_in "$home" show sample-call --full)" 'state: done' 'answer was not durable'
+  [ "$count" = 1 ] || fail "$transport answer was not delivered exactly once"
+  [ "$rc" = 0 ] && [ "$retry" = 0 ] || fail "$transport delivery receipt wedged the recorded answer"
+  assert_absent "$home/state/hold-domain/pending/sample-call.body" "$transport receipt stayed pending"
+  pass "$transport confirmed answer retires once without resending"
+}
+
+test_answer_receipt_repair_reuses_existing_delivery() {
+  local home receipt rc=0 before after count kind candidate_task candidate_record candidate_gen candidate_answer original_body
+  home=$(make_home answer-receipt-repair)
+  tasks_in "$home" add sample-worker 'Synthetic active work' --kind ship --repo sample --start >/dev/null || fail 'create work'
+  write_origin_meta "$home" sample-worker ship
+  run_captain "$home" hold sample-call --title 'Choose an option' --origin sample-worker --reason 'Captain chooses the sample option' >/dev/null || fail 'hold question'
+  PATH="$home/fakebin:$PATH" FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+    FM_CONFIG_OVERRIDE="$home/config" FM_SEND_SETTLE=0 \
+    bash "$ROOT/bin/fm-send.sh" sample-worker 'Use the approved option.' >/dev/null 2>&1 || fail 'deliver original answer'
+  receipt="$home/state/sample-worker.inbox/001.msg"
+  printf 'sample-call\tUse the approved option.\t\n' | run_captain "$home" answers --source 'sample confirmed channel' \
+    --delivered-task sample-worker --delivered-record unavailable --delivered-generation fixture-sample-worker >/dev/null 2>&1 || rc=$?
+  [ "$rc" != 0 ] || fail 'unavailable receipt was accepted'
+  [ -f "$home/state/hold-domain/pending/sample-call.body" ] || fail 'unavailable receipt lost pending'
+  before=$(tasks_in "$home" show sample-call --full)
+  assert_contains "$before" 'state: done' 'original answer not durable'
+  original_body=$(shown_task_body "$before")
+  mkdir -p "$home/state/foreign-worker.inbox"
+  printf 'schema=fm-task-inbox.v1\nat=2026-10-23T00:00:00Z\n--\nUse the approved option.' > "$home/state/foreign-worker.inbox/001.msg"
+  printf 'schema=fm-task-inbox.v1\nat=2026-10-23T00:00:00Z\n--\nA different answer.' > "$home/state/sample-worker.inbox/002.msg"
+  for kind in task record answer generation current-generation missing-original-generation missing-original-record; do
+    candidate_task=sample-worker
+    candidate_record=$receipt
+    candidate_gen='fixture-sample-worker'
+    candidate_answer='Use the approved option.'
+    case "$kind" in
+      task) candidate_task=foreign-worker; candidate_record="$home/state/foreign-worker.inbox/001.msg" ;;
+      record) candidate_record="$home/state/sample-worker.inbox/002.msg" ;;
+      answer) candidate_answer='A different answer.' ;;
+      generation) candidate_gen=retired-worker ;;
+      current-generation) write_origin_meta "$home" sample-worker ship; printf '\nspawn_gen=replacement-worker\n' >> "$home/state/sample-worker.meta" ;;
+      missing-original-generation)
+        printf '%s\n' "$original_body" | sed '/^Continuation inbox generation: /d' > "$home/legacy-body.txt"
+        tasks_in "$home" update sample-call --body-file "$home/legacy-body.txt" >/dev/null || fail 'prepare legacy missing generation'
+        ;;
+      missing-original-record)
+        printf '%s\n' "$original_body" | sed '/^Continuation inbox record: /d' > "$home/legacy-body.txt"
+        tasks_in "$home" update sample-call --body-file "$home/legacy-body.txt" >/dev/null || fail 'prepare legacy missing record'
+        ;;
+    esac
+    before=$(tasks_in "$home" show sample-call --full)
+    rc=0
+    printf 'sample-call\t%s\t\n' "$candidate_answer" | run_captain "$home" answers --source 'sample confirmed channel' \
+      --delivered-task "$candidate_task" --delivered-record "$candidate_record" --delivered-generation "$candidate_gen" >/dev/null 2>&1 || rc=$?
+    [ "$rc" != 0 ] || fail "$kind replacement receipt was accepted"
+    [ "$before" = "$(tasks_in "$home" show sample-call --full)" ] || fail "$kind replacement changed the original answer"
+    [ -f "$home/state/hold-domain/pending/sample-call.body" ] || fail "$kind replacement lost pending"
+    assert_absent "$home/state/sample-worker.inbox/003.msg" "$kind replacement enqueued another answer"
+    write_origin_meta "$home" sample-worker ship
+    printf '%s\n' "$original_body" > "$home/original-body.txt"
+    tasks_in "$home" update sample-call --body-file "$home/original-body.txt" >/dev/null || fail 'restore legacy fixture'
+  done
+  before=$(tasks_in "$home" show sample-call --full)
+  rc=0
+  printf 'sample-call\tUse the approved option.\t\n' | run_captain "$home" answers --source 'sample confirmed channel' \
+    --delivered-task sample-worker --delivered-record "$receipt" --delivered-generation fixture-sample-worker >/dev/null 2>&1 || rc=$?
+  after=$(tasks_in "$home" show sample-call --full)
+  count=$(find "$home/state/sample-worker.inbox" -name '*.msg' | wc -l | tr -d ' ')
+  printf 'answer replacement receipt repair=%s records=%s (one delivery plus one mismatched fixture)\n' "$rc" "$count"
+  [ "$rc" = 0 ] || fail 'proven existing receipt could not repair the exact answer'
+  [ "$count" = 2 ] || fail 'receipt repair sent another message'
+  assert_contains "$after" "Continuation inbox record: $receipt" 'replacement receipt not recorded'
+  [ "$(shown_task_body "$before" | grep -c '^Captain decision:$')" = "$(shown_task_body "$after" | grep -c '^Captain decision:$')" ] || fail 'receipt repair created another occurrence'
+  [ "$(shown_task_body "$before" | sed -n 's/^Decision digest: //p')" = "$(shown_task_body "$after" | sed -n 's/^Decision digest: //p')" ] || fail 'receipt repair changed the answer'
+  assert_absent "$home/state/hold-domain/pending/sample-call.body" 'valid repaired receipt remained pending'
+  pass 'an exact answer retry repairs its receipt from proven existing delivery without enqueue'
+}
+
 test_answer_continuation_recovers_without_a_router_or_listener() {
   local home rc=0
   home=$(make_home answer-crash-recovery)
@@ -908,7 +1083,7 @@ test_answer_continuation_rejects_bad_receipts_without_resending() {
     run_captain "$home" hold sample-call --title 'Choose sample' --origin sample-worker --reason 'Captain chooses the sample option' >/dev/null || fail 'hold question'
     mkdir -p "$home/state/sample-worker.inbox" "$home/state/foreign-worker.inbox"
     receipt="$home/state/sample-worker.inbox/001.msg"
-    generation=fixture-sample-worker
+    generation='fixture-sample-worker'
     case "$kind" in
       missing) ;;
       foreign) receipt="$home/state/foreign-worker.inbox/001.msg" ;;
@@ -964,6 +1139,12 @@ test_answer_receipt_cannot_acknowledge_another_occurrence() {
     --delivered-task sample-worker --delivered-record "$receipt" --delivered-generation fixture-sample-worker >/dev/null 2>&1 || rc=$?
   [ "$rc" != 0 ] || fail 'prior occurrence receipt acknowledged another hold'
   [ -f "$home/state/hold-domain/pending/sample-worker.body" ] || fail 'prior occurrence receipt silently dropped continuation'
+  rc=0
+  printf 'sample-worker\tUse the option.\t\trelease\n' | run_captain "$home" answers --source 'sample answer channel' \
+    --delivered-task sample-worker --delivered-record "$home/state/sample-worker.inbox/handled/001.msg" \
+    --delivered-generation fixture-sample-worker >/dev/null 2>&1 || rc=$?
+  [ "$rc" != 0 ] || fail 'replacement receipt reused a prior occurrence'
+  [ -f "$home/state/hold-domain/pending/sample-worker.body" ] || fail 'replacement prior occurrence lost pending'
   assert_absent "$home/state/sample-worker.inbox/002.msg" 'receipt mismatch blindly resent the answer'
   pass 'one receipt cannot acknowledge two hold occurrences even with identical words and timestamp'
 }
@@ -6986,6 +7167,18 @@ esac
 
 if [ -z "${FM_CAPTAIN_HOLD_LANE:-}" ]; then
 case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
+  answer-receipt-repair) test_answer_receipt_repair_reuses_existing_delivery; exit $? ;;
+  answer-receipt-occurrence) test_answer_receipt_cannot_acknowledge_another_occurrence; exit $? ;;
+  answer-receipts)
+    test_answer_transport_receipt secondmate
+    test_answer_transport_receipt typed
+    test_answer_transport_receipt remote
+    test_answer_receipt_repair_reuses_existing_delivery
+    exit $?
+    ;;
+  answer-receipt-secondmate) test_answer_transport_receipt secondmate; exit $? ;;
+  answer-receipt-typed) test_answer_transport_receipt typed; exit $? ;;
+  answer-receipt-remote) test_answer_transport_receipt remote; exit $? ;;
   native-owner) test_native_hold_router_routes_immediately_and_tracks_successors; exit $? ;;
   answer-core)
     test_answer_records_and_closes
@@ -7140,6 +7333,10 @@ captain_hold_lane_b() {
   test_completion_gate_attests_and_transfers
   test_answer_delivery_reaches_the_worker_without_a_supervisor_turn
   test_answer_continuation_reuses_an_fm_send_delivery
+  test_answer_transport_receipt secondmate
+  test_answer_transport_receipt typed
+  test_answer_transport_receipt remote
+  test_answer_receipt_repair_reuses_existing_delivery
   test_answer_continuation_recovers_without_a_router_or_listener
   test_answer_continuation_rejects_bad_receipts_without_resending
   test_answer_rehold_same_words_is_a_new_occurrence
