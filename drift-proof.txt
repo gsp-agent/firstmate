@@ -81,3 +81,5 @@ pr: 114
 pr: 117
 # Native released PM intake baseline refused both one and repeated releases; tests/fm-spawn-queue-start.test.sh covers owned history, tamper, protected holds and replay.
 pr: 116
+# Failing-first tests in tests/fm-spawn-worktree-settle.test.sh: test_pool_full_treehouse_get_refuses_at_once (a pool-full treehouse get waited out 60 s), test_pool_full_surviving_window_is_reported (an unreadable status-1 lookup reported a surviving window closed), and test_pool_full_herdr_cleanup_is_confirmed's contended case (a pane closed without the presentation lock) and tall and tall-noscroll cases (a 300-row Herdr pane hid treehouse's return).
+pr: 62
