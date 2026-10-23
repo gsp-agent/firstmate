@@ -2724,7 +2724,10 @@ backfill_one_owner() {  # <id> <dry>; caller owns the task control lock unless d
   [ "$reason" != "-" ] && [ -n "$reason" ] || reason=$(show_field "$show" title)
   repo=$(show_field "$show" repo)
   read -r owner source <<< "$(backfill_owner_for "$repo" "$reason" "$body")"
-  reason=$(printf '%s' "$reason" | tr '\n' ' ' | cut -c1-300)
+  # The written reason must equal the live hold reason as route_hold
+  # compares it (whitespace-normalized, whole): shortening it here makes
+  # the row divergent and unroutable.
+  reason=$(printf '%s' "$reason" | normalize_routing_reason)
   # write_hold_domain_fields fails on a body with no line-1 hold-set stamp;
   # that row is unroutable, not a reason to strand every row behind it.
   if [ -z "$(body_hold_set_timestamp "$body")" ]; then
