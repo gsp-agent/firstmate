@@ -6279,7 +6279,7 @@ SH
 test_task_data_completed_row_tied_identity() {
   local case_dir task record kind variant checkout record_pr row_pr other_pr other_repo changed rc
   for kind in legacy archived; do
-    for variant in path-text no-pr added-pr removed-pr changed-repo changed-pr conflicting-prs; do
+    for variant in saved-pr-blank-last saved-pr-blank-first path-text no-pr added-pr removed-pr changed-repo changed-pr conflicting-prs; do
       case_dir="$TMP_ROOT/task-data-row-tied-identity-$kind-$variant"
       task="$case_dir/data/task-x1"
       record="$task/record/data-cleanup.json"
@@ -6287,6 +6287,12 @@ test_task_data_completed_row_tied_identity() {
       record_pr=https://github.com/carmandale/agent-config/pull/185
       row_pr=$record_pr other_pr=$record_pr other_repo=$checkout changed=false
       case "$variant" in
+        saved-pr-blank-last)
+          record_pr=https://github.com/carmandale/agent-config/pull/186 other_pr='' changed=true
+          ;;
+        saved-pr-blank-first)
+          record_pr=https://github.com/carmandale/agent-config/pull/186 row_pr='' changed=true
+          ;;
         no-pr) record_pr='' row_pr='' other_pr='' ;;
         added-pr) record_pr='' row_pr='' ;;
         removed-pr) record_pr='' other_pr='' ;;
@@ -6324,7 +6330,7 @@ TOML
         > "$record"
       cat > "$case_dir/fakebin/gh-axi" <<'SH'
 #!/usr/bin/env bash
-[ "$1 $2 $3" = 'pr view 185' ] || exit 2
+[ "$1 $2 $3" = 'pr view 185' ] || [ "$1 $2 $3" = 'pr view 186' ] || exit 2
 printf 'body: the recorded pull request\n'
 SH
       cat > "$case_dir/fakebin/tasks-axi" <<'SH'

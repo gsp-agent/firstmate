@@ -371,6 +371,7 @@ def completed_source(data, task_id, limit=None):
            for index, row in enumerate(sources) for source in sources[index + 1:]):
         raise ValueError("completed backlog rows have different projects or PRs with unproven order")
     source = sources[-1]
+    source["pr"] = next((item["pr"] for item in sources if item["pr"]), "")
     source["text"] = "\n".join(item["text"] for item in sources)
     if len(source["text"].encode()) > LIMIT:
         raise ValueError("completed backlog evidence exceeds 1 MiB")
