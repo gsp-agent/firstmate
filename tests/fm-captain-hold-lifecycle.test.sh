@@ -5656,6 +5656,7 @@ printf 'checked\n' >> "$FM_HOME/scheduled.log"
 SH
       chmod 0700 "$domain_home/state/ordinary.check.sh"
       FM_HOME="$domain_home" bash "$ROOT/bin/fm-check-register.sh" ordinary >/dev/null || fail 'could not register bounded check'
+      printf 'done: synthetic watcher stop\n' > "$domain_home/state/sentinel.status"
       status=0
       FM_CHECK_TIMEOUT=20 FM_CHECK_FORCE_FALLBACK="$fallback" FM_TEST_DOMAIN_WATCH_TIMEOUT=45 \
         REAL_TASKS_AXI="$TASKS_AXI_BIN" run_domain_watcher "$domain_home" > "$domain_home/watch.out" 2>&1 || status=$?
@@ -5664,11 +5665,13 @@ SH
       fi
       [ "$status" = 0 ] || fail "$mode routing blocked scheduled checks past the watcher bound: $(cat "$domain_home/watch.out")"
       assert_equals checked "$(cat "$domain_home/scheduled.log")" "$mode timeout starved the scheduled check"
-      case "$(cat "$domain_home/watch.out")" in
-        *'hold-domain routing failed: exit 124'*|*'hold-domain routing failed: exit 137'*) ;;
-        *) fail "$mode timeout was not surfaced" ;;
-      esac
-      assert_grep 'hold-domain' "$domain_home/state/.wake-queue" "$mode timeout was not durably queued"
+      if grep -q 'hold-domain routing failed' "$domain_home/watch.out"; then
+        fail "$mode slice woke main: $(cat "$domain_home/watch.out")"
+      fi
+      if [ -f "$domain_home/state/.wake-queue" ] && grep -q 'hold-domain routing failed' "$domain_home/state/.wake-queue"; then
+        fail "$mode slice queued a routing wake"
+      fi
+      assert_grep 'signal:' "$domain_home/watch.out" "$mode slice did not reach the normal signal path"
       assert_present "$domain_home/state/.last-watcher-beat" "$mode timeout lost the watcher beacon"
       assert_present "$domain_home/state/hold-domain/pending/waiting.body" "$mode timeout discarded pending work"
       domain_supervision_needed "$domain_home" || fail "$mode timeout stopped supervision"
@@ -5687,6 +5690,65 @@ SH
     done
   done
   pass "native and fallback watcher bounds stop blocked ${modes[*]} without starving checks"
+)
+
+# A healthy sweep that runs out of FM_CHECK_TIMEOUT is the resumable slice.
+# The cursor continues it next pass. That exit must not wake main. A row
+# that has already failed still must.
+test_hold_domain_slice_does_not_wake_main() (
+  local home
+  home=$(make_domain_home hold-slice)
+  run_domain "$home" 2026-10-14T02:00:00Z hold waiting --title 'Slow route' \
+    --decision-owner ep-firstmate --timeout-seconds 60 \
+    --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null \
+    || fail 'could not create the slow hold'
+  cat > "$home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+sleep 5
+exec "$REAL_TASKS_AXI" "$@"
+SH
+  chmod +x "$home/fakebin/tasks-axi"
+  printf 'done: synthetic watcher stop\n' > "$home/state/sentinel.status"
+  cat > "$home/state/ordinary.check.sh" <<'SH'
+#!/usr/bin/env bash
+printf 'checked\n' >> "$FM_HOME/scheduled.log"
+SH
+  chmod 0700 "$home/state/ordinary.check.sh"
+  FM_HOME="$home" bash "$ROOT/bin/fm-check-register.sh" ordinary >/dev/null \
+    || fail 'could not register the slice check'
+  FM_CHECK_TIMEOUT=2 FM_TEST_DOMAIN_WATCH_TIMEOUT=25 \
+    REAL_TASKS_AXI="$TASKS_AXI_BIN" run_domain_watcher "$home" > "$home/watch.out" 2>&1 \
+    || fail "slice watcher failed: $(cat "$home/watch.out")"
+  assert_equals checked "$(cat "$home/scheduled.log")" 'a sweep slice starved the scheduled check'
+  if grep -q 'hold-domain routing failed' "$home/watch.out"; then
+    fail "a sweep slice woke main: $(cat "$home/watch.out")"
+  fi
+  assert_grep 'signal:' "$home/watch.out" 'the watcher did not reach its normal signal path'
+  if [ -f "$home/state/.wake-queue" ] && grep -q 'hold-domain routing failed' "$home/state/.wake-queue"; then
+    fail 'a sweep slice queued a routing wake'
+  fi
+  pass 'a hold-domain sweep cut by its bound resumes without waking main'
+)
+
+test_hold_domain_row_failure_still_wakes() (
+  local home
+  home=$(make_domain_home hold-row-fail)
+  run_domain "$home" 2026-10-14T02:00:00Z hold waiting --title 'Failing route' \
+    --decision-owner ep-firstmate --timeout-seconds 60 \
+    --reason 'GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.' >/dev/null \
+    || fail 'could not create the failing hold'
+  cat > "$home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = show ]; then exit 1; fi
+exec "$REAL_TASKS_AXI" "$@"
+SH
+  chmod +x "$home/fakebin/tasks-axi"
+  FM_CHECK_TIMEOUT=20 FM_TEST_DOMAIN_WATCH_TIMEOUT=40 \
+    REAL_TASKS_AXI="$TASKS_AXI_BIN" run_domain_watcher "$home" > "$home/watch.out" 2>&1 \
+    || fail "row-failure watcher failed: $(cat "$home/watch.out")"
+  assert_grep 'check: hold-domain routing failed:' "$home/watch.out" 'a row failure did not wake'
+  assert_grep 'routing row ' "$home/watch.out" 'a row failure did not name the row'
+  pass 'a hold-domain row failure still wakes main'
 )
 
 test_domain_runtime_metadata_aliases() (
@@ -6811,7 +6873,14 @@ case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
     test_domain_new_lifecycles_preserve_historical_decisions
     exit $?
     ;;
-  timeout) test_watcher_bounds_blocked_routing; exit $? ;;
+  slice) test_hold_domain_slice_does_not_wake_main; exit $? ;;
+  row-fail) test_hold_domain_row_failure_still_wakes; exit $? ;;
+  timeout)
+    test_hold_domain_slice_does_not_wake_main || exit 1
+    test_hold_domain_row_failure_still_wakes || exit 1
+    test_watcher_bounds_blocked_routing
+    exit $?
+    ;;
   identity)
     test_domain_aliases_inherit_canonical_authority
     test_domain_aliases_share_interrupted_routing_receipts
@@ -6838,6 +6907,8 @@ captain_hold_lane_a() {
   test_domain_rehold_waits_for_an_unfinished_routed_release
   test_domain_aliases_inherit_canonical_authority
   test_domain_aliases_share_interrupted_routing_receipts
+  test_hold_domain_slice_does_not_wake_main || exit 1
+  test_hold_domain_row_failure_still_wakes || exit 1
   test_watcher_bounds_blocked_routing || exit 1
   test_domain_failed_rehold_preserves_routing_fields
   test_domain_interrupted_resolutions_block_immediate_and_periodic_routing
