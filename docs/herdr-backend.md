@@ -628,6 +628,7 @@ A missed native transition falls through to the composer verdict rather than rep
 
 `pane read --lines N` can return empty output when N is below the viewport height.
 The capture owner requests at least 200 lines from Herdr and trims locally to the caller's bound.
+A pane taller than that request still reads empty, so an empty read is repeated with the pane's reported `scroll.viewport_rows`, or, when `pane get` reports no `scroll` (Herdr 0.7.1), replaced by the visible viewport read.
 This generous floor is required for the small bounded reads that remain: peek and watch tails, the rendered busy-footer read, and the shared steering-inbox pending-line read.
 A scrolled pane's composer reads request at least the reported viewport height and at least 200 rows, then trim to that viewport height (see [Claude composer proof](#claude-composer-proof)).
 An unscrolled pane, or one that reports no `scroll`, uses the visible viewport read, which takes no line count.
