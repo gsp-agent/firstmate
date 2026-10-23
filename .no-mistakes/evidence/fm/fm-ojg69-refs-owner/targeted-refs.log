@@ -1,0 +1,10 @@
+ok - fm-teardown: archived task ids never suppress unread beads with the same id, including saved references and staged holds
+ok - fm-teardown: only real bead ids count as bead references, in new text and in saved records
+ok - fm-teardown: a finished task whose row moved to the archive still resolves its references
+ok - fm-teardown: a completed row changes its task's owner only for another repository or another non-empty PR
+ok - fm-teardown: tied completed rows compare repository identities and only conflicting non-empty PRs
+ok - fm-teardown: beads named by the readable owning row resolve before evidence is classified
+ok - fm-teardown: row rereads recover archived owners or retain all data through prepare, stage and expiry
+ok - fm-teardown: archived unread beads retain the whole folder through prepare, stage and expiry
+ok - fm-teardown: a still-unreadable reference keeps its folder and is named once, not on every pass
+ok - fm-teardown: failed unread-status appends retry before suppression through the background sweep

@@ -1,0 +1,61 @@
+$ br init --prefix bd
+exit=0
+Prefix set to: bd
+Initialized beads workspace in ./.beads
+
+$ br create 'Sweep evidence' --description '[capture](proof.png)' --silent
+exit=0
+bd-lau
+
+$ br init --prefix obs
+exit=0
+Prefix set to: obs
+Initialized beads workspace in ./.beads
+
+$ br create 'Sweep evidence' --description '[capture](proof.png)' --silent
+exit=0
+obs-3mh
+
+Before sweep: scratch_bytes=8388608
+$ du -sk /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/sweep/data
+exit=0
+8220	/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/sweep/data
+
+$ df -k /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/sweep
+exit=0
+Filesystem    1024-blocks     Used Available Capacity iused      ifree %iused  Mounted on
+/dev/disk15s1   314367960  5110868 249584932     3%  593993 2495849320    0%   /Users/dalecarman/.agent-scratch
+
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh sweep /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/sweep/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/sweep/state
+exit=0
+task data task-obs: scratch recoverable in /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/sweep/data/task-obs/.cleanup-hold until the next completed task
+task data task-obs expired; nothing of it stays held
+warning: task data task-bd retained whole for retry: unread references: bd-lau
+error: task data task-bd is not expired; what remains of it stays held
+
+After sweep with one unreadable owner: scratch_bytes=4194304
+$ du -sk /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/sweep/data
+exit=0
+4124	/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/sweep/data
+
+$ df -k /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/sweep
+exit=0
+Filesystem    1024-blocks     Used Available Capacity iused      ifree %iused  Mounted on
+/dev/disk15s1   314367960  5106784 249584904     3%  593999 2495849040    0%   /Users/dalecarman/.agent-scratch
+
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh sweep /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/sweep/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/sweep/state
+exit=0
+task data task-bd: scratch recoverable in /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/sweep/data/task-bd/.cleanup-hold until the next completed task
+task data task-bd expired; nothing of it stays held
+
+After restored-owner retry: scratch_bytes=0
+$ du -sk /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/sweep/data
+exit=0
+28	/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/sweep/data
+
+$ df -k /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/sweep
+exit=0
+Filesystem    1024-blocks     Used Available Capacity iused      ifree %iused  Mounted on
+/dev/disk15s1   314367960  5102904 249584580     3%  594070 2495845800    0%   /Users/dalecarman/.agent-scratch
+
+PASS: real sweep freed 8 MiB of scratch in two passes, held unreadable-owner data whole, and preserved both linked evidence files

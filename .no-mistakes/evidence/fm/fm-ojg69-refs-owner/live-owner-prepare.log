@@ -1,0 +1,32 @@
+$ git init -q /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/legacy-path-text/dev/agent-config
+exit=0
+$ git -C /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/legacy-path-text/dev/agent-config remote add origin https://github.com/gsp-agent/agent-config.git
+exit=0
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/prepare.sh /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7 /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/legacy-path-text/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/legacy-path-text/state
+exit=0
+PASS legacy path-text: same PR185 accepted as the same owner; no unread references
+{"complete": false, "expired": false, "sources": [{"backlog": {"data": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/legacy-path-text/data", "legacy": true, "refreshed_text": "- [x] task-x1 - finished https://github.com/gsp-agent/agent-config/pull/185 (repo: agent-config) (done 2026-10-20)\n  [capture](proof.png)", "task": "task-x1", "text": "- [x] task-x1 - finished https://github.com/gsp-agent/agent-config/pull/185 (repo: agent-config) (done 2026-10-20)\n  [capture](proof.png)\n"}, "beads": [], "pr": "https://github.com/gsp-agent/agent-config/pull/185", "project": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/legacy-path-text/dev/agent-config", "unread": []}], "task": "task-x1", "version": 1}
+$ git init -q /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/legacy-other-checkout/home/.agent-config
+exit=0
+$ git -C /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/legacy-other-checkout/home/.agent-config remote add origin https://github.com/gsp-agent/agent-config.git
+exit=0
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/prepare.sh /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7 /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/legacy-other-checkout/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/legacy-other-checkout/state
+exit=0
+PASS legacy other-checkout: same PR185 accepted as the same owner; no unread references
+{"complete": false, "expired": false, "sources": [{"backlog": {"data": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/legacy-other-checkout/data", "legacy": true, "refreshed_text": "- [x] task-x1 - finished https://github.com/gsp-agent/agent-config/pull/185 (repo: agent-config) (done 2026-10-20)\n  [capture](proof.png)", "task": "task-x1", "text": "- [x] task-x1 - finished https://github.com/gsp-agent/agent-config/pull/185 (repo: agent-config) (done 2026-10-20)\n  [capture](proof.png)\n"}, "beads": [], "pr": "https://github.com/gsp-agent/agent-config/pull/185", "project": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/legacy-other-checkout/home/.agent-config", "unread": []}], "task": "task-x1", "version": 1}
+$ git init -q /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/archived-path-text/dev/agent-config
+exit=0
+$ git -C /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/archived-path-text/dev/agent-config remote add origin https://github.com/gsp-agent/agent-config.git
+exit=0
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/prepare.sh /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7 /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/archived-path-text/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/archived-path-text/state
+exit=0
+PASS archived path-text: same PR185 accepted as the same owner; no unread references
+{"complete": false, "expired": false, "sources": [{"backlog": {"data": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/archived-path-text/data", "task": "task-x1"}, "beads": [], "pr": "https://github.com/gsp-agent/agent-config/pull/185", "project": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/archived-path-text/dev/agent-config", "unread": []}], "task": "task-x1", "version": 1}
+$ git init -q /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/archived-other-checkout/home/.agent-config
+exit=0
+$ git -C /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/archived-other-checkout/home/.agent-config remote add origin https://github.com/gsp-agent/agent-config.git
+exit=0
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/prepare.sh /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7 /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/archived-other-checkout/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/archived-other-checkout/state
+exit=0
+PASS archived other-checkout: same PR185 accepted as the same owner; no unread references
+{"complete": false, "expired": false, "sources": [{"backlog": {"data": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/archived-other-checkout/data", "task": "task-x1"}, "beads": [], "pr": "https://github.com/gsp-agent/agent-config/pull/185", "project": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-owner-probe/archived-other-checkout/home/.agent-config", "unread": []}], "task": "task-x1", "version": 1}

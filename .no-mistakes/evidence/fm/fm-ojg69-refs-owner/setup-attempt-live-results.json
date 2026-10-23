@@ -1,0 +1,114 @@
+[
+  {
+    "name": "Missing recorded checkout resolves .agent-config bead in its prefix-owned real SQLite database despite inherited database overrides",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Missing recorded checkout resolves bd bead in its prefix-owned real SQLite database despite inherited database overrides",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Missing recorded checkout resolves heru bead in its prefix-owned real SQLite database despite inherited database overrides",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Missing recorded checkout resolves gj bead in its prefix-owned real SQLite database despite inherited database overrides",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Missing recorded checkout resolves gj-gitlab-config bead in its prefix-owned real SQLite database despite inherited database overrides",
+    "result": "fail",
+    "live": true,
+    "error": "warning: task data retained for recovery: dcg refused cleanup: {\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"BLOCKED by dcg\\n\\nTip: dcg explain \\\"rm -f -- /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live/owned-gj-gitlab-config/data/task-x1/.cleanup-hold/discard.bin\\\"\\n\\nReason: dcg could not finish evaluating this command within 200ms (spent 200ms, stage 'evaluation'). Denying rather than allowing a command it never finished judging.\\n\\nExplanation: dcg stops evaluating at general.hook_timeout_ms and this command did not finish in time, so no rule was proven safe OR unsafe. Evaluation cost grows with command length, so this is usually a very long command or a heavily loaded machine.\\n             \\n             Ways through, in order of preference:\\n             - Split the command into smaller commands and run them separately.\\n             - Approve this one command with the allow-once code below.\\n             - Raise general.hook_timeout_ms in your dcg config if the budget is genuinely too tight.\\n\\nRule: core.limits:evaluation-timeout\\n\\nIf this is a false positive: dcg allow-once 78725\\n\\nIf this operation is truly needed, ask the user for explicit permission and have them run the command manually.\",\"allowOnceCode\":\"78725\",\"allowOnceFullHash\":\"b41ace8d0b9130a252fc6d15416ee5371f763869d90ea79a468e88d0036d0e45\",\"ruleId\":\"core.limits:evaluation-timeout\",\"packId\":\"core.limits\",\"remediation\":{\"safeAlternative\":\"Use 'git clean -n' first to preview what would be deleted.\",\"explanation\":\"dcg stops evaluating at general.hook_timeout_ms and this command did not finish in time, so no rule was proven safe OR unsafe. Evaluation cost grows with command length, so this is usually a very long command or a heavily loaded machine.\\n\\nWays through, in order of preference:\\n- Split the command into smaller commands and run them separately.\\n- Approve this one command with the allow-once code below.\\n- Raise general.hook_timeout_ms in your dcg config if the budget is genuinely too tight.\",\"allowOnceCommand\":\"dcg allow-once 78725\"}}}\nerror: task data task-x1 is not expired; what remains of it stays held\n"
+  },
+  {
+    "name": "Missing recorded checkout resolves obs bead in its prefix-owned real SQLite database despite inherited database overrides",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Owner answers not found and unregistered absent ID: sweep deletes all unlinked data",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "A named task moved into the configured archive still protects its linked evidence",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "Unreadable owning database preserves the whole folder, then retry after database repair expires only scratch",
+    "result": "fail",
+    "live": true,
+    "error": ""
+  },
+  {
+    "name": "Timed-out real SQLite read retains all data and succeeds after the lock is released",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "legacy completed row path: same repository expires scratch; changed repository retains everything",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "legacy completed row alias: same repository expires scratch; changed repository retains everything",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "legacy completed row review: same repository expires scratch; changed repository retains everything",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "legacy completed row changed: same repository expires scratch; changed repository retains everything",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "archived completed row path: same repository expires scratch; changed repository retains everything",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "archived completed row alias: same repository expires scratch; changed repository retains everything",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "archived completed row review: same repository expires scratch; changed repository retains everything",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "archived completed row changed: same repository expires scratch; changed repository retains everything",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "legacy blank-first: a blank tied row cannot erase PR185 and permit deletion under saved PR186",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "legacy blank-last: a blank tied row cannot erase PR185 and permit deletion under saved PR186",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "archived blank-first: a blank tied row cannot erase PR185 and permit deletion under saved PR186",
+    "result": "pass",
+    "live": true
+  },
+  {
+    "name": "archived blank-last: a blank tied row cannot erase PR185 and permit deletion under saved PR186",
+    "result": "pass",
+    "live": true
+  }
+]

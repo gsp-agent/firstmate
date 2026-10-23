@@ -1,0 +1,285 @@
+$ br init --prefix .agent-config
+exit=0 elapsed=0.22s
+Prefix set to: .agent-config
+Initialized beads workspace in ./.beads
+
+$ br create 'Evidence reference' --description '[capture](proof.png)' --silent
+exit=0 elapsed=0.19s
+.agent-config-l5a
+
+$ br init --prefix bd
+exit=0 elapsed=0.23s
+Prefix set to: bd
+Initialized beads workspace in ./.beads
+
+$ br create 'Evidence reference' --description '[capture](proof.png)' --silent
+exit=0 elapsed=0.26s
+bd-qaw
+
+$ br init --prefix heru
+exit=0 elapsed=0.23s
+Prefix set to: heru
+Initialized beads workspace in ./.beads
+
+$ br create 'Evidence reference' --description '[capture](proof.png)' --silent
+exit=0 elapsed=0.19s
+heru-5wq
+
+$ br init --prefix gj
+exit=0 elapsed=0.21s
+Prefix set to: gj
+Initialized beads workspace in ./.beads
+
+$ br create 'Evidence reference' --description '[capture](proof.png)' --silent
+exit=0 elapsed=0.20s
+gj-ezi
+
+$ br init --prefix gj-gitlab-config
+exit=0 elapsed=0.25s
+Prefix set to: gj-gitlab-config
+Initialized beads workspace in ./.beads
+
+$ br create 'Evidence reference' --description '[capture](proof.png)' --silent
+exit=0 elapsed=0.20s
+gj-gitlab-config-fix
+
+$ br init --prefix obs
+exit=0 elapsed=0.23s
+Prefix set to: obs
+Initialized beads workspace in ./.beads
+
+$ br create 'Evidence reference' --description '[capture](proof.png)' --silent
+exit=0 elapsed=0.23s
+obs-b60
+
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-agent-config/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-agent-config/state task-x1
+exit=0 elapsed=1.42s
+task data task-x1: scratch recoverable in /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-agent-config/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1 expired; nothing of it stays held
+
+persisted cleanup state: {"complete": true, "expired": true, "sources": [{"backlog": {"data": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-agent-config/data", "task": null}, "beads": [".agent-config-l5a"], "pr": "", "project": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-agent-config/projects/missing", "unread": []}], "task": "task-x1", "version": 1}
+remaining files: brief.md, proof.png, record/data-cleanup.json
+PASS: Missing recorded checkout resolves .agent-config bead in its prefix-owned real SQLite database despite inherited database overrides
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-bd/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-bd/state task-x1
+exit=0 elapsed=1.31s
+task data task-x1: scratch recoverable in /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-bd/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1 expired; nothing of it stays held
+
+persisted cleanup state: {"complete": true, "expired": true, "sources": [{"backlog": {"data": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-bd/data", "task": null}, "beads": ["bd-qaw"], "pr": "", "project": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-bd/projects/missing", "unread": []}], "task": "task-x1", "version": 1}
+remaining files: brief.md, proof.png, record/data-cleanup.json
+PASS: Missing recorded checkout resolves bd bead in its prefix-owned real SQLite database despite inherited database overrides
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-heru/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-heru/state task-x1
+exit=0 elapsed=1.28s
+task data task-x1: scratch recoverable in /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-heru/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1 expired; nothing of it stays held
+
+persisted cleanup state: {"complete": true, "expired": true, "sources": [{"backlog": {"data": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-heru/data", "task": null}, "beads": ["heru-5wq"], "pr": "", "project": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-heru/projects/missing", "unread": []}], "task": "task-x1", "version": 1}
+remaining files: brief.md, proof.png, record/data-cleanup.json
+PASS: Missing recorded checkout resolves heru bead in its prefix-owned real SQLite database despite inherited database overrides
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-gj/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-gj/state task-x1
+exit=0 elapsed=1.65s
+task data task-x1: scratch recoverable in /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-gj/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1 expired; nothing of it stays held
+
+persisted cleanup state: {"complete": true, "expired": true, "sources": [{"backlog": {"data": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-gj/data", "task": null}, "beads": ["gj-ezi"], "pr": "", "project": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-gj/projects/missing", "unread": []}], "task": "task-x1", "version": 1}
+remaining files: brief.md, proof.png, record/data-cleanup.json
+PASS: Missing recorded checkout resolves gj bead in its prefix-owned real SQLite database despite inherited database overrides
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-gj-gitlab-config/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-gj-gitlab-config/state task-x1
+exit=0 elapsed=1.54s
+task data task-x1: scratch recoverable in /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-gj-gitlab-config/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1 expired; nothing of it stays held
+
+persisted cleanup state: {"complete": true, "expired": true, "sources": [{"backlog": {"data": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-gj-gitlab-config/data", "task": null}, "beads": ["gj-gitlab-config-fix"], "pr": "", "project": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-gj-gitlab-config/projects/missing", "unread": []}], "task": "task-x1", "version": 1}
+remaining files: brief.md, proof.png, record/data-cleanup.json
+PASS: Missing recorded checkout resolves gj-gitlab-config bead in its prefix-owned real SQLite database despite inherited database overrides
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-obs/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-obs/state task-x1
+exit=0 elapsed=1.55s
+task data task-x1: scratch recoverable in /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-obs/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1 expired; nothing of it stays held
+
+persisted cleanup state: {"complete": true, "expired": true, "sources": [{"backlog": {"data": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-obs/data", "task": null}, "beads": ["obs-b60"], "pr": "", "project": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/owned-obs/projects/missing", "unread": []}], "task": "task-x1", "version": 1}
+remaining files: brief.md, proof.png, record/data-cleanup.json
+PASS: Missing recorded checkout resolves obs bead in its prefix-owned real SQLite database despite inherited database overrides
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/not-found/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/not-found/state task-x1
+exit=0 elapsed=2.31s
+task data task-x1: scratch recoverable in /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/not-found/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1 expired; nothing of it stays held
+
+persisted cleanup state: {"complete": true, "expired": true, "sources": [{"backlog": {"data": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/not-found/data", "task": null}, "beads": [".agent-config-zzzz9", "unowned-fixture"], "pr": "", "project": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/not-found/projects/missing", "unread": []}], "task": "task-x1", "version": 1}
+remaining files: brief.md, record/data-cleanup.json
+PASS: Owner answers not found and unregistered absent ID: sweep deletes all unlinked data
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/fallback/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/fallback/state task-x1
+exit=0 elapsed=2.50s
+task data task-x1: scratch recoverable in /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/fallback/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1 expired; nothing of it stays held
+
+persisted cleanup state: {"complete": true, "expired": true, "sources": [{"backlog": {"data": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/fallback/data", "task": null}, "beads": ["task-y2"], "pr": "", "project": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/fallback/projects/missing", "unread": []}], "task": "task-x1", "version": 1}
+remaining files: brief.md, proof.png, record/data-cleanup.json
+PASS: A named task moved into the configured archive still protects its linked evidence
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/unreadable/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/unreadable/state task-x1
+exit=1 elapsed=0.97s
+warning: task data task-x1 retained whole for retry: unread references: bd-qaw
+error: task data task-x1 is not expired; what remains of it stays held
+
+Unread database preserved both original payload files and recorded bd-qaw
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/unreadable/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/unreadable/state task-x1
+exit=0 elapsed=1.71s
+task data task-x1: scratch recoverable in /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/unreadable/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1 expired; nothing of it stays held
+
+persisted cleanup state: {"complete": true, "expired": true, "sources": [{"backlog": {"data": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/unreadable/data", "task": null}, "beads": ["bd-qaw"], "pr": "", "project": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/unreadable/projects/missing", "unread": []}], "task": "task-x1", "version": 1}
+remaining files: brief.md, proof.png, record/data-cleanup.json
+PASS: Unreadable owning database preserves the whole folder, then retry after database repair expires only scratch
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/locked-db/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/locked-db/state task-x1
+exit=1 elapsed=10.90s
+warning: task data task-x1 retained whole for retry: unread references: heru-5wq
+error: task data task-x1 is not expired; what remains of it stays held
+
+Real SQLite lock held for 10.90s; cleanup retained every payload and marked the bead unread
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/locked-db/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/locked-db/state task-x1
+exit=0 elapsed=1.29s
+task data task-x1: scratch recoverable in /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/locked-db/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1 expired; nothing of it stays held
+
+persisted cleanup state: {"complete": true, "expired": true, "sources": [{"backlog": {"data": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/locked-db/data", "task": null}, "beads": ["heru-5wq"], "pr": "", "project": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/locked-db/projects/missing", "unread": []}], "task": "task-x1", "version": 1}
+remaining files: brief.md, proof.png, record/data-cleanup.json
+PASS: Timed-out real SQLite read retains all data and succeeds after the lock is released
+$ git init -q /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/checkout-legacy-path/agent-config
+exit=0 elapsed=0.01s
+
+$ git -C /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/checkout-legacy-path/agent-config remote add origin https://github.com/gsp-agent/agent-config.git
+exit=0 elapsed=0.01s
+
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-legacy-path/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-legacy-path/state task-x1
+exit=0 elapsed=1.44s
+task data task-x1: scratch recoverable in /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-legacy-path/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1 expired; nothing of it stays held
+
+persisted cleanup state: {"complete": true, "expired": true, "sources": [{"backlog": {"data": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-legacy-path/data", "legacy": true, "refreshed_text": "- [x] task-x1 - finished  (repo: agent-config) (done 2026-10-20)\n  [capture](proof.png)", "task": "task-x1", "text": "## Archived\n- [x] task-x1 - finished  (repo: agent-config) (done 2026-10-20)\n  [capture](proof.png)\n"}, "beads": [], "pr": "", "project": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/checkout-legacy-path/agent-config", "unread": []}], "task": "task-x1", "version": 1}
+remaining files: brief.md, proof.png, record/data-cleanup.json
+PASS: legacy completed row path: same repository expires scratch; changed repository retains everything
+$ git init -q /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/checkout-legacy-alias/firstmate-upstream
+exit=0 elapsed=0.01s
+
+$ git -C /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/checkout-legacy-alias/firstmate-upstream remote add origin https://github.com/gsp-agent/firstmate.git
+exit=0 elapsed=0.01s
+
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-legacy-alias/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-legacy-alias/state task-x1
+exit=0 elapsed=1.38s
+task data task-x1: scratch recoverable in /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-legacy-alias/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1 expired; nothing of it stays held
+
+persisted cleanup state: {"complete": true, "expired": true, "sources": [{"backlog": {"data": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-legacy-alias/data", "legacy": true, "refreshed_text": "- [x] task-x1 - finished  (repo: firstmate) (done 2026-10-20)\n  [capture](proof.png)", "task": "task-x1", "text": "## Archived\n- [x] task-x1 - finished  (repo: firstmate) (done 2026-10-20)\n  [capture](proof.png)\n"}, "beads": [], "pr": "", "project": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/checkout-legacy-alias/firstmate-upstream", "unread": []}], "task": "task-x1", "version": 1}
+remaining files: brief.md, proof.png, record/data-cleanup.json
+PASS: legacy completed row alias: same repository expires scratch; changed repository retains everything
+$ git init -q /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/checkout-legacy-review/agent-config
+exit=0 elapsed=0.03s
+
+$ git -C /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/checkout-legacy-review/agent-config remote add origin https://github.com/gsp-agent/agent-config.git
+exit=0 elapsed=0.02s
+
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-legacy-review/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-legacy-review/state task-x1
+exit=0 elapsed=1.37s
+task data task-x1: scratch recoverable in /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-legacy-review/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1 expired; nothing of it stays held
+
+persisted cleanup state: {"complete": true, "expired": true, "sources": [{"backlog": {"data": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-legacy-review/data", "legacy": true, "refreshed_text": "- [x] task-x1 - finished https://github.com/gsp-agent/agent-config/pull/304 (repo: agent-config) (done 2026-10-20)\n  [capture](proof.png)", "task": "task-x1", "text": "## Archived\n- [x] task-x1 - finished https://github.com/gsp-agent/agent-config/pull/304 (repo: agent-config) (done 2026-10-20)\n  [capture](proof.png)\n"}, "beads": [], "pr": "", "project": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/checkout-legacy-review/agent-config", "unread": []}], "task": "task-x1", "version": 1}
+remaining files: brief.md, proof.png, record/data-cleanup.json
+PASS: legacy completed row review: same repository expires scratch; changed repository retains everything
+$ git init -q /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/checkout-legacy-changed/agent-config
+exit=0 elapsed=0.01s
+
+$ git -C /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/checkout-legacy-changed/agent-config remote add origin https://github.com/gsp-agent/agent-config.git
+exit=0 elapsed=0.01s
+
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-legacy-changed/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-legacy-changed/state task-x1
+exit=1 elapsed=0.29s
+warning: task data task-x1 retained whole for retry: completed row task-x1 changed project or PR
+error: task data task-x1 is not expired; what remains of it stays held
+
+Changed repository refused expiry; both payloads remain byte-for-byte
+PASS: legacy completed row changed: same repository expires scratch; changed repository retains everything
+$ git init -q /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/checkout-archived-path/agent-config
+exit=0 elapsed=0.01s
+
+$ git -C /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/checkout-archived-path/agent-config remote add origin https://github.com/gsp-agent/agent-config.git
+exit=0 elapsed=0.01s
+
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-archived-path/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-archived-path/state task-x1
+exit=0 elapsed=1.96s
+task data task-x1: scratch recoverable in /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-archived-path/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1 expired; nothing of it stays held
+
+persisted cleanup state: {"complete": true, "expired": true, "sources": [{"backlog": {"data": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-archived-path/data", "task": "task-x1"}, "beads": [], "pr": "", "project": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/checkout-archived-path/agent-config", "unread": []}], "task": "task-x1", "version": 1}
+remaining files: brief.md, proof.png, record/data-cleanup.json
+PASS: archived completed row path: same repository expires scratch; changed repository retains everything
+$ git init -q /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/checkout-archived-alias/firstmate-upstream
+exit=0 elapsed=0.01s
+
+$ git -C /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/checkout-archived-alias/firstmate-upstream remote add origin https://github.com/gsp-agent/firstmate.git
+exit=0 elapsed=0.01s
+
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-archived-alias/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-archived-alias/state task-x1
+exit=0 elapsed=2.03s
+task data task-x1: scratch recoverable in /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-archived-alias/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1 expired; nothing of it stays held
+
+persisted cleanup state: {"complete": true, "expired": true, "sources": [{"backlog": {"data": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-archived-alias/data", "task": "task-x1"}, "beads": [], "pr": "", "project": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/checkout-archived-alias/firstmate-upstream", "unread": []}], "task": "task-x1", "version": 1}
+remaining files: brief.md, proof.png, record/data-cleanup.json
+PASS: archived completed row alias: same repository expires scratch; changed repository retains everything
+$ git init -q /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/checkout-archived-review/agent-config
+exit=0 elapsed=0.03s
+
+$ git -C /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/checkout-archived-review/agent-config remote add origin https://github.com/gsp-agent/agent-config.git
+exit=0 elapsed=0.01s
+
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-archived-review/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-archived-review/state task-x1
+exit=0 elapsed=2.04s
+task data task-x1: scratch recoverable in /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-archived-review/data/task-x1/.cleanup-hold until the next completed task
+task data task-x1 expired; nothing of it stays held
+
+persisted cleanup state: {"complete": true, "expired": true, "sources": [{"backlog": {"data": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-archived-review/data", "task": "task-x1"}, "beads": [], "pr": "", "project": "/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/checkout-archived-review/agent-config", "unread": []}], "task": "task-x1", "version": 1}
+remaining files: brief.md, proof.png, record/data-cleanup.json
+PASS: archived completed row review: same repository expires scratch; changed repository retains everything
+$ git init -q /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/checkout-archived-changed/agent-config
+exit=0 elapsed=0.02s
+
+$ git -C /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/checkout-archived-changed/agent-config remote add origin https://github.com/gsp-agent/agent-config.git
+exit=0 elapsed=0.01s
+
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-archived-changed/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/identity-archived-changed/state task-x1
+exit=1 elapsed=0.73s
+warning: task data task-x1 retained whole for retry: completed row task-x1 changed project or PR
+error: task data task-x1 is not expired; what remains of it stays held
+
+Changed repository refused expiry; both payloads remain byte-for-byte
+PASS: archived completed row changed: same repository expires scratch; changed repository retains everything
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/tied-legacy-blank-first/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/tied-legacy-blank-first/state task-x1
+exit=1 elapsed=0.48s
+warning: task data task-x1 retained whole for retry: completed row task-x1 changed project or PR
+error: task data task-x1 is not expired; what remains of it stays held
+
+Saved owner PR186 and tied [PR185, blank] rows: expiry refused, no files moved, saved owner unchanged
+PASS: legacy blank-first: a blank tied row cannot erase PR185 and permit deletion under saved PR186
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/tied-legacy-blank-last/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/tied-legacy-blank-last/state task-x1
+exit=1 elapsed=0.45s
+warning: task data task-x1 retained whole for retry: completed row task-x1 changed project or PR
+error: task data task-x1 is not expired; what remains of it stays held
+
+Saved owner PR186 and tied [PR185, blank] rows: expiry refused, no files moved, saved owner unchanged
+PASS: legacy blank-last: a blank tied row cannot erase PR185 and permit deletion under saved PR186
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/tied-archived-blank-first/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/tied-archived-blank-first/state task-x1
+exit=1 elapsed=0.67s
+warning: task data task-x1 retained whole for retry: completed row task-x1 changed project or PR
+error: task data task-x1 is not expired; what remains of it stays held
+
+Saved owner PR186 and tied [PR185, blank] rows: expiry refused, no files moved, saved owner unchanged
+PASS: archived blank-first: a blank tied row cannot erase PR185 and permit deletion under saved PR186
+$ bash /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/bin/fm-task-data-lib.sh expire /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/tied-archived-blank-last/data /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5KWW866PPTDFWE4PRBJYGC7/.local-test-tmp/live-confirmed/tied-archived-blank-last/state task-x1
+exit=1 elapsed=0.80s
+warning: task data task-x1 retained whole for retry: completed row task-x1 changed project or PR
+error: task data task-x1 is not expired; what remains of it stays held
+
+Saved owner PR186 and tied [PR185, blank] rows: expiry refused, no files moved, saved owner unchanged
+PASS: archived blank-last: a blank tied row cannot erase PR185 and permit deletion under saved PR186
+Results: [{"name": "Missing recorded checkout resolves .agent-config bead in its prefix-owned real SQLite database despite inherited database overrides", "result": "pass", "live": true}, {"name": "Missing recorded checkout resolves bd bead in its prefix-owned real SQLite database despite inherited database overrides", "result": "pass", "live": true}, {"name": "Missing recorded checkout resolves heru bead in its prefix-owned real SQLite database despite inherited database overrides", "result": "pass", "live": true}, {"name": "Missing recorded checkout resolves gj bead in its prefix-owned real SQLite database despite inherited database overrides", "result": "pass", "live": true}, {"name": "Missing recorded checkout resolves gj-gitlab-config bead in its prefix-owned real SQLite database despite inherited database overrides", "result": "pass", "live": true}, {"name": "Missing recorded checkout resolves obs bead in its prefix-owned real SQLite database despite inherited database overrides", "result": "pass", "live": true}, {"name": "Owner answers not found and unregistered absent ID: sweep deletes all unlinked data", "result": "pass", "live": true}, {"name": "A named task moved into the configured archive still protects its linked evidence", "result": "pass", "live": true}, {"name": "Unreadable owning database preserves the whole folder, then retry after database repair expires only scratch", "result": "pass", "live": true}, {"name": "Timed-out real SQLite read retains all data and succeeds after the lock is released", "result": "pass", "live": true}, {"name": "legacy completed row path: same repository expires scratch; changed repository retains everything", "result": "pass", "live": true}, {"name": "legacy completed row alias: same repository expires scratch; changed repository retains everything", "result": "pass", "live": true}, {"name": "legacy completed row review: same repository expires scratch; changed repository retains everything", "result": "pass", "live": true}, {"name": "legacy completed row changed: same repository expires scratch; changed repository retains everything", "result": "pass", "live": true}, {"name": "archived completed row path: same repository expires scratch; changed repository retains everything", "result": "pass", "live": true}, {"name": "archived completed row alias: same repository expires scratch; changed repository retains everything", "result": "pass", "live": true}, {"name": "archived completed row review: same repository expires scratch; changed repository retains everything", "result": "pass", "live": true}, {"name": "archived completed row changed: same repository expires scratch; changed repository retains everything", "result": "pass", "live": true}, {"name": "legacy blank-first: a blank tied row cannot erase PR185 and permit deletion under saved PR186", "result": "pass", "live": true}, {"name": "legacy blank-last: a blank tied row cannot erase PR185 and permit deletion under saved PR186", "result": "pass", "live": true}, {"name": "archived blank-first: a blank tied row cannot erase PR185 and permit deletion under saved PR186", "result": "pass", "live": true}, {"name": "archived blank-last: a blank tied row cannot erase PR185 and permit deletion under saved PR186", "result": "pass", "live": true}]
