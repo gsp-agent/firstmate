@@ -1,0 +1,2 @@
+Temporary verification of required independent review.
+This fixture belongs to a temporary pull request that will be closed without merging.
