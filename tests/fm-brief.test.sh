@@ -996,6 +996,16 @@ SIGNALS
       "$kind brief did not require durable resolution when a blocker clears"
     assert_grep 'even when the answer is what started that work' "$brief" \
       "$kind brief did not warn that an answer-started done/working never closes a decision"
+    [ "$kind" != secondmate ] || continue
+    # The merge-only pause a worker is taught must be a line the classifier
+    # reads as one, under the configured pause verb.
+    # shellcheck disable=SC2016 # Match literal backticks in the generated interface.
+    template=$(grep -o '`[^`]*\[awaits=merge\][^`]*`' "$brief" | tr -d '`' | head -1)
+    [ -n "$template" ] || fail "$kind brief did not teach the merge-only pause"
+    line=$(printf '%s' "${template//<epoch>/$now}" | sed -e 's/{[^}]*}/one short line/g')
+    FM_CLASSIFY_PAUSED_VERB=awaiting bash -c '. "$1"; status_awaits_merge "$2"' _ \
+      "$ROOT/bin/fm-classify-lib.sh" "$line" \
+      || fail "$kind brief taught a merge-only pause the classifier does not read: $line"
   done
   pass "fm-brief.sh: custom pause verb renders in every scaffold"
 }

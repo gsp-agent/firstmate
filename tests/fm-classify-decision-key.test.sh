@@ -16,7 +16,9 @@
 # status_key_closing_verb, which reports how
 # the status side currently reads one key so a consumer can tell a settled key
 # from one handed to a durable captain-held task (bin/fm-captain-hold.sh
-# diverged). Cross-drain cursor persistence and the incremental
+# diverged). Also covers status_awaits_merge, the exact "[awaits=merge]"
+# field that marks a pause whose only wait is the worker's own PR merge.
+# Cross-drain cursor persistence and the incremental
 # cost bound live in tests/fm-wake-drain-open-decisions-cursor.test.sh; the
 # drain wiring lives in tests/fm-wake-drain-open-decisions.test.sh.
 set -u
@@ -604,3 +606,46 @@ test_recorded_line_stays_recorded_across_a_resolve() {
 }
 
 test_recorded_line_stays_recorded_across_a_resolve
+
+# status_awaits_merge: a worker whose only wait is its own PR's merge marks its
+# pause with the "[awaits=merge]" field before the colon, so a merge authority can
+# tell that pause from one with more pushes to come. Only that exact field on a
+# pause line counts; the same words in the note never do.
+test_awaits_merge_marks_only_a_merge_only_pause() {
+  local line
+  for line in \
+    'paused [at=1] [awaits=merge]: waiting on the merge of https://github.com/o/r/pull/4481' \
+    'paused [awaits=merge]: the next PR starts after this one lands' \
+    'paused [awaits=merge] [at=1700000000]: tag order does not matter' \
+    'paused [key=ship-1] [at=10:30] [awaits=merge]: a readable time keeps the head' \
+    'paused corr=c44897ee2db4326b [awaits=merge]: correlated'; do
+    status_awaits_merge "$line" || fail "a merge-only pause was not read as one: $line"
+    status_is_paused "$line" || fail "the marker stopped the line reading as a pause: $line"
+    status_prefix_unrecognized "$line" && fail "the marker made the pause an unknown prefix: $line"
+  done
+  for line in \
+    'paused [at=1]: waiting on Firstmate merging https://github.com/o/r/pull/4481' \
+    'paused [at=1]: waiting on awaits=merge for the PR' \
+    'paused [at=1]: [awaits=merge] written after the colon' \
+    'done [at=1] [awaits=merge]: PR https://github.com/o/r/pull/4481' \
+    'working [awaits=merge]: still pushing' \
+    'blocked [awaits=merge]: stuck' \
+    'paused [at=1] [awaits=merging]: misspelled value' \
+    'paused [at=1] [await=merge]: misspelled key' \
+    'paused [at=1] [Awaits=Merge]: wrong case' \
+    'paused [at=1] [awaits=merge-review]: another value' \
+    'paused [awaits=review] [awaits=merge]: two awaits fields' \
+    'paused [awaits=merge]' \
+    ''; do
+    status_awaits_merge "$line" && fail "read as a merge-only pause: [$line]"
+  done
+  (
+    FM_CLASSIFY_PAUSED_VERB=awaiting
+    status_awaits_merge 'awaiting [awaits=merge]: the configured pause verb' || exit 1
+    status_awaits_merge 'paused [awaits=merge]: not the configured pause verb' && exit 1
+    exit 0
+  ) || fail "status_awaits_merge did not follow the configured pause verb"
+  pass "only an exact [awaits=merge] field on a pause line marks a merge-only pause"
+}
+
+test_awaits_merge_marks_only_a_merge_only_pause

@@ -119,6 +119,9 @@
 # "blocked:": pause for a known wait expected to clear on its own, including
 # the worker's own background work, pipeline or long command; blocked when
 # firstmate must act. The first-sight alert remains; repeats use the long cadence.
+# Ship and scout scaffolds also teach the merge-only pause, marked [awaits=merge]
+# when the worker's one remaining wait is its own PR's merge; status_awaits_merge
+# in bin/fm-classify-lib.sh owns that marker's grammar.
 # Emission-time syntax and legacy unknown-time handling are owned by
 # bin/fm-classify-lib.sh; each scaffold renders the stamp as a literal <epoch>
 # placeholder the worker replaces with a numeric Unix time as it appends, so a
@@ -183,6 +186,8 @@ IFS= read -r -d '' CREWMATE_PAUSE_INSTRUCTIONS <<EOF || true
    Do not declare active implementation or reasoning as a wait.
    Firstmate may still raise one first-sight alert; the declared wait then uses the existing long recheck cadence instead of repeated possible-wedge alarms.
    When you know when the wait clears, include \`until <YYYY-MM-DDTHH:MMZ>\` (UTC) for a recheck at that time.
+   When the only thing you wait on is your own PR's merge, append \`$PAUSED_VERB [at=<epoch>] [awaits=merge]: {PR url and the step that follows the merge}\` instead.
+   That marker means merge it now: you will push nothing more to that PR and your next step starts after the merge, so never write it while more commits or any other wait remain.
    Follow the resolution rule below when the wait clears, then resume the task.
    Use \`blocked:\` when you are stuck and need help.
 EOF
