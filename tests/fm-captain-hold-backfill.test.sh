@@ -89,6 +89,42 @@ test_backfill_named_seat_and_dale() {
   pass "backfill names a seat from the text and keeps Dale-only holds captain-owned"
 }
 
+test_backfill_skips_row_without_stamp() {
+  local home out body
+  home=$(make_home nostamp)
+  tasks_in "$home" add nostamp-widget "Ship the nostamp widget" --kind ship --repo sample >/dev/null
+  run_captain "$home" hold nostamp-widget --reason "waiting on a go" >/dev/null
+  strip_owner_fields "$home"
+  grep -v '^  Captain hold set: ' "$home/data/backlog.md" > "$home/data/backlog.md.tmp" \
+    && mv "$home/data/backlog.md.tmp" "$home/data/backlog.md"
+  tasks_in "$home" add later-widget "Ship the later widget" --kind ship --repo sample >/dev/null
+  run_captain "$home" hold later-widget --reason "waiting on a go" >/dev/null
+  strip_owner_fields "$home"
+  out=$(run_captain "$home" backfill-owners) \
+    || fail "backfill exited on a stamp-less row: $out"
+  printf '%s\n' "$out" | grep -q 'later-widget owner=ep-sample' \
+    || fail "row after the stamp-less one was not backfilled: $out"
+  out=$(run_captain "$home" backfill-owners) \
+    || fail "backfill re-run exited on a stamp-less row: $out"
+  printf '%s\n' "$out" | grep -q 'later-widget kept owner=ep-sample' \
+    || fail "re-run did not reach the later row: $out"
+  pass "backfill skips a stamp-less row and continues the sweep"
+}
+
+test_backfill_fails_on_unreadable_backlog() {
+  local home out status=0
+  home=$(make_home unreadable)
+  rm -rf "$home/data"
+  printf 'not a directory\n' > "$home/data"
+  out=$(run_captain "$home" backfill-owners 2>&1) || status=$?
+  [ "$status" != 0 ] || fail "backfill reported success on an unreadable backlog: $out"
+  printf '%s\n' "$out" | grep -q 'could not list captain holds' \
+    || fail "backfill did not name the list failure: $out"
+  pass "backfill fails when the backlog cannot be listed"
+}
+
 test_backfill_derives_owner
 test_backfill_named_seat_and_dale
+test_backfill_skips_row_without_stamp
+test_backfill_fails_on_unreadable_backlog
 echo "all fm-captain-hold-backfill tests passed"

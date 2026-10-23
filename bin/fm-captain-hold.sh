@@ -2703,8 +2703,42 @@ backfill_owner_for() {  # <repo> <reason> <body>; prints "<owner> <source>"
   esac
 }
 
+backfill_one_owner() {  # <id> <dry>; caller owns the task control lock unless dry
+  local id=$1 dry=$2 show body owner_field reason owner source repo
+  task_show "$id" || { printf 'fm-captain-hold: backfill skipped %s (unreadable)\n' "$id" >&2; return 0; }
+  show=$TASK_SHOW_OUTPUT
+  body=$(decode_shown_value "$(show_field "$show" body)") || return 0
+  owner_field=$(body_domain_field "$body" 'Decision owner')
+  if [ -n "$owner_field" ]; then
+    printf '%s kept owner=%s\n' "$id" "$owner_field"; return 0
+  fi
+  if printf '%s' "$body" | grep -q 'Resolution recorded by fm-captain-hold'; then
+    printf '%s answered (release with its record)\n' "$id"; return 0
+  fi
+  reason=$(show_field "$show" hold_reason)
+  reason=${reason#\"} reason=${reason%\"}
+  case "$reason" in
+    fm-hold-v1:*) reason=$(printf '%s' "${reason#fm-hold-v1:}" \
+        | perl -MMIME::Base64=decode_base64 -0777 -ne 'print decode_base64($_)') ;;
+  esac
+  [ "$reason" != "-" ] && [ -n "$reason" ] || reason=$(show_field "$show" title)
+  repo=$(show_field "$show" repo)
+  read -r owner source <<< "$(backfill_owner_for "$repo" "$reason" "$body")"
+  reason=$(printf '%s' "$reason" | tr '\n' ' ' | cut -c1-300)
+  # write_hold_domain_fields fails on a body with no line-1 hold-set stamp;
+  # that row is unroutable, not a reason to strand every row behind it.
+  if [ -z "$(body_hold_set_timestamp "$body")" ]; then
+    printf 'fm-captain-hold: backfill skipped %s (no hold-set stamp)\n' "$id" >&2; return 0
+  fi
+  if [ "$dry" = 1 ]; then
+    printf '%s would-backfill owner=%s source=%s\n' "$id" "$owner" "$source"; return 0
+  fi
+  write_hold_domain_fields "$id" "$body" "$owner" 300 "$reason"
+  printf '%s owner=%s source=%s\n' "$id" "$owner" "$source"
+}
+
 command_backfill_owners() {
-  local dry=0 ids id show body owner_field reason owner source repo
+  local dry=0 ids rows id
   while [ "$#" -gt 0 ]; do
     case "$1" in
       --dry-run) dry=1 ;;
@@ -2714,35 +2748,20 @@ command_backfill_owners() {
   done
   require_tasks_axi
   if [ -z "${ids:-}" ]; then
-    ids=$(listed_task_rows | awk '$2 != "done" && $3 == "captain" { print $1 }') \
-      || fail "could not list captain holds"
+    rows=$(listed_task_rows) || fail "could not list captain holds"
+    ids=$(printf '%s\n' "$rows" | awk '$2 != "done" && $3 == "captain" { print $1 }')
   fi
   for id in $ids; do
-    task_show "$id" || { printf 'fm-captain-hold: backfill skipped %s (unreadable)\n' "$id" >&2; continue; }
-    show=$TASK_SHOW_OUTPUT
-    body=$(decode_shown_value "$(show_field "$show" body)") || continue
-    owner_field=$(body_domain_field "$body" 'Decision owner')
-    if [ -n "$owner_field" ]; then
-      printf '%s kept owner=%s\n' "$id" "$owner_field"; continue
-    fi
-    if printf '%s' "$body" | grep -q 'Resolution recorded by fm-captain-hold'; then
-      printf '%s answered (release with its record)\n' "$id"; continue
-    fi
-    reason=$(show_field "$show" hold_reason)
-    reason=${reason#\"} reason=${reason%\"}
-    case "$reason" in
-      fm-hold-v1:*) reason=$(printf '%s' "${reason#fm-hold-v1:}" \
-          | perl -MMIME::Base64=decode_base64 -0777 -ne 'print decode_base64($_)') ;;
-    esac
-    [ "$reason" != "-" ] && [ -n "$reason" ] || reason=$(show_field "$show" title)
-    repo=$(show_field "$show" repo)
-    read -r owner source <<< "$(backfill_owner_for "$repo" "$reason" "$body")"
-    reason=$(printf '%s' "$reason" | tr '\n' ' ' | cut -c1-300)
     if [ "$dry" = 1 ]; then
-      printf '%s would-backfill owner=%s source=%s\n' "$id" "$owner" "$source"; continue
+      backfill_one_owner "$id" 1
+    else
+      # The body is read and rewritten under the task control lock, as in
+      # every other body writer here, so a concurrent route-due write to
+      # the same row cannot be overwritten by a stale copy.
+      acquire_task_control_lock "$id"
+      backfill_one_owner "$CAPTAIN_TASK_ID" 0
+      release_task_control_lock
     fi
-    write_hold_domain_fields "$id" "$body" "$owner" 300 "$reason"
-    printf '%s owner=%s source=%s\n' "$id" "$owner" "$source"
   done
 }
 
