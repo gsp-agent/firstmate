@@ -34,7 +34,7 @@ A recorded `harness=` is not always an exact adapter name: a task launched from 
 | --- | --- | --- |
 | `interrupt` | Deliver the harness's verified interrupt sequence while leaving the agent running. | Delivery succeeds while the endpoint still exists and the agent is still alive where the backend can classify that; cancellation is confirmed only from an adapter-owned acknowledgement and otherwise reports `cancel=unconfirmed`. |
 | `exit` | Stop the agent, preserving the endpoint, the worktree, and every uncommitted change. | The backend's recovery-grade classifier reports the agent gone. Already-stopped is idempotent success. An endpoint reading `missing` goes through the same [absence proof](#reclaiming-a-task-whose-endpoint-is-gone) the reclaim uses before anything is claimed about it, and only Herdr can supply one: proven gone reports `endpoint-gone` (the agent went with it, and the endpoint this verb normally preserves did not survive), a pane that turns out to be there and idle is the ordinary `already-stopped`, one whose agent is back takes the ordinary interrupt-then-exit path. A tmux `missing` always refuses rather than claim a stop it cannot see. |
-| `relaunch` | Replace the running agent with a new one in the same worktree - and the same endpoint whenever that endpoint still exists - on the exact recorded adapter or an explicitly chosen harness, model, and effort. | The new agent is alive on the endpoint the task's record now names, and that record names the harness that is actually running. |
+| `relaunch` | Replace the running agent with a new one in the same worktree - and the same endpoint whenever that endpoint still exists - using the [resolved replacement profile](#transactional-relaunch). | The new agent is alive on the endpoint the task's record now names, and that record names the harness that is actually running. |
 
 An exit that delivers lifecycle input but cannot prove the agent stopped fails with `exit=unconfirmed`, reports the observed agent state and any interrupt cancellation claim, and never claims that nothing changed.
 Interrupt never rewrites busy state as proof of its own success.
@@ -49,10 +49,26 @@ An interrupt is not complete until the composer is empty.
 muse is the one verified adapter that restores the cancelled prompt back into its composer as real text, so its interrupt key is followed by a Ctrl+U clear; without it the next submitted line - including this plane's own exit command - would concatenate onto the restored prompt and submit both as one line.
 The clear is refused before anything is sent when the recorded backend cannot deliver it.
 
-`exit` reads the composer's state before typing the exit command and requires the exact `empty` verdict; a `pending` verdict refuses by naming the pending text, and any other verdict (`unknown`, `pending-unproven`, or an unreadable read) refuses as not proven empty, matching the fail-safe contract every other consumer that can overwrite composer input follows.
-`exit` also refuses, naming the dialog as `blocked on a prompt`, when the screen shows a recognised dialog that a further Enter would answer, whether the dialog was open before the exit command was typed or the submitting Enter opened it; it sends no Escape and chooses no option, so closing the dialog is left to the operator.
+`exit` reads the composer's state before typing the exit command and requires the exact `empty` verdict.
+A `pending` verdict refuses by naming the pending text, and any other verdict (`unknown`, `pending-unproven`, or an unreadable read) refuses as not proven empty, matching the fail-safe contract every other consumer that can overwrite composer input follows.
+Before that command, a Claude exit stops the agent's own background shells and checks that they are gone.
+Those shells are the shell-classified descendants of that agent that sit outside its process group, plus the commands those shells have started.
+The processes are taken from that agent's own process tree.
+Root discovery confirms the named tmux window and reads that pane's tty in the same check, and a mismatch stops no processes.
+A Herdr root is accepted only when the live process still has the harness identity that pane reported, and a later process table that shows a different owner of that pid stops nothing.
+A pane that already shows Claude's background-task exit picker, or whose submitting Enter opens it, is recovered by the same verb.
+The same recovery runs once when the wait for the agent to stop times out and that re-read is the first time this exit sees the picker.
+The shells the picker lists are stopped, Escape closes the picker, and `/exit` is submitted once the picker is gone.
+Escape is followed by a short reread of that screen, about eight tries a twentieth of a second apart, before a dismissal that has not redrawn yet is treated as still open.
+The screen that lists those shells and confirms the picker has closed is the current screen the composer classifier used.
+On a scrolled Herdr pane that screen is the composer capture, because the visible viewport is old chat, and an empty task list does not count as the picker being clear.
+Enter is never sent into the picker.
+A picker that is still open after that one recovery refuses.
+When that process tree cannot be seen, the picker still refuses with `blocked on a prompt` and no Escape is sent.
+An unrecognised dialog still refuses, with no key and no signal.
 A stopped agent whose pane still shows the dialog text is not refused.
-[`fm_composer_blocking_dialog`](../bin/fm-composer-lib.sh) owns the recognised set, which today is only Claude's background-task exit picker; [its verification record](verification/runtime-backends.md#claude-background-task-exit-picker) lists the dialogs that are not covered.
+[`fm_composer_blocking_dialog`](../bin/fm-composer-lib.sh) owns the recognised set, which today is only Claude's background-task exit picker.
+[Its verification record](verification/runtime-backends.md#claude-background-task-exit-picker) lists the dialogs that are not covered.
 
 **Teardown and discard are not verbs and will not become verbs.**
 `exit` stops an agent and preserves everything else.
@@ -69,14 +85,15 @@ A relaunch does take one session reference when the endpoint's own runtime recor
 `relaunch` is the only verb that changes durable records, so it runs as a transaction with a journal at `state/<id>.control-relaunch`, the prior record preserved beside it, and a ship or scout's prior instructions preserved when a progress note is appended.
 
 1. **Resolve the profile.**
-   An explicit `--harness`, `--model`, or `--effort` selects the requested replacement profile.
+   An explicit `--harness`, `--model`, or `--effort` selects the requested replacement profile before launch routing.
    Otherwise a `kind=secondmate` task re-resolves its durable `config/secondmate-harness` pin, including that file's optional model and effort tokens, exactly as every other respawn does - so setting the pin and relaunching is the ordinary way to move a secondmate's runtime.
-   A ship or scout keeps the harness already recorded for it, because that harness comes from firstmate's dispatch-profile judgment at intake and must not be silently re-read from configuration.
+   A ship or scout starts from its recorded profile rather than re-reading dispatch configuration; [`bin/fm-spawn.sh`'s relaunch contract](../bin/fm-spawn.sh) owns preservation of omitted model and effort axes.
    A recorded raw-command basename that differs from its resolved adapter cannot reproduce the command actually running, so relaunch refuses before the checkpoint unless the caller passes an explicit `--harness` to choose the replacement runtime deliberately.
-   A harness change resets model and effort unless they are named too, because a model chosen for one adapter does not transfer to another.
+   An explicit harness change resets model and effort unless they are named too, because a model chosen for one adapter does not transfer to another.
+   Ship and scout replacements resolve the [dispatch pair requirements](configuration.md#crew-dispatch-profiles-configcrew-dispatchjson) on that requested profile.
+   Every ship or scout replacement then takes the [launch route](../bin/fm-cursor-guard.sh) before the old agent stops; [`bin/fm-control.sh`](../bin/fm-control.sh) owns the substituted profile when that route changes the harness.
    A Claude or Pi replacement must also pass the home's [worker account pin](configuration.md#worker-account-pin-configclaude-account-configpi-account), so a pin that no longer resolves or is signed out refuses before the old agent stops.
    Ship and scout replacements also pass the [worker tool exclusion checks](configuration.md#worker-tool-exclusions-configcrew-exclude-tools) at this step.
-   Ship and scout replacements also resolve the [dispatch pair requirements](configuration.md#crew-dispatch-profiles-configcrew-dispatchjson) at this step.
 2. **Safe checkpoint.**
    The recorded worktree must exist and be a worktree root; its head and dirty state are recorded.
    For a `kind=secondmate` task, the home's identity marker must match and its child records must be readable, so a relaunch can never strand child work behind an unreadable home.

@@ -183,7 +183,10 @@
 #                          again (FM_SECONDMATE_LIVENESS_MAX_ATTEMPTS and
 #                          FM_SECONDMATE_LIVENESS_WINDOW_SECS)
 # The periodic hold-domain sweep uses the tracked check runner with
-# FM_CHECK_TIMEOUT seconds (default 90 for this sweep). A failure queues a
+# FM_CHECK_TIMEOUT seconds (default 90 for this sweep). That bound is a slice:
+# fm-captain-hold.sh saves its place and the next pass continues. Exit 124 or
+# 137 with no row failure is that slice ending, and it does not wake. A row
+# failure, including one already printed when the bound then fires, queues a
 # `check: hold-domain routing failed: exit <code>` wake before ordinary checks
 # run; that reason closes the sweep's one collected delivery, after the other
 # check results. fm-captain-hold.sh owns row deadlines and resumable sweep
@@ -535,38 +538,41 @@ window_is_busy() {  # <window> <tail40>
   [ "${verdict%% *}" = busy ]
 }
 
-window_kind() {
+window_kind() {  # <window> [<out-var>]
   local w=$1 meta kind
-  meta=$(fm_backend_meta_for_window "$w" "$STATE" 2>/dev/null || true)
+  fm_backend_meta_for_window "$w" "$STATE" meta || meta=
   if [ -n "$meta" ]; then
-    kind=$(grep '^kind=' "$meta" | cut -d= -f2- || true)
+    fm_meta_get "$meta" kind kind
     [ -n "$kind" ] || kind=ship
-    echo "$kind"
-    return 0
+  else
+    kind=unknown
   fi
-  echo unknown
+  if [ "$#" -gt 1 ]; then printf -v "$2" '%s' "$kind"
+  else printf '%s\n' "$kind"; fi
 }
 
 # window_backend: the backend recorded in the meta whose window= matches <w>,
 # defaulting to tmux (absent backend= means tmux; the P1 compatibility
 # contract) when no matching meta carries the field, or none matches at all.
-window_backend() {
+window_backend() {  # <window> [<out-var>]
   local w=$1 meta backend
-  meta=$(fm_backend_meta_for_window "$w" "$STATE" 2>/dev/null || true)
+  fm_backend_meta_for_window "$w" "$STATE" meta || meta=
   if [ -n "$meta" ]; then
-    backend=$(grep '^backend=' "$meta" | cut -d= -f2- || true)
+    fm_meta_get "$meta" backend backend
     [ -n "$backend" ] || backend=tmux
-    echo "$backend"
-    return 0
+  else
+    backend=tmux
   fi
-  echo tmux
+  if [ "$#" -gt 1 ]; then printf -v "$2" '%s' "$backend"
+  else printf '%s\n' "$backend"; fi
 }
 
-window_harness() {
-  local w=$1 meta
-  meta=$(fm_backend_meta_for_window "$w" "$STATE" 2>/dev/null || true)
-  [ -n "$meta" ] || return 0
-  grep '^harness=' "$meta" | cut -d= -f2- || true
+window_harness() {  # <window> [<out-var>]
+  local w=$1 meta harness=
+  fm_backend_meta_for_window "$w" "$STATE" meta || meta=
+  [ -z "$meta" ] || fm_meta_get "$meta" harness harness
+  if [ "$#" -gt 1 ]; then printf -v "$2" '%s' "$harness"
+  else printf '%s\n' "$harness"; fi
 }
 
 window_label() {
@@ -3003,6 +3009,11 @@ while :; do
   # alive. Supervision scripts warn when this goes stale with tasks in flight.
   touch "$STATE/.last-watcher-beat"
 
+  # One walk of the meta files for this poll. Later window lookups read it
+  # in this shell. Rebuilding every lookup is what forked the watcher
+  # (.agent-config-ks05d).
+  fm_backend_window_index_load "$STATE" || fm_backend_window_index_clear
+
   # Opt-in fleet activity ledger (docs/fleet-ledger.md): pick up newly appended
   # status lines before this cycle can exit on a wake. Off costs one file test.
   [ ! -e "$CONFIG/fleet-ledger" ] || FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE FM_CONFIG_OVERRIDE=$CONFIG "$SCRIPT_DIR/fm-fleet-ledger.sh" capture || true
@@ -3085,8 +3096,24 @@ while :; do
       CHECK_TIMEOUT=${FM_CHECK_TIMEOUT:-90} FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" FM_CHECK_CAPTURE_STDERR=1 \
         run_check_capture "$SCRIPT_DIR/fm-captain-hold.sh" route-due || exit 1
       if [ "$FM_CHECK_STATUS" -ne 0 ]; then
-        hold_route_reason="check: hold-domain routing failed: exit $FM_CHECK_STATUS${FM_CHECK_RESULT:+: $FM_CHECK_RESULT}"
-        fm_wake_append check hold-domain "$hold_route_reason" || exit 1
+        # 124 and 137 are the sweep bound (timeout, or the kill that follows
+        # it). A row that already failed is named in the captured output;
+        # anything else resumes from the sweep cursor on the next pass.
+        case "$FM_CHECK_STATUS" in
+          124|137)
+            case "$FM_CHECK_RESULT" in
+              *'fm-captain-hold: routing row '*) ;;
+              *)
+                triage_log "hold-domain sweep reached its bound and resumes next pass"
+                FM_CHECK_STATUS=0
+                ;;
+            esac
+            ;;
+        esac
+        if [ "$FM_CHECK_STATUS" -ne 0 ]; then
+          hold_route_reason="check: hold-domain routing failed: exit $FM_CHECK_STATUS${FM_CHECK_RESULT:+: $FM_CHECK_RESULT}"
+          fm_wake_append check hold-domain "$hold_route_reason" || exit 1
+        fi
       fi
     fi
     rejected_checks=

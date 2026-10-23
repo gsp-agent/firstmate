@@ -1738,6 +1738,20 @@ fm_composer_blocking_dialog() {  # <screen> -> dialog name
   return 1
 }
 
+# fm_composer_exit_picker_tasks: the command each "shell · ..." row of a
+# recognised background-task exit picker says will stop. One command per
+# line, without the shell label. Prints nothing when the screen has no such
+# row. The middle dot is the one recorded on 2026-10-05.
+fm_composer_exit_picker_tasks() {  # <screen>
+  printf '%s\n' "$1" | awk '
+    /^[ \t]*shell · / {
+      sub(/^[ \t]*shell · /, "")
+      sub(/[ \t\r]+$/, "")
+      if (length($0) > 0) print
+    }
+  '
+}
+
 # A command substitution drops a shell variable, and every composer read runs
 # inside one. The name is therefore written to FM_COMPOSER_DIALOG_SINK when
 # that path is set. The classifier verdict is unchanged. When the sink is

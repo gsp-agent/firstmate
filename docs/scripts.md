@@ -64,7 +64,7 @@ The shared no-mistakes gate lifecycle boundary is summarized in [architecture.md
 | `fm-remote-readiness-lib.sh` | Shared remote second-mate readiness gate: check and, when needed, repair then re-check through `fm-remote-doctor.sh` |
 | [`fm-project-origin-lib.sh`](../bin/fm-project-origin-lib.sh) | Accepted origin-form owner shared by both remote provisioning boundaries |
 | `fm-spawn.sh`            | Spawn crewmates, scouts, `id=repo` batches, and secondmates on the resolved harness and runtime backend |
-| [`fm-cursor-guard.sh`](../bin/fm-cursor-guard.sh) | Select a worker fallback from the Cursor quota file; its header owns usage inputs and fallback selection |
+| [`fm-cursor-guard.sh`](../bin/fm-cursor-guard.sh) | Route a Cursor or Codex worker launch: the Cursor quota-file fallback and the Codex usage-limit marker; its header owns usage inputs and route selection |
 | [`fm-role.sh`](../bin/fm-role.sh) | Report the resolved home role or check firstmate-repository publication authority; [configuration.md](configuration.md#firstmate-role-configfirstmate-role) owns the role policy |
 | [`fm-role-lib.sh`](../bin/fm-role-lib.sh) | Own role parsing, repository-lineage detection, publication-target normalization, and the shared self-repository publication gate |
 | `fm-git-strip-ai-trailers.sh` | Strip known AI commit trailers at commit-msg time and install that hook for a fleet launch |
@@ -99,7 +99,7 @@ The shared no-mistakes gate lifecycle boundary is summarized in [architecture.md
 | `fm-watch.sh`            | Singleton-safe watcher: absorb benign wakes, detect stalled local-secondmate wake queues, and exit on actionable ones |
 | [`fm-inactive-reconcile.sh`](../bin/fm-inactive-reconcile.sh) | Reconcile long-inactive direct crewmate terminal outcomes and close eligible Herdr panes; its header owns eligibility and recovery |
 | `fm-afk-contract.sh`     | Own the away-or-quiet record's posture, schema, entry, read-back, archive, and cross-subsystem authority lock |
-| `fm-afk-start.sh`        | Run the common sourceable away-mode daemon entry in the foreground                      |
+| [`fm-afk-start.sh`](../bin/fm-afk-start.sh) | Run the sourceable daemon entry in the foreground; its header owns attended and away starts |
 | `fm-afk-launch.sh`       | Own away/quiet entry (same-turn record write, then read-back), exit, rollback, and any backend terminal lifecycle |
 | `fm-afk-return.sh`       | Own deterministic return shutdown, the return brief, catch-up evidence, and the firstmate-actionable blocker gate |
 | `fm-supervisor-target-lib.sh` | Resolve the shared supervisor target and backend for the daemon and launcher       |

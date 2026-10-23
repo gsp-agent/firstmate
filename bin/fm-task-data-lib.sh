@@ -198,38 +198,73 @@ fm_task_data_sweep_start() { # <data> <state>
   lib="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data-lib.sh"
   (
     trap '' HUP
-    # shellcheck source=bin/fm-wake-lib.sh
+    # shellcheck source=/dev/null
     . "${lib%/*}/fm-wake-lib.sh" || exit 1
-    # shellcheck source=bin/fm-pr-lib.sh
+    # shellcheck source=/dev/null
     . "${lib%/*}/fm-pr-lib.sh" || exit 1
     fm_task_data_sweep "$1" "$2"
   ) >/dev/null 2>&1 </dev/null &
 }
 
-fm_task_data_bead_reference() { # <data> <project> <bead>
-  local data=$1 project=$2 bead=$3 owner out
-  case "$bead" in
-    .agent-config-*) owner="$HOME/.agent-config" ;;
-    gsp-*) owner="$HOME/dev/gsp-beads" ;;
-    *) owner=$project ;;
-  esac
-  if [ -n "$owner" ] && out=$(
-    unset BEADS_DIR BEADS_DB BR_DB
-    cd -- "$owner" 2>/dev/null || exit 1
-    fm_run_timed 10 br show "$bead" --json
-  ) && printf '%s\n' "$out" | jq -e --arg id "$bead" \
-      'type == "array" and length == 1 and .[0].id == $id' >/dev/null; then
+# The bead-prefix map: each home, under HOME, whose .beads/beads.db owns
+# the prefix after it. The longest matching prefix wins.
+fm_task_data_bead_database() { # <bead>
+  local bead=$1 prefix home best='' owner=''
+  while read -r home prefix; do
+    case "$bead" in
+      "$prefix"-*) [ "${#prefix}" -le "${#best}" ] || { best=$prefix; owner=$home; } ;;
+    esac
+  done <<'MAP'
+.agent-config-beads .agent-config
+dev/be-still bd
+dev/carman-compound carmanco
+dev/pfizer-clickless clickless
+dev/dale dale
+dev/gj-tool gj
+dev/gj-gitlab-config gj-gitlab-config
+dev/gj-magic-mirror gjmm
+dev/groove-jones-ops gjops
+dev/gsp-beads gsp
+dev/heru-vr-vision-sim heru
+dev/agent-observer obs
+MAP
+  [ -n "$owner" ] && printf '%s\n' "$HOME/$owner/.beads/beads.db"
+}
+
+# A named bead has one owner: the database its prefix maps to, else this
+# home's backlog for an id a task can carry. Prints the bead and returns 0,
+# returns 3 when the owner answered that it does not exist or nothing can own
+# it, returns 4 when a markdown backlog lacks the row so its archive decides,
+# and fails when the owner cannot be read or the read times out.
+# br runs from / so no database above the working directory can answer.
+fm_task_data_bead_reference() { # <data> <bead>
+  local data=$1 bead=$2 db out status=0
+  if db=$(fm_task_data_bead_database "$bead"); then
+    out=$(
+      unset BEADS_DIR BEADS_DB BR_DB
+      cd / && fm_run_timed 10 br --db "$db" show "$bead" --json
+    ) || status=$?
+    if [ "$status" = 3 ] && printf '%s\n' "$out" | jq -e '.error.code == "ISSUE_NOT_FOUND"' >/dev/null; then
+      return 3
+    fi
+    [ "$status" = 0 ] && printf '%s\n' "$out" | jq -e --arg id "$bead" \
+      'type == "array" and length == 1 and .[0].id == $id' >/dev/null || return 1
     printf '%s\n' "$out"
     return 0
   fi
-  case "$bead" in .agent-config-*|gsp-*) return 1 ;; esac
-  fm_backlog_row_probe "$data" "$bead" || return 1
-  fm_backlog_row_show "$data" "$bead" --full
+  fm_task_id_path_safe "$bead" || return 3
+  if fm_backlog_row_probe "$data" "$bead"; then
+    fm_backlog_row_show "$data" "$bead" --full || return 1
+    return 0
+  fi
+  [ "$FM_BACKLOG_ROW_RESULT" = not_found ] || return 1
+  [ -z "$FM_BACKLOG_AXI_FILE" ] || return 4
+  return 3
 }
 
-fm_task_data_backlog_references() { # <data> <id> <required> <project> [bead...]
-  local data=$1 id=$2 required=$3 project=$4 script_dir row out text='' task='' unread='[]'
-  shift 4
+fm_task_data_backlog_references() { # <data> <id> <required> [bead...]
+  local data=$1 id=$2 required=$3 script_dir row out status text='' task='' unread='[]' archived='[]'
+  shift 3
   script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd) || return 1
   # shellcheck source=bin/fm-tasks-axi-lib.sh
   . "$script_dir/fm-tasks-axi-lib.sh" || return 1
@@ -238,7 +273,7 @@ fm_task_data_backlog_references() { # <data> <id> <required> <project> [bead...]
   fm_backlog_tasks_axi_addressing "$data" || return 1
   if [ -n "$FM_BACKLOG_AXI_FILE" ] && [ ! -e "$FM_BACKLOG_AXI_FILE" ] && [ ! -L "$FM_BACKLOG_AXI_FILE" ] \
       && [ "$required" = 0 ] && [ "$#" -eq 0 ]; then
-    printf '{"task":null,"text":"","unread":[]}\n'
+    printf '{"task":null,"text":"","unread":[],"archived":[]}\n'
     return 0
   fi
   unset TASKS_AXI_FILE
@@ -255,14 +290,18 @@ fm_task_data_backlog_references() { # <data> <id> <required> <project> [bead...]
     unread=$(jq -cn --arg id "$id" '[$id]')
   fi
   for row in "$@"; do
-    if out=$(fm_task_data_bead_reference "$data" "$project" "$row" 2>/dev/null) && [ -n "$out" ]; then
+    status=0
+    out=$(fm_task_data_bead_reference "$data" "$row" 2>/dev/null) || status=$?
+    if [ "$status" = 0 ] && [ -n "$out" ]; then
       text="$text$out"$'\n'
-    else
+    elif [ "$status" = 4 ]; then
+      archived=$(printf '%s' "$archived" | jq -c --arg id "$row" '. + [$id]')
+    elif [ "$status" != 3 ]; then
       unread=$(printf '%s' "$unread" | jq -c --arg id "$row" '. + [$id]')
     fi
   done
-  printf '%s' "$text" | jq -Rs --arg task "$task" --argjson unread "$unread" \
-    '{task: (if $task == "" then null else $task end), text: ., unread: $unread}'
+  printf '%s' "$text" | jq -Rs --arg task "$task" --argjson unread "$unread" --argjson archived "$archived" \
+    '{task: (if $task == "" then null else $task end), text: ., unread: $unread, archived: $archived}'
 }
 
 fm_task_data_pr_references() {
@@ -338,23 +377,23 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
       fm_task_data_pr_references "$2"
       ;;
     backlog-references)
-      [ "$#" -ge 5 ] || exit 1
+      [ "$#" -ge 4 ] || exit 1
       shift
       fm_task_data_backlog_references "$@"
       ;;
     expire)
       [ "$#" -eq 4 ] || exit 1
-      # shellcheck source=bin/fm-wake-lib.sh
+      # shellcheck source=/dev/null
       . "$(dirname "${BASH_SOURCE[0]}")/fm-wake-lib.sh" || exit 1
-      # shellcheck source=bin/fm-pr-lib.sh
+      # shellcheck source=/dev/null
       . "$(dirname "${BASH_SOURCE[0]}")/fm-pr-lib.sh" || exit 1
       fm_task_data_expire_by_hand "$2" "$3" "$4"
       ;;
     sweep)
       [ "$#" -eq 3 ] || [ "$#" -eq 4 ] || exit 1
-      # shellcheck source=bin/fm-wake-lib.sh
+      # shellcheck source=/dev/null
       . "$(dirname "${BASH_SOURCE[0]}")/fm-wake-lib.sh" || exit 1
-      # shellcheck source=bin/fm-pr-lib.sh
+      # shellcheck source=/dev/null
       . "$(dirname "${BASH_SOURCE[0]}")/fm-pr-lib.sh" || exit 1
       if [ -n "${4:-}" ]; then
         fm_task_data_sweep_request "$3" "$4" || exit 1

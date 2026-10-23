@@ -2681,9 +2681,114 @@ command_open() {  # <task-id> [--identity] [--distinguish-absent]
   exit 2
 }
 
+# --- .agent-config-m4t5e: owner backfill for pre-PR29 captain holds ---
+# A hold made before the owner contract carries no Decision owner, so
+# route-due never hands it on. backfill-owners derives one, in order:
+# a seat named in the hold's own reason or body (ep-*/pm-*), a Dale-only
+# marker (money, credential, a person, client words, an irreversible act)
+# which stays captain-owned and so stays listed for Dale, else the task
+# project's EP (ep-<repo leaf>). The timeout is the watcher's 300s.
+backfill_owner_for() {  # <repo> <reason> <body>; prints "<owner> <source>"
+  local repo=$1 reason=$2 body=$3 named
+  named=$(printf '%s\n%s\n' "$reason" "$body" \
+    | grep -o -E '\b(ep|pm)-[a-z0-9][a-z0-9-]*' | head -1 || true)
+  if [ -n "$named" ]; then printf '%s named\n' "$named"; return; fi
+  if printf '%s\n%s\n' "$reason" "$body" \
+      | grep -q -i -E 'money|spend|cost|price|credential|password|secret|sign[- ]?in|log ?in|account|invoice|contract|client|hire|person'; then
+    printf 'captain dale\n'; return
+  fi
+  case "$repo" in
+    ''|dale) printf 'captain dale\n' ;;
+    *) printf 'ep-%s project-ep\n' "${repo##*/}" ;;
+  esac
+}
+
+backfill_one_owner() {  # <id> <dry>; caller owns the task control lock unless dry
+  local id=$1 dry=$2 show body owner_field reason owner source repo
+  task_show "$id" || { printf 'fm-captain-hold: backfill skipped %s (unreadable)\n' "$id" >&2; return 0; }
+  show=$TASK_SHOW_OUTPUT
+  body=$(decode_shown_value "$(show_field "$show" body)") || return 0
+  owner_field=$(body_domain_field "$body" 'Decision owner')
+  if [ -n "$owner_field" ]; then
+    printf '%s kept owner=%s\n' "$id" "$owner_field"; return 0
+  fi
+  if printf '%s' "$body" | grep -q 'Resolution recorded by fm-captain-hold'; then
+    printf '%s answered (release with its record)\n' "$id"; return 0
+  fi
+  reason=$(show_field "$show" hold_reason)
+  reason=${reason#\"} reason=${reason%\"}
+  case "$reason" in
+    fm-hold-v1:*) reason=$(printf '%s' "${reason#fm-hold-v1:}" \
+        | perl -MMIME::Base64=decode_base64 -0777 -ne 'print decode_base64($_)') ;;
+  esac
+  [ "$reason" != "-" ] && [ -n "$reason" ] || reason=$(show_field "$show" title)
+  repo=$(show_field "$show" repo)
+  read -r owner source <<< "$(backfill_owner_for "$repo" "$reason" "$body")"
+  # The written reason must equal the live hold reason as route_hold
+  # compares it (whitespace-normalized, whole): shortening it here makes
+  # the row divergent and unroutable.
+  reason=$(printf '%s' "$reason" | normalize_routing_reason)
+  # write_hold_domain_fields fails on a body with no line-1 hold-set stamp;
+  # that row is unroutable, not a reason to strand every row behind it.
+  if [ -z "$(body_hold_set_timestamp "$body")" ]; then
+    printf 'fm-captain-hold: backfill skipped %s (no hold-set stamp)\n' "$id" >&2; return 0
+  fi
+  if [ "$dry" = 1 ]; then
+    printf '%s would-backfill owner=%s source=%s\n' "$id" "$owner" "$source"; return 0
+  fi
+  write_hold_domain_fields "$id" "$body" "$owner" 300 "$reason"
+  printf '%s owner=%s source=%s\n' "$id" "$owner" "$source"
+}
+
+command_backfill_owners() {
+  local dry=0 ids rows id row_timeout=${FM_HOLD_ROUTE_TIMEOUT_SECS:-30} row_status rc=0
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --dry-run) dry=1 ;;
+      *) ids="${ids:+$ids }$1" ;;
+    esac
+    shift
+  done
+  require_tasks_axi
+  if [ -z "${ids:-}" ]; then
+    rows=$(listed_task_rows) || fail "could not list captain holds"
+    ids=$(printf '%s\n' "$rows" | awk '$2 != "done" && $3 == "captain" { print $1 }')
+  fi
+  for id in $ids; do
+    if [ "$dry" = 1 ]; then
+      backfill_one_owner "$id" 1
+    elif [ -n "${FM_CAPTAIN_BACKFILL_ROW:-}" ]; then
+      backfill_row_locked "$id"
+    else
+      # Use one process per row so a failed row cannot strand later holds,
+      # as command_route_due does: acquire/read/write failures inside the
+      # row process (the lock's read, the row read, the body write) are
+      # reported against that row and the sweep carries on.
+      row_status=0
+      ( export FM_TASKS_AXI_COMPATIBLE=1 FM_CAPTAIN_HOLD_CONTRACT=1 FM_CAPTAIN_BACKFILL_ROW=1
+        fm_exec_timed "$row_timeout" 1 "$SCRIPT_DIR/fm-captain-hold.sh" backfill-owners "$id" ) || row_status=$?
+      if [ "$row_status" -ne 0 ]; then
+        printf 'fm-captain-hold: backfill row %s failed (exit %s)\n' "$id" "$row_status" >&2
+        rc=1
+      fi
+    fi
+  done
+  return "$rc"
+}
+
+backfill_row_locked() {  # <id>: the row-child body of command_backfill_owners
+  # The body is read and rewritten under the task control lock, as in
+  # every other body writer here, so a concurrent route-due write to
+  # the same row cannot be overwritten by a stale copy.
+  acquire_task_control_lock "$1"
+  backfill_one_owner "$CAPTAIN_TASK_ID" 0
+  release_task_control_lock
+}
+
 case "${1:-}" in
   hold) shift; command_hold "$@" ;;
   route-due) shift; command_route_due "$@" ;;
+  backfill-owners) shift; command_backfill_owners "$@" ;;
   reprobe) shift; command_reprobe "$@" ;;
   answer) shift; command_answer "$@" ;;
   answers) shift; command_answers "$@" ;;
