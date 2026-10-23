@@ -78,9 +78,12 @@
 # until unhold succeeds, even when an expired --until makes tasks-axi report
 # held=no. A future --until is refused during that release recovery.
 # A recorded answer or reconciliation awaiting closure must finish before re-holding.
-# So must an agent-routed release that is unheld but still has its pending body:
-# `hold` refuses until the next route-due pass publishes its parent resolution.
-# `route-due` re-reads live backlog holds from the watcher's periodic pass.
+# An answer continuation awaiting delivery also blocks a new hold. Legacy
+# agent-routed releases finish their parent publication before re-holding;
+# recipient-bound routes may then be superseded by an explicit new hold.
+# A measured technical hold carries an owner-available event at creation (or
+# its explicit resume date); the optional router can therefore deliver at once.
+# `route-due` re-reads live backlog holds as recovery from the watcher's pass.
 # A no-argument sweep visits only rows the listing reports held for the captain
 # (including expired dated holds) and ids with pending bodies.
 # Each row of a no-argument sweep allows FM_HOLD_ROUTE_TIMEOUT_SECS seconds (default 30),
@@ -138,6 +141,17 @@
 # ordering. An exact retry also completes unfinished ordering normalization and
 # is idempotent only when its requested close mode
 # matches the newest record; a changed decision or a mode mismatch is rejected.
+# When that record names active work, the same operation sends its exact
+# decision through fm-send's idempotent inbox, bound to the current worker
+# generation. Existing hold-domain pending state retains interrupted delivery.
+# Keyed intake may carry --delivered-task, --delivered-record and
+# --delivered-generation from fm-send's completed enqueue. The answer validates
+# that receipt against the current task and generation and refuses to spend a
+# prior hold occurrence's receipt again. Missing or mismatched proof remains
+# pending; source provenance is never delivery authority. An exact answer retry
+# can replace those receipt fields with a verified existing inbox delivery,
+# retaining the original task, generation, decision and occurrence. It never
+# enqueues to repair an invalid receipt or infers a missing original generation.
 # A re-held task may record a new answer on top. On a task already closed outside this script,
 # `answer` records the missing resolution block (the old `repair` path) only
 # when the task still carries the captain-hold provenance tasks-axi preserves
@@ -311,6 +325,12 @@ DATA="${FM_DATA_OVERRIDE:-$FM_HOME/data}"
 # shellcheck source=bin/fm-parent-channel-lib.sh
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/fm-parent-channel-lib.sh"
+# shellcheck source=bin/fm-task-inbox-lib.sh
+# shellcheck disable=SC1091
+. "$SCRIPT_DIR/fm-task-inbox-lib.sh"
+# shellcheck source=bin/fm-marker-lib.sh
+# shellcheck disable=SC1091
+. "$SCRIPT_DIR/fm-marker-lib.sh"
 
 PARENT_HOLD_PUBLISHED=0
 publish_parent_hold() {  # <task-id> <occurrence> <verb> <note>
@@ -330,8 +350,13 @@ CAPTAIN_CONTROL_LOCK=
 CAPTAIN_CONTROL_LOCK_HELD=0
 CAPTAIN_TASK_ID=
 CAPTAIN_RUNTIME_ID=
+CAPTAIN_CONTINUATION_LOCK=
 HOLD_HISTORY_HEADER='Previous task body:'
 captain_hold_cleanup() {
+  if [ -n "$CAPTAIN_CONTINUATION_LOCK" ]; then
+    fm_lock_release "$CAPTAIN_CONTINUATION_LOCK" || true
+    CAPTAIN_CONTINUATION_LOCK=
+  fi
   if [ "$CAPTAIN_META_LOCK_HELD" = 1 ]; then
     fm_lock_release "$CAPTAIN_META_LOCK" || true
     CAPTAIN_META_LOCK_HELD=0
@@ -408,6 +433,10 @@ BINDING_ANY='(any)'
 
 DECISION_TEXT=''
 DECISION_DIGEST=''
+ANSWER_TARGET=''
+ANSWER_DELIVERED_TASK=''
+ANSWER_DELIVERED_RECORD=''
+ANSWER_DELIVERED_GENERATION=''
 
 load_decision() {  # <path>; sets DECISION_TEXT and DECISION_DIGEST
   local path=$1 decision
@@ -640,8 +669,14 @@ resolution_block() {  # <mode>
     reconciled|probe-released) label='Reconciliation evidence:' ;;
     agent-routed) label='Agent routing evidence:' ;;
   esac
-  printf 'Resolution recorded by fm-captain-hold.\nDecision digest: %s\nResolution mode: %s\n\n%s\n%s\n' \
-    "$DECISION_DIGEST" "$1" "$label" "$DECISION_TEXT"
+  printf 'Resolution recorded by fm-captain-hold.\nDecision digest: %s\nResolution mode: %s\n' \
+    "$DECISION_DIGEST" "$1"
+  if [ -n "$ANSWER_TARGET" ]; then
+    printf 'Continuation task: %s\n' "$ANSWER_TARGET"
+    [ -z "$ANSWER_DELIVERED_RECORD" ] || printf 'Continuation inbox task: %s\nContinuation inbox record: %s\nContinuation inbox generation: %s\n' \
+      "$ANSWER_DELIVERED_TASK" "$ANSWER_DELIVERED_RECORD" "$ANSWER_DELIVERED_GENERATION"
+  fi
+  printf '\n%s\n%s\n' "$label" "$DECISION_TEXT"
 }
 
 # Durable state of one call: an active captain hold (annotations surviving even
@@ -1308,10 +1343,20 @@ command_hold() {
   if [ "$existing_hold_kind" = captain ] && body_has_current_hold_resolution "$body"; then
     fail "task $id has a recorded resolution awaiting closure; retry answer or reconcile before re-holding"
   fi
+  if [ -f "$STATE/hold-domain/pending/$id.body" ] \
+    && grep -q '^Answer continuation: ' "$STATE/hold-domain/pending/$id.body"; then
+    fail "task $id has an unfinished answer continuation; retry route-due before re-holding"
+  fi
   # route_hold's recovery branch still owes this release its parent resolution.
   if [ "$existing_hold_kind" != captain ] && [ "$(recorded_resolution_mode "$body" || true)" = agent-routed ] \
     && [ -e "$STATE/hold-domain/pending/$id.body" ]; then
-    fail "task $id has an unfinished agent-routed release; the next route-due pass recovers it, then hold again"
+    if awk -F '\t' -v id="$id" '$1 == id && NF >= 4 { found=1 } END { exit !found }' \
+      "$STATE/hold-domain/routed.tsv"; then
+      publish_parent_resolution_then_retire "$id" "$(resolution_record_count "$body")" agent-routed
+      retire_hold_route "$id"
+    else
+      fail "task $id has an unfinished agent-routed release; the next route-due pass recovers it, then hold again"
+    fi
   fi
   if [ "$existing_hold_kind" = captain ]; then
     [ "$existing_held" != yes ] || preserve_hold_set=1
@@ -1319,8 +1364,8 @@ command_hold() {
     old_timeout=$(body_domain_field "$body" 'Hold timeout seconds')
     old_reason=$(body_domain_field "$body" 'Hold reason')
     if [ -n "$old_owner" ]; then
-      if grep -Fx -- "$(printf '%s\t%s\t%s' "$id" "$(body_hold_set_timestamp "$body")" "$old_owner")" \
-        "$STATE/hold-domain/routed.tsv" >/dev/null 2>&1; then
+      if cut -f1-3 "$STATE/hold-domain/routed.tsv" 2>/dev/null \
+        | grep -Fx -- "$(printf '%s\t%s\t%s' "$id" "$(body_hold_set_timestamp "$body")" "$old_owner")" >/dev/null; then
         [ "${decision_owner:-$old_owner}" = "$old_owner" ] \
           && [ "${timeout_seconds:-$old_timeout}" = "$old_timeout" ] \
           && [ "$routing_reason" = "$old_reason" ] \
@@ -1446,11 +1491,212 @@ retire_hold_route() {
     || fail "could not retire hold routing for $1"
 }
 
+# Continuation is part of the durable answer, with the existing routing spool
+# marking an unfinished delivery. The worker inbox supplies retry deduplication.
+answer_header() {  # <decoded-body> <field>
+  printf '%s\n' "$1" | awk -v key="$2: " '
+    /^Captain decision:$/ { exit }
+    index($0, key) == 1 { print substr($0, length(key) + 1); exit }
+  '
+}
+
+prepare_answer_continuation() {  # <id> <mode> <shown-body>
+  local id=$1 mode=$2 body target pending
+  body=$(decode_shown_value "$3") || return 1
+  ANSWER_TARGET=''
+  if [ "$mode" = released ]; then target=$id; else target=$(body_hold_origin "$body"); fi
+  [ -n "$target" ] || return 0
+  target=$(task_identity "$target") || return 1
+  validate_slug continuation-task "$target"
+  ANSWER_TARGET=$target
+  if [ -n "$ANSWER_DELIVERED_TASK" ]; then
+    validate_slug delivered-task "$ANSWER_DELIVERED_TASK"
+    validate_one_line delivered-record "$ANSWER_DELIVERED_RECORD"
+    [ -z "$ANSWER_DELIVERED_GENERATION" ] || validate_one_line delivered-generation "$ANSWER_DELIVERED_GENERATION"
+    [ "$(task_identity "$ANSWER_DELIVERED_TASK")" = "$target" ] \
+      || fail 'the delivered answer belongs to a different continuation task'
+    [ -n "$ANSWER_DELIVERED_RECORD" ] || fail 'a delivered answer requires its inbox record'
+  elif [ -n "$ANSWER_DELIVERED_RECORD" ]; then
+    fail 'a delivered inbox record requires its task'
+  fi
+  pending="$STATE/hold-domain/pending/$id.body"
+  (umask 077; mkdir -p "$STATE/hold-domain/pending"
+    printf 'Answer continuation: %s\n' "$DECISION_DIGEST" > "$pending") \
+    || fail "cannot retain answer continuation for $id"
+}
+
+continue_recorded_answer() {  # <id>; caller owns the answered task control lock
+  local id=$1 body mode digest target runtime show state held text record delivered dir gen lock='' rc=0 message name receipt_gen uses occurrence pending original_body tmp
+  task_show "$id" || fail "cannot read the recorded answer for $id"
+  body=$(show_field_value "$TASK_SHOW_OUTPUT" body)
+  target=$(answer_header "$body" 'Continuation task')
+  [ -n "$target" ] || return 0  # Old answers never cause a new delivery.
+  digest=$(recorded_decision_digest "$body")
+  mode=$(recorded_resolution_mode "$body")
+  case "$mode" in answered|released|repaired) ;; *) fail "invalid answer continuation mode for $id" ;; esac
+  pending="$STATE/hold-domain/pending/$id.body"
+  (umask 077; mkdir -p "$STATE/hold-domain/pending"
+    printf 'Answer continuation: %s\n' "$digest" > "$pending") \
+    || fail "cannot retain answer continuation for $id"
+  text=$(printf '%s' "$body" | python3 -I -c '
+import hashlib, sys
+body = sys.stdin.buffer.read().decode("utf-8", "surrogateescape")
+digest = body.split("Decision digest: ", 1)[1].splitlines()[0]
+rest = body.split("\nCaptain decision:\n", 1)[1]
+lines = rest.splitlines(keepends=True)
+candidate = ""
+for line in lines:
+    candidate += line
+    value = candidate.rstrip("\n")
+    if hashlib.sha256(value.encode("utf-8", "surrogateescape")).hexdigest() == digest:
+        sys.stdout.buffer.write(value.encode("utf-8", "surrogateescape"))
+        break
+else:
+    raise SystemExit("recorded answer digest does not match")
+') || fail "cannot recover the exact answer for $id"
+  runtime=$(task_runtime_identity "$target") || return 1
+  validate_slug continuation-runtime "$runtime"
+  # Answering a question may resume a different task. Its own control lock
+  # serializes holds and replacement workers through the final send.
+  if [ "$runtime" != "$CAPTAIN_RUNTIME_ID" ]; then
+    lock="$STATE/.control-$runtime.lock"
+    fm_lock_acquire_wait_max "$lock" 15 || fail "continuation target $target is busy"
+    CAPTAIN_CONTINUATION_LOCK=$lock
+  fi
+  if task_show "$target"; then
+    show=$TASK_SHOW_OUTPUT
+    state=$(show_field_value "$show" state)
+    held=$(show_field_value "$show" held)
+    if [ "$state" = 'done' ]; then
+      : # Never revive a finished origin from an old answer.
+    elif [ "$held" = yes ]; then
+      rc=1
+    elif [ "$state" = queued ]; then
+      : # Native unhold is the queue release; do not invent another worker.
+    elif [ "$state" != in_flight ] || [ ! -f "$STATE/$runtime.meta" ]; then
+      rc=1
+    else
+      delivered=$(answer_header "$body" 'Continuation inbox task')
+      record=$(answer_header "$body" 'Continuation inbox record')
+      gen=$(meta_value "$STATE/$runtime.meta" spawn_gen)
+      original_body=$body
+      if [ -n "$ANSWER_DELIVERED_TASK$ANSWER_DELIVERED_RECORD$ANSWER_DELIVERED_GENERATION" ]; then
+        # Repair only this recorded occurrence, preserving its original target,
+        # generation and exact decision. Never turn an unproven old send into
+        # a fresh enqueue, or infer its generation from the current worker.
+        receipt_gen=$(answer_header "$body" 'Continuation inbox generation')
+        if [ -z "$record" ] || [ -z "$delivered" ] || [ -z "$receipt_gen" ] ||
+          [ -z "$ANSWER_DELIVERED_TASK" ] || [ -z "$ANSWER_DELIVERED_RECORD" ] ||
+          [ "$ANSWER_DELIVERED_GENERATION" != "$receipt_gen" ] || [ "$receipt_gen" != "$gen" ] ||
+          [ "$(task_identity "$delivered")" != "$target" ] ||
+          [ "$(task_identity "$ANSWER_DELIVERED_TASK")" != "$target" ]; then
+          rc=1
+        else
+          validate_slug delivered-task "$ANSWER_DELIVERED_TASK"
+          validate_one_line delivered-record "$ANSWER_DELIVERED_RECORD"
+          body=$(printf '%s' "$body" | python3 -I -c '
+import sys
+body = sys.stdin.buffer.read()
+header, separator, decision = body.partition(b"\nCaptain decision:\n")
+if not separator:
+    raise SystemExit("missing recorded decision")
+values = dict(zip((b"Continuation inbox task", b"Continuation inbox record",
+                   b"Continuation inbox generation"),
+                  (value.encode("utf-8", "surrogateescape") for value in sys.argv[1:])))
+lines = []
+for line in header.split(b"\n"):
+    key, sep, value = line.partition(b": ")
+    lines.append(key + sep + values[key] if sep and key in values else line)
+sys.stdout.buffer.write(b"\n".join(lines) + separator + decision)
+' "$ANSWER_DELIVERED_TASK" "$ANSWER_DELIVERED_RECORD" "$ANSWER_DELIVERED_GENERATION") || rc=1
+          delivered=$(answer_header "$body" 'Continuation inbox task')
+          record=$(answer_header "$body" 'Continuation inbox record')
+        fi
+      fi
+      if [ -n "$record" ]; then
+        receipt_gen=$(answer_header "$body" 'Continuation inbox generation')
+        [ -n "$gen" ] && [ "$receipt_gen" = "$gen" ] || rc=1
+        dir="$STATE/$delivered.inbox"
+        name=${record##*/}
+        [[ "$name" =~ ^[0-9]+\.msg$ ]] || rc=1
+        case "$record" in "$dir/$name"|"$dir/handled/$name") ;; *) rc=1 ;; esac
+        [ ! -L "$dir" ] && [ ! -L "$dir/handled" ] || rc=1
+        # The same numeric inbox record may acknowledge one occurrence of
+        # this hold only. Its move into handled/ is not a fresh delivery.
+        # Existing resolution history is the authority, not timestamp precision.
+        uses=$(printf '%s\n' "$body" | awk -v task="$delivered" -v name="$name" '
+          /^Continuation inbox task: / { target=substr($0,26) }
+          /^Continuation inbox record: / {
+            path=substr($0,28); sub(/^.*\//,"",path)
+            if (target == task && path == name) count++
+          }
+          END { print count+0 }
+        ')
+        [ "$uses" = 1 ] || rc=1
+        if [ "$rc" = 0 ]; then
+          [ -f "$record" ] || record="$dir/handled/${record##*/}"
+          [ ! -L "$record" ] || rc=1
+          [ "$(head -1 "$record" 2>/dev/null)" = "schema=$FM_TASK_INBOX_SCHEMA" ] || rc=1
+          # A receipt is evidence only when its body is this keyed answer.
+          local inbox_text answer
+          inbox_text=$(fm_task_inbox_body "$record") || rc=1
+          # Strip only the native secondmate carrier; ordinary prose is data.
+          if [ "$(meta_value "$STATE/$runtime.meta" kind)" = secondmate ] &&
+            fm_message_from_firstmate "$inbox_text" &&
+            [[ "$inbox_text" = "$FM_FROMFIRST_MARK"* ]]; then
+            fm_operational_input_body "$inbox_text" inbox_text || rc=1
+            if [[ "$inbox_text" =~ ^corr=[0-9a-f]{16}' ' ]]; then
+              inbox_text=${inbox_text#* }
+            else
+              rc=1
+            fi
+          fi
+          answer=$(printf '%s\n' "$text" | sed -n 's/^Answer: //p' | head -1)
+          [ -n "$answer" ] && [ "$(sanitize_field "$inbox_text")" = "$answer" ] || rc=1
+          [ "$(task_identity "$delivered")" = "$target" ] || rc=1
+        fi
+        if [ "$rc" = 0 ] && [ "$body" != "$original_body" ]; then
+          # The control lock spans validation and replacement; recheck both
+          # durable inputs before archiving the original body and accepting it.
+          task_show "$id" || rc=1
+          [ "$(show_field_value "$TASK_SHOW_OUTPUT" body)" = "$original_body" ] || rc=1
+          [ "$(meta_value "$STATE/$runtime.meta" spawn_gen)" = "$gen" ] || rc=1
+          if [ "$rc" = 0 ]; then
+            tmp=$(umask 077; mktemp "${TMPDIR:-/tmp}/fm-answer-receipt.XXXXXX") || return 1
+            if ! printf '%s\n' "$body" > "$tmp" ||
+              ! tasks_axi update "$id" --body-file "$tmp" --archive-body >/dev/null; then
+              rc=1
+            fi
+            rm -f -- "$tmp"
+          fi
+        fi
+      else
+        if [ "$rc" != 0 ] || [ -z "$gen" ]; then rc=1; else
+          occurrence=$(resolution_record_count "$body")
+          message=$(printf 'Captain answer for %s occurrence %s worker %s [%s]. Continue the current task using this recorded decision:\n\n%s' "$id" "$occurrence" "$gen" "$digest" "$text")
+          FM_SEND_IDEMPOTENT=1 FM_SEND_EXPECTED_SPAWN_GEN="$gen" \
+            "$SCRIPT_DIR/fm-send.sh" "$runtime" "$message" >/dev/null || rc=1
+        fi
+      fi
+    fi
+  elif ! printf '%s\n' "$TASK_SHOW_OUTPUT" | grep -q '^code: NOT_FOUND$'; then
+    rc=1
+  fi
+  [ -z "$lock" ] || fm_lock_release "$lock"
+  CAPTAIN_CONTINUATION_LOCK=
+  [ "$rc" = 0 ] || fail "answer for $id is recorded; continuation to $target remains pending"
+}
+
+finish_answer_delivery() {  # <id> <occurrence> <note>
+  continue_recorded_answer "$1"
+  publish_parent_resolution_then_retire "$1" "$2" "$3"
+  retire_hold_route "$1"
+}
+
 route_hold() {  # <id>; caller owns the task control lock
   local id=$1 router show body stamp owner timeout reason live_reason tmp pending output result rc=0 receipt occurrence until today='' data
-  local archive archive_body archived=0 state read_timeout=${FM_BACKLOG_ROW_TIMEOUT_SECS:-10}
+  local digest mode archive archive_body archived=0 state read_timeout=${FM_BACKLOG_ROW_TIMEOUT_SECS:-10}
   router=${FM_HOLD_DOMAIN_ROUTER:-$HOME/.agent-config/configs/claude/hooks/hold-domain.py}
-  [ -f "$router" ] || return 0
   if task_show "$id"; then
     show=$TASK_SHOW_OUTPUT
   elif printf '%s\n' "$TASK_SHOW_OUTPUT" | grep -q '^code: NOT_FOUND$'; then
@@ -1500,6 +1746,20 @@ PY
   fi
   state=$(show_field_value "$show" state)
   body=$(show_field_value "$show" body)
+  pending="$STATE/hold-domain/pending/$id.body"
+  if [ -f "$pending" ] && grep -q '^Answer continuation: ' "$pending"; then
+    digest=$(sed -n 's/^Answer continuation: //p' "$pending")
+    [ "$digest" = "$(recorded_decision_digest "$body" || true)" ] \
+      || fail "answer continuation for $id has no matching durable answer"
+    mode=$(recorded_resolution_mode "$body")
+    if [ "$(show_field_value "$show" hold_kind)" = captain ] && [ "$state" != 'done' ]; then
+      case "$mode" in released) close_answered "$id" 1 ;; answered) close_answered "$id" 0 ;; *) return 1 ;; esac
+    fi
+    remove_interrupted_answer_stamp "$id"
+    finish_answer_delivery "$id" "$(resolution_record_count "$body")" "$mode"
+    return
+  fi
+  [ -f "$router" ] || return 0
   stamp=$(body_hold_set_timestamp "$body")
   if body_has_current_hold_resolution "$body"; then
     retire_hold_route "$id"
@@ -1510,6 +1770,23 @@ PY
     # A crash after unhold still owes normalization and the parent resolution.
     if [ "$(body_domain_field "$body" 'Resolution mode')" != agent-routed ]; then
       retire_hold_route "$id"
+      return 0
+    fi
+    # New routers bind delivery to the current recipient. Keep that original
+    # routing body until the work finishes so a replacement owner receives the
+    # same unresolved action. Legacy receipts retain their old retirement path.
+    pending="$STATE/hold-domain/pending/$id.body"
+    if [ "$archived" = 0 ] && [ "$state" != 'done' ] && [ -f "$pending" ] \
+      && awk -F '\t' -v id="$id" '$1 == id && NF >= 4 { found=1 } END { exit !found }' "$STATE/hold-domain/routed.tsv"; then
+      stamp=$(body_hold_set_timestamp "$(cat "$pending")")
+      receipt=$(printf '%s\t%s\t%s' "$id" "$stamp" "$owner")
+      case "$body" in *"Hold-domain receipt: $receipt"*) ;; *) fail "routing recovery identity changed for $id" ;; esac
+      output=$(HOLD_DOMAIN_STATE="$STATE/hold-domain/routed.tsv" HOLD_DOMAIN_SPOOL="$STATE/hold-domain/pending" \
+        python3 "$router" route --task "$id" --body-file "$pending" 2>&1) || rc=$?
+      [ "$rc" -eq 0 ] || fail "routing recovery for $id failed: $output"
+      occurrence=$(resolution_record_count "$body")
+      remove_interrupted_answer_stamp "$id"
+      publish_parent_resolution_then_retire "$id" "$occurrence" "agent-routed to $owner"
       return 0
     fi
     occurrence=$(resolution_record_count "$body")
@@ -1548,6 +1825,11 @@ PY
     "$stamp" "$owner" "$timeout" "$reason" > "$tmp") || { rm -f -- "$tmp"; fail "cannot stage routing body"; }
   local -a args=(route --task "$id" --body-file "$tmp")
   until=$(show_field_value "$show" hold_until)
+  if [ -n "$until" ]; then
+    printf 'Hold resume event: date=%s\n' "$until" >> "$tmp"
+  else
+    printf 'Hold resume event: owner-available\n' >> "$tmp"
+  fi
   [ -z "$until" ] || today=$(hold_local_date) || { rm -f -- "$tmp"; exit 1; }
   if [ -n "$until" ] && [[ "$until" > "$today" ]]; then
     # Before its timeout can elapse, the router classifies without prompting.
@@ -1574,7 +1856,7 @@ PY
     *) fail "unexpected hold-domain route result for $id: $output" ;;
   esac
   receipt=$(printf '%s\t%s\t%s' "$id" "$stamp" "$owner")
-  grep -Fx -- "$receipt" "$STATE/hold-domain/routed.tsv" >/dev/null \
+  cut -f1-3 "$STATE/hold-domain/routed.tsv" | grep -Fx -- "$receipt" >/dev/null \
     || fail "routing $id returned no matching receipt"
   DECISION_TEXT=$(printf 'Hold-domain receipt: %s\nRouted hold reason: %s' "$receipt" "$reason")
   DECISION_DIGEST=$(sha256_text "$DECISION_TEXT")
@@ -1586,6 +1868,10 @@ PY
   tasks_axi unhold "$id" >/dev/null || fail "could not release routed hold $id"
   remove_interrupted_answer_stamp "$id"
   publish_parent_resolution_then_retire "$id" "$occurrence" "agent-routed to $owner"
+  if awk -F '\t' -v receipt="$receipt" '$1 "\t" $2 "\t" $3 == receipt && NF >= 4 { found=1 } END { exit !found }' \
+    "$STATE/hold-domain/routed.tsv"; then
+    return 0
+  fi
   retire_hold_route "$id"
 }
 
@@ -1594,7 +1880,6 @@ command_route_due() {
   local cursor cursor_file="$STATE/hold-domain/sweep-cursor" tmp
   [ "$#" -le 1 ] || { usage >&2; exit 2; }
   router=${FM_HOLD_DOMAIN_ROUTER:-$HOME/.agent-config/configs/claude/hooks/hold-domain.py}
-  [ -f "$router" ] || return 0
   require_tasks_axi
   if [ "$#" -eq 1 ]; then
     validate_slug task-id "$1"
@@ -1742,6 +2027,9 @@ command_answer() {
   while [ "$#" -gt 0 ]; do
     case "$1" in
       --decision-file) shift; decision_file=${1:-} ;;
+      --delivered-task) shift; ANSWER_DELIVERED_TASK=${1:-} ;;
+      --delivered-record) shift; ANSWER_DELIVERED_RECORD=${1:-} ;;
+      --delivered-generation) shift; ANSWER_DELIVERED_GENERATION=${1:-} ;;
       --release) release=1 ;;
       *) usage >&2; exit 2 ;;
     esac
@@ -1773,9 +2061,9 @@ command_answer() {
         || fail "task $id records this answer with mode ${recorded_mode:-unknown}; --release cannot reopen a closed task"
       remove_interrupted_answer_stamp "$id"
       if [ "$recorded_mode" = repaired ]; then
-        publish_parent_resolution_then_retire "$id" $((occurrence - 1)) "answered (repaired)"
+        finish_answer_delivery "$id" $((occurrence - 1)) "answered (repaired)"
       else
-        publish_parent_resolution_then_retire "$id" $((occurrence - 1)) answered
+        finish_answer_delivery "$id" $((occurrence - 1)) answered
       fi
       printf 'answered: %s\n' "$id"
       return 0
@@ -1793,7 +2081,7 @@ command_answer() {
     [ "$(show_field "$show" state)" = "done" ] || fail "recording the answer reopened closed task $id"
     body_has_resolution_record "$(show_field "$show" body)" \
       || fail "captain-held task $id did not retain its durable resolution record"
-    publish_parent_resolution_then_retire "$id" "$occurrence" "answered (repaired)"
+    finish_answer_delivery "$id" "$occurrence" "answered (repaired)"
     printf 'repaired: %s\n' "$id"
     return 0
   fi
@@ -1805,7 +2093,7 @@ command_answer() {
     # its own record on top. Either way the close mode is the caller's flag,
     # checked against an interrupted close's recorded mode so a retry cannot
     # silently flip a release into a close.
-    if body_has_resolution_record "$body" \
+    if body_has_current_hold_resolution "$(decode_shown_value "$body")" \
       && [ "$(recorded_decision_digest "$body" || true)" = "$DECISION_DIGEST" ]; then
       recorded_mode=$(recorded_resolution_mode "$body" || true)
       case "$recorded_mode" in
@@ -1817,10 +2105,11 @@ command_answer() {
         fail "could not close answered captain-held task $id"
       fi
       remove_interrupted_answer_stamp "$id"
-      publish_parent_resolution_then_retire "$id" $((occurrence - 1)) "$outcome"
+      finish_answer_delivery "$id" $((occurrence - 1)) "$outcome"
       printf '%s: %s\n' "$outcome" "$id"
       return 0
     fi
+    prepare_answer_continuation "$id" "$outcome" "$body"
     write_resolution_record "$id" "$outcome" "$body"
     if ! close_answered "$id" "$release"; then
       fail "could not close answered captain-held task $id"
@@ -1830,7 +2119,7 @@ command_answer() {
     show=$TASK_SHOW_OUTPUT
     body_has_resolution_record "$(show_field "$show" body)" \
       || fail "captain-held task $id did not retain its durable resolution record"
-    publish_parent_resolution_then_retire "$id" "$occurrence" "$outcome"
+    finish_answer_delivery "$id" "$occurrence" "$outcome"
     printf '%s: %s\n' "$outcome" "$id"
     return 0
   fi
@@ -1843,7 +2132,7 @@ command_answer() {
     [ "$recorded_mode" = released ] && [ "$release" = 1 ] \
       || fail "task $id records this answer with mode ${recorded_mode:-unknown}; replay requires matching --release"
     remove_interrupted_answer_stamp "$id"
-    publish_parent_resolution_then_retire "$id" $((occurrence - 1)) released
+    finish_answer_delivery "$id" $((occurrence - 1)) released
     printf 'released: %s\n' "$id"
     return 0
   fi
@@ -1948,10 +2237,12 @@ sanitize_reconcile_provenance() {
 command_answers() {
   local origin='' source='' row rest key answer label mode id show state hold_kind body digest legacy_digest legacy_key
   local recorded_digest recorded_mode occurrence tmp err closed=0 skipped=0 reason release_flag tab=$'\t'
-  local resolve_rc
+  local resolve_rc replay
+  local -a delivered_args=()
   while [ "$#" -gt 0 ]; do
     case "$1" in
       --source) shift; source=${1:-} ;;
+      --delivered-task|--delivered-record|--delivered-generation) delivered_args+=("$1" "${2:-}"); shift ;;
       --any-origin) origin=$BINDING_ANY ;;
       --*) usage >&2; exit 2 ;;
       *)
@@ -2041,6 +2332,7 @@ command_answers() {
     body=$(show_field "$show" body)
     recorded_digest=$(recorded_decision_digest "$body" || true)
     recorded_mode=$(recorded_resolution_mode "$body" || true)
+    replay=0
     if body_has_resolution_record "$body" \
       && { [ "$recorded_digest" = "$digest" ] \
         || { case "$body" in *"Resolution recorded by fm-decision-hold."*) true ;; *) false ;; esac \
@@ -2049,29 +2341,28 @@ command_answers() {
           && closed_answer_replay_mode_compatible "$recorded_mode" "$body"; } \
         || { [ "$release_flag" = --release ] && [ "$state" != "done" ] \
           && [ "$hold_kind" != captain ] && [ "$recorded_mode" = released ]; }; then
-        occurrence=$(resolution_record_count "$body")
-        case "$recorded_mode" in
-          repaired) publish_parent_resolution_then_retire "$id" "$occurrence" "answered (repaired)" ;;
-          released) publish_parent_resolution_then_retire "$id" "$occurrence" released ;;
-          *) publish_parent_resolution_then_retire "$id" "$occurrence" answered ;;
-        esac
-        printf 'closed: %s\n' "$id"
-        closed=$((closed + 1))
-        continue
+        if [ "$recorded_digest" != "$digest" ]; then
+          occurrence=$(resolution_record_count "$body")
+          publish_parent_resolution_then_retire "$id" "$occurrence" answered
+          printf 'closed: %s\n' "$id"
+          closed=$((closed + 1))
+          continue
+        fi
+        replay=1
       fi
     fi
-    if [ "$state" = "done" ]; then
+    if [ "$state" = "done" ] && [ "$replay" = 0 ]; then
       printf 'skipped: %s (already closed)\n' "$id"
       skipped=$((skipped + 1))
       continue
     fi
-    if [ "$hold_kind" != captain ]; then
+    if [ "$hold_kind" != captain ] && [ "$replay" = 0 ]; then
       printf 'skipped: %s (not held for the captain)\n' "$id"
       skipped=$((skipped + 1))
       continue
     fi
     # shellcheck disable=SC2086  # release_flag is empty or a single literal flag.
-    if "$0" answer "$id" --decision-file "$tmp" $release_flag </dev/null >/dev/null 2>"$err"; then
+    if "$0" answer "$id" --decision-file "$tmp" $release_flag "${delivered_args[@]+"${delivered_args[@]}"}" </dev/null >/dev/null 2>"$err"; then
       # A parent-channel delivery problem is reported on stderr by the answer
       # path even when the close succeeded; keep it visible.
       [ ! -s "$err" ] || cat "$err" >&2
