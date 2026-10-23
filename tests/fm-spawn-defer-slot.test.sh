@@ -39,7 +39,38 @@ case "$*" in
 esac
 case "${1:-}" in
   display-message) printf 'firstmate\n'; exit 0 ;;
-  list-windows|has-session|new-session|new-window|kill-window|set-window-option) exit 0 ;;
+  list-windows)
+    [ -f "${FM_FAKE_CASE_DIR:?}/windows" ] && cat "${FM_FAKE_CASE_DIR}/windows"
+    exit 0
+    ;;
+  new-window)
+    name=
+    prev=
+    for arg in "$@"; do
+      [ "$prev" = -n ] && name=$arg
+      prev=$arg
+    done
+    [ -n "$name" ] || exit 1
+    printf '%s\n' "$name" >> "${FM_FAKE_CASE_DIR:?}/windows"
+    printf '@1\n'
+    exit 0
+    ;;
+  kill-window)
+    target=
+    prev=
+    for arg in "$@"; do
+      [ "$prev" = -t ] && target=$arg
+      prev=$arg
+    done
+    window=${target#*:=}
+    windows="${FM_FAKE_CASE_DIR:?}/windows"
+    if [ -f "$windows" ]; then
+      grep -Fxv -- "$window" "$windows" > "$windows.tmp" || true
+      mv "$windows.tmp" "$windows"
+    fi
+    exit 0
+    ;;
+  has-session|new-session|set-window-option) exit 0 ;;
   capture-pane)
     [ ! -e "$0.codex-launched" ] || printf '%s\n' '• Working (1s • esc to interrupt)'
     exit 0
@@ -227,6 +258,7 @@ EOF
   : > "$case_dir/pane-path"
   : > "$case_dir/treehouse.log"
   : > "$case_dir/detector-count"
+  : > "$case_dir/windows"
   mkfifo "$case_dir/return-lock.wait"
   write_detector "$case_dir/detector.py"
   install_fakes "$case_dir" >/dev/null
@@ -249,6 +281,18 @@ run_spawn() { # <case-dir> <id> <mode> [fm-spawn args...]
     FM_FAKE_TREEHOUSE_LOG="$case_dir/treehouse.log" \
     fm_test_run_spawn "$case_dir/home" "$case_dir/project" "$case_dir/fakebin" \
       "$id" "$case_dir/project" "$@"
+}
+
+assert_refusal_retry_is_not_blocked_by_the_old_window() { # <case-dir> <id>
+  local case_dir=$1 id=$2 out rc
+  : > "$case_dir/pane-path"
+  rc=0
+  out=$(run_spawn "$case_dir" "$id" clean --mode no-mistakes --yolo off) || rc=$?
+  assert_not_contains "$out" "error: window " \
+    "the retry after a cleanup refusal was blocked by the leftover window"
+  expect_code 1 "$rc" "the retry after a cleanup refusal launched beside the kept slot"$'\n'"$out"
+  assert_contains "$out" "already used by worktree" \
+    "the retry did not report that the kept slot still holds the ship branch"
 }
 
 test_clean_defer_returns_the_slot_and_the_retry_spawns() {
@@ -361,6 +405,12 @@ test_dirty_slot_is_not_returned() {
     || fail "the refused spawn detached the ship branch"
   grep -Fxq -- "task=$id" "$case_dir/slots/1/.fm-slot-owner" \
     || fail "the refused spawn dropped the claim on the slot it kept"
+  assert_refusal_retry_is_not_blocked_by_the_old_window "$case_dir" "$id"
+  assert_grep 'keep' "$slot1/keep-me.txt" "the retry disturbed the uncommitted file"
+  [ "$(git -C "$slot1" branch --show-current)" = "fm/$id" ] \
+    || fail "the retry detached the ship branch the refusal kept"
+  grep -Fxq -- "task=$id" "$case_dir/slots/1/.fm-slot-owner" \
+    || fail "the retry dropped the claim on the slot the refusal kept"
   pass "a slot holding uncommitted changes is kept and the spawn refuses"
 }
 
@@ -389,6 +439,12 @@ test_slot_with_unpushed_commits_is_not_returned() {
     || fail "the refused spawn detached the ship branch that holds the commit"
   grep -Fxq -- "task=$id" "$case_dir/slots/1/.fm-slot-owner" \
     || fail "the refused spawn dropped the claim on the slot it kept"
+  assert_refusal_retry_is_not_blocked_by_the_old_window "$case_dir" "$id"
+  assert_grep 'keep' "$slot1/extra.txt" "the retry disturbed the unpushed commit"
+  [ "$(git -C "$slot1" branch --show-current)" = "fm/$id" ] \
+    || fail "the retry detached the ship branch that holds the commit"
+  grep -Fxq -- "task=$id" "$case_dir/slots/1/.fm-slot-owner" \
+    || fail "the retry dropped the claim on the slot the refusal kept"
   pass "a slot holding task commits is kept and the spawn refuses ($origin)"
 }
 
@@ -410,6 +466,10 @@ test_originless_slot_without_other_local_branches_is_refused() {
   [ "$(git -C "$slot1" branch --show-current)" = "fm/$id" ] \
     || fail "cleanup changed the incomparable ship branch"
   assert_grep "task=$id" "$case_dir/slots/1/.fm-slot-owner" "cleanup removed the incomparable slot's claim"
+  assert_refusal_retry_is_not_blocked_by_the_old_window "$case_dir" "$id"
+  [ "$(git -C "$slot1" branch --show-current)" = "fm/$id" ] \
+    || fail "the retry changed the incomparable ship branch"
+  assert_grep "task=$id" "$case_dir/slots/1/.fm-slot-owner" "the retry removed the incomparable slot's claim"
   pass "an originless slot without another local branch is refused"
 }
 
