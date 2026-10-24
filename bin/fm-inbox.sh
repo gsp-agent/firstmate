@@ -97,6 +97,12 @@
 # Environment:
 #   FM_HOME              operational home whose state/ and data/ are used.
 #
+# Retirement: config/inbox-retired-to contains the active home's absolute path.
+# Its presence refuses note, say and announce before saving or waking, naming
+# that destination without forwarding. Existing notes and read access remain.
+# An empty or unreadable retirement setting also refuses capture.
+# Remove the setting to reopen this inbox; no records are moved or deleted.
+#
 # PRIVACY: `say` sends your audio and `ask` sends your question to Bedrock.
 # `note`, `announce`, `reply`, `receipts`, `ready`, `status`, `list` and `drain`
 # make no network call at all.
@@ -1139,6 +1145,18 @@ cmd_drain() {
 }
 
 # ---------------------------------------------------------------- dispatch
+
+case "${1:-}" in
+  note|say|announce)
+    if [ -e "$CONFIG/inbox-retired-to" ] || [ -L "$CONFIG/inbox-retired-to" ]; then
+      destination=$(read_setting inbox-retired-to)
+      case "$destination" in
+        /*) die "this inbox is retired; use the active home $destination (set FM_HOME and use its bin/fm-inbox.sh)" ;;
+        *) die "this inbox is retired; configure the active home's absolute path in $CONFIG/inbox-retired-to" ;;
+      esac
+    fi
+    ;;
+esac
 
 case "${1:-}" in
   note)     shift; cmd_note "$@" ;;

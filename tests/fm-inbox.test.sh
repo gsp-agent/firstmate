@@ -61,6 +61,46 @@ count_wakes() {
 
 # --- human note path is unchanged without the new flags ---------------------
 
+# A retired home keeps its old notes readable, but cannot accept another one.
+home=$(make_home retired)
+out=$(run_inbox "$home" note "preserved before retirement")
+retired_id=$(printf '%s\n' "$out" | awk '/^queued / { print $2 }')
+cp "$home/state/inbox/$retired_id.note" "$TMP_ROOT/preserved.note"
+active_home=$(make_home 'active home')
+printf '%s\n' "$active_home" > "$home/config/inbox-retired-to"
+for verb in note say announce; do
+  set +e
+  out=$(run_inbox "$home" "$verb" "$retired_id" 2>&1)
+  code=$?
+  set -e
+  expect_code 1 "$code" "retired $verb must fail before saving or announcing"
+  assert_contains "$out" "$active_home" "retired $verb names the active home"
+  assert_equals "1" "$(count_notes "$home")" "retired $verb must not save another note"
+  assert_equals "1" "$(count_wakes "$home")" "retired $verb must not append a wake"
+done
+cmp "$TMP_ROOT/preserved.note" "$home/state/inbox/$retired_id.note" \
+  || fail "retirement must preserve the original note bytes"
+assert_contains "$(run_inbox "$home" list)" "preserved before retirement" \
+  "retired notes remain readable"
+assert_contains "$(run_inbox "$home" status)" "1 note(s)" \
+  "retired status remains readable"
+run_inbox "$active_home" note "new destination" >/dev/null
+assert_equals "1" "$(count_notes "$active_home")" "the active home still accepts one note"
+assert_equals "1" "$(count_wakes "$active_home")" "the active home still appends one wake"
+pass "retirement refuses capture before any write and preserves read access"
+
+home=$(make_home retired-empty)
+: > "$home/config/inbox-retired-to"
+set +e
+out=$(run_inbox "$home" note "must not be saved" 2>&1)
+code=$?
+set -e
+expect_code 1 "$code" "an empty retirement marker must fail closed"
+assert_contains "$out" "inbox-retired-to" "invalid retirement names the setting to repair"
+assert_absent "$home/state/inbox" "refusal must happen before even making the inbox"
+assert_absent "$home/state/.wake-queue" "refusal must not append a wake"
+pass "an invalid retirement destination cannot silently reopen capture"
+
 home=$(make_home human)
 out=$(run_inbox "$home" note "hello from the terminal") \
   || fail "plain note should succeed"

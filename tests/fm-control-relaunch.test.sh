@@ -21,6 +21,8 @@ set -u
 
 # shellcheck source=tests/lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+# shellcheck source=tests/fixtures.sh
+. "$(dirname "${BASH_SOURCE[0]}")/fixtures.sh"
 # shellcheck source=/dev/null
 . "$ROOT/bin/fm-control-lib.sh"
 # shellcheck source=/dev/null
@@ -78,7 +80,13 @@ case "${1:-}" in
       printf '%s\n' "$payload" >> "$D/literal"
       case "$payload" in
         /exit|/quit)
-          printf 'zsh' > "$D/command"
+          if [ -f "$D/picker-on-exit" ]; then
+            # Live background work: the submitting Enter that follows opens
+            # Claude's "Background work is running" picker and the agent stays.
+            : > "$D/exit-typed"
+          else
+            printf 'zsh' > "$D/command"
+          fi
           if [ -f "$D/dispatch-on-exit.json" ]; then
             cp "$D/dispatch-on-exit.json" "$FM_HOME/config/crew-dispatch.json" || exit 1
           fi
@@ -91,6 +99,29 @@ case "${1:-}" in
       esac
     else
       printf '%s\n' "$payload" >> "$D/keys"
+      case "$payload" in
+        Enter)
+          if [ -f "$D/picker" ]; then
+            printf 'Enter\n' >> "$D/picker-enters"
+            # Enter confirms the selected row. Only "Exit and stop tasks" ends
+            # the agent; "Move to background" or "Stay" would leave it alive.
+            case "$(grep '^❯' "$D/picker")" in
+              '❯ 1. Exit and stop tasks') printf 'zsh' > "$D/command"; : > "$D/picker-confirmed" ;;
+              *) : > "$D/picker-other-row" ;;
+            esac
+            rm -f "$D/picker"
+          elif [ -f "$D/exit-typed" ]; then
+            rm -f "$D/exit-typed"
+            cp "$D/picker-on-exit" "$D/picker"
+          fi
+          ;;
+        Escape)
+          if [ -f "$D/picker" ]; then
+            : > "$D/picker-escaped"
+            rm -f "$D/picker"
+          fi
+          ;;
+      esac
       case "$payload" in
         'export GOTMPDIR='*)
           if [ -n "${FM_FAKE_TRACE_PREPARE:-}" ]; then
@@ -120,6 +151,7 @@ case "${1:-}" in
     printf 'fakepane\n'; exit 0 ;;
   capture-pane)
     [ -z "${FM_FAKE_COMPOSER_READ_FAIL:-}" ] || exit 1
+    if [ -f "$D/picker" ]; then cat "$D/picker"; exit 0; fi
     if [ -s "$D/composer" ]; then
       printf '╭────╮\n│ %s  │\n╰────╯\n' "$(cat "$D/composer")"
     else
@@ -3184,9 +3216,344 @@ SH
   pass "fm-control exit removes the dialog file before it releases the control lock"
 }
 
+# --- Claude "Background work is running" exit picker -------------------------
+#
+# A Claude agent that still has live subagents answers /exit with a picker whose
+# selected row stops them. The shell-stopping recovery cannot clear it (it lists
+# no shell), so relaunch used to refuse with no way forward. The way forward is
+# an explicit --stop-background, and nothing else may press a key into it.
+
+background_picker_screen() {  # <agent-row>...
+  printf '%s\n' \
+    'Background work is running' \
+    '' \
+    '❯ 1. Exit and stop tasks' \
+    'The following will stop when you exit:'
+  printf '%s\n' "$@"
+  printf '%s\n' \
+    '  2. Move to background and exit' \
+    '  3. Stay' \
+    '' \
+    'Enter to confirm · Esc to cancel'
+}
+
+enter_count() {  # <case-dir>
+  grep -c '^Enter$' "$1/fake/keys" || true
+}
+
+# The Enters the picker itself received, apart from the ones that submit
+# commands and the ones the replacement launch sends later.
+picker_enters() {  # <case-dir>
+  grep -c '^Enter$' "$1/fake/picker-enters" 2>/dev/null || true
+}
+
+launched() {  # <case-dir>: whether the replacement launch was typed
+  grep -Fq 'Firstmate operational input waiting: read' "$1/fake/literal"
+}
+
+test_relaunch_without_stop_background_refuses_the_picker_the_exit_opens() {
+  local dir out rc before
+  dir=$(new_case bgpicker-refuse rl80)
+  add_ship_task "$dir" rl80 claude
+  background_picker_screen '  agent · Explore the relaunch path' > "$dir/fake/picker-on-exit"
+  before=$(cat "$dir/home/data/rl80/brief.md")
+
+  out=$(run_control "$dir" rl80 relaunch --note "context ran out"); rc=$?
+
+  expect_code 1 "$rc" "a relaunch must not choose for the caller at the picker"$'\n'"$out"
+  assert_contains "$out" "Claude background-task exit picker" "the refusal should name the dialog"
+  assert_contains "$out" "--stop-background" "the refusal should name the flag that proceeds"
+  assert_contains "$out" "original instructions were restored" "the refusal should restore the brief"
+  [ "$(enter_count "$dir")" -eq 1 ] \
+    || fail "only the Enter that submitted /exit may be sent, got $(enter_count "$dir")"
+  [ ! -e "$dir/fake/picker-confirmed" ] && [ ! -e "$dir/fake/picker-other-row" ] \
+    || fail "no row of the picker may be chosen without the flag"
+  [ ! -e "$dir/fake/picker-escaped" ] || fail "nothing may dismiss a picker that lists no shell"
+  [ "$(cat "$dir/fake/command")" = claude ] || fail "the old agent must still be running"
+  [ "$(cat "$dir/home/data/rl80/brief.md")" = "$before" ] || fail "the brief must be restored byte-exact"
+  ! launched "$dir" || fail "no replacement may be launched"
+  pass "fm-control relaunch: the background picker refuses without --stop-background, names the flag, and restores the brief"
+}
+
+test_relaunch_without_stop_background_refuses_a_picker_that_is_already_open() {
+  local dir out rc before
+  dir=$(new_case bgpicker-open rl81)
+  add_ship_task "$dir" rl81 claude
+  background_picker_screen '  agent · Explore the relaunch path' > "$dir/fake/picker"
+  before=$(cat "$dir/home/data/rl81/brief.md")
+
+  out=$(run_control "$dir" rl81 relaunch --note "context ran out"); rc=$?
+
+  expect_code 1 "$rc" "an open picker must refuse"$'\n'"$out"
+  assert_contains "$out" "--stop-background" "the refusal should name the flag that proceeds"
+  [ ! -s "$dir/fake/keys" ] || fail "an open picker must receive no key, got: $(cat "$dir/fake/keys")"
+  [ ! -s "$dir/fake/literal" ] || fail "an open picker must not be typed into"
+  [ "$(cat "$dir/home/data/rl81/brief.md")" = "$before" ] || fail "the brief must be restored byte-exact"
+  [ "$(cat "$dir/fake/command")" = claude ] || fail "the old agent must still be running"
+  pass "fm-control relaunch: a picker already on screen refuses at once with no key, naming the flag"
+}
+
+test_relaunch_stop_background_confirms_exit_and_stop_tasks() {
+  local dir out rc
+  dir=$(new_case bgpicker-confirm rl82)
+  add_ship_task "$dir" rl82 claude
+  background_picker_screen '  agent · Explore the relaunch path' '  shell · sleep 300' \
+    > "$dir/fake/picker-on-exit"
+
+  out=$(run_control "$dir" rl82 relaunch --stop-background --note "context ran out"); rc=$?
+
+  expect_code 0 "$rc" "--stop-background should carry the relaunch through the picker"$'\n'"$out"
+  assert_contains "$out" "relaunched rl82 harness=claude" "the relaunch should complete"
+  [ -e "$dir/fake/picker-confirmed" ] || fail "Exit and stop tasks should have been confirmed"
+  [ ! -e "$dir/fake/picker-other-row" ] || fail "no other row may be chosen"
+  [ ! -e "$dir/fake/picker-escaped" ] || fail "the flag confirms the picker; it must not be escaped"
+  [ "$(picker_enters "$dir")" -eq 1 ] \
+    || fail "the picker should receive exactly one Enter, got $(picker_enters "$dir")"
+  [ "$(grep -c '^/exit$' "$dir/fake/literal")" -eq 1 ] || fail "/exit should be typed once"
+  launched "$dir" || fail "the replacement should have been launched"
+  [ "$(journal_field "$dir" rl82 phase)" = complete ] || fail "the transaction journal should end complete"
+  pass "fm-control relaunch: --stop-background confirms Exit and stop tasks and the relaunch continues"
+}
+
+test_relaunch_stop_background_confirms_a_picker_that_is_already_open() {
+  local dir out rc
+  dir=$(new_case bgpicker-open-confirm rl83)
+  add_ship_task "$dir" rl83 claude
+  background_picker_screen '  agent · Explore the relaunch path' > "$dir/fake/picker"
+
+  out=$(run_control "$dir" rl83 relaunch --stop-background --note "context ran out"); rc=$?
+
+  expect_code 0 "$rc" "--stop-background should carry the relaunch through an open picker"$'\n'"$out"
+  [ -e "$dir/fake/picker-confirmed" ] || fail "Exit and stop tasks should have been confirmed"
+  [ "$(picker_enters "$dir")" -eq 1 ] || fail "the picker should receive exactly one Enter, got $(picker_enters "$dir")"
+  assert_no_grep "/exit" "$dir/fake/literal" "nothing is typed into a picker that is already open"
+  launched "$dir" || fail "the replacement should have been launched"
+  pass "fm-control relaunch: --stop-background confirms a picker that was already open"
+}
+
+test_relaunch_stop_background_never_presses_enter_on_another_row() {
+  local dir out rc before
+  dir=$(new_case bgpicker-other-row rl84)
+  add_ship_task "$dir" rl84 claude
+  # The selected row is not "Exit and stop tasks": the picker's own text no
+  # longer matches the recorded structure, so no key is pressed blind.
+  printf '%s\n' \
+    'Background work is running' \
+    '' \
+    '  1. Exit and stop tasks' \
+    '❯ 2. Move to background and exit' \
+    '  3. Stay' \
+    '' \
+    'Enter to confirm · Esc to cancel' > "$dir/fake/picker"
+  before=$(cat "$dir/home/data/rl84/brief.md")
+
+  out=$(run_control "$dir" rl84 relaunch --stop-background --note "context ran out"); rc=$?
+
+  expect_code 1 "$rc" "an unrecognised selection must refuse even with the flag"$'\n'"$out"
+  [ ! -s "$dir/fake/keys" ] || fail "no key may be pressed into an unrecognised picker, got: $(cat "$dir/fake/keys")"
+  [ ! -e "$dir/fake/picker-other-row" ] || fail "Move to background must never be chosen"
+  [ "$(cat "$dir/home/data/rl84/brief.md")" = "$before" ] || fail "the brief must be restored byte-exact"
+  [ "$(cat "$dir/fake/command")" = claude ] || fail "the old agent must still be running"
+  pass "fm-control relaunch: --stop-background presses nothing when the selected row is not Exit and stop tasks"
+}
+
+test_relaunch_stop_background_does_nothing_when_there_is_no_picker() {
+  local dir out rc
+  dir=$(new_case bgpicker-none rl85)
+  add_ship_task "$dir" rl85 claude
+
+  out=$(run_control "$dir" rl85 relaunch --stop-background --note "ordinary relaunch"); rc=$?
+
+  expect_code 0 "$rc" "the flag is harmless when no picker shows"$'\n'"$out"
+  [ ! -e "$dir/fake/picker-confirmed" ] || fail "no picker was shown, so none may be confirmed"
+  [ ! -e "$dir/fake/picker-enters" ] || fail "no picker was shown, so none may receive an Enter"
+  pass "fm-control relaunch: --stop-background adds no key when the agent exits without a picker"
+}
+
+
+test_relaunch_without_stop_background_refuses_the_picker_the_exit_opens
+test_relaunch_without_stop_background_refuses_a_picker_that_is_already_open
+test_relaunch_stop_background_confirms_exit_and_stop_tasks
+test_relaunch_stop_background_confirms_a_picker_that_is_already_open
+test_relaunch_stop_background_never_presses_enter_on_another_row
+test_relaunch_stop_background_does_nothing_when_there_is_no_picker
 test_usage_limit_route_to_claude_is_exempt_from_the_claude_dispatch_pairs
 test_exit_and_relaunch_remove_the_dialog_file
 test_exit_removes_the_dialog_file_before_releasing_the_lock
+# --- restore a task closed before its done -----------------------------------
+# bin/fm-teardown.sh archives every ship or scout record at
+# data/<id>/record/closed-task.meta. These cases build that archive the way
+# teardown writes it, in a spawn-world home (tests/fixtures.sh) where a fresh
+# dispatch can run against a fake tmux pane.
+
+# restore_case <name> <id> [branch-prefix] -> "<case>|<home>|<proj>|<wt>|<fakebin>"
+restore_case() {
+  local name=$1 id=$2 prefix=${3-fm/} case_dir home proj wt fakebin
+  case_dir="$TMP_ROOT/restore-$name-$RANDOM"
+  home="$case_dir/home"
+  proj="$case_dir/project"
+  wt="$case_dir/wt"
+  fakebin=$(fm_test_make_spawn_fakebin "$case_dir/fake")
+  fm_test_spawn_home "$home"
+  fm_git_worktree "$proj" "$wt" "wt-$name"
+  fm_test_spawn_brief "$home" "$id" "purge the test episode and post the timed result for $id"
+  printf '\nShip branch: %s%s\n' "$prefix" "$id" >> "$home/data/$id/brief.md"
+  mkdir -p "$home/data/$id/record"
+  fm_write_meta "$home/data/$id/record/closed-task.meta" \
+    "archived_at=1792786336" \
+    "window=fmses:fm-$id" \
+    "endpoint_task_id=$id" \
+    "worktree=$case_dir/returned-slot" \
+    "project=$proj" \
+    "harness=claude" \
+    "kind=ship" \
+    "mode=no-mistakes" \
+    "yolo=off" \
+    "branch=$prefix$id" \
+    "tasktmp=/tmp/fm-$id" \
+    "model=default" \
+    "effort=default" \
+    "spawn_gen=s1792786336.1.1" \
+    "pr=https://github.com/example/repo/pull/4497"
+  TASK_TMPS+=("/tmp/fm-$id")
+  printf '%s\n' "$case_dir|$home|$proj|$wt|$fakebin"
+}
+
+# A closed row, as teardown leaves it: added, started, then done with its PR.
+restore_seed_closed_row() {  # <home> <id>
+  local file="$1/data/backlog.md"
+  printf '%s\n' '# Backlog' '' '## In flight' '' '## Queued' '' '## Done' > "$file"
+  tasks-axi add "$2" "restore fixture task" --kind ship --repo project --file "$file" >/dev/null
+  tasks-axi start "$2" --file "$file" >/dev/null
+  tasks-axi "done" "$2" --pr https://github.com/example/repo/pull/4497 --file "$file" >/dev/null
+}
+
+restore_row_state() {  # <home> <id>
+  tasks-axi show "$2" --file "$1/data/backlog.md" 2>/dev/null | sed -n 's/^  state: *//p' | head -1
+}
+
+run_restore_control() {  # <home> <wt> <fakebin> <control args...>
+  local home=$1 wt=$2 fakebin=$3
+  shift 3
+  mkdir -p "$home/user-home"
+  env -u HERDR_ENV -u HERDR_PANE_ID -u HERDR_SESSION -u HERDR_SOCKET_PATH \
+    -u HERDR_TAB_ID -u HERDR_WORKSPACE_ID \
+    FM_ROOT_OVERRIDE='' FM_HOME="$home" HOME="$home/user-home" \
+    CLAUDE_CONFIG_DIR='' CODEX_HOME='' GROK_HOME="$home/grok-home" \
+    FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+    FM_PROJECTS_OVERRIDE="$home/projects" FM_CONFIG_OVERRIDE="$home/config" \
+    FM_SPAWN_NO_GUARD=1 FM_FAKE_PANE_PATH="$wt" TMUX=fake,1,0 \
+    PATH="$fakebin:$PATH" "$CONTROL" "$@" 2>&1
+}
+
+test_relaunch_of_a_closed_task_names_its_archive_and_restores_it() {
+  local rec case_dir home proj wt fakebin id=rs-closed1 out rc=0 meta
+  rec=$(restore_case closed "$id")
+  IFS='|' read -r case_dir home proj wt fakebin <<<"$rec"
+  restore_seed_closed_row "$home" "$id"
+
+  out=$(run_restore_control "$home" "$wt" "$fakebin" "$id" relaunch --note "finish the purge") || rc=$?
+  expect_code 1 "$rc" "a relaunch of a closed task without --restore should refuse"$'\n'"$out"
+  assert_contains "$out" "no task '$id'" "the refusal lost its ordinary wording"
+  assert_contains "$out" "it was closed, and its record is archived at $home/data/$id/record/closed-task.meta" \
+    "the refusal did not name the archived record"
+  assert_contains "$out" "relaunch --restore" "the refusal did not name the way back"
+  assert_absent "$home/state/$id.meta" "a refused relaunch published a record"
+
+  rc=0
+  out=$(run_restore_control "$home" "$wt" "$fakebin" "$id" relaunch --restore \
+    --note "T19 is measured; purge the test MEETING episode, then post the result") || rc=$?
+  expect_code 0 "$rc" "restoring a closed task from its archive should succeed"$'\n'"$out"
+  assert_contains "$out" "restored $id from $home/data/$id/record/closed-task.meta harness=claude kind=ship" \
+    "the restore did not report what it brought back"
+  meta="$home/state/$id.meta"
+  assert_present "$meta" "the restore published no task record"
+  assert_grep "harness=claude" "$meta" "the restored task lost its harness"
+  assert_grep "kind=ship" "$meta" "the restored task lost its kind"
+  assert_grep "mode=no-mistakes" "$meta" "the restored task lost its delivery mode"
+  assert_grep "yolo=off" "$meta" "the restored task lost its merge posture"
+  assert_grep "project=$proj" "$meta" "the restored task lost its project"
+  assert_grep "branch=fm/$id" "$meta" "the restored task lost its branch"
+  assert_no_grep "worktree=$case_dir/returned-slot" "$meta" "the restore reused the returned slot"
+  [ "$(restore_row_state "$home" "$id")" = in_flight ] \
+    || fail "the restored task's backlog item is $(restore_row_state "$home" "$id"), not in flight"
+  assert_grep "## Restore note" "$home/data/$id/brief.md" "the brief does not say the task was restored"
+  assert_grep "purge the test MEETING episode, then post the result" "$home/data/$id/brief.md" \
+    "the restore note did not reach the brief"
+
+  rc=0
+  out=$(run_restore_control "$home" "$wt" "$fakebin" "$id" relaunch --restore --note "again") || rc=$?
+  expect_code 1 "$rc" "a restore of a live task should refuse"$'\n'"$out"
+  assert_contains "$out" "still has a live record" "the refusal did not say the task is live"
+  pass "fm-control relaunch: a task closed before its done names its archive, and --restore brings it back"
+}
+
+test_restore_preserves_an_empty_branch_prefix() {
+  local rec case_dir home proj wt fakebin id=rs-bare4 out rc=0
+  rec=$(restore_case bare "$id" '')
+  IFS='|' read -r case_dir home proj wt fakebin <<<"$rec"
+  restore_seed_closed_row "$home" "$id"
+  out=$(run_restore_control "$home" "$wt" "$fakebin" "$id" relaunch --restore \
+    --note "finish the task on its original branch") || rc=$?
+  expect_code 0 "$rc" "restoring a task with an empty branch prefix should succeed"$'\n'"$out"
+  grep -Fxq "branch=$id" "$home/state/$id.meta" || fail "the restore replaced the empty branch prefix"
+  grep -Fxq "Ship branch: $id" "$home/data/$id/brief.md" || fail "the restore changed the branch contract"
+  [ "$(restore_row_state "$home" "$id")" = in_flight ] \
+    || fail "the restored bare-branch task is not in flight"
+  pass "fm-control relaunch --restore: an empty branch prefix survives the real dispatch and brief check"
+}
+
+test_restore_re_adds_a_row_that_was_archived_away() {
+  local rec case_dir home proj wt fakebin id=rs-archived2 out rc=0
+  rec=$(restore_case archived "$id")
+  IFS='|' read -r case_dir home proj wt fakebin <<<"$rec"
+  printf '%s\n' '# Backlog' '' '## In flight' '' '## Queued' '' '## Done' > "$home/data/backlog.md"
+  printf '%s\n' '' '## Archived 2026-10-23' \
+    "- [x] $id - restore fixture task https://github.com/example/repo/pull/4497 (repo: project) (kind: ship) (merged 2026-10-23)" \
+    > "$home/data/done-archive.md"
+  out=$(run_restore_control "$home" "$wt" "$fakebin" "$id" relaunch --restore --note "post the result") || rc=$?
+  expect_code 0 "$rc" "restoring a task whose closed row was archived away should succeed"$'\n'"$out"
+  [ "$(restore_row_state "$home" "$id")" = in_flight ] \
+    || fail "the re-added backlog item is $(restore_row_state "$home" "$id"), not in flight"
+  assert_grep "restored after it was closed before its done" "$home/data/backlog.md" \
+    "the re-added row does not say why it is back"
+  pass "fm-control relaunch --restore: a closed row already archived away is added back, then dispatched"
+}
+
+test_restore_that_cannot_dispatch_changes_no_instructions() {
+  local rec case_dir home proj wt fakebin id=rs-refused3 out rc=0 before archive
+  rec=$(restore_case refused "$id")
+  IFS='|' read -r case_dir home proj wt fakebin <<<"$rec"
+  restore_seed_closed_row "$home" "$id"
+  archive="$home/data/$id/record/closed-task.meta"
+  before=$(cksum < "$home/data/$id/brief.md")
+  out=$(run_restore_control "$home" "$wt" "$fakebin" "$id" relaunch --restore --harness no-such-harness \
+    --note "post the result") || rc=$?
+  [ "$rc" -ne 0 ] || fail "a restore whose dispatch refused reported success"$'\n'"$out"
+  assert_contains "$out" "could not be restored" "the refusal did not say the restore failed"
+  [ "$(cksum < "$home/data/$id/brief.md")" = "$before" ] \
+    || fail "a refused restore left the restore note in the brief"
+  assert_absent "$home/state/$id.meta" "a refused restore published a task record"
+  assert_present "$archive" "a refused restore lost the archive"
+  [ "$(restore_row_state "$home" "$id")" = queued ] \
+    || fail "a refused restore left the backlog item $(restore_row_state "$home" "$id"), not queued for a retry"
+
+  rc=0
+  mv "$archive" "$archive.moved-aside"
+  out=$(run_restore_control "$home" "$wt" "$fakebin" "$id" relaunch --restore --note "x") || rc=$?
+  expect_code 1 "$rc" "a restore with no archive should refuse"$'\n'"$out"
+  assert_contains "$out" "has no archived record" "the refusal did not say the archive is missing"
+  pass "fm-control relaunch --restore: a dispatch refusal or a missing archive changes no instructions"
+}
+
+if [ "${FM_CONTROL_RELAUNCH_TEST_GROUP:-}" = restore ]; then
+  test_relaunch_of_a_closed_task_names_its_archive_and_restores_it
+  test_restore_preserves_an_empty_branch_prefix
+  test_restore_re_adds_a_row_that_was_archived_away
+  test_restore_that_cannot_dispatch_changes_no_instructions
+  exit 0
+fi
+
 test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint
 test_relaunch_refuses_before_exit_when_the_composer_holds_pending_text
 test_relaunch_refuses_before_exit_when_the_composer_state_is_unproven
@@ -3286,3 +3653,7 @@ test_herdr_reclaim_of_a_secondmate_names_its_own_owner
 test_herdr_rebind_failure_from_a_plain_shell_names_the_real_cause
 test_relaunch_reverifies_an_already_in_flight_item_instead_of_rewriting_it
 test_relaunch_moves_a_drifted_item_back_in_flight
+test_relaunch_of_a_closed_task_names_its_archive_and_restores_it
+test_restore_preserves_an_empty_branch_prefix
+test_restore_re_adds_a_row_that_was_archived_away
+test_restore_that_cannot_dispatch_changes_no_instructions

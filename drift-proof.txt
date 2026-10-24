@@ -75,10 +75,24 @@ pr: 92
 pending-pr: 98 .agent-config-onxre
 # Redaction scan on https://github.com/gsp-agent/firstmate/pull/109: no home-folder path in drift-measurements.txt or in any object archives/fork-cuts.bundle carries; test_documented_cut_recovery_restores_a_cut_from_the_bundle in tests/fm-drift-nightly.test.sh recovers a cut from the rebuilt bundle.
 pr: 109
+# Failing-first active-worker delivery and receipt recovery regressions in tests/fm-captain-hold-lifecycle.test.sh (FM_TEST_HOLD_ROUTING_REGRESSION=answer-delivery and answer-receipts); marked native receipts retire once, unsupported keyed transports decline before sending, and exact replay repairs only proven existing delivery while retaining unprovable pending state.
+pr: 115
 # Failing-first live-owner status handoff regression in tests/fm-pm-live.test.sh; retry, legacy-marker repair, concurrent delivery, restart and stale/reused identity coverage.
 pr: 114
 # Failing-first native publication callback test in tests/fm-pr-ready-callback.test.sh: successful registration previously emitted zero callbacks, now one exact event.
 pr: 117
+# Native released PM intake baseline refused both one and repeated releases; tests/fm-spawn-queue-start.test.sh covers owned history, tamper, protected holds and replay.
+pr: 116
+# Failing-first relaunch --stop-background regressions in tests/fm-control-relaunch.test.sh: the "Background work is running" picker refused with no way forward; now refuses naming the flag without it, and confirms Exit and stop tasks once with it, never another row or a second Enter.
+pr: 119
+# Failing-first tests in tests/fm-spawn-worktree-settle.test.sh: test_pool_full_treehouse_get_refuses_at_once (a pool-full treehouse get waited out 60 s), test_pool_full_surviving_window_is_reported (an unreadable status-1 lookup reported a surviving window closed), and test_pool_full_herdr_cleanup_is_confirmed's contended case (a pane closed without the presentation lock), projected-focused and projected cases (a pane closed after Herdr's cleanup refused a focus-unsafe close), and tall and tall-noscroll cases (a 300-row Herdr pane hid treehouse's return).
+pr: 62
+# Failing-first cleanup, restore, and merge-after-close regressions in tests/fm-teardown.test.sh (bead-gate), tests/fm-control-relaunch.test.sh (restore), and tests/fm-pm-live.test.sh; the open-bead cleanup and lost closed-task identity fail on e4df55a9, and all six bead-gate cases pass at 0c876dde.
+pr: 120
+# Failing-first parsed YAML regression in tests/fm-nm-test-contract.test.sh: upstream-lean lacked the trusted Codex pin while disabling project instructions; test_nm_pins_gate_to_codex fails before the pin is restored and passes afterward.
+pr: 122
+# Failing-first retirement regressions carried from PR 113 in tests/fm-inbox.test.sh: a marked retired home accepted a note and appended a wake; note/say/announce now refuse before writes while preserving records and read access, and an empty marker also fails closed.
+pr: 123
 # Failing-first owning-row bead batching in tests/fm-teardown.test.sh: test_task_data_expiry_batches_row_beads records every bead-read subprocess, bounds it to 32, and proves all 100 beads retain their evidence.
 # Failing-first hard-link accounting in tests/fm-teardown.test.sh: test_task_data_hardlink_retention gives identical kept counts in both alias orders, retains shared evidence through staging/expiry, and reclaims all-scratch pairs once.
 pr: 121

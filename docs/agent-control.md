@@ -62,8 +62,14 @@ The shells the picker lists are stopped, Escape closes the picker, and `/exit` i
 Escape is followed by a short reread of that screen, about eight tries a twentieth of a second apart, before a dismissal that has not redrawn yet is treated as still open.
 The screen that lists those shells and confirms the picker has closed is the current screen the composer classifier used.
 On a scrolled Herdr pane that screen is the composer capture, because the visible viewport is old chat, and an empty task list does not count as the picker being clear.
-Enter is never sent into the picker.
+Enter is never sent into the picker by `exit`, or by `relaunch` without `--stop-background`.
 A picker that is still open after that one recovery refuses.
+A picker that lists no shell, such as one held open by live subagents, cannot be recovered that way.
+`exit` refuses it, and `relaunch` refuses it with a one-line reason that names `--stop-background`, then restores the instructions as for any refusal at the stop step.
+`relaunch --stop-background` is the caller's explicit choice to stop that background work.
+It reads the current screen once more, and only when the picker's own text is there with "Exit and stop tasks" as the selected row does it send one Enter, then waits for the agent to stop as `exit` does.
+It never chooses "Move to background" or "Stay", sends no second Enter into a picker that is still open, and sends no key into a dialog it does not recognise.
+The flag applies to `relaunch` only; `exit --stop-background` is refused.
 When that process tree cannot be seen, the picker still refuses with `blocked on a prompt` and no Escape is sent.
 An unrecognised dialog still refuses, with no key and no signal.
 A stopped agent whose pane still shows the dialog text is not refused.
@@ -112,6 +118,15 @@ A relaunch does take one session reference when the endpoint's own runtime recor
    [`docs/herdr-backend.md`](herdr-backend.md#agent-status-authority-and-relaunch) owns the mechanism and measured behavior.
 
 Switching harness is therefore one ordinary relaunch rather than a separate mechanism.
+
+### Restoring a task closed before its done
+
+[`bin/fm-teardown.sh`](../bin/fm-teardown.sh) copies every ship or scout task record to `data/<id>/record/closed-task.meta` before it removes the record.
+A task that answers to a bead is not torn down while that bead is open, so this copy is the recovery path for a close that happened anyway.
+`relaunch` of a task with no live record refuses as before, and names that archive when one exists.
+`relaunch --restore --note <what remains>` brings the task back from it: it reopens the closed backlog item, or adds it back when the closed row was already archived away, appends the note to the brief, and dispatches a fresh worker through `bin/fm-spawn.sh` on the archived project, kind, harness and profile, delivery mode, branch prefix, base branch, and backend.
+Teardown returned the earlier local copy only after its work landed, so the restored worker starts from a fresh copy.
+Every dispatch gate stays with `bin/fm-spawn.sh`; a refusal or deferral restores the brief byte-exact, leaves the item queued, and keeps the archive for a retry.
 
 ### Reclaiming a task whose endpoint is gone
 
