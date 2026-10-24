@@ -93,3 +93,6 @@ pr: 120
 pr: 122
 # Failing-first retirement regressions carried from PR 113 in tests/fm-inbox.test.sh: a marked retired home accepted a note and appended a wake; note/say/announce now refuse before writes while preserving records and read access, and an empty marker also fails closed.
 pr: 123
+# Failing-first owning-row bead batching in tests/fm-teardown.test.sh: test_task_data_expiry_batches_row_beads records every bead-read subprocess, bounds it to 32, and proves all 100 beads retain their evidence.
+# Failing-first hard-link accounting in tests/fm-teardown.test.sh: test_task_data_hardlink_retention gives identical kept counts in both alias orders, retains shared evidence through staging/expiry, and reclaims all-scratch pairs once.
+pr: 121

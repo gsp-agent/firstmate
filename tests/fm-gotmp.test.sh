@@ -39,6 +39,9 @@ cleanup() {
 trap cleanup EXIT
 
 TMP_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/fm-gotmp-tests.XXXXXX")
+# fm-task-data.py refuses a data/ path that resolves elsewhere, and macOS's
+# TMPDIR sits under the /var alias, so resolve it as tests/lib.sh does.
+TMP_ROOT=$(cd -P -- "$TMP_ROOT" && pwd -P)
 
 # Build a fake FM_HOME/FM_ROOT so the real fm-teardown.sh (symlinked in) resolves
 # state and helper scripts inside it. Stub the helper scripts fm-teardown calls so no
@@ -101,6 +104,8 @@ SH
   ln -s "$ROOT/bin/fm-task-data-lib.sh" "$fake/bin/fm-task-data-lib.sh"
   ln -s "$ROOT/bin/fm-task-data.py" "$fake/bin/fm-task-data.py"
   ln -s "$ROOT/bin/fm-task-reap-lib.sh" "$fake/bin/fm-task-reap-lib.sh"
+  # fm-task-bead-lib.sh: teardown sources it for the bead-completion gate.
+  ln -s "$ROOT/bin/fm-task-bead-lib.sh" "$fake/bin/fm-task-bead-lib.sh"
   # fm-guard.sh: stub (teardown calls it with `|| true`).
   cat > "$fake/bin/fm-guard.sh" <<'SH'
 #!/usr/bin/env bash
@@ -206,6 +211,7 @@ SH
   ln -s "$ROOT/bin/fm-task-data-lib.sh" "$fake/bin/fm-task-data-lib.sh"
   ln -s "$ROOT/bin/fm-task-data.py" "$fake/bin/fm-task-data.py"
   ln -s "$ROOT/bin/fm-task-reap-lib.sh" "$fake/bin/fm-task-reap-lib.sh"
+  ln -s "$ROOT/bin/fm-task-bead-lib.sh" "$fake/bin/fm-task-bead-lib.sh"
   cat > "$fake/bin/fm-guard.sh" <<'SH'
 #!/usr/bin/env bash
 exit 0

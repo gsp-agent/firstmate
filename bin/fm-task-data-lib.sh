@@ -17,6 +17,9 @@
 # Each locked expiry rechecks the latest requester before touching a hold.
 # That recheck protects the requester's fresh recovery.
 # A later, different completion may still expire an earlier hold.
+# The automatic launcher uses a fresh shell and process group so its drain
+# survives the caller's group cleanup. A sweep releases its own lock and
+# snapshot on exit; a killed owner's lock is reclaimed by the shared lock code.
 
 fm_task_data_sweep_request() {
   local state=$1 id=$2 request
@@ -56,7 +59,7 @@ fm_task_data_expire_others() { # <data> <state> <id>
     fi
   done <<< "$listed"
   if [ "${#too_large[@]}" -gt 0 ]; then
-    echo "warning: task data holds too large to expire automatically, skipped and kept for expiry by hand: ${too_large[*]}" >&2
+    echo "warning: task data holds exceed the foreground expiry budget, deferred to the background sweep when enabled: ${too_large[*]}" >&2
   fi
   start=$SECONDS
   # A concurrent teardown holds its own lock. Skip it instead of waiting on a
@@ -88,7 +91,7 @@ fm_task_data_expire_others() { # <data> <state> <id>
       fm_run_timed "$limit" python3 "$helper" expire "$data" "$state" "$other" || status=$?
       if fm_timed_out "$status" && [ "${marks[i]}" = cut-off ]; then
         python3 "$helper" mark "$data" "$other" too-large || true
-        echo "warning: task data $other expiry stopped after its one full ${limit}s attempt; deletions it made stay done and the rest stays held; it is too large to expire automatically, so later teardowns skip it and name it; expire it by hand with bash $lib expire $data $state $other" >&2
+        echo "warning: task data $other expiry stopped after its one full ${limit}s attempt; deletions it made stay done and the rest stays held; later foreground passes skip it while the background sweep retries when enabled; alternatively expire it by hand with bash $lib expire $data $state $other" >&2
       elif fm_timed_out "$status"; then
         python3 "$helper" mark "$data" "$other" cut-off || true
         echo "warning: task data $other expiry stopped after ${limit}s; deletions it made stay done and the rest stays held; the next teardown that reaches it gives it one full ${full}s attempt" >&2
@@ -151,7 +154,7 @@ fm_task_data_expire_by_hand() { # <data> <state> <id> [request]
 # budget, including holds marked too large. A held meta lock or a live task
 # refuses inside the by-hand expiry and stays held. Requester exclusions are
 # owned by this file's header.
-fm_task_data_sweep() { # <data> <state>
+fm_task_data_sweep() ( # <data> <state>; traps belong only to this sweep
   local data=$1 state=$2 exclude helper lock rerun snapshot listed other _expiry stage_timeout=${FM_TASK_DATA_SWEEP_STAGE_TIMEOUT:-3600}
   helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py"
   case "$stage_timeout" in ''|0*|*[!0-9]*) stage_timeout=3600 ;; esac
@@ -166,6 +169,9 @@ fm_task_data_sweep() { # <data> <state>
     fm_lock_release "$lock"
     return 1
   }
+  trap 'rm -f -- "${snapshot:?}"; fm_lock_release "$lock"' EXIT
+  trap 'exit 143' TERM
+  trap 'exit 130' INT
   export FM_TEARDOWN_DATA_STAGE_TIMEOUT=$stage_timeout
   while :; do
     if ! ln -f -- "$rerun" "$snapshot" || ! exclude=$(cat "$snapshot") \
@@ -186,24 +192,23 @@ fm_task_data_sweep() { # <data> <state>
   done
   rm -f -- "$snapshot"
   return 0
-}
+)
 
 # Start one sweep in the background.
 fm_task_data_sweep_start() { # <data> <state>
-  local lib
+  local lib monitor_was_on=0
   if [ ! -e "$2/.task-data-sweep.rerun" ]; then
     fm_task_data_sweep_request "$2" '' || return 1
   fi
   [ "${FM_TASK_DATA_SWEEP:-on}" = off ] && return 0
   lib="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data-lib.sh"
-  (
-    trap '' HUP
-    # shellcheck source=/dev/null
-    . "${lib%/*}/fm-wake-lib.sh" || exit 1
-    # shellcheck source=/dev/null
-    . "${lib%/*}/fm-pr-lib.sh" || exit 1
-    fm_task_data_sweep "$1" "$2"
-  ) >/dev/null 2>&1 </dev/null &
+  # Teardown's caller can reap its process group after the command returns.
+  # HUP immunity alone does not survive that TERM. Job control gives this
+  # fresh shell its own group, without inheriting teardown's EXIT traps.
+  case $- in *m*) monitor_was_on=1 ;; esac
+  set -m
+  nohup bash "$lib" sweep "$1" "$2" >/dev/null 2>&1 </dev/null &
+  [ "$monitor_was_on" -eq 1 ] || set +m
 }
 
 # The bead-prefix map: each home, under HOME, whose .beads/beads.db owns
@@ -238,7 +243,7 @@ MAP
 # and fails when the owner cannot be read or the read times out.
 # br runs from / so no database above the working directory can answer.
 fm_task_data_bead_reference() { # <data> <bead>
-  local data=$1 bead=$2 db out status=0
+  local data=$1 bead=$2 db out canonical status=0
   if db=$(fm_task_data_bead_database "$bead"); then
     out=$(
       unset BEADS_DIR BEADS_DB BR_DB
@@ -247,8 +252,15 @@ fm_task_data_bead_reference() { # <data> <bead>
     if [ "$status" = 3 ] && printf '%s\n' "$out" | jq -e '.error.code == "ISSUE_NOT_FOUND"' >/dev/null; then
       return 3
     fi
-    [ "$status" = 0 ] && printf '%s\n' "$out" | jq -e --arg id "$bead" \
-      'type == "array" and length == 1 and .[0].id == $id' >/dev/null || return 1
+    [ "$status" = 0 ] && canonical=$(printf '%s\n' "$out" | jq -er \
+      'if type == "array" and length == 1 and (.[0].id | type) == "string" then .[0].id else error("ambiguous bead") end') || return 1
+    if [ "$canonical" != "$bead" ]; then
+      # br resolves a unique short ID to its longer canonical ID. Require
+      # the same prefix, suffix and owning database; never accept a partial
+      # or ambiguous answer just because br returned success.
+      case "$canonical" in "${bead%-*}"-*-"${bead##*-}") ;; *) return 1 ;; esac
+      [ "$(fm_task_data_bead_database "$canonical")" = "$db" ] || return 1
+    fi
     printf '%s\n' "$out"
     return 0
   fi
@@ -383,6 +395,7 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
       ;;
     expire)
       [ "$#" -eq 4 ] || exit 1
+      export FM_STATE_OVERRIDE=$3
       # shellcheck source=/dev/null
       . "$(dirname "${BASH_SOURCE[0]}")/fm-wake-lib.sh" || exit 1
       # shellcheck source=/dev/null
@@ -391,6 +404,7 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
       ;;
     sweep)
       [ "$#" -eq 3 ] || [ "$#" -eq 4 ] || exit 1
+      export FM_STATE_OVERRIDE=$3
       # shellcheck source=/dev/null
       . "$(dirname "${BASH_SOURCE[0]}")/fm-wake-lib.sh" || exit 1
       # shellcheck source=/dev/null
