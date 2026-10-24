@@ -73,7 +73,12 @@ def listed_body(body):
     raw = utf16(body)
     if len(raw) <= 2 * LIMIT:
         return body, len(raw) // 2
-    return raw[:2 * LIMIT].decode("utf-16-le", "surrogatepass"), len(raw) // 2
+    visible = raw[:2 * LIMIT].decode("utf-16-le", "surrogatepass")
+    # slice(0, 500) can split a surrogate pair; Node writes that lone high
+    # half to UTF-8 as U+FFFD, so the listing shows U+FFFD there.
+    if "\ud800" <= visible[-1] <= "\udbff":
+        visible = visible[:-1] + "�"
+    return visible, len(raw) // 2
 
 
 def parse_listed(cell):

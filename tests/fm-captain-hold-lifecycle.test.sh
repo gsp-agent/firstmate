@@ -6651,6 +6651,44 @@ SH
   pass 'long unchanged holds skip row processes; cut-off rows take one full read; changes still route'
 )
 
+# tasks-axi cuts the listed body at 500 UTF-16 units; a pair split there is
+# written as U+FFFD, which the recorded listing prefix must match.
+test_domain_sweep_skips_split_surrogate_rows() (
+  local home now=2026-10-14T02:00:00Z reason='Waiting on a person.'
+  home=$(make_home sweep-split-surrogate)
+  cat > "$home/router.py" <<'PY'
+print("kept")
+PY
+  cat > "$home/row-log.sh" <<'SH'
+# Bash 3.2 installs script arguments after BASH_ENV; inspect the first command.
+trap 'if [ "${1:-}" = route-due ] && [ "$#" -eq 2 ]; then
+  printf "%s\n" "$2" >> "$FM_HOME/row-processes"
+fi; trap - DEBUG' DEBUG
+SH
+  python3 - "$home/body" "$reason" <<'PY' || fail 'could not build the split-surrogate body'
+import sys
+head = ("Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: ep-fixture\n"
+        "Hold timeout seconds: 300\nHold reason: %s\n\nPrevious task body:\n" % sys.argv[2])
+units = len(head.encode("utf-16-le")) // 2
+# Units 499 and 500 hold one astral character, straddling the listing's cut.
+body = head + "x" * (499 - units) + "\U0001F600" + " tail" * 40
+assert body.encode("utf-16-le")[998:1002] == "\U0001F600".encode("utf-16-le")
+open(sys.argv[1], "w", encoding="utf-8").write(body + "\n")
+PY
+  tasks_in "$home" add edge 'Split surrogate row' --repo fixture >/dev/null || exit 1
+  tasks_in "$home" update edge --body-file "$home/body" >/dev/null || exit 1
+  tasks_in "$home" hold edge --kind captain --reason "$reason" >/dev/null || exit 1
+  sweep() {
+    : > "$home/row-processes"
+    BASH_ENV="$home/row-log.sh" run_domain "$home" "$now" route-due > "$home/sweep.out" 2>&1
+  }
+  sweep || fail 'first sweep failed'
+  assert_equals edge "$(cat "$home/row-processes")" 'first sweep did not route the split-surrogate row'
+  sweep || fail 'second sweep failed'
+  [ ! -s "$home/row-processes" ] || fail 'an unchanged row with a split surrogate at the cut started a per-row process'
+  pass 'a surrogate pair split by the listing cut still matches its idle hint'
+)
+
 test_domain_sweep_visits_only_routable_rows() {
   local home id technical='GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
   home=$(make_domain_home sweep-scope)
@@ -7369,6 +7407,7 @@ if [ -z "${FM_CAPTAIN_HOLD_LANE:-}" ]; then
 case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
   skip-unchanged) test_domain_sweep_skips_unchanged_rows; exit $? ;;
   skip-unchanged-long) test_domain_sweep_skips_long_unchanged_rows; exit $? ;;
+  skip-unchanged-surrogate) test_domain_sweep_skips_split_surrogate_rows; exit $? ;;
   answer-receipt-repair) test_answer_receipt_repair_reuses_existing_delivery; exit $? ;;
   answer-receipt-occurrence) test_answer_receipt_cannot_acknowledge_another_occurrence; exit $? ;;
   answer-receipts)
@@ -7489,6 +7528,7 @@ fi
 captain_hold_lane_a() {
   test_domain_sweep_skips_unchanged_rows || exit 1
   test_domain_sweep_skips_long_unchanged_rows || exit 1
+  test_domain_sweep_skips_split_surrogate_rows || exit 1
   test_domain_deferred_holds_keep_their_routing_wake || exit 1
   test_domain_interrupted_sweeps_make_fair_progress || exit 1
   test_domain_row_bounds_preserve_later_holds || exit 1
