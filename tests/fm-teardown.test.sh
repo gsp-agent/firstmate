@@ -6832,6 +6832,129 @@ PY
   pass "fm-teardown: the automatic drain survives cleanup of its launcher's process group"
 }
 
+test_task_data_hardlink_retention() {
+  local helper=${1:-$ROOT/bin/fm-task-data.py} case_dir
+  case_dir=$(make_case task-data-hardlinks)
+  write_expiry_tools "$case_dir"
+  FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" python3 - "$helper" "$case_dir" <<'PY' \
+    || fail "hard-link plans and cleanup disagree or depend on alias order"
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+helper, home = sys.argv[1], Path(sys.argv[2])
+errors = []
+
+def run(action, task):
+    args = [sys.executable, helper, action, str(home / "data"), str(home / "state"), task.name]
+    if action == "stage":
+        args += [str(home / "project"), ""]
+    return subprocess.check_output(args, text=True)
+
+def snapshot(task):
+    return {str(path.relative_to(task)): (path.lstat().st_ino, path.lstat().st_size,
+                                        path.lstat().st_mtime_ns)
+            for path in task.rglob("*")}
+
+def check(condition, message):
+    if not condition:
+        errors.append(message)
+
+for layout in ("loose", "held", "split"):
+    mixed_counts = []
+    for reference in ("aaa.bin", "zzz.bin", "none"):
+        label = f"{layout}-{reference}"
+        task = home / "data" / label.replace(".", "-")
+        (task / "record").mkdir(parents=True)
+        hold = task / ".cleanup-hold"
+        if layout != "loose":
+            hold.mkdir()
+        first = (hold if layout == "held" else task) / "aaa.bin"
+        second = (task if layout == "loose" else hold) / "zzz.bin"
+        first.write_bytes(b"x" * 4096)
+        os.link(first, second)
+        info = first.stat()
+        allocated = info.st_blocks * 512
+        assert allocated > 0 and os.path.samestat(info, second.stat()), label
+        record = task / "record/data-cleanup.json"
+        record.write_text(json.dumps({
+            "version": 1, "task": task.name, "complete": layout != "loose", "expired": False,
+            "sources": [{"project": str(home / "project"), "pr": "", "beads": [],
+                         "backlog": {"data": str(home / "data"), "task": None}}],
+        }))
+        report = task / "report.md"
+        report.write_text(f"Reference: {reference}\n")
+        evidence_bytes = sum(path.stat().st_blocks * 512 for path in (record, report))
+        before = snapshot(task)
+        plan = json.loads(run("plan", task))
+        check(before == snapshot(task), f"{label}: plan changed data")
+        counts = (plan["scratch_files"], plan["reclaim_bytes"], plan["kept_bytes"])
+        expected = ((1, allocated, evidence_bytes) if reference == "none"
+                    else (0, 0, evidence_bytes + allocated))
+        print(f"{label}: plan={counts}, expected={expected}")
+        check(plan["eligible"] and counts == expected, f"{label}: incorrect inode accounting")
+        if reference != "none":
+            mixed_counts.append(counts)
+        if layout == "loose":
+            run("stage", task)
+            if reference != "none":
+                check(first.exists() and second.exists(), f"{label}: staging moved a kept inode alias")
+            else:
+                check(all((hold / name).exists() for name in ("aaa.bin", "zzz.bin")),
+                      f"{label}: staging missed an all-scratch alias")
+        # A split all-scratch pair can start a fresh recovery cycle for its loose link.
+        for _ in range(2):
+            run("expire", task)
+            if json.loads(record.read_text())["expired"]:
+                break
+        check(json.loads(record.read_text())["expired"], f"{label}: expiry did not finish")
+        check(not hold.exists(), f"{label}: expiry left a recovery directory")
+        if reference == "none":
+            check(not any((task / name).exists() for name in ("aaa.bin", "zzz.bin")),
+                  f"{label}: expiry retained an all-scratch alias")
+        else:
+            for name in ("aaa.bin", "zzz.bin"):
+                path = task / name
+                check(path.exists() and path.stat().st_ino == info.st_ino
+                      and path.read_bytes() == b"x" * 4096, f"{label}: expiry removed or changed {name}")
+        check(report.read_text() == f"Reference: {reference}\n", f"{label}: expiry changed evidence")
+    check(mixed_counts[0] == mixed_counts[1], f"{layout}: referenced alias order changed counts")
+
+# Hard-linked symlinks can have distinct relative targets. Protection must
+# reach both targets, then each target's own hard-linked aliases as well.
+task = home / "data" / "symlink-aliases"
+for directory in ("record", "left", "right"):
+    (task / directory).mkdir(parents=True)
+(task / "left/aaa.link").symlink_to("target.bin")
+os.link(task / "left/aaa.link", task / "right/zzz.link", follow_symlinks=False)
+for directory in ("left", "right"):
+    (task / directory / "target.bin").write_bytes(b"y" * 4096)
+os.link(task / "left/target.bin", task / "alias.bin")
+(task / "report.md").write_text("Reference: aaa.link\n")
+(task / "record/data-cleanup.json").write_text(json.dumps({
+    "version": 1, "task": task.name, "complete": False, "expired": False,
+    "sources": [{"project": str(home / "project"), "pr": "", "beads": [],
+                 "backlog": {"data": str(home / "data"), "task": None}}],
+}))
+plan = json.loads(run("plan", task))
+check(plan["eligible"] and plan["scratch_files"] == 0 and plan["reclaim_bytes"] == 0,
+      "hard-linked symlink targets were not protected")
+run("stage", task)
+run("expire", task)
+for name in ("left/target.bin", "right/target.bin", "alias.bin"):
+    path = task / name
+    check(path.exists() and path.read_bytes() == b"y" * 4096, f"symlink alias lost {name}")
+for name in ("left/aaa.link", "right/zzz.link"):
+    path = task / name
+    check(path.is_symlink() and path.exists(), f"symlink alias broken: {name}")
+
+assert not errors, "\n".join(errors)
+PY
+  pass "fm-teardown: hard-linked evidence is kept in both alias orders; all-scratch pairs reclaim one inode"
+}
+
 test_task_data_sweep_streams_kept_text() {
   local case_dir task record
   case_dir=$(make_case task-data-sweep-streams-text)
@@ -8520,6 +8643,7 @@ for rel, content in expected.items():
 (task / "discard.bin").write_bytes(b"unlinked scratch")
 (task / "captures/discard.bin").write_bytes(b"unlinked sibling")
 os.link(task / "linked-original.bin", task / "hardlink-other.bin")
+expected["hardlink-other.bin"] = expected["linked-original.bin"]
 links = {
     "latest.png": "Captures/FRAME.BIN",
     "sequence.png": "FRAMES",
@@ -8553,7 +8677,7 @@ for rel, content in expected.items():
         assert (task / rel).read_bytes() == content, f"filesystem identity lost during staging: {rel}"
 assert (task / "walk/subdir").is_dir(), "aliased traversal prefix was removed"
 assert (task / ".cleanup-hold/captures/discard.bin").is_file(), "alias retention kept an unrelated sibling"
-assert (task / ".cleanup-hold/hardlink-other.bin").is_file(), "alias retention confused distinct hardlink names"
+assert os.path.samefile(task / "linked-original.bin", task / "hardlink-other.bin"), "staging changed a kept inode alias"
 references.write_text(json.dumps({"body": body + " [saved](saved.png) [saved frames](saved-frames.png) "
                                  "[saved prefix](saved-component.png) [saved root](saved-root.png) "
                                  "[held direct](HELD-DIRECT.BIN) [held directory](HELD-DIR/)"}))
@@ -9586,6 +9710,10 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-drain-text ]; then
   test_task_data_expiry_batches_row_beads
   exit 0
 fi
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-hardlinks ]; then
+  test_task_data_hardlink_retention "${1:-$ROOT/bin/fm-task-data.py}"
+  exit 0
+fi
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-drain-beads ]; then
   test_task_data_expiry_batches_row_beads
   exit 0
@@ -9595,6 +9723,7 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-drain-stale ]; then
   exit 0
 fi
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-drain-safety ]; then
+  test_task_data_hardlink_retention
   test_task_data_refusals
   test_task_data_references_and_guard
   test_task_data_symlink_targets
@@ -9670,6 +9799,7 @@ test_task_data_unread_status_failure_retries
 test_task_data_sweep_expires_big_hold
 test_task_data_sweep_outlives_launcher_group
 test_task_data_sweep_streams_kept_text
+test_task_data_hardlink_retention
 test_task_data_expiry_batches_row_beads
 test_task_data_sweep_recovers_dead_owner
 test_task_data_sweep_single_instance

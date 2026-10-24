@@ -97,6 +97,9 @@ so Unicode names work on both normalization-sensitive and aliasing filesystems.
 Retained symlinks protect owned targets and necessary path components in filesystem
 order, including symlink-plus-.. paths, filesystem-name aliases, and ancestor aliases
 such as macOS /tmp -> /private/tmp, without widening the validated task directory.
+Hard-linked task paths share protection: if any alias is kept, all aliases stay or
+are restored from recovery. Plan counts each inode once, reclaiming no bytes from
+an inode with a kept alias.
 
 Scratch moves to DATA/ID/.cleanup-hold with its relative paths intact; no bytes
 are copied. record/data-cleanup.json records the recovery, not a second task
@@ -812,8 +815,25 @@ def retention_paths(root, files, all_directories, repos, text, limit=None):
                 unmatched.append(rel)
         remaining = unmatched
 
+    # Classify every alias before plan deduplicates bytes or cleanup moves or
+    # removes paths. Include held aliases under their original virtual paths.
+    inodes = {}
+    for rel in files:
+        check_limit(limit)
+        info = entries[root / rel]
+        if info.st_nlink > 1:
+            inodes.setdefault((info.st_dev, info.st_ino), []).append(virtual_path(root / rel))
+    pending_inodes = list(inodes.values())
     pending_links = [root / rel for rel in files if (root / rel).is_symlink()]
-    while pending_links:
+    while pending_links or pending_inodes:
+        remaining_inodes = []
+        for aliases in pending_inodes:
+            check_limit(limit)
+            if any(path.relative_to(root).parts[0] == "record" or protected(path, targets)
+                   for path in aliases):
+                targets.update(aliases)
+            else:
+                remaining_inodes.append(aliases)
         remaining = []
         for actual in pending_links:
             check_limit(limit)
@@ -849,9 +869,11 @@ def retention_paths(root, files, all_directories, repos, text, limit=None):
             owner, path, _ = locate(path)
             if owner is not None:
                 targets.add(path)
-        if len(remaining) == len(pending_links):
+        # A retained symlink can protect another inode, and a hard-linked
+        # symlink alias can resolve to a different relative target.
+        if len(remaining) == len(pending_links) and len(remaining_inodes) == len(pending_inodes):
             break
-        pending_links = remaining
+        pending_links, pending_inodes = remaining, remaining_inodes
     return targets, directories
 
 
@@ -1153,6 +1175,7 @@ def cleanup(action, data, state, task_id, project="", pr=""):
     record.pop("unread_named", None)
     if dry_run:
         reclaim, kept, count = 0, 0, 0
+        # retention_paths has already propagated protection across inode aliases.
         seen = set()
         for rel in files:
             virtual = rel.relative_to(HOLD) if rel.parts[0] == HOLD else rel
