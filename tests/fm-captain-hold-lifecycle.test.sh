@@ -3216,8 +3216,9 @@ test_retained_row_artifacts_survive_captain_answers() {
     || fail "released report cleanup failed: $(cat "$home/released-teardown.err")"
 
   answered_id=sample-artifactless-captain-answer
+  # Standalone decisions have no worker to resume; release leaves them queued.
   tasks_in "$home" add "$answered_id" "Choose the artifactless route" --kind captain \
-    --repo sample --start >/dev/null || fail "could not create the artifactless captain call"
+    --repo sample >/dev/null || fail "could not create the artifactless captain call"
   run_captain "$home" hold "$answered_id" --reason "captain route choice pending" \
     >/dev/null || fail "could not hold the artifactless captain call"
   printf 'Continue without a delivery artifact.\n' > "$home/artifactless-answer.txt"
@@ -3229,7 +3230,7 @@ test_retained_row_artifacts_survive_captain_answers() {
 
   decision_local_id=sample-released-local-worded-decision
   tasks_in "$home" add "$decision_local_id" "Land the reviewed change" --kind ship \
-    --repo sample --start >/dev/null \
+    --repo sample >/dev/null \
     || fail "could not create the local-worded decision fixture"
   run_captain "$home" hold "$decision_local_id" --reason "captain landing route pending" \
     >/dev/null || fail "could not hold the local-worded decision fixture"
