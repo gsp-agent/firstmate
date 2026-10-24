@@ -383,6 +383,7 @@ for _teardown_source in \
   fm-path-lib.sh \
   fm-task-data-lib.sh \
   fm-task-data.py \
+  fm-task-bead-lib.sh \
   fm-task-reap-lib.sh \
   fm-lease-lib.sh
 do
@@ -417,6 +418,8 @@ unset _teardown_source
 . "$SCRIPT_DIR/fm-nm-run-lib.sh"
 # shellcheck source=/dev/null
 . "$SCRIPT_DIR/fm-task-data-lib.sh"
+# shellcheck source=bin/fm-task-bead-lib.sh
+. "$SCRIPT_DIR/fm-task-bead-lib.sh"
 # shellcheck source=bin/fm-task-reap-lib.sh
 . "$SCRIPT_DIR/fm-task-reap-lib.sh"
 TASK_REAP_ACTOR=teardown
@@ -695,6 +698,40 @@ if [ "$TEARDOWN_BACKLOG_APPLIES" = 1 ]; then
       exit 1
       ;;
   esac
+fi
+
+# A task with a bead is done when its bead is done (bin/fm-task-bead-lib.sh).
+# A merge or a measurement is a milestone, and cleanup would mark the task
+# done, close its backlog item, and remove the worker pane and local copy its
+# owner still needs for activation and live verification. So while that bead
+# is open, or while the task's own last status line is the merge handoff that
+# leaves activation and live verification pending, teardown refuses here,
+# before any destructive step, with every record intact. --force authorizes
+# discarding unlanded work, never closing a task whose bead is still open. A
+# task with no bead keeps every gate below exactly as it was.
+teardown_require_task_bead_done() {
+  local rc=0
+  fm_task_bead_read "$ID" || rc=$?
+  case "$rc" in
+    0) ;;
+    3) return 0 ;;
+    *)
+      echo "REFUSED: task $ID's bead could not be read ($FM_TASK_BEAD_ERROR). Its done decides cleanup, so nothing was changed; retry once the bead database answers." >&2
+      return 1
+      ;;
+  esac
+  if fm_task_bead_open "$FM_TASK_BEAD_STATUS"; then
+    echo "REFUSED: task $ID answers to bead $FM_TASK_BEAD_ID, which is $FM_TASK_BEAD_STATUS. A merge or a measurement is a milestone; the bead's done decides when the task is done. Its worker, pane, local copy, and backlog item stay with their owner; nothing was changed. Tear it down after the bead closes." >&2
+    return 1
+  fi
+  if fm_task_merge_handoff_pending "$STATE/$ID.status" "$ID"; then
+    echo "REFUSED: task $ID's last status line is the merge handoff that leaves activation and live verification pending with its owner, so the task is not done even though bead $FM_TASK_BEAD_ID is closed; nothing was changed. Its worker or owner records the verification result as a later status line before cleanup." >&2
+    return 1
+  fi
+  return 0
+}
+if [ "$TEARDOWN_META_KIND" != secondmate ]; then
+  teardown_require_task_bead_done || exit 1
 fi
 
 REMOTE_HANDOFF_DIR_PRESENT=0
@@ -3416,6 +3453,43 @@ if [ "$BACKEND" = herdr ]; then
   fm_backend_herdr_parse_target "$T" || exit 1
   TEARDOWN_HERDR_SESSION=$FM_BACKEND_HERDR_SESSION
   TEARDOWN_HERDR_PANE=$FM_BACKEND_HERDR_PANE
+fi
+
+# The task record is what a relaunch needs to bring this task back: its
+# project, kind, harness and profile, delivery mode, branch, and base branch.
+# Cleanup removes it, so a copy goes first to data/<id>/record/closed-task.meta,
+# beside the brief, where bin/fm-task-data.py keeps record/ whatever its size.
+# `bin/fm-control.sh <id> relaunch --restore` dispatches the task again from
+# that copy when it was closed before its done was met. A copy that cannot be
+# written refuses here, before any destructive step.
+teardown_archive_task_record() {
+  local task_dir="$DATA/$ID" dir="$DATA/$ID/record" archive tmp
+  archive="$dir/closed-task.meta"
+  if [ -L "$task_dir" ] || { [ -e "$task_dir" ] && [ ! -d "$task_dir" ]; } \
+     || [ -L "$dir" ] || { [ -e "$dir" ] && [ ! -d "$dir" ]; } \
+     || [ -L "$archive" ] || { [ -e "$archive" ] && [ ! -f "$archive" ]; }; then
+    echo "REFUSED: task $ID's record archive path $archive is not a plain file under a real directory; nothing was changed." >&2
+    return 1
+  fi
+  if ! mkdir -p "$dir" || ! tmp=$(mktemp "$dir/.closed-task.meta.XXXXXX"); then
+    echo "REFUSED: task $ID's record could not be archived at $archive; nothing was changed." >&2
+    return 1
+  fi
+  # archived_at leads, so the record's own trailing pr= and pr_head= lines stay
+  # last and the canonical PR reader (fm_pr_metadata_identity_parse) still
+  # binds the archive to its PR.
+  if printf 'archived_at=%s\n' "$(date +%s)" > "$tmp" \
+     && cat "$META" >> "$tmp" \
+     && { [ -z "$(tail -c 1 "$META")" ] || printf '\n' >> "$tmp"; } \
+     && mv -f "$tmp" "$archive"; then
+    return 0
+  fi
+  rm -f "$tmp"
+  echo "REFUSED: task $ID's record could not be archived at $archive; nothing was changed." >&2
+  return 1
+}
+if [ "$KIND" != secondmate ]; then
+  teardown_archive_task_record || exit 1
 fi
 
 BACKLOG_CLOSED=0
