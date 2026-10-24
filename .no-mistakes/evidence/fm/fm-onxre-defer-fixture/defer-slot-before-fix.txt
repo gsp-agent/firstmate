@@ -1,0 +1,4 @@
+Running the base fixture via Bash stdin; only its fixture source path is made explicit.
+not ok - a live-session deferral did not defer
+error: treehouse get did not enter an isolated worktree within 60s (last seen '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-spawn-defer-slot.xSPesC/clean-retry-origin/project': it is the spawning project itself; spawning project '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-spawn-defer-slot.xSPesC/clean-retry-origin/project'); inspect window firstmate:fm-defer-47418-retry-origin: expected exit 75, got 1
+Base fixture exit status: 1
