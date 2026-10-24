@@ -78,7 +78,13 @@ case "${1:-}" in
       printf '%s\n' "$payload" >> "$D/literal"
       case "$payload" in
         /exit|/quit)
-          printf 'zsh' > "$D/command"
+          if [ -f "$D/picker-on-exit" ]; then
+            # Live background work: the submitting Enter that follows opens
+            # Claude's "Background work is running" picker and the agent stays.
+            : > "$D/exit-typed"
+          else
+            printf 'zsh' > "$D/command"
+          fi
           if [ -f "$D/dispatch-on-exit.json" ]; then
             cp "$D/dispatch-on-exit.json" "$FM_HOME/config/crew-dispatch.json" || exit 1
           fi
@@ -91,6 +97,29 @@ case "${1:-}" in
       esac
     else
       printf '%s\n' "$payload" >> "$D/keys"
+      case "$payload" in
+        Enter)
+          if [ -f "$D/picker" ]; then
+            printf 'Enter\n' >> "$D/picker-enters"
+            # Enter confirms the selected row. Only "Exit and stop tasks" ends
+            # the agent; "Move to background" or "Stay" would leave it alive.
+            case "$(grep '^❯' "$D/picker")" in
+              '❯ 1. Exit and stop tasks') printf 'zsh' > "$D/command"; : > "$D/picker-confirmed" ;;
+              *) : > "$D/picker-other-row" ;;
+            esac
+            rm -f "$D/picker"
+          elif [ -f "$D/exit-typed" ]; then
+            rm -f "$D/exit-typed"
+            cp "$D/picker-on-exit" "$D/picker"
+          fi
+          ;;
+        Escape)
+          if [ -f "$D/picker" ]; then
+            : > "$D/picker-escaped"
+            rm -f "$D/picker"
+          fi
+          ;;
+      esac
       case "$payload" in
         'export GOTMPDIR='*)
           if [ -n "${FM_FAKE_TRACE_PREPARE:-}" ]; then
@@ -120,6 +149,7 @@ case "${1:-}" in
     printf 'fakepane\n'; exit 0 ;;
   capture-pane)
     [ -z "${FM_FAKE_COMPOSER_READ_FAIL:-}" ] || exit 1
+    if [ -f "$D/picker" ]; then cat "$D/picker"; exit 0; fi
     if [ -s "$D/composer" ]; then
       printf '╭────╮\n│ %s  │\n╰────╯\n' "$(cat "$D/composer")"
     else
@@ -3184,6 +3214,167 @@ SH
   pass "fm-control exit removes the dialog file before it releases the control lock"
 }
 
+# --- Claude "Background work is running" exit picker -------------------------
+#
+# A Claude agent that still has live subagents answers /exit with a picker whose
+# selected row stops them. The shell-stopping recovery cannot clear it (it lists
+# no shell), so relaunch used to refuse with no way forward. The way forward is
+# an explicit --stop-background, and nothing else may press a key into it.
+
+background_picker_screen() {  # <agent-row>...
+  printf '%s\n' \
+    'Background work is running' \
+    '' \
+    '❯ 1. Exit and stop tasks' \
+    'The following will stop when you exit:'
+  printf '%s\n' "$@"
+  printf '%s\n' \
+    '  2. Move to background and exit' \
+    '  3. Stay' \
+    '' \
+    'Enter to confirm · Esc to cancel'
+}
+
+enter_count() {  # <case-dir>
+  grep -c '^Enter$' "$1/fake/keys" || true
+}
+
+# The Enters the picker itself received, apart from the ones that submit
+# commands and the ones the replacement launch sends later.
+picker_enters() {  # <case-dir>
+  grep -c '^Enter$' "$1/fake/picker-enters" 2>/dev/null || true
+}
+
+launched() {  # <case-dir>: whether the replacement launch was typed
+  grep -Fq 'Firstmate operational input waiting: read' "$1/fake/literal"
+}
+
+test_relaunch_without_stop_background_refuses_the_picker_the_exit_opens() {
+  local dir out rc before
+  dir=$(new_case bgpicker-refuse rl80)
+  add_ship_task "$dir" rl80 claude
+  background_picker_screen '  agent · Explore the relaunch path' > "$dir/fake/picker-on-exit"
+  before=$(cat "$dir/home/data/rl80/brief.md")
+
+  out=$(run_control "$dir" rl80 relaunch --note "context ran out"); rc=$?
+
+  expect_code 1 "$rc" "a relaunch must not choose for the caller at the picker"$'\n'"$out"
+  assert_contains "$out" "Claude background-task exit picker" "the refusal should name the dialog"
+  assert_contains "$out" "--stop-background" "the refusal should name the flag that proceeds"
+  assert_contains "$out" "original instructions were restored" "the refusal should restore the brief"
+  [ "$(enter_count "$dir")" -eq 1 ] \
+    || fail "only the Enter that submitted /exit may be sent, got $(enter_count "$dir")"
+  [ ! -e "$dir/fake/picker-confirmed" ] && [ ! -e "$dir/fake/picker-other-row" ] \
+    || fail "no row of the picker may be chosen without the flag"
+  [ ! -e "$dir/fake/picker-escaped" ] || fail "nothing may dismiss a picker that lists no shell"
+  [ "$(cat "$dir/fake/command")" = claude ] || fail "the old agent must still be running"
+  [ "$(cat "$dir/home/data/rl80/brief.md")" = "$before" ] || fail "the brief must be restored byte-exact"
+  ! launched "$dir" || fail "no replacement may be launched"
+  pass "fm-control relaunch: the background picker refuses without --stop-background, names the flag, and restores the brief"
+}
+
+test_relaunch_without_stop_background_refuses_a_picker_that_is_already_open() {
+  local dir out rc before
+  dir=$(new_case bgpicker-open rl81)
+  add_ship_task "$dir" rl81 claude
+  background_picker_screen '  agent · Explore the relaunch path' > "$dir/fake/picker"
+  before=$(cat "$dir/home/data/rl81/brief.md")
+
+  out=$(run_control "$dir" rl81 relaunch --note "context ran out"); rc=$?
+
+  expect_code 1 "$rc" "an open picker must refuse"$'\n'"$out"
+  assert_contains "$out" "--stop-background" "the refusal should name the flag that proceeds"
+  [ ! -s "$dir/fake/keys" ] || fail "an open picker must receive no key, got: $(cat "$dir/fake/keys")"
+  [ ! -s "$dir/fake/literal" ] || fail "an open picker must not be typed into"
+  [ "$(cat "$dir/home/data/rl81/brief.md")" = "$before" ] || fail "the brief must be restored byte-exact"
+  [ "$(cat "$dir/fake/command")" = claude ] || fail "the old agent must still be running"
+  pass "fm-control relaunch: a picker already on screen refuses at once with no key, naming the flag"
+}
+
+test_relaunch_stop_background_confirms_exit_and_stop_tasks() {
+  local dir out rc
+  dir=$(new_case bgpicker-confirm rl82)
+  add_ship_task "$dir" rl82 claude
+  background_picker_screen '  agent · Explore the relaunch path' '  shell · sleep 300' \
+    > "$dir/fake/picker-on-exit"
+
+  out=$(run_control "$dir" rl82 relaunch --stop-background --note "context ran out"); rc=$?
+
+  expect_code 0 "$rc" "--stop-background should carry the relaunch through the picker"$'\n'"$out"
+  assert_contains "$out" "relaunched rl82 harness=claude" "the relaunch should complete"
+  [ -e "$dir/fake/picker-confirmed" ] || fail "Exit and stop tasks should have been confirmed"
+  [ ! -e "$dir/fake/picker-other-row" ] || fail "no other row may be chosen"
+  [ ! -e "$dir/fake/picker-escaped" ] || fail "the flag confirms the picker; it must not be escaped"
+  [ "$(picker_enters "$dir")" -eq 1 ] \
+    || fail "the picker should receive exactly one Enter, got $(picker_enters "$dir")"
+  [ "$(grep -c '^/exit$' "$dir/fake/literal")" -eq 1 ] || fail "/exit should be typed once"
+  launched "$dir" || fail "the replacement should have been launched"
+  [ "$(journal_field "$dir" rl82 phase)" = complete ] || fail "the transaction journal should end complete"
+  pass "fm-control relaunch: --stop-background confirms Exit and stop tasks and the relaunch continues"
+}
+
+test_relaunch_stop_background_confirms_a_picker_that_is_already_open() {
+  local dir out rc
+  dir=$(new_case bgpicker-open-confirm rl83)
+  add_ship_task "$dir" rl83 claude
+  background_picker_screen '  agent · Explore the relaunch path' > "$dir/fake/picker"
+
+  out=$(run_control "$dir" rl83 relaunch --stop-background --note "context ran out"); rc=$?
+
+  expect_code 0 "$rc" "--stop-background should carry the relaunch through an open picker"$'\n'"$out"
+  [ -e "$dir/fake/picker-confirmed" ] || fail "Exit and stop tasks should have been confirmed"
+  [ "$(picker_enters "$dir")" -eq 1 ] || fail "the picker should receive exactly one Enter, got $(picker_enters "$dir")"
+  assert_no_grep "/exit" "$dir/fake/literal" "nothing is typed into a picker that is already open"
+  launched "$dir" || fail "the replacement should have been launched"
+  pass "fm-control relaunch: --stop-background confirms a picker that was already open"
+}
+
+test_relaunch_stop_background_never_presses_enter_on_another_row() {
+  local dir out rc before
+  dir=$(new_case bgpicker-other-row rl84)
+  add_ship_task "$dir" rl84 claude
+  # The selected row is not "Exit and stop tasks": the picker's own text no
+  # longer matches the recorded structure, so no key is pressed blind.
+  printf '%s\n' \
+    'Background work is running' \
+    '' \
+    '  1. Exit and stop tasks' \
+    '❯ 2. Move to background and exit' \
+    '  3. Stay' \
+    '' \
+    'Enter to confirm · Esc to cancel' > "$dir/fake/picker"
+  before=$(cat "$dir/home/data/rl84/brief.md")
+
+  out=$(run_control "$dir" rl84 relaunch --stop-background --note "context ran out"); rc=$?
+
+  expect_code 1 "$rc" "an unrecognised selection must refuse even with the flag"$'\n'"$out"
+  [ ! -s "$dir/fake/keys" ] || fail "no key may be pressed into an unrecognised picker, got: $(cat "$dir/fake/keys")"
+  [ ! -e "$dir/fake/picker-other-row" ] || fail "Move to background must never be chosen"
+  [ "$(cat "$dir/home/data/rl84/brief.md")" = "$before" ] || fail "the brief must be restored byte-exact"
+  [ "$(cat "$dir/fake/command")" = claude ] || fail "the old agent must still be running"
+  pass "fm-control relaunch: --stop-background presses nothing when the selected row is not Exit and stop tasks"
+}
+
+test_relaunch_stop_background_does_nothing_when_there_is_no_picker() {
+  local dir out rc
+  dir=$(new_case bgpicker-none rl85)
+  add_ship_task "$dir" rl85 claude
+
+  out=$(run_control "$dir" rl85 relaunch --stop-background --note "ordinary relaunch"); rc=$?
+
+  expect_code 0 "$rc" "the flag is harmless when no picker shows"$'\n'"$out"
+  [ ! -e "$dir/fake/picker-confirmed" ] || fail "no picker was shown, so none may be confirmed"
+  [ ! -e "$dir/fake/picker-enters" ] || fail "no picker was shown, so none may receive an Enter"
+  pass "fm-control relaunch: --stop-background adds no key when the agent exits without a picker"
+}
+
+
+test_relaunch_without_stop_background_refuses_the_picker_the_exit_opens
+test_relaunch_without_stop_background_refuses_a_picker_that_is_already_open
+test_relaunch_stop_background_confirms_exit_and_stop_tasks
+test_relaunch_stop_background_confirms_a_picker_that_is_already_open
+test_relaunch_stop_background_never_presses_enter_on_another_row
+test_relaunch_stop_background_does_nothing_when_there_is_no_picker
 test_usage_limit_route_to_claude_is_exempt_from_the_claude_dispatch_pairs
 test_exit_and_relaunch_remove_the_dialog_file
 test_exit_removes_the_dialog_file_before_releasing_the_lock

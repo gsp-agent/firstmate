@@ -848,7 +848,12 @@ test_relaunch_only_flags_are_rejected_on_other_verbs() {
   out=$(run_control "$dir" t1 exit --harness codex); rc=$?
   expect_code 1 "$rc" "--harness should not apply to exit"
   assert_contains "$out" "apply to 'relaunch' only" "the refusal should scope the flags"
-  pass "fm-control: profile and note flags belong to relaunch only"
+  out=$(run_control "$dir" t1 exit --stop-background); rc=$?
+  expect_code 1 "$rc" "--stop-background should not apply to exit"
+  assert_contains "$out" "apply to 'relaunch' only" "the refusal should scope the flag"
+  [ ! -s "$dir/fake/literal" ] && [ ! -s "$dir/fake/keys" ] \
+    || fail "a refused flag must send nothing"
+  pass "fm-control: profile, note, and stop-background flags belong to relaunch only"
 }
 
 # --- 5. lifecycle states ----------------------------------------------------
