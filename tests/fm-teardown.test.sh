@@ -7984,6 +7984,16 @@ test_task_data_refusals() {
     fail "helper accepted a live task"
   fi
   assert_present "$task/scratch/blob" "live task scratch changed"
+  ln -s "$case_dir/data" "$case_dir/data-link"
+  ln -s "$case_dir/state" "$case_dir/state-link"
+  if python3 "$ROOT/bin/fm-task-data.py" prepare "$case_dir/data-link" "$case_dir/state" \
+      task-x1 > "$case_dir/helper.out" 2> "$case_dir/helper.err"; then
+    fail "helper accepted a symlink as the data directory"
+  fi
+  if python3 "$ROOT/bin/fm-task-data.py" prepare "$case_dir/data" "$case_dir/state-link" \
+      task-x1 > "$case_dir/helper.out" 2> "$case_dir/helper.err"; then
+    fail "helper accepted a symlink as the state directory"
+  fi
   if python3 "$ROOT/bin/fm-task-data.py" stage "$case_dir/data" "$case_dir/state" \
       ../outside "$case_dir/project" '' > "$case_dir/helper.out" 2> "$case_dir/helper.err"; then
     fail "helper accepted path traversal"
@@ -8922,7 +8932,7 @@ PY
 }
 
 test_task_data_symlink_ancestor_aliases() {
-  local helper=$1 case_dir task physical alias_root captures variant data
+  local helper=$1 case_dir task physical alias_root captures variant data state
   for variant in fixture macos; do
     if [ "$variant" = macos ] && [ "$(cd -P /tmp && pwd -P)" != /private/tmp ]; then
       pass "skip: macOS /tmp ancestor alias is not present on this host"
@@ -8939,7 +8949,11 @@ test_task_data_symlink_ancestor_aliases() {
       ln -s "$physical/anchor/subdir" "$case_dir/alias-bridge"
       ln -s "$case_dir/alias-bridge/../.." "$alias_root"
     fi
-    data="$physical/data"
+    # The configured home itself can be an alias, not only an evidence link.
+    # Exercise the same DATA/STATE arguments teardown passes from that home.
+    mkdir -p "$physical/data" "$physical/state"
+    data="$alias_root/data"
+    state="$alias_root/state"
     task="$data/finished"
     captures="$task/captures"
     mkdir -p "$captures/frames" "$captures/later-frames" "$captures/subdir" "$case_dir/outside"
@@ -8975,8 +8989,12 @@ printf 'body: [image](latest.png) [frames](frames.png) [chain](chained.png) [dat
 SH
     chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/gh-axi"
     PATH="$case_dir/fakebin:$PATH" python3 "$helper" stage \
-      "$data" "$case_dir/state" finished "$case_dir/project" https://github.com/test/repo/pull/1 \
+      "$data" "$state" finished "$case_dir/project" https://github.com/test/repo/pull/1 \
       || fail "$variant alias staging failed"
+    PATH="$case_dir/fakebin:$PATH" python3 "$helper" mark "$data" finished cut-off \
+      || fail "$variant alias expiry mark failed"
+    [ "$(python3 "$helper" pending "$data")" = $'finished\tcut-off' ] \
+      || fail "$variant alias pending scan lost the marked hold"
     [ "$(cat "$task/latest.png")" = capture ] || fail "$variant aliased data link lost its target during staging"
     [ "$(cat "$task/frames.png/frame.bin")" = frame ] || fail "$variant aliased directory lost its contents during staging"
     [ "$(cat "$task/chained.png")" = chain ] || fail "$variant aliased target lost an intermediate symlink"
@@ -8994,7 +9012,7 @@ SH
 printf 'body: [image](latest.png) [frames](frames.png) [chain](chained.png) [data](latest-data.png) [external](escape.png) [components](component.png) [saved](saved.png) [saved frames](saved-frames.png)\n'
 SH
     PATH="$case_dir/fakebin:$PATH" python3 "$helper" expire \
-      "$data" "$case_dir/state" finished || fail "$variant alias expiry failed"
+      "$data" "$state" finished || fail "$variant alias expiry failed"
     [ "$(cat "$task/latest.png")" = capture ] || fail "$variant alias expiry deleted the linked capture"
     [ "$(cat "$task/frames.png/frame.bin")" = frame ] || fail "$variant alias expiry deleted linked directory contents"
     [ "$(cat "$task/chained.png")" = chain ] || fail "$variant alias expiry broke the symlink chain"
