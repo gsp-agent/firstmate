@@ -3261,14 +3261,26 @@ fm_backend_herdr_send_key() {  # <target> <key>
 # and watch tails, the rendered busy-footer read, and the shared inbox
 # pending-line read). Workaround:
 # always request a generous fetch far above any realistic viewport height, then
-# trim to the caller's requested bound ourselves with `tail`.
+# trim to the caller's requested bound ourselves with `tail`. A pane taller
+# than that fetch still reads empty, so an empty read is repeated with the
+# viewport height `pane get` reports, or, on a Herdr that reports none (0.7.1
+# has no `scroll`), replaced by the visible viewport, which takes no count.
 fm_backend_herdr_capture() {  # <target> <lines>
   fm_backend_herdr_target_ready "$1" || return 1
-  local lines=${2:-200} fetch out
+  local lines=${2:-200} fetch out rows
   case "$lines" in ''|*[!0-9]*) lines=200 ;; esac
   fetch=$lines
   case "$fetch" in ''|*[!0-9]*) fetch=200 ;; *) [ "$fetch" -ge 200 ] || fetch=200 ;; esac
   out=$(fm_backend_herdr_cli "$FM_BACKEND_HERDR_SESSION" pane read "$FM_BACKEND_HERDR_PANE" --source recent --lines "$fetch" 2>/dev/null) || return 1
+  if [ -z "$out" ]; then
+    rows=$(fm_backend_herdr_cli "$FM_BACKEND_HERDR_SESSION" pane get "$FM_BACKEND_HERDR_PANE" 2>/dev/null |
+      jq -r '.result.pane.scroll.viewport_rows // empty | select(type == "number" and . > 0 and . == floor)' 2>/dev/null) || rows=
+    if [ -z "$rows" ]; then
+      out=$(fm_backend_herdr_cli "$FM_BACKEND_HERDR_SESSION" pane read "$FM_BACKEND_HERDR_PANE" --source visible 2>/dev/null) || return 1
+    elif [ "$rows" -gt "$fetch" ]; then
+      out=$(fm_backend_herdr_cli "$FM_BACKEND_HERDR_SESSION" pane read "$FM_BACKEND_HERDR_PANE" --source recent --lines "$rows" 2>/dev/null) || return 1
+    fi
+  fi
   printf '%s' "$out" | tail -n "$lines"
 }
 
