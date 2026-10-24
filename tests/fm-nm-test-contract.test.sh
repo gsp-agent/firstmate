@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Contract: parsed .no-mistakes.yaml must leave commands.test absent or empty,
-# and must run the stock macOS Bash check as its stock-macos-bash gate.
+# must run the stock macOS Bash check as its stock-macos-bash gate, and must
+# keep the trusted gate-agent pin compatible with project-instruction isolation.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -39,5 +40,15 @@ puts gate ? "#{gate["after"]} #{gate["command"]}" : ""
   pass "no-mistakes runs the stock macOS Bash check as a gate after lint"
 }
 
+test_nm_pins_gate_to_codex() {
+  ruby -ryaml -e '
+doc = YAML.load_file(ARGV[0]) || {}
+abort "disable_project_settings must remain true" unless doc["disable_project_settings"] == true
+abort "gate agents must stay pinned to [codex] while Grok cannot isolate project instructions" unless doc["agent"] == ["codex"]
+' "$NM" || fail "trusted gate-agent isolation configuration is unsafe"
+  pass "no-mistakes pins Codex while disabling project instructions"
+}
+
 test_nm_has_no_deterministic_test_command
 test_nm_declares_the_stock_bash_gate
+test_nm_pins_gate_to_codex
