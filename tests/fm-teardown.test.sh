@@ -748,7 +748,8 @@ test_local_only_fork_remote_allows() {
   printf 'fm-branch-outcome-index-v1\t5\t0\t-\n' > "$case_dir/state/.task-x1.branch-outcome-index"
 
   set +e
-  run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+  # The secondmate marker and its side-band summary belong to this temp home.
+  FM_HOME="$case_dir" run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
   rc=$?
   set -e
 
@@ -5566,8 +5567,40 @@ SH
   pass "fm-teardown: kept evidence over 16 MiB is not read, keeps the folder whole, closes the backlog item and is retried"
 }
 
+write_task_data_stage_probe() { # <case-dir>
+  local case_dir=$1 python
+  python=$(command -v python3)
+  cat > "$case_dir/fakebin/python3" <<SH
+#!/usr/bin/env bash
+[ "\${2:-}" = retire ] || exec "$python" "\$@"
+exec "$python" - "$case_dir" "\$@" <<'PY'
+from pathlib import Path
+import resource
+import runpy
+import sys
+import time
+
+case = Path(sys.argv[1])
+helper, arguments = sys.argv[2], sys.argv[3:]
+module = runpy.run_path(helper)
+assert arguments[0] == "retire" and len(arguments) in (4, 5)
+# The production deadline starts in cleanup(), after interpreter startup and
+# imports. Measuring those too makes a loaded host fail before that clock starts.
+started = time.monotonic()
+try:
+    module["cleanup"](*arguments[:4], pr=arguments[4] if len(arguments) == 5 else "")
+finally:
+    elapsed_ms = int((time.monotonic() - started) * 1000)
+    (case / "stage-elapsed-ms").write_text(str(elapsed_ms))
+    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    (case / "stage-peak").write_text(str(peak if sys.platform == "darwin" else peak * 1024))
+PY
+SH
+  chmod +x "$case_dir/fakebin/python3"
+}
+
 test_task_data_stage_stops_at_its_limit() {
-  local case_dir task record seconds python peak
+  local case_dir task record elapsed_ms peak
   case_dir=$(make_case task-data-stage-limit)
   task="$case_dir/data/task-x1"
   record="$task/record/data-cleanup.json"
@@ -5589,22 +5622,8 @@ PY
 #!/usr/bin/env bash
 cat >/dev/null
 SH
-  python=$(command -v python3)
-  cat > "$case_dir/fakebin/python3" <<SH
-#!/usr/bin/env bash
-[ "\${2:-}" = retire ] || exec "$python" "\$@"
-date +%s > "$case_dir/stage-start"
-"$python" -c 'import resource, subprocess, sys
-status = subprocess.call(sys.argv[2:])
-peak = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
-with open(sys.argv[1], "w") as stream:
-    stream.write(str(peak if sys.platform == "darwin" else peak * 1024))
-sys.exit(status)' "$case_dir/stage-peak" "$python" "\$@"
-status=\$?
-date +%s > "$case_dir/stage-end"
-exit "\$status"
-SH
-  chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/python3"
+  write_task_data_stage_probe "$case_dir"
+  chmod +x "$case_dir/fakebin/dcg"
   write_meta "$case_dir" local-only ship
   seed_backlog_in_flight "$case_dir"
   FM_TEARDOWN_DATA_STAGE_TIMEOUT=2 run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err" \
@@ -5617,51 +5636,42 @@ SH
     "teardown did not name the task its stage limit kept whole"
   jq -e '.retained == "reference matching passed its 2s stage limit"' "$record" >/dev/null \
     || fail "the cleanup record did not name the stage limit"
-  seconds=$(($(cat "$case_dir/stage-end") - $(cat "$case_dir/stage-start")))
-  [ "$seconds" -le 10 ] || fail "the stage ran ${seconds}s with a 2s stage limit"
+  elapsed_ms=$(cat "$case_dir/stage-elapsed-ms")
+  [ "$elapsed_ms" -le 10000 ] || fail "the stage ran ${elapsed_ms}ms with a 2s stage limit"
   peak=$(cat "$case_dir/stage-peak")
   [ "$peak" -le $((1024 * 1024 * 1024)) ] \
     || fail "the stage peaked at $((peak / 1024 / 1024)) MiB matching a 16 MiB report with one accented letter"
   printf 'short report\n' > "$task/report.md"
-  run_next_teardown "$case_dir" task-next || fail "next teardown failed: $(cat "$case_dir/task-next.err")"
+  # The assertion above owns the 2s stage deadline. This retry only checks
+  # recovery, so leave room for reference reads on a loaded host.
+  FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=60 run_next_teardown "$case_dir" task-next \
+    || fail "next teardown failed: $(cat "$case_dir/task-next.err")"
   assert_present "$task/.cleanup-hold/clone/scratch-000.bin" "the next teardown did not retry the folder its stage limit kept whole"
   jq -e 'has("retained") | not' "$record" >/dev/null || fail "the retry left the stage-limit note in the record"
   pass "fm-teardown: a stage past its limit moves nothing, keeps the folder whole, stays within memory on accented text, closes the backlog item and is retried"
 }
 
 test_task_data_stage_limit_bounds_reference_reads() {
-  local case_dir task record real_python seconds
+  local case_dir task record elapsed_ms
   case_dir=$(make_case task-data-stage-slow-reads)
   task="$case_dir/data/task-x1"
   record="$task/record/data-cleanup.json"
   mkdir -p "$task"
   printf 'Bead: obs-slow1\n' > "$task/brief.md"
   printf 'scratch\n' > "$task/scratch.bin"
-  real_python=$(command -v python3)
-  cat > "$case_dir/fakebin/python3" <<SH
-#!/usr/bin/env bash
-case " \$* " in
-  *" retire "*)
-    date +%s > "$case_dir/stage-start"
-    "$real_python" "\$@"
-    status=\$?
-    date +%s > "$case_dir/stage-end"
-    exit "\$status" ;;
-esac
-exec "$real_python" "\$@"
-SH
+  write_task_data_stage_probe "$case_dir"
   printf '#!/usr/bin/env bash\nsleep 8\n' > "$case_dir/fakebin/br"
   cat > "$case_dir/fakebin/dcg" <<'SH'
 #!/usr/bin/env bash
 cat >/dev/null
 SH
-  chmod +x "$case_dir/fakebin/python3" "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
+  chmod +x "$case_dir/fakebin/br" "$case_dir/fakebin/dcg"
   write_meta "$case_dir" local-only ship
   seed_backlog_in_flight "$case_dir"
   FM_TEARDOWN_DATA_STAGE_TIMEOUT=1 run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err" \
     || fail "teardown with a slow reference read failed: $(cat "$case_dir/err")"
-  seconds=$(($(cat "$case_dir/stage-end") - $(cat "$case_dir/stage-start")))
-  [ "$seconds" -le 5 ] || fail "the stage ran ${seconds}s with a 1s limit while a reference read took 8s"
+  elapsed_ms=$(cat "$case_dir/stage-elapsed-ms")
+  [ "$elapsed_ms" -le 5000 ] || fail "the stage ran ${elapsed_ms}ms with a 1s limit while a reference read took 8s"
   [ "$(backlog_row_state "$case_dir")" = "done" ] \
     || fail "a slow reference read left the backlog item at $(backlog_row_state "$case_dir")"
   assert_present "$task/scratch.bin" "a stage stopped by its limit moved scratch"
@@ -5776,8 +5786,9 @@ write_pending_hold() { # <case-dir> <task>
 }
 
 test_task_data_expire_skips_expired_receipts() {
-  local case_dir
+  local case_dir real_python
   case_dir=$(make_case task-data-expired-receipts)
+  real_python=$(command -v python3)
   write_pending_hold "$case_dir" zz-live
   touch -t 202101010000 "$case_dir/data/zz-live/record/data-cleanup.json"
   python3 - "$case_dir/data" <<'PY'
@@ -5795,17 +5806,28 @@ for number in range(3000):
                    "sources": [{"project": "", "pr": "", "beads": []}]}, stream)
     os.utime(path, (1577836800, 1577836800))
 PY
+  cat > "$case_dir/fakebin/python3" <<SH
+#!/usr/bin/env bash
+if [ "\${2:-}" = expire ]; then
+  printf '%s\n' "\${5:-}" >> "$case_dir/expiry-attempts"
+fi
+exec "$real_python" "\$@"
+SH
   cat > "$case_dir/fakebin/dcg" <<'SH'
 #!/usr/bin/env bash
 cat >/dev/null
 SH
-  chmod +x "$case_dir/fakebin/dcg"
+  chmod +x "$case_dir/fakebin/dcg" "$case_dir/fakebin/python3"
   write_meta "$case_dir" local-only ship
   seed_backlog_in_flight "$case_dir"
-  FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=5 run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err" \
+  # Assert candidate selection directly; the live hold's startup and reference
+  # reads need headroom unrelated to whether expired records were skipped.
+  FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=60 run_teardown "$case_dir" > "$case_dir/out" 2> "$case_dir/err" \
     || fail "teardown with many expired records failed: $(cat "$case_dir/err")"
   assert_absent "$case_dir/data/zz-live/.cleanup-hold" \
     "older expired records used up the expiry budget before the one live hold: $(cat "$case_dir/err")"
+  [ "$(cat "$case_dir/expiry-attempts")" = zz-live ] \
+    || fail "expiry attempted already-expired records: $(cat "$case_dir/expiry-attempts")"
   pass "fm-teardown: records that already expired never use up the expiry budget"
 }
 
@@ -5820,7 +5842,9 @@ test_task_data_expire_cut_off_hold_moves_back() {
   cat > "$case_dir/fakebin/python3" <<SH
 #!/usr/bin/env bash
 case " \$* " in
-  *" expire "*" aa-stuck "*) sleep 6 ;;
+  *" expire "*)
+    printf '%s\n' "\${5:-}" >> "$case_dir/expiry-attempts"
+    [ "\${5:-}" != aa-stuck ] || sleep 6 ;;
 esac
 exec "$real_python" "\$@"
 SH
@@ -5849,13 +5873,15 @@ SH
     "kind=ship" "mode=local-only" "spawn_gen=task-next"
   FM_ROOT_OVERRIDE="$ROOT" FM_STATE_OVERRIDE="$case_dir/state" \
     FM_DATA_OVERRIDE="$case_dir/data" FM_CONFIG_OVERRIDE="$case_dir/config" \
-    FM_TASK_DATA_SWEEP=off FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=5 PATH="$case_dir/fakebin:$PATH" \
+    FM_TASK_DATA_SWEEP=off FM_TEARDOWN_DATA_EXPIRE_TIMEOUT=60 PATH="$case_dir/fakebin:$PATH" \
     "$TEARDOWN" task-next > "$case_dir/next.out" 2> "$case_dir/next.err" \
     || fail "next teardown failed: $(cat "$case_dir/next.err")"
   assert_absent "$case_dir/data/bb-fast/.cleanup-hold" \
     "a hold cut off before it recorded anything kept first place and starved the next hold"
   assert_absent "$case_dir/data/aa-stuck/.cleanup-hold" \
-    "a hold that needs longer than the budget never expired on a later teardown: $(cat "$case_dir/next.err")"
+    "the cut-off hold never expired on a later teardown: $(cat "$case_dir/next.err")"
+  [ "$(cat "$case_dir/expiry-attempts")" = $'aa-stuck\nbb-fast\naa-stuck' ] \
+    || fail "the cut-off hold did not move behind the fast hold: $(cat "$case_dir/expiry-attempts")"
   jq -e '.expired == true and (has("expiry") | not)' "$case_dir/data/aa-stuck/record/data-cleanup.json" >/dev/null \
     || fail "a completed full attempt left its expiry marker behind"
   pass "fm-teardown: a hold cut off by the budget moves behind the other holds and expires on a later teardown"
@@ -7175,10 +7201,15 @@ SH
 test_task_data_overlapping_teardown_keeps_retiring_hold() {
   local FM_BACKLOG_ROW_TIMEOUT_SECS=60
   export FM_BACKLOG_ROW_TIMEOUT_SECS
+  # This case exercises overlapping cleanup without the supervision host's
+  # home-wide command lock. Ambient agent markers must not serialize A and B.
+  local PI_CODING_AGENT= FM_SUPERVISION_ACTOR=
+  export PI_CODING_AGENT FM_SUPERVISION_ACTOR
   local case_dir real_python order first last first_pid last_pid a_pid b_pid i
   real_python=$(command -v python3)
   for order in forward reverse; do
     case_dir=$(make_case "task-data-overlapping-teardown-$order")
+    : > "$case_dir/config/supervision-host-off"
     write_expiry_tools "$case_dir"
     mkdir -p "$case_dir/data/task-x1" "$case_dir/data/task-b1" "$case_dir/ready" "$case_dir/gate"
     printf 'A fresh recovery\n' > "$case_dir/data/task-x1/fresh.bin"
@@ -7222,7 +7253,7 @@ SH
     if [ ! -e "$case_dir/ready/task-b1" ]; then
       printf 'release\n' > "$case_dir/gate/task-x1" || true
       kill "$a_pid" "$b_pid" 2>/dev/null || true
-      fail "B's teardown never staged its hold: $(cat "$case_dir/b.err" 2>/dev/null)"
+      fail "B's teardown never staged its hold: $(cat "$case_dir/b.err" "$case_dir/task-b1.err" 2>/dev/null)"
     fi
     assert_present "$case_dir/state/task-x1.meta" "A lost protection while staging"
     assert_present "$case_dir/state/task-b1.meta" "B lost protection while staging"
