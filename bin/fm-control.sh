@@ -461,7 +461,7 @@ do_restore() {
     [ -z "$yolo" ] || spawn_args+=(--yolo "$yolo")
     [ -z "$consent" ] || spawn_args+=(--upstream-consent "$consent")
     case "$branch" in
-      ?*"$ID") prefix=${branch%"$ID"}; spawn_args+=(--branch-prefix "$prefix") ;;
+      *"$ID") prefix=${branch%"$ID"}; spawn_args+=(--branch-prefix "$prefix") ;;
     esac
   fi
 

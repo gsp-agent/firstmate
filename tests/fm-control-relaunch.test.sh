@@ -3386,9 +3386,9 @@ test_exit_removes_the_dialog_file_before_releasing_the_lock
 # teardown writes it, in a spawn-world home (tests/fixtures.sh) where a fresh
 # dispatch can run against a fake tmux pane.
 
-# restore_case <name> <id> -> "<case>|<home>|<proj>|<wt>|<fakebin>"
+# restore_case <name> <id> [branch-prefix] -> "<case>|<home>|<proj>|<wt>|<fakebin>"
 restore_case() {
-  local name=$1 id=$2 case_dir home proj wt fakebin
+  local name=$1 id=$2 prefix=${3-fm/} case_dir home proj wt fakebin
   case_dir="$TMP_ROOT/restore-$name-$RANDOM"
   home="$case_dir/home"
   proj="$case_dir/project"
@@ -3397,6 +3397,7 @@ restore_case() {
   fm_test_spawn_home "$home"
   fm_git_worktree "$proj" "$wt" "wt-$name"
   fm_test_spawn_brief "$home" "$id" "purge the test episode and post the timed result for $id"
+  printf '\nShip branch: %s%s\n' "$prefix" "$id" >> "$home/data/$id/brief.md"
   mkdir -p "$home/data/$id/record"
   fm_write_meta "$home/data/$id/record/closed-task.meta" \
     "archived_at=1792786336" \
@@ -3408,7 +3409,7 @@ restore_case() {
     "kind=ship" \
     "mode=no-mistakes" \
     "yolo=off" \
-    "branch=fm/$id" \
+    "branch=$prefix$id" \
     "tasktmp=/tmp/fm-$id" \
     "model=default" \
     "effort=default" \
@@ -3487,6 +3488,21 @@ test_relaunch_of_a_closed_task_names_its_archive_and_restores_it() {
   pass "fm-control relaunch: a task closed before its done names its archive, and --restore brings it back"
 }
 
+test_restore_preserves_an_empty_branch_prefix() {
+  local rec case_dir home proj wt fakebin id=rs-bare4 out rc=0
+  rec=$(restore_case bare "$id" '')
+  IFS='|' read -r case_dir home proj wt fakebin <<<"$rec"
+  restore_seed_closed_row "$home" "$id"
+  out=$(run_restore_control "$home" "$wt" "$fakebin" "$id" relaunch --restore \
+    --note "finish the task on its original branch") || rc=$?
+  expect_code 0 "$rc" "restoring a task with an empty branch prefix should succeed"$'\n'"$out"
+  assert_grep "^branch=$id$" "$home/state/$id.meta" "the restore replaced the empty branch prefix"
+  assert_grep "^Ship branch: $id$" "$home/data/$id/brief.md" "the restore changed the branch contract"
+  [ "$(restore_row_state "$home" "$id")" = in_flight ] \
+    || fail "the restored bare-branch task is not in flight"
+  pass "fm-control relaunch --restore: an empty branch prefix survives the real dispatch and brief check"
+}
+
 test_restore_re_adds_a_row_that_was_archived_away() {
   local rec case_dir home proj wt fakebin id=rs-archived2 out rc=0
   rec=$(restore_case archived "$id")
@@ -3532,6 +3548,7 @@ test_restore_that_cannot_dispatch_changes_no_instructions() {
 
 if [ "${FM_CONTROL_RELAUNCH_TEST_GROUP:-}" = restore ]; then
   test_relaunch_of_a_closed_task_names_its_archive_and_restores_it
+  test_restore_preserves_an_empty_branch_prefix
   test_restore_re_adds_a_row_that_was_archived_away
   test_restore_that_cannot_dispatch_changes_no_instructions
   exit 0
@@ -3637,5 +3654,6 @@ test_herdr_rebind_failure_from_a_plain_shell_names_the_real_cause
 test_relaunch_reverifies_an_already_in_flight_item_instead_of_rewriting_it
 test_relaunch_moves_a_drifted_item_back_in_flight
 test_relaunch_of_a_closed_task_names_its_archive_and_restores_it
+test_restore_preserves_an_empty_branch_prefix
 test_restore_re_adds_a_row_that_was_archived_away
 test_restore_that_cannot_dispatch_changes_no_instructions
