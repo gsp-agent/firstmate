@@ -153,6 +153,9 @@ case "${1:-} ${2:-}" in
       *) printf '%s\n' '[]' ;;
     esac
     ;;
+  "api repos/"*"/pulls/"*"/reviews"*)
+    printf '%s\n' '[{"user":{"login":"carmanchip23-dev"},"state":"APPROVED","commit_id":"1111111111111111111111111111111111111111"}]'
+    ;;
   "api repos/"*) printf '%s\n' '{"name":"main","protected":false}' ;;
 esac
 SH
