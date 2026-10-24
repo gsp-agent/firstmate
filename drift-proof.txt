@@ -83,3 +83,5 @@ pr: 114
 pr: 117
 # Native released PM intake baseline refused both one and repeated releases; tests/fm-spawn-queue-start.test.sh covers owned history, tamper, protected holds and replay.
 pr: 116
+# Failing-first relaunch --stop-background regressions in tests/fm-control-relaunch.test.sh: the "Background work is running" picker refused with no way forward; now refuses naming the flag without it, and confirms Exit and stop tasks once with it, never another row or a second Enter.
+pr: 119
