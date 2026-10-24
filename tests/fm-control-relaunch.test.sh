@@ -3496,8 +3496,8 @@ test_restore_preserves_an_empty_branch_prefix() {
   out=$(run_restore_control "$home" "$wt" "$fakebin" "$id" relaunch --restore \
     --note "finish the task on its original branch") || rc=$?
   expect_code 0 "$rc" "restoring a task with an empty branch prefix should succeed"$'\n'"$out"
-  assert_grep "^branch=$id$" "$home/state/$id.meta" "the restore replaced the empty branch prefix"
-  assert_grep "^Ship branch: $id$" "$home/data/$id/brief.md" "the restore changed the branch contract"
+  grep -Fxq "branch=$id" "$home/state/$id.meta" || fail "the restore replaced the empty branch prefix"
+  grep -Fxq "Ship branch: $id" "$home/data/$id/brief.md" || fail "the restore changed the branch contract"
   [ "$(restore_row_state "$home" "$id")" = in_flight ] \
     || fail "the restored bare-branch task is not in flight"
   pass "fm-control relaunch --restore: an empty branch prefix survives the real dispatch and brief check"
