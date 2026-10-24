@@ -85,5 +85,7 @@ pr: 117
 pr: 116
 # Failing-first relaunch --stop-background regressions in tests/fm-control-relaunch.test.sh: the "Background work is running" picker refused with no way forward; now refuses naming the flag without it, and confirms Exit and stop tasks once with it, never another row or a second Enter.
 pr: 119
+# Failing-first tests in tests/fm-spawn-worktree-settle.test.sh: test_pool_full_treehouse_get_refuses_at_once (a pool-full treehouse get waited out 60 s), test_pool_full_surviving_window_is_reported (an unreadable status-1 lookup reported a surviving window closed), and test_pool_full_herdr_cleanup_is_confirmed's contended case (a pane closed without the presentation lock), projected-focused and projected cases (a pane closed after Herdr's cleanup refused a focus-unsafe close), and tall and tall-noscroll cases (a 300-row Herdr pane hid treehouse's return).
+pr: 62
 # Failing-first cleanup, restore, and merge-after-close regressions in tests/fm-teardown.test.sh (bead-gate), tests/fm-control-relaunch.test.sh (restore), and tests/fm-pm-live.test.sh; the open-bead cleanup and lost closed-task identity fail on e4df55a9, and all six bead-gate cases pass at 0c876dde.
 pr: 120
