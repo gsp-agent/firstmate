@@ -96,7 +96,7 @@ run_teardown() {  # <home> <id>
 tasks_in() {  # <home> <tasks-axi args...>
   local home=$1
   shift
-  (cd "$home" && tasks-axi "$@")
+  (cd "$home" || exit 1; tasks-axi "$@")
 }
 
 shown_task_body() {
@@ -6455,6 +6455,112 @@ SH
   pass 'repeated remote dispatch preserves declared authority for canonical-origin holds'
 }
 
+test_domain_sweep_skips_unchanged_rows() (
+  local home now=2026-10-14T02:00:00Z body reason='Should I spend money?' stamp
+  home=$(make_home sweep-unchanged)
+  export HOME="$home" TASKS_AXI_BACKEND=markdown
+  cat > "$home/router.py" <<'PY'
+print("kept")
+PY
+  cat > "$home/row-log.sh" <<'SH'
+# Bash 3.2 installs script arguments after BASH_ENV; inspect the first command.
+trap 'if [ "${1:-}" = route-due ] && [ "$#" -eq 2 ]; then
+  printf "%s\n" "$2" >> "$FM_HOME/row-processes"
+fi; trap - DEBUG' DEBUG
+SH
+  cat > "$home/body" <<'BODY'
+Captain hold set: 2026-10-14T02:00:00Z
+Decision owner: captain
+Hold timeout seconds: 60
+Hold reason: Should I spend money?
+
+Context with a comma, "quotes", a literal \n and café.
+BODY
+  printf 'Unicode separator: \342\200\250, tail\n' >> "$home/body"
+  tasks_in "$home" add unchanged 'Title, with "quotes"' --repo fixture >/dev/null || exit 1
+  tasks_in "$home" update unchanged --body-file "$home/body" >/dev/null || exit 1
+  tasks_in "$home" hold unchanged --kind captain --reason "$reason" >/dev/null || exit 1
+  sweep() {
+    : > "$home/row-processes"
+    BASH_ENV="$home/row-log.sh" run_domain "$home" "$now" route-due > "$home/sweep.out" 2>&1
+  }
+  routed() {
+    assert_equals unchanged "$(cat "$home/row-processes")" "$1 did not start its row process"
+  }
+  sweep || fail 'first sweep failed'
+  routed 'an unstamped row'
+  sweep || fail 'second sweep failed'
+  [ ! -s "$home/row-processes" ] || fail 'unchanged hold started a per-row process'
+  assert_equals unchanged "$(cat "$home/state/hold-domain/sweep-cursor")" 'skipping changed the cursor'
+
+  printf '\nChanged context.\n' >> "$home/body"
+  tasks_in "$home" update unchanged --body-file "$home/body" >/dev/null || exit 1
+  sweep || fail 'changed body sweep failed'
+  routed 'a changed body'
+  tasks_in "$home" unhold unchanged >/dev/null || exit 1
+  tasks_in "$home" start unchanged >/dev/null || exit 1
+  tasks_in "$home" hold unchanged --kind captain --reason "$reason" >/dev/null || exit 1
+  sweep || fail 'changed state sweep failed'
+  routed 'a changed hold state'
+  tasks_in "$home" hold unchanged --kind captain --reason 'Different reason' >/dev/null || exit 1
+  sweep && fail 'a divergent reason should fail in its row'
+  routed 'a changed hold reason'
+  tasks_in "$home" hold unchanged --kind captain --reason "$reason" >/dev/null || exit 1
+  now=2026-10-14T02:01:00Z
+  sweep || fail 'timeout sweep failed'
+  routed 'a passed hold timeout'
+  sweep || fail 'settled timeout sweep failed'
+  [ ! -s "$home/row-processes" ] || fail 'elapsed timeout kept an idle row hot'
+
+  tasks_in "$home" hold unchanged --kind captain --reason "$reason" --until 2099-10-15 >/dev/null || exit 1
+  now=2099-10-14T23:59:59Z
+  sweep || fail 'future deferral sweep failed'
+  now=2099-10-15T00:00:00Z
+  sweep || fail 'due deferral sweep failed'
+  routed 'a passed hold_until'
+  mkdir -p "$home/state/hold-domain/pending"
+  printf 'pending routing body\n' > "$home/state/hold-domain/pending/unchanged.body"
+  sweep || fail 'pending sweep failed'
+  routed 'a pending body'
+  printf 'Answer continuation: invalid\n' > "$home/state/hold-domain/pending/unchanged.body"
+  sweep && fail 'invalid continuation unexpectedly succeeded'
+  routed 'an answer continuation'
+  # Restore only this fixture-owned pending file for the following cases.
+  printf 'pending routing body\n' > "$home/state/hold-domain/pending/unchanged.body"
+  sweep || fail 'pending recovery failed'
+  stamp="$home/state/hold-domain/idle/unchanged.json"
+  assert_present "$stamp" 'successful routing did not retain an idle stamp'
+  printf 'corrupt\n' > "$stamp"
+  sweep || fail 'corrupt stamp sweep failed'
+  routed 'a corrupt stamp'
+  chmod 000 "$stamp"
+  sweep || fail 'unreadable stamp sweep failed'
+  routed 'an unreadable stamp'
+  # A router replacement invalidates an otherwise matching stamp.
+  printf '# replacement\n' >> "$home/router.py"
+  sweep || fail 'changed router sweep failed'
+  routed 'a changed router'
+  # Listing bodies are truncated; edits past that boundary must never be hidden.
+  body=$(cat "$home/body")
+  printf '%s\n%0600d\n' "$body" 0 > "$home/body"
+  tasks_in "$home" update unchanged --body-file "$home/body" >/dev/null || exit 1
+  sweep || fail 'long body sweep failed'
+  printf 'tail edit\n' >> "$home/body"
+  tasks_in "$home" update unchanged --body-file "$home/body" >/dev/null || exit 1
+  sweep || fail 'long body edit sweep failed'
+  routed 'an edit beyond the listing truncation'
+  # An external claimant can change without any listed field changing.
+  cat > "$home/router.py" <<'PY'
+print("not-routed owner-is-dale")
+raise SystemExit(2)
+PY
+  tasks_in "$home" update unchanged --body "$body" >/dev/null || exit 1
+  sweep || fail 'dynamic owner refusal failed'
+  sweep || fail 'dynamic owner retry failed'
+  routed 'a dynamic human-owner refusal'
+  pass 'unchanged holds skip row processes; changed, due, pending and corrupt rows still route'
+)
+
 test_domain_sweep_visits_only_routable_rows() {
   local home id technical='GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
   home=$(make_domain_home sweep-scope)
@@ -7171,6 +7277,7 @@ esac
 
 if [ -z "${FM_CAPTAIN_HOLD_LANE:-}" ]; then
 case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
+  skip-unchanged) test_domain_sweep_skips_unchanged_rows; exit $? ;;
   answer-receipt-repair) test_answer_receipt_repair_reuses_existing_delivery; exit $? ;;
   answer-receipt-occurrence) test_answer_receipt_cannot_acknowledge_another_occurrence; exit $? ;;
   answer-receipts)
@@ -7289,6 +7396,7 @@ fi
 # The measured boundary follows the standalone pending-hold case
 # (docs/fm-test-portable-shards.md).
 captain_hold_lane_a() {
+  test_domain_sweep_skips_unchanged_rows || exit 1
   test_domain_deferred_holds_keep_their_routing_wake || exit 1
   test_domain_interrupted_sweeps_make_fair_progress || exit 1
   test_domain_row_bounds_preserve_later_holds || exit 1
