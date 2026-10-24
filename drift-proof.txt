@@ -100,3 +100,5 @@ pr: 121
 pr: 124
 # Failing-first fake terminal in tests/fm-spawn-defer-slot.test.sh: on 48a1a07a the fake moved the pane only on an exact `treehouse get` line, so the first case failed with "expected exit 75, got 1"; matching PR 62's marker-wrapped line passes all 12 cases.
 pr: 125
+# Failing-first parsed YAML regression in tests/fm-nm-test-contract.test.sh: test_nm_pins_gate_to_claude_then_codex fails on e0288d6e's [codex] pin and passes once the trusted list is [claude, codex] with disable_project_settings still true.
+pr: 128
