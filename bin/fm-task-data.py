@@ -40,8 +40,9 @@ matches by its directory name or its origin repository's name.
 Expired legacy rows and their last refreshed references remain historical
 evidence and are no longer compared with the current row when the task id is reused.
 Cleanup is limited to DATA/ID; scratch outside DATA is not discovered or staged.
-Only real directories immediately below DATA are accepted; symlinked ancestors,
-mounts, and special files refuse before any move or removal.
+DATA and STATE resolve their home ancestors, including aliases such as /tmp.
+Both directories and task directories immediately below DATA must still be real;
+symlinked task roots, mounts, and special files refuse before any move or removal.
 
 Keep brief.md, report.md, status, findings, review, and record/ regardless of size,
 and read those files and record/'s .txt/.md/.log/.json files for references up to
@@ -218,7 +219,12 @@ def check_limit(limit):
         raise StageLimit(f"reference matching passed its {limit[1]}s stage limit")
 
 
-def real_directory(path):
+def real_directory(path, *, resolve_parent=False):
+    if resolve_parent:
+        # Home aliases are trusted input; keep the boundary directory itself
+        # and every task path subject to the existing no-symlink check.
+        path = Path(path)
+        path = path.parent.resolve() / path.name
     path = Path(os.path.abspath(path))
     if path.resolve() != path or not path.is_dir():
         raise ValueError(f"not a real directory: {path}")
@@ -938,7 +944,7 @@ def remove_entries(root, files, directories):
 
 def pending(data):
     tried = []
-    for receipt in real_directory(data).glob(f"*/{RECEIPT}"):
+    for receipt in real_directory(data, resolve_parent=True).glob(f"*/{RECEIPT}"):
         task_id = receipt.parent.parent.name
         if not TASK_ID.fullmatch(task_id):
             continue
@@ -962,7 +968,7 @@ def pending(data):
 def mark(data, task_id, expiry):
     if not TASK_ID.fullmatch(task_id) or expiry not in MARKS:
         raise ValueError("invalid expiry mark")
-    root = real_directory(real_directory(data) / task_id)
+    root = real_directory(real_directory(data, resolve_parent=True) / task_id)
     receipt = root / RECEIPT
     if (receipt.is_symlink() or not receipt.is_file() or receipt.stat().st_nlink != 1
             or receipt.stat().st_size > LIMIT):
@@ -992,7 +998,8 @@ def cleanup(action, data, state, task_id, project="", pr=""):
     if not TASK_ID.fullmatch(task_id):
         raise ValueError("invalid task id")
     limit = stage_limit() if action in ("stage", "retire") else None
-    data, state = real_directory(data), real_directory(state)
+    data = real_directory(data, resolve_parent=True)
+    state = real_directory(state, resolve_parent=True)
     if dry_run:
         request = state / ".task-data-sweep.rerun"
         if request.exists() and request.read_text().strip() == task_id:
