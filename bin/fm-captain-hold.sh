@@ -474,6 +474,7 @@ tasks_axi() {
 # so rows do not re-probe tasks-axi. Consumed here so it never travels further.
 CAPTAIN_HOLD_CONTRACT=${FM_CAPTAIN_HOLD_CONTRACT:-}
 unset FM_CAPTAIN_HOLD_CONTRACT
+CAPTAIN_ROUTE_ADDRESS_READY=0
 
 require_tasks_axi() {
   fm_tasks_axi_compatible || fail "compatible tasks-axi is required"
@@ -494,11 +495,17 @@ require_tasks_axi() {
 TASK_SHOW_OUTPUT=
 task_show() {  # <id> [--diagnostics]; sets TASK_SHOW_OUTPUT
   local data status=0 reason
-  data=$(fm_backlog_data_absolute "$DATA") || fail "data directory cannot be resolved: $DATA"
-  if [ "${2:-}" = --diagnostics ]; then
-    TASK_SHOW_OUTPUT=$(fm_backlog_row_show "$data" "$1" --full 2>&1) || status=$?
+  local -a read_args
+  if [ "$CAPTAIN_ROUTE_ADDRESS_READY" = 1 ]; then
+    read_args=(fm_backlog_row_show_addressed "$1" --full)
   else
-    TASK_SHOW_OUTPUT=$(fm_backlog_row_show "$data" "$1" --full 2>/dev/null) || status=$?
+    data=$(fm_backlog_data_absolute "$DATA") || fail "data directory cannot be resolved: $DATA"
+    read_args=(fm_backlog_row_show "$data" "$1" --full)
+  fi
+  if [ "${2:-}" = --diagnostics ]; then
+    TASK_SHOW_OUTPUT=$("${read_args[@]}" 2>&1) || status=$?
+  else
+    TASK_SHOW_OUTPUT=$("${read_args[@]}" 2>/dev/null) || status=$?
   fi
   if [ "$status" -eq 124 ]; then
     reason=${TASK_SHOW_OUTPUT%%$'\n'*}
@@ -521,9 +528,20 @@ task_show_or_fail() {  # <id> <absence-message>; sets show
   show=$TASK_SHOW_OUTPUT
 }
 
+show_field_to() {  # <output-variable> <show-output> <field>
+  local shown_line shown_prefix="  $3: "
+  printf -v "$1" '%s' ''
+  while IFS= read -r shown_line; do
+    case "$shown_line" in
+      "$shown_prefix"*) printf -v "$1" '%s' "${shown_line#"$shown_prefix"}"; return 0 ;;
+    esac
+  done <<< "$2"
+}
+
 show_field() {  # <show-output> <field>
-  local output=$1 field=$2
-  printf '%s\n' "$output" | sed -n "s/^  $field: //p" | head -1
+  local value
+  show_field_to value "$1" "$2"
+  printf '%s\n' "$value"
 }
 
 # A shown scalar field arrives as a JSON-encoded bare string, which decode_json
@@ -547,11 +565,19 @@ decode_shown_value() {  # <shown-field>
 }
 
 # Decode show-encoded scalar fields and normalize the empty marker.
-show_field_value() {  # <show-output> <field>
+show_field_value() {  # <show-output> <field> [output-variable]
   local value
-  value=$(decode_shown_value "$(show_field "$1" "$2")")
+  show_field_to value "$1" "$2"
+  case "$value" in
+    '-'|'"-"'|'""') value='' ;;
+    \"*\") value=$(decode_shown_value "$value") ;;
+  esac
   [ "$value" != '-' ] || value=''
-  printf '%s' "$value"
+  if [ "$#" -gt 2 ]; then
+    printf -v "$3" '%s' "$value"
+  else
+    printf '%s' "$value"
+  fi
 }
 
 origin_exists_here() {  # <origin-id>
@@ -922,17 +948,18 @@ resolve_entry() {  # <origin-or-empty> <entry>; prints "<id> <how>" or fails
 }
 
 body_hold_set_timestamp() {  # <decoded-task-body>
-  printf '%s\n' "$1" \
-    | sed -n \
-      -e '1s/^Captain hold set: \([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]Z\)$/\1/p' \
-      -e '1s/^Captain hold set: \([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\)$/\1/p' \
-    | head -1
+  local first=${1%%$'\n'*}
+  local pattern='^Captain hold set: ([0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2}Z)?)$'
+  if [[ "$first" =~ $pattern ]]; then printf '%s\n' "${BASH_REMATCH[1]}"; fi
 }
 
 body_has_current_hold_resolution() {
   local body=$1 first
   [ -n "$(body_hold_set_timestamp "$body")" ] || return 1
-  first=$(printf '%s\n' "$body" | sed 1d | sed '/^[[:space:]]*$/d' | head -1)
+  body=${body#*$'\n'}
+  while IFS= read -r first; do
+    [[ "$first" = *[![:space:]]* ]] && break
+  done <<< "$body"
   case "$first" in
     'Resolution recorded by fm-captain-hold.'|'Resolution recorded by fm-decision-hold.')
       [ "$(recorded_resolution_mode "$body" || true)" != agent-routed ] ;;
@@ -996,7 +1023,7 @@ body_hold_origin() {  # <decoded-task-body>
 task_identity() {
   local id=$1
   if task_show "$id"; then
-    id=$(show_field_value "$TASK_SHOW_OUTPUT" id)
+    show_field_value "$TASK_SHOW_OUTPUT" id id
     validate_slug backend-task-id "$id"
   elif ! printf '%s\n' "$TASK_SHOW_OUTPUT" | grep -q '^code: NOT_FOUND$'; then
     fail "could not resolve the backend identity of $id"
@@ -1462,10 +1489,11 @@ normalize_routing_reason() {
 }
 
 body_domain_field() {  # <decoded-body> <field>
-  printf '%s\n' "$1" | awk -v history="$HOLD_HISTORY_HEADER" -v field="$2: " '
-    $0 == history { exit }
-    index($0, field) == 1 { print substr($0, length(field) + 1); exit }
-  '
+  local line prefix="$2: "
+  while IFS= read -r line; do
+    [ "$line" != "$HOLD_HISTORY_HEADER" ] || return 0
+    case "$line" in "$prefix"*) printf '%s\n' "${line#"$prefix"}"; return 0 ;; esac
+  done <<< "$1"
 }
 
 # The hold-domain fields follow agent-config's docs/OPERATIONS.md format; a
@@ -1695,7 +1723,7 @@ finish_answer_delivery() {  # <id> <occurrence> <note>
 
 route_hold() {  # <id>; caller owns the task control lock
   local id=$1 router show body stamp owner timeout reason live_reason tmp pending output result rc=0 receipt occurrence until today='' data
-  local digest mode archive archive_body archived=0 state read_timeout=${FM_BACKLOG_ROW_TIMEOUT_SECS:-10}
+  local digest mode archive archive_body archived=0 state hold_kind read_timeout=${FM_BACKLOG_ROW_TIMEOUT_SECS:-10}
   router=${FM_HOLD_DOMAIN_ROUTER:-$HOME/.agent-config/configs/claude/hooks/hold-domain.py}
   if task_show "$id"; then
     show=$TASK_SHOW_OUTPUT
@@ -1744,15 +1772,16 @@ PY
   else
     fail "could not read task $id for routing: $TASK_SHOW_OUTPUT"
   fi
-  state=$(show_field_value "$show" state)
-  body=$(show_field_value "$show" body)
+  show_field_value "$show" state state
+  show_field_value "$show" body body
+  show_field_value "$show" hold_kind hold_kind
   pending="$STATE/hold-domain/pending/$id.body"
   if [ -f "$pending" ] && grep -q '^Answer continuation: ' "$pending"; then
     digest=$(sed -n 's/^Answer continuation: //p' "$pending")
     [ "$digest" = "$(recorded_decision_digest "$body" || true)" ] \
       || fail "answer continuation for $id has no matching durable answer"
     mode=$(recorded_resolution_mode "$body")
-    if [ "$(show_field_value "$show" hold_kind)" = captain ] && [ "$state" != 'done' ]; then
+    if [ "$hold_kind" = captain ] && [ "$state" != 'done' ]; then
       case "$mode" in released) close_answered "$id" 1 ;; answered) close_answered "$id" 0 ;; *) return 1 ;; esac
     fi
     remove_interrupted_answer_stamp "$id"
@@ -1766,7 +1795,7 @@ PY
     return 0
   fi
   owner=$(body_domain_field "$body" 'Decision owner')
-  if [ "$archived" = 1 ] || [ "$state" = 'done' ] || [ "$(show_field_value "$show" hold_kind)" != captain ]; then
+  if [ "$archived" = 1 ] || [ "$state" = 'done' ] || [ "$hold_kind" != captain ]; then
     # A crash after unhold still owes normalization and the parent resolution.
     if [ "$(body_domain_field "$body" 'Resolution mode')" != agent-routed ]; then
       retire_hold_route "$id"
@@ -1813,7 +1842,8 @@ PY
     retire_hold_route "$id"
     return 0
   fi
-  live_reason=$(show_field_value "$(printf '%s\n' "$show" | fm_hold_reason_decode_stream)" hold_reason)
+  live_reason=$(printf '%s\n' "$show" | fm_hold_reason_decode_stream)
+  show_field_value "$live_reason" hold_reason live_reason
   live_reason=$(printf '%s' "$live_reason" | normalize_routing_reason) || fail "could not normalize the hold reason for $id"
   [ "$live_reason" = "$reason" ] || fail "task $id has divergent hold and routing reasons; leaving the hold intact"
   pending="$STATE/hold-domain/pending/$id.body"
@@ -1824,7 +1854,7 @@ PY
   (umask 077; printf 'Captain hold set: %s\nDecision owner: %s\nHold timeout seconds: %s\nHold reason: %s\n' \
     "$stamp" "$owner" "$timeout" "$reason" > "$tmp") || { rm -f -- "$tmp"; fail "cannot stage routing body"; }
   local -a args=(route --task "$id" --body-file "$tmp")
-  until=$(show_field_value "$show" hold_until)
+  show_field_value "$show" hold_until until
   if [ -n "$until" ]; then
     printf 'Hold resume event: date=%s\n' "$until" >> "$tmp"
   else
@@ -1883,6 +1913,10 @@ command_route_due() {
   require_tasks_axi
   if [ "$#" -eq 1 ]; then
     validate_slug task-id "$1"
+    # Both identity and current-state reads use this row's validated address.
+    # Resolve afresh in each bounded row; never cache mutable task contents.
+    fm_backlog_tasks_axi_addressing "$DATA" || fail "could not resolve the routing backlog: $FM_BACKLOG_TRANSITION_ERROR"
+    CAPTAIN_ROUTE_ADDRESS_READY=1
     acquire_task_control_lock "$1"
     id=$CAPTAIN_TASK_ID
     route_hold "$id"
@@ -1918,7 +1952,7 @@ command_route_due() {
     mv -f -- "$tmp" "$cursor_file" || fail "cannot publish routing sweep position"
     # Use one process per row so a failed route cannot strand later holds.
     row_status=0
-    ( export FM_TASKS_AXI_COMPATIBLE=1 FM_CAPTAIN_HOLD_CONTRACT=1
+    ( FM_TASKS_AXI_COMPATIBLE=1 FM_CAPTAIN_HOLD_CONTRACT=1 \
       fm_exec_timed "$row_timeout" 1 "$SCRIPT_DIR/fm-captain-hold.sh" route-due "$id" ) || row_status=$?
     if [ "$row_status" -ne 0 ]; then
       printf 'fm-captain-hold: routing row %s failed (exit %s)\n' "$id" "$row_status" >&2
