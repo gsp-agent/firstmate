@@ -40,15 +40,15 @@ puts gate ? "#{gate["after"]} #{gate["command"]}" : ""
   pass "no-mistakes runs the stock macOS Bash check as a gate after lint"
 }
 
-test_nm_pins_gate_to_codex() {
+test_nm_pins_gate_to_claude_then_codex() {
   ruby -ryaml -e '
 doc = YAML.load_file(ARGV[0]) || {}
 abort "disable_project_settings must remain true" unless doc["disable_project_settings"] == true
-abort "gate agents must stay pinned to [codex] while Grok cannot isolate project instructions" unless doc["agent"] == ["codex"]
+abort "gate agents must stay pinned to [claude, codex] while Grok cannot isolate project instructions" unless doc["agent"] == ["claude", "codex"]
 ' "$NM" || fail "trusted gate-agent isolation configuration is unsafe"
-  pass "no-mistakes pins Codex while disabling project instructions"
+  pass "no-mistakes pins Claude then Codex while disabling project instructions"
 }
 
 test_nm_has_no_deterministic_test_command
 test_nm_declares_the_stock_bash_gate
-test_nm_pins_gate_to_codex
+test_nm_pins_gate_to_claude_then_codex
