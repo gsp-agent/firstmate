@@ -5417,6 +5417,221 @@ SH
   pass "a recorded open pull request or merge request keeps the task record until it is merged or closed"
 }
 
+# --- task bead gate and record archive ------------------------------------
+# A task whose id names a bead (bin/fm-task-bead-lib.sh) is done when that bead
+# is done. These cases run with HOME pinned to the case's own home, so the
+# bead prefix map resolves to fixture databases, and fakebin/br answers `show`
+# from a JSON object {"<bead>": "<status>"} the way native br does: the bead as
+# a one-element array, ISSUE_NOT_FOUND with exit 3, or BEAD_FAKE_FAIL=1 for a
+# database that does not answer. Every call is logged to <case>/br.log.
+
+make_bead_fake_br() {  # <case-dir>
+  cat > "$1/fakebin/br" <<'PY'
+#!/usr/bin/env python3
+import json
+import os
+import sys
+from pathlib import Path
+
+args = sys.argv[1:]
+with open(os.environ["BEAD_FAKE_LOG"], "a", encoding="utf-8") as log:
+    log.write(" ".join(args) + "\n")
+if any(name in os.environ for name in ("BEADS_DIR", "BEADS_DB", "BR_DB")) or os.getcwd() != "/":
+    sys.exit(9)
+if len(args) != 5 or args[0] != "--db" or args[2] != "show" or args[4] != "--json":
+    sys.exit(2)
+if os.environ.get("BEAD_FAKE_FAIL") == "1":
+    print(json.dumps({"error": {"code": "DATABASE_ERROR", "message": "database is locked"}}))
+    sys.exit(5)
+rows = json.loads(Path(args[1]).read_text())
+if args[3] not in rows:
+    print(json.dumps({"error": {"code": "ISSUE_NOT_FOUND", "message": "Issue not found: " + args[3]}}))
+    sys.exit(3)
+print(json.dumps([{"id": args[3], "title": "fixture bead", "status": rows[args[3]]}]))
+PY
+  chmod +x "$1/fakebin/br"
+  : > "$1/br.log"
+}
+
+# set_bead_status <case-dir> <home-relative-db-dir> <bead> <status>
+set_bead_status() {
+  local db="$1/home/$2/.beads/beads.db"
+  mkdir -p "${db%/*}"
+  [ -f "$db" ] || printf '{}\n' > "$db"
+  jq --arg id "$3" --arg status "$4" '.[$id] = $status' "$db" > "$db.next" && mv "$db.next" "$db"
+}
+
+# make_bead_case <name> <task-id> [merged|green]: a ship task under <task-id>
+# with its backlog item in flight and br faked. merged (the default): its
+# recorded PR 7 is merged. green: its PR checks are green but nothing merged,
+# no PR is recorded yet, and its branch is pushed, which the landed-work test
+# alone reads as landed.
+make_bead_case() {
+  local case_dir id=$2 shape=${3:-merged}
+  case_dir=$(make_case "$1")
+  mkdir -p "$case_dir/home"
+  fm_write_meta "$case_dir/state/$id.meta" \
+    "window=firstmate:fm-$id" \
+    "endpoint_task_id=$id" \
+    "worktree=$case_dir/wt" \
+    "project=$case_dir/project" \
+    "kind=ship" \
+    "mode=no-mistakes" \
+    "harness=claude" \
+    "spawn_gen=teardown-test-$id"
+  if [ "$shape" = merged ]; then
+    printf '%s\n' 'pr=https://github.com/example/repo/pull/7' >> "$case_dir/state/$id.meta"
+    add_gh_axi_pr_state "$case_dir" merged
+  else
+    wt_commit_file "$case_dir" deal-form.txt 'save deal at the top'
+    git -C "$case_dir/wt" push -q origin fm/task-x1
+    git -C "$case_dir/project" fetch -q origin
+  fi
+  printf '%s\n' '# Backlog' '' '## In flight' '' '## Queued' '' '## Done' > "$case_dir/data/backlog.md"
+  tasks-axi add "$id" "bead gate fixture task" --kind ship --file "$case_dir/data/backlog.md" >/dev/null
+  tasks-axi start "$id" --file "$case_dir/data/backlog.md" >/dev/null
+  make_bead_fake_br "$case_dir"
+  printf '%s\n' "$case_dir"
+}
+
+run_bead_teardown() {  # <case-dir> <task-id> [teardown args...]
+  local case_dir=$1 id=$2
+  shift 2
+  HOME="$case_dir/home" BEAD_FAKE_LOG="$case_dir/br.log" \
+  FM_ROOT_OVERRIDE="$ROOT" \
+  FM_STATE_OVERRIDE="$case_dir/state" \
+  FM_DATA_OVERRIDE="$case_dir/data" \
+  FM_CONFIG_OVERRIDE="$case_dir/config" \
+  PATH="$case_dir/fakebin:${FM_TEARDOWN_TEST_PATH:-$PATH}" \
+    "$TEARDOWN" "$id" "$@"
+}
+
+bead_row_state() {  # <case-dir> <task-id>
+  tasks-axi show "$2" --file "$1/data/backlog.md" 2>/dev/null | sed -n 's/^  state: *//p' | head -1
+}
+
+assert_bead_refusal_kept_everything() {  # <case-dir> <task-id> <label>
+  local case_dir=$1 id=$2 label=$3
+  assert_present "$case_dir/state/$id.meta" "$label: the refusal removed the task record"
+  [ -d "$case_dir/wt" ] || fail "$label: the refusal returned the worker's local copy"
+  [ "$(bead_row_state "$case_dir" "$id")" = in_flight ] \
+    || fail "$label: the refusal moved the backlog item to $(bead_row_state "$case_dir" "$id")"
+  assert_absent "$case_dir/state/$id.backlog-close" "$label: the refusal recorded a pending close"
+  assert_absent "$case_dir/data/$id/record/closed-task.meta" "$label: a refused teardown archived the record"
+}
+
+test_merged_task_with_an_open_bead_is_not_cleaned_up() {
+  local case_dir id=gsp-gate1 status force out rc
+  case_dir=$(make_bead_case bead-open "$id")
+  for status in open in_progress blocked; do
+    set_bead_status "$case_dir" dev/gsp-beads "$id" "$status"
+    for force in '' --force; do
+      rc=0
+      out=$(run_bead_teardown "$case_dir" "$id" ${force:+"$force"} 2>&1) || rc=$?
+      expect_code 1 "$rc" "a merged task whose bead is $status was cleaned up${force:+ with $force}"$'\n'"$out"
+      assert_contains "$out" "bead $id, which is $status" "the refusal did not name the open bead"
+      assert_bead_refusal_kept_everything "$case_dir" "$id" "bead $status${force:+ $force}"
+    done
+  done
+  assert_grep "--db $case_dir/home/dev/gsp-beads/.beads/beads.db show $id --json" "$case_dir/br.log" \
+    "the bead was not read from the database its prefix owns"
+  set_bead_status "$case_dir" dev/gsp-beads "$id" closed
+  out=$(run_bead_teardown "$case_dir" "$id" 2>&1) || fail "a task whose bead closed could not be cleaned up: $out"
+  assert_absent "$case_dir/state/$id.meta" "a task whose bead closed kept its record"
+  [ "$(bead_row_state "$case_dir" "$id")" = "done" ] || fail "a task whose bead closed kept its backlog item open"
+  pass "fm-teardown: a merged task is not marked done, closed, or cleaned up while its bead is open, even with --force"
+}
+
+test_green_unmerged_task_with_an_open_bead_is_not_cleaned_up() {
+  local case_dir id=gsp-gate8 out rc=0
+  case_dir=$(make_bead_case bead-green "$id" green)
+  set_bead_status "$case_dir" dev/gsp-beads "$id" open
+  printf '%s\n' "done [at=1792800025]: PR https://github.com/example/repo/pull/9 checks green" > "$case_dir/state/$id.status"
+  out=$(run_bead_teardown "$case_dir" "$id" 2>&1) || rc=$?
+  expect_code 1 "$rc" "a green but unmerged task whose bead is open was cleaned up before its merge"$'\n'"$out"
+  assert_contains "$out" "bead $id, which is open" "the refusal did not name the open bead"
+  assert_bead_refusal_kept_everything "$case_dir" "$id" "green before merge"
+  [ "$(git -C "$case_dir/wt" rev-parse --abbrev-ref HEAD)" = fm/task-x1 ] \
+    || fail "green before merge: the refusal dropped the task branch"
+  pass "fm-teardown: a task whose PR is only green is not cleaned up before its merge while its bead is open"
+}
+
+test_agent_config_task_answers_to_its_dotted_bead() {
+  local case_dir id=ac-gate3 out rc=0
+  case_dir=$(make_bead_case bead-ac "$id")
+  set_bead_status "$case_dir" .agent-config-beads .agent-config-gate3 in_progress
+  out=$(run_bead_teardown "$case_dir" "$id" 2>&1) || rc=$?
+  expect_code 1 "$rc" "an ac- task whose .agent-config bead is open was cleaned up"$'\n'"$out"
+  assert_contains "$out" "bead .agent-config-gate3, which is in_progress" "the refusal did not name the agent-config bead"
+  assert_bead_refusal_kept_everything "$case_dir" "$id" "ac bead"
+  pass "fm-teardown: an ac-<x> task answers to bead .agent-config-<x>, as the PM send names it"
+}
+
+test_merge_handoff_pending_keeps_a_task_whose_bead_closed() {
+  local case_dir id=heru-gate2 out rc=0
+  case_dir=$(make_bead_case bead-handoff "$id")
+  set_bead_status "$case_dir" dev/heru-vr-vision-sim "$id" closed
+  printf '%s\n' \
+    "working [at=1792800000]: PR checks green" \
+    "note [key=merged-$id] [at=1792800043]: merged $id https://github.com/example/repo/pull/7 spawn_gen=teardown-test-$id; activation and live verification pending with the existing owner" \
+    > "$case_dir/state/$id.status"
+  out=$(run_bead_teardown "$case_dir" "$id" 2>&1) || rc=$?
+  expect_code 1 "$rc" "a task whose last note leaves live verification pending was cleaned up"$'\n'"$out"
+  assert_contains "$out" "activation and live verification pending" "the refusal did not name the pending verification"
+  assert_bead_refusal_kept_everything "$case_dir" "$id" "pending handoff"
+  printf '%s\n' "done [at=1792800900]: live check passed on the deployed revision" >> "$case_dir/state/$id.status"
+  out=$(run_bead_teardown "$case_dir" "$id" 2>&1) || fail "a verified task whose bead closed could not be cleaned up: $out"
+  assert_absent "$case_dir/state/$id.meta" "a verified task kept its record"
+  pass "fm-teardown: a task whose own last note leaves activation and live verification pending is not done"
+}
+
+test_unreadable_task_bead_refuses_cleanup() {
+  local case_dir id=gsp-gate4 out rc=0
+  case_dir=$(make_bead_case bead-unreadable "$id")
+  set_bead_status "$case_dir" dev/gsp-beads "$id" closed
+  out=$(BEAD_FAKE_FAIL=1 run_bead_teardown "$case_dir" "$id" 2>&1) || rc=$?
+  expect_code 1 "$rc" "a task whose bead could not be read was cleaned up"$'\n'"$out"
+  assert_contains "$out" "bead could not be read" "the refusal did not say the bead was unreadable"
+  assert_bead_refusal_kept_everything "$case_dir" "$id" "unreadable bead"
+  pass "fm-teardown: a bead database that does not answer refuses cleanup rather than guessing"
+}
+
+test_task_with_no_bead_is_cleaned_up_as_before_and_archived() {
+  local case_dir id out archive
+  for id in gsp-gate5-fix1 bd-gate6 fixround-gate7; do
+    case_dir=$(make_bead_case "bead-none-$id" "$id")
+    # gsp-gate5-fix1: its database answers not found. bd-gate6: this machine
+    # has no be-still database. fixround-gate7: no database owns the prefix.
+    set_bead_status "$case_dir" dev/gsp-beads gsp-other open
+    out=$(run_bead_teardown "$case_dir" "$id" 2>&1) || fail "$id: a task with no bead could not be cleaned up: $out"
+    assert_absent "$case_dir/state/$id.meta" "$id: a task with no bead kept its record"
+    [ "$(bead_row_state "$case_dir" "$id")" = "done" ] || fail "$id: a task with no bead kept its backlog item open"
+    case "$id" in
+      gsp-*) assert_grep "show $id --json" "$case_dir/br.log" "$id: the owning database was not asked" ;;
+      *) [ ! -s "$case_dir/br.log" ] || fail "$id: br ran for a task no bead database owns: $(cat "$case_dir/br.log")" ;;
+    esac
+    archive="$case_dir/data/$id/record/closed-task.meta"
+    assert_present "$archive" "$id: teardown did not archive the record a restore needs"
+    assert_grep "endpoint_task_id=$id" "$archive" "$id: the archive lost the task identity"
+    assert_grep "project=$case_dir/project" "$archive" "$id: the archive lost the project"
+    assert_grep "harness=claude" "$archive" "$id: the archive lost the harness"
+    head -n 1 "$archive" | grep -q '^archived_at=[0-9][0-9]*$' || fail "$id: the archive does not lead with when it was taken"
+    [ "$(tail -n 1 "$archive")" = 'pr=https://github.com/example/repo/pull/7' ] \
+      || fail "$id: the archive does not keep its PR last, where the canonical PR reader binds it"
+  done
+  pass "fm-teardown: a task with no bead is cleaned up as before, and its record is archived for a restore"
+}
+
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = bead-gate ]; then
+  test_merged_task_with_an_open_bead_is_not_cleaned_up
+  test_green_unmerged_task_with_an_open_bead_is_not_cleaned_up
+  test_agent_config_task_answers_to_its_dotted_bead
+  test_merge_handoff_pending_keeps_a_task_whose_bead_closed
+  test_unreadable_task_bead_refuses_cleanup
+  test_task_with_no_bead_is_cleaned_up_as_before_and_archived
+  exit 0
+fi
+
 if [[ "${FM_TEARDOWN_TEST_GROUP:-}" != task-data* ]]; then
   test_missing_startup_source_refuses_before_cleanup
   test_unreadable_startup_source_refuses_before_cleanup
@@ -9384,6 +9599,12 @@ test_held_meta_lock_teardown_gives_up_within_bound() {
 test_held_meta_lock_teardown_gives_up_within_bound
 test_local_only_fork_remote_allows
 test_teardown_closes_the_backlog_item_itself
+test_merged_task_with_an_open_bead_is_not_cleaned_up
+test_green_unmerged_task_with_an_open_bead_is_not_cleaned_up
+test_agent_config_task_answers_to_its_dotted_bead
+test_merge_handoff_pending_keeps_a_task_whose_bead_closed
+test_unreadable_task_bead_refuses_cleanup
+test_task_with_no_bead_is_cleaned_up_as_before_and_archived
 test_teardown_closes_a_gerrit_task_with_its_change_url_as_a_note
 test_teardown_manual_backend_leaves_the_backlog_to_the_operator
 test_local_only_truly_unpushed_refuses

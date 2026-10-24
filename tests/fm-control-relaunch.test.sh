@@ -21,6 +21,8 @@ set -u
 
 # shellcheck source=tests/lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+# shellcheck source=tests/fixtures.sh
+. "$(dirname "${BASH_SOURCE[0]}")/fixtures.sh"
 # shellcheck source=/dev/null
 . "$ROOT/bin/fm-control-lib.sh"
 # shellcheck source=/dev/null
@@ -3378,6 +3380,163 @@ test_relaunch_stop_background_does_nothing_when_there_is_no_picker
 test_usage_limit_route_to_claude_is_exempt_from_the_claude_dispatch_pairs
 test_exit_and_relaunch_remove_the_dialog_file
 test_exit_removes_the_dialog_file_before_releasing_the_lock
+# --- restore a task closed before its done -----------------------------------
+# bin/fm-teardown.sh archives every ship or scout record at
+# data/<id>/record/closed-task.meta. These cases build that archive the way
+# teardown writes it, in a spawn-world home (tests/fixtures.sh) where a fresh
+# dispatch can run against a fake tmux pane.
+
+# restore_case <name> <id> -> "<case>|<home>|<proj>|<wt>|<fakebin>"
+restore_case() {
+  local name=$1 id=$2 case_dir home proj wt fakebin
+  case_dir="$TMP_ROOT/restore-$name-$RANDOM"
+  home="$case_dir/home"
+  proj="$case_dir/project"
+  wt="$case_dir/wt"
+  fakebin=$(fm_test_make_spawn_fakebin "$case_dir/fake")
+  fm_test_spawn_home "$home"
+  fm_git_worktree "$proj" "$wt" "wt-$name"
+  fm_test_spawn_brief "$home" "$id" "purge the test episode and post the timed result for $id"
+  mkdir -p "$home/data/$id/record"
+  fm_write_meta "$home/data/$id/record/closed-task.meta" \
+    "archived_at=1792786336" \
+    "window=fmses:fm-$id" \
+    "endpoint_task_id=$id" \
+    "worktree=$case_dir/returned-slot" \
+    "project=$proj" \
+    "harness=claude" \
+    "kind=ship" \
+    "mode=no-mistakes" \
+    "yolo=off" \
+    "branch=fm/$id" \
+    "tasktmp=/tmp/fm-$id" \
+    "model=default" \
+    "effort=default" \
+    "spawn_gen=s1792786336.1.1" \
+    "pr=https://github.com/example/repo/pull/4497"
+  TASK_TMPS+=("/tmp/fm-$id")
+  printf '%s\n' "$case_dir|$home|$proj|$wt|$fakebin"
+}
+
+# A closed row, as teardown leaves it: added, started, then done with its PR.
+restore_seed_closed_row() {  # <home> <id>
+  local file="$1/data/backlog.md"
+  printf '%s\n' '# Backlog' '' '## In flight' '' '## Queued' '' '## Done' > "$file"
+  tasks-axi add "$2" "restore fixture task" --kind ship --repo project --file "$file" >/dev/null
+  tasks-axi start "$2" --file "$file" >/dev/null
+  tasks-axi "done" "$2" --pr https://github.com/example/repo/pull/4497 --file "$file" >/dev/null
+}
+
+restore_row_state() {  # <home> <id>
+  tasks-axi show "$2" --file "$1/data/backlog.md" 2>/dev/null | sed -n 's/^  state: *//p' | head -1
+}
+
+run_restore_control() {  # <home> <wt> <fakebin> <control args...>
+  local home=$1 wt=$2 fakebin=$3
+  shift 3
+  mkdir -p "$home/user-home"
+  env -u HERDR_ENV -u HERDR_PANE_ID -u HERDR_SESSION -u HERDR_SOCKET_PATH \
+    -u HERDR_TAB_ID -u HERDR_WORKSPACE_ID \
+    FM_ROOT_OVERRIDE='' FM_HOME="$home" HOME="$home/user-home" \
+    CLAUDE_CONFIG_DIR='' CODEX_HOME='' GROK_HOME="$home/grok-home" \
+    FM_STATE_OVERRIDE="$home/state" FM_DATA_OVERRIDE="$home/data" \
+    FM_PROJECTS_OVERRIDE="$home/projects" FM_CONFIG_OVERRIDE="$home/config" \
+    FM_SPAWN_NO_GUARD=1 FM_FAKE_PANE_PATH="$wt" TMUX=fake,1,0 \
+    PATH="$fakebin:$PATH" "$CONTROL" "$@" 2>&1
+}
+
+test_relaunch_of_a_closed_task_names_its_archive_and_restores_it() {
+  local rec case_dir home proj wt fakebin id=rs-closed1 out rc=0 meta
+  rec=$(restore_case closed "$id")
+  IFS='|' read -r case_dir home proj wt fakebin <<<"$rec"
+  restore_seed_closed_row "$home" "$id"
+
+  out=$(run_restore_control "$home" "$wt" "$fakebin" "$id" relaunch --note "finish the purge") || rc=$?
+  expect_code 1 "$rc" "a relaunch of a closed task without --restore should refuse"$'\n'"$out"
+  assert_contains "$out" "no task '$id'" "the refusal lost its ordinary wording"
+  assert_contains "$out" "it was closed, and its record is archived at $home/data/$id/record/closed-task.meta" \
+    "the refusal did not name the archived record"
+  assert_contains "$out" "relaunch --restore" "the refusal did not name the way back"
+  assert_absent "$home/state/$id.meta" "a refused relaunch published a record"
+
+  rc=0
+  out=$(run_restore_control "$home" "$wt" "$fakebin" "$id" relaunch --restore \
+    --note "T19 is measured; purge the test MEETING episode, then post the result") || rc=$?
+  expect_code 0 "$rc" "restoring a closed task from its archive should succeed"$'\n'"$out"
+  assert_contains "$out" "restored $id from $home/data/$id/record/closed-task.meta harness=claude kind=ship" \
+    "the restore did not report what it brought back"
+  meta="$home/state/$id.meta"
+  assert_present "$meta" "the restore published no task record"
+  assert_grep "harness=claude" "$meta" "the restored task lost its harness"
+  assert_grep "kind=ship" "$meta" "the restored task lost its kind"
+  assert_grep "mode=no-mistakes" "$meta" "the restored task lost its delivery mode"
+  assert_grep "yolo=off" "$meta" "the restored task lost its merge posture"
+  assert_grep "project=$proj" "$meta" "the restored task lost its project"
+  assert_grep "branch=fm/$id" "$meta" "the restored task lost its branch"
+  assert_no_grep "worktree=$case_dir/returned-slot" "$meta" "the restore reused the returned slot"
+  [ "$(restore_row_state "$home" "$id")" = in_flight ] \
+    || fail "the restored task's backlog item is $(restore_row_state "$home" "$id"), not in flight"
+  assert_grep "## Restore note" "$home/data/$id/brief.md" "the brief does not say the task was restored"
+  assert_grep "purge the test MEETING episode, then post the result" "$home/data/$id/brief.md" \
+    "the restore note did not reach the brief"
+
+  rc=0
+  out=$(run_restore_control "$home" "$wt" "$fakebin" "$id" relaunch --restore --note "again") || rc=$?
+  expect_code 1 "$rc" "a restore of a live task should refuse"$'\n'"$out"
+  assert_contains "$out" "still has a live record" "the refusal did not say the task is live"
+  pass "fm-control relaunch: a task closed before its done names its archive, and --restore brings it back"
+}
+
+test_restore_re_adds_a_row_that_was_archived_away() {
+  local rec case_dir home proj wt fakebin id=rs-archived2 out rc=0
+  rec=$(restore_case archived "$id")
+  IFS='|' read -r case_dir home proj wt fakebin <<<"$rec"
+  printf '%s\n' '# Backlog' '' '## In flight' '' '## Queued' '' '## Done' > "$home/data/backlog.md"
+  printf '%s\n' '' '## Archived 2026-10-23' \
+    "- [x] $id - restore fixture task https://github.com/example/repo/pull/4497 (repo: project) (kind: ship) (merged 2026-10-23)" \
+    > "$home/data/done-archive.md"
+  out=$(run_restore_control "$home" "$wt" "$fakebin" "$id" relaunch --restore --note "post the result") || rc=$?
+  expect_code 0 "$rc" "restoring a task whose closed row was archived away should succeed"$'\n'"$out"
+  [ "$(restore_row_state "$home" "$id")" = in_flight ] \
+    || fail "the re-added backlog item is $(restore_row_state "$home" "$id"), not in flight"
+  assert_grep "restored after it was closed before its done" "$home/data/backlog.md" \
+    "the re-added row does not say why it is back"
+  pass "fm-control relaunch --restore: a closed row already archived away is added back, then dispatched"
+}
+
+test_restore_that_cannot_dispatch_changes_no_instructions() {
+  local rec case_dir home proj wt fakebin id=rs-refused3 out rc=0 before archive
+  rec=$(restore_case refused "$id")
+  IFS='|' read -r case_dir home proj wt fakebin <<<"$rec"
+  restore_seed_closed_row "$home" "$id"
+  archive="$home/data/$id/record/closed-task.meta"
+  before=$(cksum < "$home/data/$id/brief.md")
+  out=$(run_restore_control "$home" "$wt" "$fakebin" "$id" relaunch --restore --harness no-such-harness \
+    --note "post the result") || rc=$?
+  [ "$rc" -ne 0 ] || fail "a restore whose dispatch refused reported success"$'\n'"$out"
+  assert_contains "$out" "could not be restored" "the refusal did not say the restore failed"
+  [ "$(cksum < "$home/data/$id/brief.md")" = "$before" ] \
+    || fail "a refused restore left the restore note in the brief"
+  assert_absent "$home/state/$id.meta" "a refused restore published a task record"
+  assert_present "$archive" "a refused restore lost the archive"
+  [ "$(restore_row_state "$home" "$id")" = queued ] \
+    || fail "a refused restore left the backlog item $(restore_row_state "$home" "$id"), not queued for a retry"
+
+  rc=0
+  mv "$archive" "$archive.moved-aside"
+  out=$(run_restore_control "$home" "$wt" "$fakebin" "$id" relaunch --restore --note "x") || rc=$?
+  expect_code 1 "$rc" "a restore with no archive should refuse"$'\n'"$out"
+  assert_contains "$out" "has no archived record" "the refusal did not say the archive is missing"
+  pass "fm-control relaunch --restore: a dispatch refusal or a missing archive changes no instructions"
+}
+
+if [ "${FM_CONTROL_RELAUNCH_TEST_GROUP:-}" = restore ]; then
+  test_relaunch_of_a_closed_task_names_its_archive_and_restores_it
+  test_restore_re_adds_a_row_that_was_archived_away
+  test_restore_that_cannot_dispatch_changes_no_instructions
+  exit 0
+fi
+
 test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint
 test_relaunch_refuses_before_exit_when_the_composer_holds_pending_text
 test_relaunch_refuses_before_exit_when_the_composer_state_is_unproven
@@ -3477,3 +3636,6 @@ test_herdr_reclaim_of_a_secondmate_names_its_own_owner
 test_herdr_rebind_failure_from_a_plain_shell_names_the_real_cause
 test_relaunch_reverifies_an_already_in_flight_item_instead_of_rewriting_it
 test_relaunch_moves_a_drifted_item_back_in_flight
+test_relaunch_of_a_closed_task_names_its_archive_and_restores_it
+test_restore_re_adds_a_row_that_was_archived_away
+test_restore_that_cannot_dispatch_changes_no_instructions
