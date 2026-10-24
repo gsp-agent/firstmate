@@ -77,7 +77,7 @@ case "${1:-}" in
     ;;
   send-keys)
     for arg in "$@"; do
-      if [ "$arg" = "treehouse get" ]; then
+      if [[ "$arg" == *"treehouse get"* ]]; then
         seq=$(cat "${FM_FAKE_SLOT_SEQ:?}")
         seq=$((seq + 1))
         printf '%s\n' "$seq" > "$FM_FAKE_SLOT_SEQ"
