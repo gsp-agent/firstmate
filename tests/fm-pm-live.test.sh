@@ -228,6 +228,53 @@ PY
   pass "restart and concurrent delivery keep one event and leave activation failures with the existing owner"
 }
 
+# Teardown archives a task record at data/<id>/record/closed-task.meta, then
+# removes the record and its status stream. A merge that reaches such a task
+# afterwards must not hand activation and live verification to an owner that
+# no longer exists: the live PM is told on the stream its waiter watches, the
+# outcome stays unacknowledged, and nothing binds a merge the archive does not
+# name.
+test_merge_after_close_tells_the_pm_instead_of_handing_off_into_nothing() {
+  local dir state url archive line
+  dir=$(make_state closed-before-merge)
+  state="$dir/home/state"
+  url=https://github.com/example/repo/pull/4509
+  write_pm_task "$state" "$url" s1792792609
+  mkdir -p "$dir/home/data/demo/record"
+  archive="$dir/home/data/demo/record/closed-task.meta"
+  { printf 'archived_at=1792800110\n'; cat "$state/demo.meta"; } > "$archive"
+  rm -f "$state/demo.meta" "$state/demo.status"
+
+  if FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$url" self 2>"$dir/err"; then
+    fail "a merge for a closed task was acknowledged as handed off"
+  fi
+  [ -f "$state/demo.status" ] || fail "the live PM of a closed task was told nothing; stderr: $(cat "$dir/err")"
+  line=$(tail -n 1 "$state/demo.status")
+  [ "$(status_line_verb "$line")" = blocked ] || fail "the live PM's notice is not a blocked line: $line"
+  assert_contains "$line" "merged demo $url, but task demo was closed before this merge reached it" \
+    "the notice did not name the merge and the closed task"
+  assert_contains "$line" "bin/fm-control.sh demo relaunch --restore" "the notice did not name the way back"
+  assert_contains "$line" "$archive" "the notice did not name the archived record"
+  grep -F 'pending with the existing owner' "$state/demo.status" >/dev/null \
+    && fail "a handoff was written into a task that no longer exists"
+  assert_absent "$state/demo.meta" "the notice recreated a task record"
+  [ ! -e "$state/demo.pr-poll-merge-notified" ] || fail "an undelivered handoff committed its notification marker"
+  [ ! -s "$state/.wake-queue" ] || fail "the refused handoff created a second owner on main"
+  assert_contains "$(cat "$dir/err")" "closed before its merge" "the caller was not told the handoff was refused"
+
+  FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$url" poll 2>/dev/null \
+    && fail "a replayed merge for a closed task was acknowledged"
+  [ "$(wc -l < "$state/demo.status" | tr -d ' ')" = 1 ] || fail "a replayed merge repeated the PM notice"
+
+  rm -f "$state/demo.status"
+  if FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo \
+    https://github.com/example/repo/pull/4510 poll 2>/dev/null; then
+    fail "a merge the archive does not name was acknowledged"
+  fi
+  assert_absent "$state/demo.status" "a merge the archive does not name wrote an event for the closed task"
+  pass "a merge that reaches a closed task tells its live PM, never hands off into nothing, and binds only the archived PR"
+}
+
 test_pm_live_proof_reading
 test_merged_outcome_skips_main_queue_for_live_pm
 test_merged_outcome_still_queues_for_plain_task
@@ -236,3 +283,4 @@ test_failed_marker_does_not_duplicate_handoff
 test_existing_marker_repairs_missing_pm_event
 test_stale_pr_and_reused_task_identity
 test_restart_and_concurrent_delivery
+test_merge_after_close_tells_the_pm_instead_of_handing_off_into_nothing

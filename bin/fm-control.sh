@@ -8,6 +8,9 @@
 #                                         [--effort <level>]
 #                                         (--note <text> | --note-file <path>)
 #                                         [--stop-background]
+#        fm-control.sh <task-id> relaunch --restore [--harness <name>]
+#                                         [--model <name>] [--effort <level>]
+#                                         (--note <text> | --note-file <path>)
 #
 # Why this exists, and how it differs from fm-send.sh. bin/fm-send.sh is the
 # DATA plane: conversational text for the agent to read, always routing-marked
@@ -115,6 +118,14 @@
 #              that row, which stops the agent's background work, and
 #              continues. "Move to background" and "Stay" are never chosen,
 #              and an unrecognised dialog gets no key.
+#              --restore brings back a ship or scout task that teardown closed
+#              before its done was met, from the record teardown archived at
+#              data/<id>/record/closed-task.meta. It needs no live record:
+#              it reopens or re-adds the backlog item, appends the note to the
+#              brief, and dispatches a fresh worker through bin/fm-spawn.sh on
+#              the archived identity (the restore block below owns the rules).
+#              A relaunch of a closed task without --restore refuses and names
+#              that archive.
 #
 # Teardown and discard are NOT verbs here and never will be. `exit` stops an
 # agent and preserves everything else; removing a worktree or discarding work
@@ -289,6 +300,7 @@ EFFORT_SET=0
 NOTE=
 NOTE_SET=0
 STOP_BACKGROUND=0
+RESTORE=0
 control_want_value=
 for control_arg in "$@"; do
   if [ -n "$control_want_value" ]; then
@@ -325,6 +337,7 @@ for control_arg in "$@"; do
       NOTE=$(cat "${control_arg#--note-file=}")
       NOTE_SET=1
       ;;
+    --restore) RESTORE=1 ;;
     *) die "unexpected argument '$control_arg'" ;;
   esac
 done
@@ -335,8 +348,8 @@ fi
 
 if [ "$VERB" != relaunch ]; then
   [ "$HARNESS_SET" = 0 ] && [ "$MODEL_SET" = 0 ] && [ "$EFFORT_SET" = 0 ] && [ "$NOTE_SET" = 0 ] \
-    && [ "$STOP_BACKGROUND" = 0 ] \
-    || die "--harness, --model, --effort, --note, and --stop-background apply to 'relaunch' only"
+    && [ "$STOP_BACKGROUND" = 0 ] && [ "$RESTORE" = 0 ] \
+    || die "--harness, --model, --effort, --note, --stop-background, and --restore apply to 'relaunch' only"
 fi
 [ "$HARNESS_SET" = 0 ] || [ -n "$NEW_HARNESS" ] || die "--harness requires a non-empty value"
 [ "$MODEL_SET" = 0 ] || [ -n "$NEW_MODEL" ] || die "--model requires a non-empty value"
@@ -372,6 +385,156 @@ CONTROL_LOCK_HELD=1
 # trap, and would remove the file the lock holder is reading.
 FM_COMPOSER_DIALOG_SINK=$STATE/$ID.composer-dialog
 META="$STATE/$ID.meta"
+
+# --- restore a task that was closed before its done -------------------------
+#
+# bin/fm-teardown.sh copies every ship or scout task record to
+# data/<id>/record/closed-task.meta before removing it. `relaunch --restore`
+# brings back a task closed before its done was met. With no live record for
+# the id, it reopens the task's backlog item (re-adding it when the closed row
+# was already archived away), appends the required note to the brief, and
+# dispatches a fresh worker through bin/fm-spawn.sh with the archived project,
+# kind, harness and profile, delivery mode, branch prefix, base branch, and
+# backend. Teardown returned the earlier local copy only after its work had
+# landed, so the new worker starts from a fresh copy. fm-spawn owns every
+# dispatch gate; a refusal or deferral restores the brief byte-exact and keeps
+# the archive for a retry.
+RESTORE_ARCHIVE="$DATA/$ID/record/closed-task.meta"
+
+do_restore() {
+  local archive=$RESTORE_ARCHIVE brief="$DATA/$ID/brief.md" config prior out rc=0 row_rc=0
+  local kind project harness family model effort mode yolo base branch prefix consent backend stamp
+  local -a spawn_args
+  [ ! -e "$META" ] && [ ! -L "$META" ] \
+    || die "task $ID still has a live record at $META; relaunch it without --restore"
+  [ -f "$archive" ] && [ ! -L "$archive" ] \
+    || die "task $ID has no archived record at $archive to restore from"
+  [ ! -e "$STATE/$ID.backlog-close" ] && [ ! -L "$STATE/$ID.backlog-close" ] \
+    || die "task $ID has a pending backlog close at $STATE/$ID.backlog-close; let that cleanup finish before restoring it"
+  case "$(fm_meta_get "$archive" endpoint_task_id)" in
+    ''|"$ID") ;;
+    *) die "the archived record at $archive names another task; refusing to restore $ID from it" ;;
+  esac
+  kind=$(fm_meta_get "$archive" kind)
+  [ -n "$kind" ] || kind=ship
+  case "$kind" in
+    ship|scout) ;;
+    *) die "task $ID's archived record is a $kind; only a ship or scout task is restored this way" ;;
+  esac
+  [ "$NOTE_SET" = 1 ] && [ -n "$NOTE" ] \
+    || die "restoring a $kind task requires --note (or --note-file): the new worker starts from a fresh copy and none of the conversation, so it must be told what remains"
+  [ -f "$brief" ] && [ ! -L "$brief" ] \
+    || die "task $ID has no instructions at $brief; refusing to restore a worker with nothing to work from"
+  project=$(fm_meta_get "$archive" project)
+  case "$project" in
+    /*) [ -d "$project" ] || die "task $ID's archived project $project is not a directory" ;;
+    *) die "task $ID's archived record has no absolute project path" ;;
+  esac
+  harness=$NEW_HARNESS
+  if [ "$HARNESS_SET" = 0 ]; then
+    harness=$(fm_meta_get "$archive" harness)
+    [ -n "$harness" ] || die "task $ID's archived record has no harness; pass --harness to restore it"
+    family=$(fm_control_harness_family "$harness") || family=
+    [ "$family" = "$harness" ] \
+      || die "task $ID's archived harness '$harness' is not a launch command that can be reconstructed; pass --harness to restore it"
+  fi
+  model=$NEW_MODEL
+  [ "$MODEL_SET" = 1 ] || model=$(fm_meta_get "$archive" model)
+  effort=$NEW_EFFORT
+  [ "$EFFORT_SET" = 1 ] || effort=$(fm_meta_get "$archive" effort)
+  mode=$(fm_meta_get "$archive" mode)
+  yolo=$(fm_meta_get "$archive" yolo)
+  base=$(fm_meta_get "$archive" base_branch)
+  branch=$(fm_meta_get "$archive" branch)
+  consent=$(fm_meta_get "$archive" upstream_consent)
+  backend=$(fm_meta_get "$archive" backend)
+
+  spawn_args=("$ID" "$project" "$harness")
+  case "$model" in ''|default) ;; *) spawn_args+=(--model "$model") ;; esac
+  case "$effort" in ''|default) ;; *) spawn_args+=(--effort "$effort") ;; esac
+  [ -z "$backend" ] || spawn_args+=(--backend "$backend")
+  [ -z "$base" ] || spawn_args+=(--base-branch "$base")
+  if [ "$kind" = scout ]; then
+    spawn_args+=(--scout)
+  else
+    [ -z "$mode" ] || spawn_args+=(--mode "$mode")
+    [ -z "$yolo" ] || spawn_args+=(--yolo "$yolo")
+    [ -z "$consent" ] || spawn_args+=(--upstream-consent "$consent")
+    case "$branch" in
+      *"$ID") prefix=${branch%"$ID"}; spawn_args+=(--branch-prefix "$prefix") ;;
+    esac
+  fi
+
+  if ! declare -F fm_backlog_transition_applies >/dev/null 2>&1; then
+    # shellcheck source=bin/fm-tasks-axi-lib.sh
+    . "$SCRIPT_DIR/fm-tasks-axi-lib.sh"
+    # shellcheck source=bin/fm-backlog-transition-lib.sh
+    . "$SCRIPT_DIR/fm-backlog-transition-lib.sh"
+  fi
+  config="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
+  fm_backlog_transition_applies "$config" "$DATA" "$kind" || row_rc=$?
+  case "$row_rc" in
+    0)
+      if fm_backlog_row_probe "$DATA" "$ID"; then
+        case "$FM_BACKLOG_ROW_STATE" in
+          done\ *)
+            "$SCRIPT_DIR/fm-tasks-axi.sh" reopen "$ID" >/dev/null \
+              || die "task $ID's closed backlog item could not be reopened; nothing else was changed"
+            ;;
+        esac
+      elif [ "$FM_BACKLOG_ROW_RESULT" = not_found ]; then
+        "$SCRIPT_DIR/fm-tasks-axi.sh" add "$ID" "$ID: restored after it was closed before its done" \
+          --kind "$kind" --repo "$(basename "$project")" --queue \
+          --body "Restored by fm-control relaunch --restore from data/$ID/record/closed-task.meta; the row it had when it was closed is in this home's done archive." >/dev/null \
+          || die "task $ID's backlog item could not be added back; nothing else was changed"
+      else
+        die "task $ID's backlog item could not be read ($FM_BACKLOG_ROW_ERROR); nothing was changed"
+      fi
+      ;;
+    1) ;;
+    *) die "task $ID's backlog could not be read ($FM_BACKLOG_TRANSITION_ERROR); nothing was changed" ;;
+  esac
+
+  prior=$(mktemp "$DATA/$ID/.brief-before-restore.XXXXXX") \
+    || die "could not preserve task $ID's instructions before restoring it"
+  cp -p "$brief" "$prior" || { rm -f "$prior"; die "could not preserve task $ID's instructions before restoring it"; }
+  stamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  if ! {
+      echo
+      echo "## Restore note ($stamp)"
+      echo
+      echo "This task was closed before its done was met and has been restored from its archived record."
+      echo "Its earlier local copy was returned after its work landed, so you start from a fresh copy."
+      echo "Read the record the ask names for what remains before you change anything."
+      echo
+      printf '%s\n' "$NOTE"
+    } >> "$brief"; then
+    cp -p "$prior" "$brief" 2>/dev/null || true
+    rm -f "$prior"
+    die "could not append the restore note to task $ID's instructions"
+  fi
+
+  out=$("$SCRIPT_DIR/fm-spawn.sh" "${spawn_args[@]}" 2>&1) || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    cp -p "$prior" "$brief" 2>/dev/null || true
+    rm -f "$prior"
+    printf '%s\n' "$out" >&2
+    if [ "$rc" = 75 ]; then
+      echo "deferred: task $ID was not restored yet; its backlog item is queued, its instructions are unchanged, and its archived record at $archive stays for a retry" >&2
+      exit 75
+    fi
+    die "task $ID could not be restored: the dispatch above refused it; its backlog item is queued, its instructions are unchanged, and its archived record at $archive stays for a retry"
+  fi
+  rm -f "$prior"
+  printf '%s\n' "$out"
+  echo "restored $ID from $archive harness=$harness kind=$kind project=$project"
+}
+
+if [ "$VERB" = relaunch ] && [ "$RESTORE" = 1 ]; then
+  do_restore
+  exit 0
+fi
+
 if [ ! -f "$META" ]; then
   case "$RAW_ID" in
     fm-*)
@@ -380,6 +543,9 @@ if [ ! -f "$META" ]; then
       fi
       ;;
   esac
+  if [ "$VERB" = relaunch ] && [ -f "$RESTORE_ARCHIVE" ] && [ ! -L "$RESTORE_ARCHIVE" ]; then
+    die "no task '$ID' in $STATE: it was closed, and its record is archived at $RESTORE_ARCHIVE. Bring it back with: bin/fm-control.sh $ID relaunch --restore --note <what remains>"
+  fi
   die "no task '$ID' in $STATE (fm-control resolves an exact task id only)"
 fi
 

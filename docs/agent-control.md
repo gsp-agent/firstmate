@@ -119,6 +119,15 @@ A relaunch does take one session reference when the endpoint's own runtime recor
 
 Switching harness is therefore one ordinary relaunch rather than a separate mechanism.
 
+### Restoring a task closed before its done
+
+[`bin/fm-teardown.sh`](../bin/fm-teardown.sh) copies every ship or scout task record to `data/<id>/record/closed-task.meta` before it removes the record.
+A task that answers to a bead is not torn down while that bead is open, so this copy is the recovery path for a close that happened anyway.
+`relaunch` of a task with no live record refuses as before, and names that archive when one exists.
+`relaunch --restore --note <what remains>` brings the task back from it: it reopens the closed backlog item, or adds it back when the closed row was already archived away, appends the note to the brief, and dispatches a fresh worker through `bin/fm-spawn.sh` on the archived project, kind, harness and profile, delivery mode, branch prefix, base branch, and backend.
+Teardown returned the earlier local copy only after its work landed, so the restored worker starts from a fresh copy.
+Every dispatch gate stays with `bin/fm-spawn.sh`; a refusal or deferral restores the brief byte-exact, leaves the item queued, and keeps the archive for a retry.
+
 ### Reclaiming a task whose endpoint is gone
 
 A Herdr pane or workspace can be destroyed out from under a live task by churn or a session restart.

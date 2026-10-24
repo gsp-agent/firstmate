@@ -42,8 +42,15 @@ FM_MERGE_OUTCOME_ALREADY_RECORDED=false
 # the PR/incarnation read and status append from teardown or a replacement.
 # Reuse the canonical PR and generation readers; neither an old PR nor an
 # ambiguous task record may announce work against the current task.
-fm_merge_outcome_pm_handoff() {  # <state> <task-id> <canonical-pr-url>
-  local state=$1 id=$2 url=$3 meta lock generation line rc=0
+# A handoff is never written into a task that no longer exists. When the task
+# record is gone because teardown closed the task before this merge reached it,
+# and the record teardown archived at <data>/<id>/record/closed-task.meta
+# names this exact PR, the live PM gets a blocked line on the same status
+# stream instead, naming the restore, and the outcome fails so the merge stays
+# unacknowledged. A gone record with no matching archive stays refused with no
+# event, because nothing binds the merge to this task.
+fm_merge_outcome_pm_handoff() {  # <state> <task-id> <canonical-pr-url> [data-dir]
+  local state=$1 id=$2 url=$3 data=${4-} meta lock generation line archive rc=0
   meta="$state/$id.meta"
   lock=$(fm_meta_lock_path "$meta") || return 1
   fm_lock_acquire_wait "$lock" || return 1
@@ -51,7 +58,15 @@ fm_merge_outcome_pm_handoff() {  # <state> <task-id> <canonical-pr-url>
     # shellcheck source=bin/fm-backlog-transition-lib.sh
     . "$_FM_MERGE_OUTCOME_LIB_DIR/fm-backlog-transition-lib.sh"
   fi
-  if ! fm_pr_metadata_identity_parse "$meta" \
+  archive=
+  [ -z "$data" ] || archive="$data/$id/record/closed-task.meta"
+  if [ ! -e "$meta" ] && [ ! -L "$meta" ] && [ -n "$archive" ] \
+    && fm_pr_metadata_identity_parse "$archive" && [ "$FM_PR_META_URL" = "$url" ]; then
+    line="blocked [key=merged-closed-$id]: merged $id $url, but task $id was closed before this merge reached it, so nobody owns its activation and live verification; bring it back with bin/fm-control.sh $id relaunch --restore --note <what remains> (record archived at $archive)"
+    fm_parent_channel_append_once "$state/$id.status" "$(status_stamp_line "$line")" || true
+    printf 'error: merge handoff for %s refused: the task was closed before its merge, so its live PM was told on %s\n' "$id" "$state/$id.status" >&2
+    rc=1
+  elif ! fm_pr_metadata_identity_parse "$meta" \
     || [ "$FM_PR_META_URL" != "$url" ] \
     || ! fm_backlog_meta_spawn_gen_optional "$meta" "$state"; then
     printf 'error: merge handoff for %s has missing, changed, or ambiguous task/PR identity\n' "$id" >&2
@@ -125,7 +140,7 @@ fm_merge_outcome_report() {  # <home> <state> <task-id> <pr-url> <origin> [autho
     pm_live=true
     # This must also run for a matching marker written by an older version
     # that suppressed main without publishing anything the PM could observe.
-    if ! fm_merge_outcome_pm_handoff "$state" "$id" "$canonical_url"; then
+    if ! fm_merge_outcome_pm_handoff "$state" "$id" "$canonical_url" "${FM_DATA_OVERRIDE:-$home/data}"; then
       fm_lock_release "$lock"
       return 1
     fi
