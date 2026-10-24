@@ -197,6 +197,8 @@ state = json.loads(state_path.read_text()) if state_path.exists() else {
 action = tuple(args[:2])
 close_mode = os.environ.get("FM_FAKE_HERDR_CLOSE", "closed")
 viewport_rows = int(os.environ.get("FM_FAKE_HERDR_VIEWPORT_ROWS") or 0)
+returned = (root / "treehouse-returned").exists()
+client_on_task = returned and os.environ.get("FM_FAKE_HERDR_FOREGROUND") == "task-tab"
 
 def emit(result):
     print(json.dumps({"result": result}))
@@ -217,8 +219,10 @@ elif action == ("session", "list"):
     print(json.dumps({"sessions": [{"name": os.environ["HERDR_SESSION"], "running": True, "socket_path": str(root / "herdr.sock")}]}))
 elif action == ("workspace", "list"):
     spaces = state["workspaces"]
-    if (root / "treehouse-returned").exists() and os.environ.get("FM_FAKE_HERDR_FOCUS_UNREADABLE") == "1":
+    if returned and os.environ.get("FM_FAKE_HERDR_FOCUS_UNREADABLE") == "1":
         spaces = [dict(w, focused=False) for w in spaces]
+    elif client_on_task:
+        spaces = [dict(w, focused=w["workspace_id"] == "w2", active_tab_id="w2:t1" if w["workspace_id"] == "w2" else w["active_tab_id"]) for w in spaces]
     emit({"type": "workspace_list", "workspaces": spaces})
 elif action == ("workspace", "create"):
     workspace = {"workspace_id": "w2", "label": option("--label"), "focused": False, "active_tab_id": "w2:t0"}
@@ -237,7 +241,10 @@ elif action == ("tab", "create"):
     emit({"tab": tab, "root_pane": pane})
 elif action in (("tab", "list"), ("pane", "list")):
     kind = "tabs" if args[0] == "tab" else "panes"
-    emit({kind: [item for item in state[kind] if item["workspace_id"] == option("--workspace")]})
+    items = [item for item in state[kind] if item["workspace_id"] == option("--workspace")]
+    if kind == "tabs" and client_on_task and option("--workspace") == "w2":
+        items = [dict(t, focused=t["tab_id"] == "w2:t1") for t in items]
+    emit({kind: items})
 elif action in (("tab", "get"), ("pane", "get")):
     kind = args[0]
     item = next((item for item in state[kind + "s"] if item[kind + "_id"] == args[2]), None)
@@ -268,7 +275,7 @@ elif action == ("pane", "close"):
     if not (root / "treehouse-returned").exists() or close_mode != "noop":
         remove_pane(args[2])
 elif action == ("terminal", "title"):
-    emit({"reason": "no_foreground_client"})
+    emit({"reason": "cleared" if client_on_task else "no_foreground_client"})
 elif args[0] in ("agent", "api") or action == ("pane", "process-info"):
     sys.exit(1)
 else:
@@ -285,11 +292,14 @@ PY
 # Herdr whose `pane get` reports no viewport height. `flat` turns presentation off, so
 # the ordinary locked close runs; `contended` keeps it on while another holder
 # keeps the session's presentation lock past the bounded retry, so the spawn
-# falls back flat and its cleanup may not close the pane at all; `projected`
-# closes the projection it holds the lock for.
+# falls back flat and its cleanup may not close the pane at all. The projected
+# layouts close the projection the spawn holds the lock for, through Herdr's
+# focus-preserving cleanup: `projected-clear` with focus readable and no live
+# client, `projected` with focus unreadable, and `projected-focused` with a live
+# client on the task tab. The last two refuse, so the pane must stay and be named.
 # shellcheck disable=SC2030 # This test intentionally isolates its environment in a subshell.
 test_pool_full_herdr_cleanup_is_confirmed() (
-  local layout=$1 close_mode=$2 pane_shape=${3:-} rec id out status lock_path
+  local layout=$1 close_mode=$2 pane_shape=${3:-} rec id out status lock_path focus_unreadable left
   id="settle-herdr-$layout-$close_mode${pane_shape:+-$pane_shape}"
   rec=$(make_settle_case "$id" "$id" 100000)
   read_settle_record "$rec"
@@ -303,7 +313,12 @@ test_pool_full_herdr_cleanup_is_confirmed() (
   unset HERDR_ENV HERDR_PANE_ID HERDR_TAB_ID HERDR_WORKSPACE_ID HERDR_SOCKET_PATH
   export FM_HOME="$HOME_DIR" FM_STATE_OVERRIDE="$HOME_DIR/state" FM_BACKEND=herdr
   export HERDR_SESSION="$id" FM_FAKE_HERDR_DIR="$CASE_DIR" PATH="$FAKEBIN_DIR:$PATH"
-  export FM_FAKE_HERDR_CLOSE="$close_mode" FM_FAKE_HERDR_FOCUS_UNREADABLE=1
+  focus_unreadable=1
+  case "$layout" in
+  projected-focused) focus_unreadable=0; export FM_FAKE_HERDR_FOREGROUND=task-tab ;;
+  projected-clear) focus_unreadable=0 ;;
+  esac
+  export FM_FAKE_HERDR_CLOSE="$close_mode" FM_FAKE_HERDR_FOCUS_UNREADABLE=$focus_unreadable
   case "$pane_shape" in
   tall) export FM_FAKE_HERDR_VIEWPORT_ROWS=300 ;;
   tall-noscroll) export FM_FAKE_HERDR_VIEWPORT_ROWS=300 FM_FAKE_HERDR_NO_SCROLL=1 ;;
@@ -324,17 +339,22 @@ test_pool_full_herdr_cleanup_is_confirmed() (
     fm_lock_release "$lock_path" || fail "could not release the presentation lock"
     assert_contains "$out" "presentation focus lock unavailable" "the spawn did not contend with the held lock"
     ;;
-  projected)
+  projected*)
     [ -f "$HOME_DIR/state/$id.herdr-presentation" ] || fail "the spawn did not create a projection"
     ;;
   esac
   [ "$status" -ne 0 ] || fail "Herdr spawn launched on a full pool"$'\n'"$out"
   assert_contains "$out" "all 16 worktrees are in use or dirty (max_trees = 16)" "Herdr refusal lost treehouse's reason"$'\n'"$out"
   [ ! -e "$HOME_DIR/state/$id.meta" ] || fail "Herdr refusal published task metadata"
-  if [ "$layout" = contended ]; then
-    jq -e --arg label "fm-$id" 'any(.tabs[]; .label == $label)' "$CASE_DIR/herdr.json" >/dev/null || fail "the refusal closed its tab without the session's presentation lock"$'\n'"$out"
+  case "$layout" in
+  contended) left=w1:p1 ;;
+  projected | projected-focused) left=w2:p1 ;;
+  *) left= ;;
+  esac
+  if [ -n "$left" ]; then
+    jq -e --arg label "fm-$id" 'any(.tabs[]; .label == $label)' "$CASE_DIR/herdr.json" >/dev/null || fail "the refusal closed a tab its cleanup refused to close"$'\n'"$out"
     assert_not_contains "$out" "was closed" "the refusal reported a close it was not allowed to make"$'\n'"$out"
-    assert_contains "$out" "could not confirm closure of its endpoint; inspect window $HERDR_SESSION:w1:p1" "the refusal did not name the exact endpoint it left"$'\n'"$out"
+    assert_contains "$out" "could not confirm closure of its endpoint; inspect window $HERDR_SESSION:$left" "the refusal did not name the exact endpoint it left"$'\n'"$out"
   elif [ "$close_mode" = closed ]; then
     jq -e --arg label "fm-$id" 'all(.tabs[]; .label != $label) and (.workspaces | length) == 1 and (.panes | length) == 1 and .panes[0].pane_id == "w1:p0"' "$CASE_DIR/herdr.json" >/dev/null || fail "Herdr refusal left its tab, pane, or workspace behind"$'\n'"$out"
     assert_contains "$out" "was closed" "the refusal did not confirm the closed endpoint"
@@ -859,5 +879,7 @@ test_pool_full_herdr_cleanup_is_confirmed flat closed tall || exit 1
 test_pool_full_herdr_cleanup_is_confirmed flat closed tall-noscroll || exit 1
 test_pool_full_herdr_cleanup_is_confirmed projected closed || exit 1
 test_pool_full_herdr_cleanup_is_confirmed projected noop || exit 1
+test_pool_full_herdr_cleanup_is_confirmed projected-focused closed || exit 1
+test_pool_full_herdr_cleanup_is_confirmed projected-clear closed || exit 1
 
 echo "# all fm-spawn-worktree-settle tests passed"
