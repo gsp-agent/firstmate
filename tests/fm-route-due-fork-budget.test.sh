@@ -34,12 +34,20 @@ for n in 0 1 3; do
   mkdir -p "$home/data" "$home/state" "$home/config"
   fm_test_tasks_toml "$home/.tasks.toml"
   printf '## In flight\n\n## Queued\n\n## Done\n' > "$home/data/backlog.md"
+  # Live rows keep their old body below the hold fields, past the listing's cut.
   cat > "$home/body" <<'BODY'
 Captain hold set: 2026-10-24T08:00:00Z
 Decision owner: captain
 Hold timeout seconds: 300
 Hold reason: Should I spend money?
+
+Previous task body:
 BODY
+  note=1
+  while [ "$note" -le 40 ]; do
+    printf 'Earlier note %s for this task.\n' "$note" >> "$home/body"
+    note=$((note + 1))
+  done
   cat > "$home/router.py" <<'PY'
 import os
 import sys

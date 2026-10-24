@@ -87,15 +87,18 @@
 # A no-argument sweep visits only rows the listing reports held for the captain
 # (including expired dated holds) and ids with pending bodies.
 # Successful idle routes leave a disposable state/hold-domain/idle/<id>.json hint.
-# The sweep compares the full routing fields from one listing and the router
+# The sweep compares the routing fields from one listing and the router
 # identity, and skips matching rows until their next local hold date or timeout.
-# Pending bodies, dynamic human-owner refusals, incomplete/truncated listing
-# bodies and unreadable hints always take the existing bounded row path.
+# The listing cuts bodies short; history below the active hold fields' first
+# `Previous task body:` line is never an idle-route input. A matching row whose
+# active fields the listing cuts off takes one bounded full read, not a row.
+# Pending bodies, dynamic human-owner refusals, failed reads and unreadable
+# hints always take the existing bounded row path.
 # bin/fm-hold-route-idle.py owns this hint format; it is never routing authority.
 # Each row of a no-argument sweep allows FM_HOLD_ROUTE_TIMEOUT_SECS seconds (default 30),
 # then reports its failure and continues to the next row.
 # The sweep saves the attempted task id in state/hold-domain/sweep-cursor before
-# starting each row. The next sweep resumes after it in task-id order, wrapping
+# each full read or row. The next sweep resumes after it in task-id order, wrapping
 # around even when rows retire or new rows appear. An outer interruption
 # therefore leaves failed rows retryable without restarting at the first row.
 # bin/fm-watch.sh's header owns the whole-sweep deadline and failure reporting.
@@ -1919,9 +1922,23 @@ PY
   retire_hold_route "$id"
 }
 
+# The listing cut this matching row's routing fields off, so one bounded full
+# read stands in for its row process. Any failed or doubtful read routes it.
+route_hint_current() {  # <id> <resolved-data-dir> <router>
+  local show status=0
+  if [ "$CAPTAIN_ROUTE_ADDRESS_READY" != 1 ]; then
+    fm_backlog_tasks_axi_addressing "$2" || return 1
+    CAPTAIN_ROUTE_ADDRESS_READY=1
+  fi
+  show=$(fm_backlog_row_show_addressed "$1" --full) || status=$?
+  [ "$status" -ne 124 ] || FM_BACKLOG_ROW_SHOW_WEDGED=1
+  [ "$status" -eq 0 ] || return 1
+  python3 "$SCRIPT_DIR/fm-hold-route-idle.py" check "$STATE/hold-domain" "$3" "$1" <<< "$show"
+}
+
 command_route_due() {
   local router ids id row_timeout=${FM_HOLD_ROUTE_TIMEOUT_SECS:-30} row_status rc=0
-  local cursor cursor_file="$STATE/hold-domain/sweep-cursor" tmp data listing
+  local cursor cursor_file="$STATE/hold-domain/sweep-cursor" tmp data listing mode
   [ "$#" -le 1 ] || { usage >&2; exit 2; }
   router=${FM_HOLD_DOMAIN_ROUTER:-$HOME/.agent-config/configs/claude/hooks/hold-domain.py}
   require_tasks_axi
@@ -1952,13 +1969,16 @@ command_route_due() {
   data=$(fm_backlog_data_absolute "$DATA") || fail "could not resolve routing backlog"
   listing=$(fm_backlog_row_list "$data" --fields held,hold_kind,hold_reason,hold_until,body 2>/dev/null) \
     || fail "could not list holds for routing"
+  # Each line is an id, or `<id>/verify` for a matching row the listing cut off;
+  # no pending file name can hold a slash.
   ids=$(printf '%s\n' "$listing" | python3 "$SCRIPT_DIR/fm-hold-route-idle.py" \
     select "$STATE/hold-domain" "$router") || fail "could not select holds for routing"
   [ -n "$ids" ] || return 0
   if [ -f "$cursor_file" ]; then
     cursor=$(cat "$cursor_file") || fail "cannot read routing sweep position"
     ids=$(printf '%s\n' "$ids" | LC_ALL=C awk -v cursor="$cursor" '
-      ("x" $0) > ("x" cursor) { print; next }
+      { id = $0; sub(/\/verify$/, "", id) }
+      ("x" id) > ("x" cursor) { print; next }
       { earlier = earlier $0 ORS }
       END { printf "%s", earlier }
     ') || fail "cannot order routing sweep"
@@ -1966,9 +1986,14 @@ command_route_due() {
   (umask 077; mkdir -p "$STATE/hold-domain") || fail "cannot create routing state"
   while IFS= read -r id; do
     [ -n "$id" ] || continue
+    mode=
+    case "$id" in */verify) id=${id%/verify}; mode=verify ;; esac
     tmp=$(umask 077; mktemp "$STATE/hold-domain/.cursor.XXXXXX") || fail "cannot stage routing sweep position"
     printf '%s\n' "$id" > "$tmp" || fail "cannot stage routing sweep position"
     mv -f -- "$tmp" "$cursor_file" || fail "cannot publish routing sweep position"
+    if [ "$mode" = verify ] && route_hint_current "$id" "$data" "$router"; then
+      continue
+    fi
     # Use one process per row so a failed route cannot strand later holds.
     row_status=0
     ( FM_TASKS_AXI_COMPATIBLE=1 FM_CAPTAIN_HOLD_CONTRACT=1 \
