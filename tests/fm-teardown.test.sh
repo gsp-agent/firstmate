@@ -6892,6 +6892,90 @@ PY
   pass "fm-teardown: the sweep streams text beyond the aggregate cap and keeps late references"
 }
 
+test_task_data_expiry_batches_row_beads() {
+  local case_dir variant
+  for variant in repeated row-only legacy archived; do
+    case_dir=$(make_case "task-data-batch-beads-$variant")
+    fm_test_tasks_toml "$case_dir/.tasks.toml"
+    write_pending_hold "$case_dir" aa-beads
+    write_expiry_tools "$case_dir"
+    python3 - "$case_dir" "$variant" <<'PY'
+import json
+from pathlib import Path
+import sys
+home, variant = Path(sys.argv[1]), sys.argv[2]
+beads = [f"obs-b{number:03d}" for number in range(100)]
+task = home / "data/aa-beads"
+record = task / "record/data-cleanup.json"
+payload = json.loads(record.read_text())
+payload["sources"][0]["beads"] = beads if variant == "repeated" else []
+payload["sources"][0]["backlog"]["task"] = "aa-beads"
+row = (f"- [x] aa-beads - finished (repo: {home / 'project'}) "
+       + " ".join(f"bead: {bead}" for bead in beads) + "\n")
+if variant == "legacy":
+    payload["sources"][0]["backlog"].update(legacy=True, text=row)
+record.write_text(json.dumps(payload))
+(home / "data/backlog.md").write_text("" if variant == "archived" else row)
+if variant == "archived":
+    (home / "data/done-archive.md").write_text(row)
+(home / "variant").write_text(variant)
+for bead in beads:
+    (task / ".cleanup-hold" / f"{bead}.png").write_text(f"evidence for {bead}\n")
+PY
+    # Log the actual arguments at the shell subprocess boundary, then return
+    # the full owning row plus only the evidence of beads requested in this call.
+    cat > "$case_dir/fakebin/bash" <<'PY'
+#!/usr/bin/env python3
+import json
+import os
+from pathlib import Path
+import sys
+if len(sys.argv) >= 4 and sys.argv[2] == "backlog-location":
+    data = Path(sys.argv[3])
+    print(json.dumps({"root": str(data.parent), "file": str(data / "backlog.md")}))
+    sys.exit(0)
+if len(sys.argv) < 3 or sys.argv[2] != "backlog-references":
+    os.execv("/bin/bash", ["bash", *sys.argv[1:]])
+data, task, beads = Path(sys.argv[3]), sys.argv[4], sys.argv[6:]
+with (data.parent / "bead-calls.jsonl").open("a") as stream:
+    stream.write(json.dumps(beads) + "\n")
+text = (data / "backlog.md").read_text()
+archived = (data.parent / "variant").read_text() == "archived"
+if archived:
+    text = ""
+text += "\n" + "\n".join(f"[evidence]({bead}.png)" for bead in beads)
+print(json.dumps({"task": task, "text": text,
+                  "unread": [task] if archived and sys.argv[5] == "1" else [], "archived": []}))
+PY
+    chmod +x "$case_dir/fakebin/bash"
+    FM_HOME="$case_dir" PATH="$case_dir/fakebin:$PATH" python3 "$ROOT/bin/fm-task-data.py" expire \
+      "$case_dir/data" "$case_dir/state" aa-beads > "$case_dir/out" 2> "$case_dir/err" \
+      || fail "$variant bead expiry failed: $(cat "$case_dir/err")"
+    python3 - "$case_dir" "$variant" <<'PY' || fail "$variant owning-row beads escaped their batch or changed retention"
+import json
+from pathlib import Path
+import sys
+home, variant = Path(sys.argv[1]), sys.argv[2]
+task = home / "data/aa-beads"
+expected = {f"obs-b{number:03d}" for number in range(100)}
+calls = [json.loads(line) for line in (home / "bead-calls.jsonl").read_text().splitlines()]
+counts = [len(batch) for batch in calls]
+resolved = {bead for batch in calls for bead in batch}
+print(f"bead batches ({variant}): counts={counts}; union={len(resolved)}", flush=True)
+assert resolved == expected, (expected - resolved, resolved - expected)
+record = json.loads((task / "record/data-cleanup.json").read_text())
+assert record["expired"] and record["sources"][0]["unread"] == [], record
+assert set(record["sources"][0]["beads"]) == expected, record
+assert not (task / ".cleanup-hold").exists(), "unlinked scratch did not drain"
+assert not (task / "scratch.bin").exists(), "unlinked scratch was retained"
+for bead in expected:
+    assert (task / f"{bead}.png").read_text() == f"evidence for {bead}\n", bead
+assert max(counts) <= 32, counts
+PY
+  done
+  pass "fm-teardown: owning-row bead discovery stays within 32 per subprocess and retains all 100 beads' evidence"
+}
+
 test_task_data_sweep_recovers_dead_owner() {
   local case_dir owner id
   case_dir=$(make_case task-data-sweep-dead-owner)
@@ -7203,7 +7287,7 @@ test_task_data_overlapping_teardown_keeps_retiring_hold() {
   export FM_BACKLOG_ROW_TIMEOUT_SECS
   # This case exercises overlapping cleanup without the supervision host's
   # home-wide command lock. Ambient agent markers must not serialize A and B.
-  local PI_CODING_AGENT= FM_SUPERVISION_ACTOR=
+  local PI_CODING_AGENT='' FM_SUPERVISION_ACTOR=''
   export PI_CODING_AGENT FM_SUPERVISION_ACTOR
   local case_dir real_python order first last first_pid last_pid a_pid b_pid i
   real_python=$(command -v python3)
@@ -9499,6 +9583,11 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-drain-launch ]; then
 fi
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-drain-text ]; then
   test_task_data_sweep_streams_kept_text
+  test_task_data_expiry_batches_row_beads
+  exit 0
+fi
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-drain-beads ]; then
+  test_task_data_expiry_batches_row_beads
   exit 0
 fi
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = task-data-drain-stale ]; then
@@ -9581,6 +9670,7 @@ test_task_data_unread_status_failure_retries
 test_task_data_sweep_expires_big_hold
 test_task_data_sweep_outlives_launcher_group
 test_task_data_sweep_streams_kept_text
+test_task_data_expiry_batches_row_beads
 test_task_data_sweep_recovers_dead_owner
 test_task_data_sweep_single_instance
 test_task_data_sweep_requester_recovery

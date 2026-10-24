@@ -166,6 +166,7 @@ LIMIT = 1024 * 1024
 KEPT_LIMIT = 16 * LIMIT
 TOTAL_LIMIT = 16 * LIMIT
 CHUNK = 1024 * 1024
+BEAD_BATCH_SIZE = 32
 TEXT = {".txt", ".md", ".log", ".json"}
 HOLD = ".cleanup-hold"
 RECEIPT = "record/data-cleanup.json"
@@ -361,11 +362,11 @@ def expiry_reference_batches(views, sources, task_id, limit=None):
         first = True
         while first or pending_beads:
             first = False
-            chunk = sorted(pending_beads)[:32]
+            chunk = sorted(pending_beads)[:BEAD_BATCH_SIZE]
             batch = copy.deepcopy(source)
             batch["beads"] = chunk
             try:
-                text = backlog_references(batch, task_id, limit)
+                text = backlog_references(batch, task_id, limit, bead_batch=chunk)
             finally:
                 source["backlog"] = batch["backlog"]
                 source["unread"] = batch.get("unread", [])
@@ -508,7 +509,7 @@ def same_owner(row, source, limit=None):
         repository_names(source.get("repo", source["project"]), limit))
 
 
-def backlog_references(source, task_id, limit=None):
+def backlog_references(source, task_id, limit=None, *, bead_batch=None):
     backlog = source["backlog"]
     legacy = backlog.get("legacy", False)
     if legacy and not backlog.get("closed", False):
@@ -525,12 +526,12 @@ def backlog_references(source, task_id, limit=None):
         backlog["refreshed_text"] = completed["text"]
         source["beads"] = sorted(set(source["beads"]) | set(completed["beads"]))
     legacy_text = backlog["text"] + "\n" + backlog.get("refreshed_text", "") if legacy else ""
-    def read_backlog(required):
+    def read_batch(required, beads):
         try:
             response = json.loads(read_command([
                 "bash", str(Path(__file__).absolute().with_name("fm-task-data-lib.sh")),
                 "backlog-references", backlog["data"], task_id,
-                "1" if required else "0", *source["beads"],
+                "1" if required else "0", *beads,
             ], str(Path(backlog["data"]).parent), limit))
             if (not isinstance(response, dict) or not isinstance(response.get("text"), str)
                     or response.get("task") not in (None, task_id)
@@ -556,6 +557,20 @@ def backlog_references(source, task_id, limit=None):
             response["text"] += "".join(row[3] + "\n" for row in rows)
         return response
 
+    def read_backlog(required):
+        # Expiry owns its pending queue: row discovery records new beads but
+        # cannot expand the current read. Other callers resolve the full set,
+        # with the same subprocess bound even after a row or archive refresh.
+        beads = source["beads"] if bead_batch is None else bead_batch
+        response = {"task": None, "text": "", "unread": [], "archived": []}
+        for offset in range(0, max(len(beads), 1), BEAD_BATCH_SIZE):
+            batch = read_batch(required, beads[offset:offset + BEAD_BATCH_SIZE])
+            response["task"] = response["task"] or batch["task"]
+            response["text"] += batch["text"] + "\n"
+            response["unread"] = sorted(set(response["unread"]) | set(batch["unread"]))
+            response["archived"] += batch["archived"]
+        return response
+
     response = read_backlog(backlog["task"] is not None and not legacy)
     if not legacy:
         backlog["task"] = response["task"]
@@ -564,8 +579,9 @@ def backlog_references(source, task_id, limit=None):
         discovered = set(bead_ids(response["text"])) - set(source["beads"])
         if discovered:
             source["beads"] = sorted(set(source["beads"]) | discovered)
-            response = read_backlog(backlog["task"] is not None)
-            source["unread"] = response["unread"]
+            if bead_batch is None:
+                response = read_backlog(backlog["task"] is not None)
+                source["unread"] = response["unread"]
     archived_text = ""
     if not legacy and task_id in source["unread"]:
         try:

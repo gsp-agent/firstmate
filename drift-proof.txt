@@ -79,3 +79,5 @@ pr: 109
 pr: 114
 # Failing-first native publication callback test in tests/fm-pr-ready-callback.test.sh: successful registration previously emitted zero callbacks, now one exact event.
 pr: 117
+# Failing-first owning-row bead batching in tests/fm-teardown.test.sh: test_task_data_expiry_batches_row_beads records every bead-read subprocess, bounds it to 32, and proves all 100 beads retain their evidence.
+pr: 121
