@@ -6561,6 +6561,96 @@ PY
   pass 'unchanged holds skip row processes; changed, due, pending and corrupt rows still route'
 )
 
+# Live held rows carry their old task body below the active hold fields, so the
+# listing cuts almost every body short. The idle hint must still hold for them.
+test_domain_sweep_skips_long_unchanged_rows() (
+  local home now=2026-10-14T02:00:00Z history='' line=1 id
+  local reason='Not started on purpose: dispatch here waits for a PM or EP request.'
+  home=$(make_home sweep-long-unchanged)
+  cat > "$home/router.py" <<'PY'
+print("kept")
+PY
+  cat > "$home/row-log.sh" <<'SH'
+# Bash 3.2 installs script arguments after BASH_ENV; inspect the first command.
+trap 'if [ "${1:-}" = route-due ] && [ "$#" -eq 2 ]; then
+  printf "%s\n" "$2" >> "$FM_HOME/row-processes"
+fi; trap - DEBUG' DEBUG
+SH
+  cat > "$home/fakebin/tasks-axi" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = show ]; then
+  printf '%s\n' "$2" >> "$FM_HOME/full-reads"
+  if [ -e "$FM_HOME/fail-next-read" ]; then
+    rm -f "$FM_HOME/fail-next-read"
+    exit 75
+  fi
+fi
+exec "$REAL_TASKS_AXI" "$@"
+SH
+  chmod +x "$home/fakebin/tasks-axi"
+  while [ "$line" -le 40 ]; do
+    history="${history}Earlier note $line for this task."$'\n'
+    line=$((line + 1))
+  done
+  # listed: the live shape, every active field inside the listing's prefix.
+  # cut: a body with no history line, so the listing hides routing lines.
+  printf 'Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: ep-fixture\nHold timeout seconds: 300\nHold reason: %s\n\nPrevious task body:\n%s' \
+    "$reason" "$history" > "$home/body-listed"
+  printf 'Captain hold set: 2026-10-14T02:00:00Z\nDecision owner: ep-fixture\nHold timeout seconds: 300\nHold reason: %s\n\n%s' \
+    "$reason" "$history" > "$home/body-cut"
+  for id in listed cut; do
+    tasks_in "$home" add "$id" "Long $id row" --repo fixture >/dev/null || exit 1
+    tasks_in "$home" update "$id" --body-file "$home/body-$id" >/dev/null || exit 1
+    tasks_in "$home" hold "$id" --kind captain --reason "$reason" >/dev/null || exit 1
+  done
+  tasks_in "$home" list --fields body | grep -F 'truncated' >/dev/null \
+    || fail 'fixture bodies are not long enough to be cut by the listing'
+  sweep() {
+    : > "$home/row-processes"
+    : > "$home/full-reads"
+    BASH_ENV="$home/row-log.sh" run_domain "$home" "$now" route-due > "$home/sweep.out" 2>&1
+  }
+  rows() {
+    assert_equals "$1" "$(tr '\n' ' ' < "$home/row-processes")" "$2"
+  }
+  sweep || fail 'first sweep failed'
+  rows 'cut listed ' 'first sweep did not route both long rows'
+  sweep || fail 'second sweep failed'
+  rows '' 'unchanged long holds started per-row processes'
+  assert_equals cut "$(cat "$home/full-reads")" 'only the row the listing cuts off may take a full read'
+  assert_equals cut "$(cat "$home/state/hold-domain/sweep-cursor")" 'a full read did not advance the sweep cursor'
+
+  # An equal-length edit past the listing boundary is visible only to the full read.
+  sed 's/Earlier note 40 /Earlier note 4X /' "$home/body-cut" > "$home/body-cut.new"
+  mv "$home/body-cut.new" "$home/body-cut"
+  tasks_in "$home" update cut --body-file "$home/body-cut" >/dev/null || exit 1
+  sweep || fail 'hidden edit sweep failed'
+  rows 'cut ' 'a hidden edit to a cut-off body did not route'
+  # A failed full read takes the row path instead of trusting the hint.
+  : > "$home/fail-next-read"
+  sweep || fail 'failed full read sweep failed'
+  rows 'cut ' 'a failed full read skipped its row'
+  sweep || fail 'settled sweep failed'
+  rows '' 'settled long holds started per-row processes'
+
+  # A visible active-field edit routes; history no idle route reads does not.
+  sed 's/^Decision owner: ep-fixture$/Decision owner: ep-other/' "$home/body-listed" > "$home/body-listed.new"
+  mv "$home/body-listed.new" "$home/body-listed"
+  tasks_in "$home" update listed --body-file "$home/body-listed" >/dev/null || exit 1
+  sweep || fail 'owner edit sweep failed'
+  rows 'listed ' 'an edited decision owner did not route'
+  sed 's/Earlier note 40 /Earlier note 4X /' "$home/body-listed" > "$home/body-listed.new"
+  mv "$home/body-listed.new" "$home/body-listed"
+  tasks_in "$home" update listed --body-file "$home/body-listed" >/dev/null || exit 1
+  sweep || fail 'history edit sweep failed'
+  rows '' 'a history-only edit started a per-row process'
+  now=2026-10-14T02:05:00Z
+  sweep || fail 'timeout sweep failed'
+  # The last full read left the cursor on cut, so this sweep resumes after it.
+  rows 'listed cut ' 'a passed hold timeout did not route long rows'
+  pass 'long unchanged holds skip row processes; cut-off rows take one full read; changes still route'
+)
+
 test_domain_sweep_visits_only_routable_rows() {
   local home id technical='GSP PRs 4281, 4291, 4309, and 4319 are waiting on a go for update-branch.'
   home=$(make_domain_home sweep-scope)
@@ -7278,6 +7368,7 @@ esac
 if [ -z "${FM_CAPTAIN_HOLD_LANE:-}" ]; then
 case "${FM_TEST_HOLD_ROUTING_REGRESSION:-}" in
   skip-unchanged) test_domain_sweep_skips_unchanged_rows; exit $? ;;
+  skip-unchanged-long) test_domain_sweep_skips_long_unchanged_rows; exit $? ;;
   answer-receipt-repair) test_answer_receipt_repair_reuses_existing_delivery; exit $? ;;
   answer-receipt-occurrence) test_answer_receipt_cannot_acknowledge_another_occurrence; exit $? ;;
   answer-receipts)
@@ -7397,6 +7488,7 @@ fi
 # (docs/fm-test-portable-shards.md).
 captain_hold_lane_a() {
   test_domain_sweep_skips_unchanged_rows || exit 1
+  test_domain_sweep_skips_long_unchanged_rows || exit 1
   test_domain_deferred_holds_keep_their_routing_wake || exit 1
   test_domain_interrupted_sweeps_make_fair_progress || exit 1
   test_domain_row_bounds_preserve_later_holds || exit 1
