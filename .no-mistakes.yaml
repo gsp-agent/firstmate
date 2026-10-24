@@ -10,10 +10,10 @@
 disable_project_settings: true
 
 # Trusted pin because disable_project_settings needs every listed agent to
-# neutralize AGENTS.md, and grok cannot. Codex matches the global pipeline
-# list since 2026-10-20, after claude-george's sign-in expired. Return to
-# [claude, codex] once that account is signed in again.
-agent: [codex]
+# neutralize AGENTS.md, and grok cannot. Claude runs on the claude-george
+# account, and Codex takes over when a Claude call fails. If either account's
+# sign-in lapses, drop that agent from the list; never add grok.
+agent: [claude, codex]
 
 # Trusted documentation placement policy for the Document step.
 # The audience inventory and coding guideline own the detail; keep this as a
