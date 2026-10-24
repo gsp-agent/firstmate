@@ -86,6 +86,12 @@
 # `route-due` re-reads live backlog holds as recovery from the watcher's pass.
 # A no-argument sweep visits only rows the listing reports held for the captain
 # (including expired dated holds) and ids with pending bodies.
+# Successful idle routes leave a disposable state/hold-domain/idle/<id>.json hint.
+# The sweep compares the full routing fields from one listing and the router
+# identity, and skips matching rows until their next local hold date or timeout.
+# Pending bodies, dynamic human-owner refusals, incomplete/truncated listing
+# bodies and unreadable hints always take the existing bounded row path.
+# bin/fm-hold-route-idle.py owns this hint format; it is never routing authority.
 # Each row of a no-argument sweep allows FM_HOLD_ROUTE_TIMEOUT_SECS seconds (default 30),
 # then reports its failure and continues to the next row.
 # The sweep saves the attempted task id in state/hold-domain/sweep-cursor before
@@ -98,7 +104,7 @@
 # ordinary captain holds. Its route command alone classifies technical holds.
 # Routing state and pending bodies stay under this home's state/hold-domain,
 # keeping supervision required until the existing watcher sweeps them against
-# live backlog state. Each hold, re-hold and sweep row asks the router before
+# live backlog state. Each hold, re-hold and attempted sweep row asks the router before
 # spooling, so a protected ask or human owner retires at once, stays a plain
 # captain hold and creates no routing state. A --until date after the local
 # calendar date, which is what tasks-axi gates on, is classified at the hold-set
@@ -1775,6 +1781,7 @@ PY
   show_field_value "$show" state state
   show_field_value "$show" body body
   show_field_value "$show" hold_kind hold_kind
+  CAPTAIN_ROUTE_IDLE_SHOW=$show
   pending="$STATE/hold-domain/pending/$id.body"
   if [ -f "$pending" ] && grep -q '^Answer continuation: ' "$pending"; then
     digest=$(sed -n 's/^Answer continuation: //p' "$pending")
@@ -1788,10 +1795,11 @@ PY
     finish_answer_delivery "$id" "$(resolution_record_count "$body")" "$mode"
     return
   fi
-  [ -f "$router" ] || return 0
+  [ -f "$router" ] || { CAPTAIN_ROUTE_IDLE=1; return 0; }
   stamp=$(body_hold_set_timestamp "$body")
   if body_has_current_hold_resolution "$body"; then
     retire_hold_route "$id"
+    CAPTAIN_ROUTE_IDLE=1
     return 0
   fi
   owner=$(body_domain_field "$body" 'Decision owner')
@@ -1828,11 +1836,13 @@ PY
   fi
   if [ -z "$stamp" ]; then
     retire_hold_route "$id"
+    CAPTAIN_ROUTE_IDLE=1
     return 0
   fi
   # A Dale-step hold waits on its probe, so `reprobe`, never the router, releases it.
   if [ -n "$(body_hold_probe "$body")" ]; then
     retire_hold_route "$id"
+    CAPTAIN_ROUTE_IDLE=1
     return 0
   fi
   timeout=$(body_domain_field "$body" 'Hold timeout seconds')
@@ -1840,6 +1850,7 @@ PY
   # Pre-contract holds stay with the captain until explicitly held again.
   if [ -z "$owner" ] || [ -z "$timeout" ] || [ -z "$reason" ]; then
     retire_hold_route "$id"
+    CAPTAIN_ROUTE_IDLE=1
     return 0
   fi
   live_reason=$(printf '%s\n' "$show" | fm_hold_reason_decode_stream)
@@ -1871,7 +1882,10 @@ PY
     python3 "$router" "${args[@]}" 2>&1) || rc=$?
   result=${output##*$'\n'}
   case "$rc:$result" in
-    0:kept|'2:not-routed owner-is-dale') retire_hold_route "$id"; return 0 ;;
+    0:kept) retire_hold_route "$id"; CAPTAIN_ROUTE_IDLE=1; return 0 ;;
+    # The human-owner guard can depend on a changing external claimant. That
+    # input is not in the listing, so never cache this refusal.
+    '2:not-routed owner-is-dale') retire_hold_route "$id"; return 0 ;;
   esac
   # Spool before release so a failed route or unhold is retried.
   (umask 077; mkdir -p "$STATE/hold-domain/pending") || { rm -f -- "$tmp"; fail "cannot create routing spool"; }
@@ -1906,8 +1920,8 @@ PY
 }
 
 command_route_due() {
-  local router ids id pending row_timeout=${FM_HOLD_ROUTE_TIMEOUT_SECS:-30} row_status rc=0
-  local cursor cursor_file="$STATE/hold-domain/sweep-cursor" tmp
+  local router ids id row_timeout=${FM_HOLD_ROUTE_TIMEOUT_SECS:-30} row_status rc=0
+  local cursor cursor_file="$STATE/hold-domain/sweep-cursor" tmp data listing
   [ "$#" -le 1 ] || { usage >&2; exit 2; }
   router=${FM_HOLD_DOMAIN_ROUTER:-$HOME/.agent-config/configs/claude/hooks/hold-domain.py}
   require_tasks_axi
@@ -1919,22 +1933,27 @@ command_route_due() {
     CAPTAIN_ROUTE_ADDRESS_READY=1
     acquire_task_control_lock "$1"
     id=$CAPTAIN_TASK_ID
+    # Invalidate under the same lock before attempting work. A failed or killed
+    # retry must not leave an older successful idle hint behind.
+    rm -f -- "$STATE/hold-domain/idle/$id.json" 2>/dev/null || true
+    CAPTAIN_ROUTE_IDLE=0
+    CAPTAIN_ROUTE_IDLE_SHOW=
     route_hold "$id"
     [ "$id" = "$1" ] || retire_hold_route "$1"
+    if [ "$CAPTAIN_ROUTE_IDLE" = 1 ]; then
+      printf '%s\n' "$CAPTAIN_ROUTE_IDLE_SHOW" | python3 "$SCRIPT_DIR/fm-hold-route-idle.py" \
+        record "$STATE/hold-domain" "$router" "$id" || true
+    fi
     return
   fi
   case "$row_timeout" in ''|0*|*[!0-9]*) fail 'FM_HOLD_ROUTE_TIMEOUT_SECS must be positive whole seconds' ;; esac
   # Unhold and archival always leave the pending body until routing retires,
   # so every row that still owes work is captain-held or has a pending body.
-  ids=$(listed_task_rows) || fail "could not list holds for routing"
-  ids=$({
-    printf '%s\n' "$ids" | awk '$2 != "done" && $3 == "captain" { print $1 }'
-    for pending in "$STATE"/hold-domain/pending/*.body; do
-      [ -f "$pending" ] || continue
-      id=${pending##*/}
-      printf '%s\n' "${id%.body}"
-    done
-  } | LC_ALL=C sort -u)
+  data=$(fm_backlog_data_absolute "$DATA") || fail "could not resolve routing backlog"
+  listing=$(fm_backlog_row_list "$data" --fields held,hold_kind,hold_reason,hold_until,body 2>/dev/null) \
+    || fail "could not list holds for routing"
+  ids=$(printf '%s\n' "$listing" | python3 "$SCRIPT_DIR/fm-hold-route-idle.py" \
+    select "$STATE/hold-domain" "$router") || fail "could not select holds for routing"
   [ -n "$ids" ] || return 0
   if [ -f "$cursor_file" ]; then
     cursor=$(cat "$cursor_file") || fail "cannot read routing sweep position"
