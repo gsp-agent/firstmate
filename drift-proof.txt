@@ -85,3 +85,5 @@ pr: 117
 pr: 116
 # Failing-first relaunch --stop-background regressions in tests/fm-control-relaunch.test.sh: the "Background work is running" picker refused with no way forward; now refuses naming the flag without it, and confirms Exit and stop tasks once with it, never another row or a second Enter.
 pr: 119
+# Failing-first cleanup, restore, and merge-after-close regressions in tests/fm-teardown.test.sh (bead-gate), tests/fm-control-relaunch.test.sh (restore), and tests/fm-pm-live.test.sh; the open-bead cleanup and lost closed-task identity fail on e4df55a9, and all six bead-gate cases pass at 0c876dde.
+pr: 120
