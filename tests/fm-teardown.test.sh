@@ -5557,14 +5557,23 @@ test_green_unmerged_task_with_an_open_bead_is_not_cleaned_up() {
 }
 
 test_agent_config_task_answers_to_its_dotted_bead() {
-  local case_dir id=ac-gate3 out rc=0
-  case_dir=$(make_bead_case bead-ac "$id")
-  set_bead_status "$case_dir" .agent-config-beads .agent-config-gate3 in_progress
-  out=$(run_bead_teardown "$case_dir" "$id" 2>&1) || rc=$?
-  expect_code 1 "$rc" "an ac- task whose .agent-config bead is open was cleaned up"$'\n'"$out"
-  assert_contains "$out" "bead .agent-config-gate3, which is in_progress" "the refusal did not name the agent-config bead"
-  assert_bead_refusal_kept_everything "$case_dir" "$id" "ac bead"
-  pass "fm-teardown: an ac-<x> task answers to bead .agent-config-<x>, as the PM send names it"
+  local case_dir id bead out rc
+  for id in ac-gate3 agent-config-gate9; do
+    # The PM send names an agent-config task ac-<x>, and any other project's
+    # task after its bead with the leading dot dropped.
+    case "$id" in
+      ac-*) bead=".agent-config-${id#ac-}" ;;
+      *) bead=".$id" ;;
+    esac
+    case_dir=$(make_bead_case "bead-dotted-$id" "$id")
+    set_bead_status "$case_dir" .agent-config-beads "$bead" in_progress
+    rc=0
+    out=$(run_bead_teardown "$case_dir" "$id" 2>&1) || rc=$?
+    expect_code 1 "$rc" "task $id whose bead $bead is open was cleaned up"$'\n'"$out"
+    assert_contains "$out" "bead $bead, which is in_progress" "the refusal did not name bead $bead"
+    assert_bead_refusal_kept_everything "$case_dir" "$id" "dotted bead $bead"
+  done
+  pass "fm-teardown: ac-<x> answers to .agent-config-<x>, and a task named without the leading dot answers to the dotted bead"
 }
 
 test_merge_handoff_pending_keeps_a_task_whose_bead_closed() {

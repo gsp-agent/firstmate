@@ -8,11 +8,13 @@
 #
 # A task has a bead when its id names one by the rule the PM send uses to name
 # the task after its bead: an agent-config task `ac-<x>` answers to bead
-# `.agent-config-<x>`, and every other task id is its own bead id. That bead
-# is read from the one database its prefix owns (fm-task-data-lib.sh's
-# fm_task_data_bead_database keeps that map). An id no database owns, a
-# database file this machine does not have, and a bead its owner reports not
-# found all mean the task has no bead, and the caller keeps its old behavior.
+# `.agent-config-<x>`, and any other task id is its bead id with a leading dot
+# dropped, so `<id>` answers to bead `<id>`, or to `.<id>` when only a dotted
+# prefix owns it. That bead is read from the one database its prefix owns
+# (fm-task-data-lib.sh's fm_task_data_bead_database keeps that map). An id no
+# database owns, a database file this machine does not have, and a bead its
+# owner reports not found all mean the task has no bead, and the caller keeps
+# its old behavior.
 # The read is the native `br --db <db> show <bead> --json`, run from / with
 # BEADS_DIR, BEADS_DB and BR_DB cleared, bounded by FM_TASK_BEAD_TIMEOUT_SECS
 # (default 10).
@@ -49,8 +51,14 @@ fm_task_bead_read() {  # <task-id>
   case "$secs" in ''|*[!0-9]*) secs=10 ;; esac
   [ "$secs" -gt 0 ] 2>/dev/null || secs=10
   bead=$(fm_task_bead_candidate "$1")
-  db=$(fm_task_data_bead_database "$bead") || return 3
-  [ -n "$db" ] || return 3
+  if ! db=$(fm_task_data_bead_database "$bead") || [ -z "$db" ]; then
+    case "$bead" in
+      .*) return 3 ;;
+    esac
+    bead=".$bead"
+    db=$(fm_task_data_bead_database "$bead") || return 3
+    [ -n "$db" ] || return 3
+  fi
   if [ ! -e "$db" ] && [ ! -L "$db" ]; then
     return 3
   fi
