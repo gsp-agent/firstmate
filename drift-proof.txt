@@ -91,3 +91,5 @@ pr: 62
 pr: 120
 # Failing-first parsed YAML regression in tests/fm-nm-test-contract.test.sh: upstream-lean lacked the trusted Codex pin while disabling project instructions; test_nm_pins_gate_to_codex fails before the pin is restored and passes afterward.
 pr: 122
+# Failing-first retirement regressions carried from PR 113 in tests/fm-inbox.test.sh: a marked retired home accepted a note and appended a wake; note/say/announce now refuse before writes while preserving records and read access, and an empty marker also fails closed.
+pr: 123
