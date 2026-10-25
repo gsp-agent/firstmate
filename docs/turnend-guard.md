@@ -419,7 +419,8 @@ The one loud attended fail-open is available only when all of these hold:
 - The block budget is exhausted.
 - A final check finds neither a healthy watcher nor an automatic continuation.
 
-After that alarm, the Stop auto-arm suppresses further exit-2 continuations until positive watcher recovery, so the final fail-open remains reachable.
+After that alarm, the Stop auto-arm suppresses further failure notices and failure continuations until positive watcher recovery, so the final fail-open remains reachable.
+The alarm suppresses failure notices, not records: an actionable close or an unread wake-queue row is still delivered with exit 2.
 The alarm cannot repeat during that failure episode, and a later unhealthy stop blocks again.
 A positively verified healthy watcher clears the failure notice, alarm, and block budget for a future independent episode.
 A Claude failure notice describes the automatic mechanism as broken and does not direct a routine manual background arm.

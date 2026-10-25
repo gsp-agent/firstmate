@@ -2130,6 +2130,39 @@ test_plain_home_delivers_unread_rows_and_away_delivers_none() {
   pass "auto-arm: a plain home delivers every unread row, and the away record delivers none"
 }
 
+# The queue lock is held past the admission probe's wait, so the probe admits
+# this idle home. The only row was already shown to main, so nothing is
+# delivered and nothing is armed.
+test_idle_home_admitted_for_a_shown_row_arms_nothing() {
+  local dir out status holder seq i
+  dir=$(make_primary_dir "$TMP_ROOT/idle-shown-row")
+  write_arm_fixture "$dir" actionable
+  queue_wake "$dir" check shown-row "check: already shown to main" || fail "the row was not queued"
+  seq=$(awk -F '\t' 'NF >= 5 && $2 ~ /^[0-9]+$/ { print $2; exit }' "$dir/state/.wake-queue")
+  [ -n "$seq" ] || fail "the queued row had no sequence"
+  printf '%s\n' "$seq" > "$dir/state/.main-eligible-rows"
+  FM_STATE_OVERRIDE="$dir/state" bash -c '
+    . "$1"
+    fm_lock_acquire_wait "$2" || exit 1
+    : > "$3"
+    sleep 3
+    fm_lock_release "$2"
+  ' _ "$dir/bin/fm-wake-lib.sh" "$dir/state/.wake-queue.lock" "$dir/lock-held" &
+  holder=$!
+  i=0
+  while [ ! -e "$dir/lock-held" ] && [ "$i" -lt 100 ]; do
+    sleep 0.05
+    i=$((i + 1))
+  done
+  [ -e "$dir/lock-held" ] || fail "fixture: the queue lock was never held"
+  out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+  wait "$holder" 2>/dev/null || true
+  expect_code 0 "$status" "an idle home whose only row was already shown must close quietly"
+  [ -z "$out" ] || fail "an idle home with only a shown row woke main: $out"
+  assert_absent "$dir/state/arm-ran" "an idle home admitted for a shown row armed the watcher"
+  pass "auto-arm: an idle home admitted for a row main was already shown arms nothing"
+}
+
 # On a host home away mode writes the away record and no state/.afk, and the
 # host takes every close. A queued main row is not delivered to main.
 test_host_away_record_delivers_no_unread_row() {
@@ -2246,5 +2279,6 @@ test_host_passes_successor_note_through
 test_rewake_with_handling_marker_allows_the_stop
 test_plain_home_delivers_unread_rows_and_away_delivers_none
 test_host_away_record_delivers_no_unread_row
+test_idle_home_admitted_for_a_shown_row_arms_nothing
 test_refused_failure_notice_is_not_carried_by_a_row_delivery
 test_banner_shows_a_queued_close_reason_once_within_the_cap

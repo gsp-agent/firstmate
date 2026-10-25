@@ -86,7 +86,8 @@ It re-arms by parking that awaited hook on `bin/fm-watch-arm.sh` and returning a
 Claude's `.claude/settings.json` Stop `asyncRewake` hook (`bin/fm-claude-stop-autoarm.sh`) owns routine tokenless re-arm.
 Do not run the hook as a manual arm from a tool turn: a short-lived tool process cannot own its park; its header and help own the invocation contract.
 The hook fires on every Stop.
-On each Stop, an eligible primary with [supervision need](turnend-guard.md#supervision-need) admits one home-scoped owner, which foregrounds `bin/fm-watch-arm.sh` inside the hook-owned process tree.
+On each Stop, an eligible primary with [supervision need](turnend-guard.md#supervision-need), or one holding a wake-queue row main has not been shown (`fm_wake_main_unread` in `bin/fm-wake-lib.sh`), admits one home-scoped owner.
+That owner delivers such a row at once with exit 2; otherwise it foregrounds `bin/fm-watch-arm.sh` inside the hook-owned process tree, and a home admitted only for a row it can no longer find arms nothing.
 While away mode remains inactive, an actionable close wakes the idle session through exit 2, including when the event itself ends supervision need.
 
 ### Claude session-lock ownership
@@ -198,6 +199,7 @@ So a finished, hung, or identity-mismatched claim cannot suppress that recovery 
 The recovery-episode contract below owns once-per-generation announcement.
 A handling successor does not re-announce.
 It enters its poll loop immediately and keeps scanning signals, stale panes, and checks.
+Like every watcher, it closes when a main-only row with a sequence above the queue sequence at its own start appears; rows queued before its start were part of its predecessor's wake.
 
 ### Manual recovery and other harnesses
 

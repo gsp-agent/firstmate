@@ -485,6 +485,10 @@ if fm_supervision_host_enabled "$CONFIG" claude; then
 fi
 # Rows already queued are delivered before the park. Routine rows on an
 # attended host home are not in this scope, so they still reach the park.
+# A home admitted only for an unread row arms nothing once no such row is left.
+if ! need_supervision; then
+  deliver_unread_instead || { autoarm_record clean; exit 0; }
+fi
 deliver_unread_instead || true
 attempt=0
 while [ "$attempt" -lt "$AUTOARM_ATTEMPTS" ]; do
