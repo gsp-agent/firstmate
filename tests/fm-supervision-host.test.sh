@@ -1640,22 +1640,24 @@ SH
   : > "$home/fail-downtime-write"
   printf 'continue\n' > "$home/stub-release"
   wait_until 250 hook_exited "$home" || fail "restore failure: the Stop hook did not finish"
-  expect_code 2 "$(cat "$home/hook.rc")" "the Stop hook must notify main when neither hand-back nor downtime restoration commits"
-  assert_grep 'firstmate watcher auto-arm FAILED' "$home/hook.err" "the refused rewake must turn into a delivered failure notice"
-  assert_re '^epoch=[0-9]+ owner_pid=[0-9]+ outcome=failed ' "$home/state/.claude-autoarm-epoch" \
-    "the failed hand-back must be committed"
+  expect_code 2 "$(cat "$home/hook.rc")" "the Stop hook must deliver the close when downtime restoration fails"
+  assert_grep 'firstmate watcher wake - one supervision event needs a handling turn now.' "$home/hook.err" "the close must be delivered"
+  assert_grep 'supervision-host: watcher downtime could not be restored for the main hand-back' "$home/hook.err" "the delivered close must say downtime was not restored"
+  assert_not_contains "$(cat "$home/hook.err")" 'firstmate watcher auto-arm FAILED' "a committed rewake must not become a failure notice"
+  assert_re '^epoch=[0-9]+ owner_pid=[0-9]+ outcome=rewake ' "$home/state/.claude-autoarm-epoch" \
+    "the close must be committed as a rewake"
   : > "$home/session.stop"
   stop_home_processes "$home"
 }
 
 test_claude_stop_hook_notifies_when_closed_successor_downtime_restore_fails() {
   assert_claude_stop_hook_notifies_when_closed_successor_downtime_restore_fails pending
-  pass "host+hook: a refused hand-back becomes a delivered failure notice"
+  pass "host+hook: a close is delivered when downtime restoration fails"
 }
 
 test_claude_stop_hook_notifies_when_closed_announced_successor_downtime_restore_fails() {
   assert_claude_stop_hook_notifies_when_closed_successor_downtime_restore_fails announced
-  pass "host+hook: a refused hand-back on an announced handling marker becomes a delivered failure notice"
+  pass "host+hook: a close is delivered when an announced handling marker cannot be restored to downtime"
 }
 
 test_claude_stop_hook_restores_handoff_when_successor_closed_mid_engine_turn() {
