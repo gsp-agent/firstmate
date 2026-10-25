@@ -2242,7 +2242,7 @@ scan_signals_to() {  # <out-var>
 # Age in seconds of a path this poll's latest snapshot covered, as age_of
 # prints it: 999999 when it is missing or dated in the future. A path the
 # snapshot did not read is stat'ed by age_of itself. The poll reads each path
-# only after the snapshot that covers it (the cadence markers, then the scan).
+# only after the signal scan has taken the snapshot that covers it.
 snapshot_age_to() {  # <out-var> <path>
   local _sa_now
   if fm_stat_snapshot_find "$2" && [ "${FM_STAT_SNAPSHOT_OK[$FM_STAT_SNAPSHOT_AT]}" = 1 ]; then
@@ -2685,14 +2685,9 @@ EOF
 # associative arrays; older Bash reads every value as before.
 _WATCH_MEMO_ON=0
 if [ "${BASH_VERSINFO[0]}" -gt 4 ] || { [ "${BASH_VERSINFO[0]}" -eq 4 ] && [ "${BASH_VERSINFO[1]}" -ge 2 ]; }; then
-  declare -gA _WATCH_MEMO_SIG=() _WATCH_MEMO_VAL=() _WATCH_PANE_TEXT=() _WATCH_PANE_HASH=()
+  declare -gA _WATCH_PANE_TEXT=() _WATCH_PANE_HASH=()
   _WATCH_MEMO_ON=1
 fi
-# 1 only between this poll's scan snapshot and the end of the pane-stale loop,
-# and only when no signal grace slept in between, so a memo never answers from
-# a snapshot older than the poll.
-WATCH_MEMO_FRESH=0
-
 window_key_to() {  # <out-var> <window>: window_key into a variable
   local _wk_key=${2//:/_}
   _wk_key=${_wk_key//\//_}
@@ -2724,40 +2719,19 @@ rm_present() {  # <path>...
   return 0
 }
 
-# $(<reader> <status-file>) for last_status_line or status_declared_wait_line,
-# kept per log while the log's entry in this poll's scan snapshot (size,
-# mtime, identity, and mode) is the one it was read under, so an unchanged log
-# is not reread through tail and its subshells for every window on every
-# poll. A log the snapshot did not cover, or read outside a fresh snapshot, is
-# read as before. Both readers print nothing for a log that is not a readable
-# regular file.
-status_memo_to() {  # <out-var> <reader> <status-file>
-  local _sm_sig='' _sm_key _sm_val
-  if [ ! -f "$3" ] || [ ! -r "$3" ]; then
-    printf -v "$1" '%s' ''
-    return 0
-  fi
-  if [ "$_WATCH_MEMO_ON" = 1 ] && [ "$WATCH_MEMO_FRESH" = 1 ] && fm_stat_snapshot_find "$3" \
-    && [ "${FM_STAT_SNAPSHOT_OK[$FM_STAT_SNAPSHOT_AT]}" = 1 ]; then
-    _sm_sig="${FM_STAT_SNAPSHOT_TESIG[$FM_STAT_SNAPSHOT_AT]}|${FM_STAT_SNAPSHOT_IDENT[$FM_STAT_SNAPSHOT_AT]}|${FM_STAT_SNAPSHOT_STATE[$FM_STAT_SNAPSHOT_AT]}"
-    _sm_key="$2|$3"
-    if [ "${_WATCH_MEMO_SIG[$_sm_key]-}" = "$_sm_sig" ]; then
-      printf -v "$1" '%s' "${_WATCH_MEMO_VAL[$_sm_key]}"
-      return 0
-    fi
-  fi
-  _sm_val=$("$2" "$3")
-  if [ -n "$_sm_sig" ]; then
-    _WATCH_MEMO_SIG[$_sm_key]=$_sm_sig
-    _WATCH_MEMO_VAL[$_sm_key]=$_sm_val
-  fi
-  printf -v "$1" '%s' "$_sm_val"
+# Read a status result into the caller's variable on every use. File metadata
+# cannot safely cache the result: a same-size rewrite can keep its timestamp,
+# especially with GNU stat's whole-second mtime, while changing a declared wait.
+status_line_to() {  # <out-var> <reader> <status-file>
+  local _slt_value
+  _slt_value=$("$2" "$3")
+  printf -v "$1" '%s' "$_slt_value"
 }
 
 # status_is_paused_or_captain_held over a task's declared wait line.
 task_declares_wait() {  # <task>
   local _tdw_line
-  status_memo_to _tdw_line status_declared_wait_line "$STATE/$1.status"
+  status_line_to _tdw_line status_declared_wait_line "$STATE/$1.status"
   status_is_paused_or_captain_held "$_tdw_line"
 }
 
@@ -2767,11 +2741,11 @@ window_declares_wait() {  # <window>
   task_declares_wait "$_wdw_task"
 }
 
-# stale_is_terminal (bin/fm-classify-lib.sh) for <window>, over the memo.
+# stale_is_terminal (bin/fm-classify-lib.sh) for <window>, with a fresh status read.
 watch_stale_is_terminal() {  # <window>
   local _wst_task _wst_last
   window_to_task_to _wst_task "$1" "$STATE"
-  status_memo_to _wst_last last_status_line "$STATE/$_wst_task.status"
+  status_line_to _wst_last last_status_line "$STATE/$_wst_task.status"
   [ -n "$_wst_last" ] && status_is_captain_relevant "$_wst_last"
 }
 
@@ -3747,9 +3721,7 @@ EOF
   # costs a full firstmate turn each. The re-scan also picks up a newer
   # signature for an already-pending file (last write wins below).
   scan_signals_to pending
-  WATCH_MEMO_FRESH=1
   if [ -n "$pending" ]; then
-    WATCH_MEMO_FRESH=0
     sleep "$SIGNAL_GRACE"
     pending=$(printf '%s\n%s' "$pending" "$(scan_signals)")
     # A task with a live PM reports to that PM alone: its PM's waiter reads
@@ -3906,7 +3878,7 @@ EOF
     # exemption below, because a mate's steers land in an inbox too.
     [ -z "$task" ] || inbox_steer_check "$w" "$task"
     window_key_to key "$w"
-    status_memo_to last status_declared_wait_line "$STATE/$task.status"
+    status_line_to last status_declared_wait_line "$STATE/$task.status"
     if ! status_is_paused_or_captain_held "$last" && [ -e "$STATE/.paused-$key" ]; then
       clear_pause_tracking "$key"
     fi
@@ -4137,7 +4109,6 @@ EOF
   done <<EOF
 $stale_order
 EOF
-  WATCH_MEMO_FRESH=0
 
   # Heartbeat: the watcher runs a cheap fleet-scan at a regular cadence no matter
   # what. Time-based via .last-heartbeat mtime; interval doubles per consecutive

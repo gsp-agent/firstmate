@@ -149,7 +149,8 @@ watch_polls() {  # <home> <log>
 
 # Fixed poll overhead cancels: both homes have four settled status logs,
 # identical cadence and no due checks; only the recorded windows differ.
-# A failed capture intentionally exercises all per-window preparation while
+# The ten-process budget covers five capture processes and five fresh-status
+# read processes. A failed capture exercises all per-window preparation while
 # keeping the fixture independent of any installed backend or agent.
 WATCH_POLLS=0
 empty_home=$(make_watch_home no-windows 4 0)
@@ -162,5 +163,5 @@ added=$((windows - fixed))
 printf 'window budget: %s fixed processes; %s with four windows, over four polls; %s added processes = %s per window per poll\n' \
   "$fixed" "$windows" "$added" "$((added / 16))"
 [ "$added" -ge 16 ] || fail "window counter did not observe capture processes"
-[ "$added" -le 80 ] || fail "window reads added $added processes; budget is 5 per window per poll (80 total)"
-pass "window preparation starts no processes beyond the five needed by each failed capture"
+[ "$added" -le 160 ] || fail "window reads added $added processes; budget is 10 per window per poll (160 total)"
+pass "window preparation and fresh status reads use at most ten processes per failed capture"

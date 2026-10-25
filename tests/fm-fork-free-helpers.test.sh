@@ -370,29 +370,27 @@ for marker in .ring-state .escalated .busy-state .retry-ring 0001.msg; do
 done
 ln -s absent "$STATE/a.inbox/.ring-state"
 inbox_quiet_without_records a && printf 'ignored broken inbox marker symlink\n'
-# A new snapshot must invalidate a cached status after a write or replacement.
+# Status reads must notice writes and replacements, including between snapshots.
 printf 'paused: external wait\n' > "$STATE/a.status"
 fm_stat_snapshot "$STATE/a.status"
-WATCH_MEMO_FRESH=1
 for reader in last_status_line status_declared_wait_line; do
-  status_memo_to value "$reader" "$STATE/a.status"
+  status_line_to value "$reader" "$STATE/a.status"
   want=$("$reader" "$STATE/a.status")
-  [ "$value" = "$want" ] || printf '%s memo differs initially\n' "$reader"
-  status_memo_to value "$reader" "$STATE/a.status"
-  [ "$value" = "$want" ] || printf '%s memo differs on reuse\n' "$reader"
+  [ "$value" = "$want" ] || printf '%s read differs initially\n' "$reader"
+  status_line_to value "$reader" "$STATE/a.status"
+  [ "$value" = "$want" ] || printf '%s repeated read differs\n' "$reader"
 done
 printf 'working: resumed\n' >> "$STATE/a.status"
 fm_stat_snapshot "$STATE/a.status"
-status_memo_to value status_declared_wait_line "$STATE/a.status"
+status_line_to value status_declared_wait_line "$STATE/a.status"
 [ -z "$value" ] || printf 'resumed status retained its wait: %q\n' "$value"
 printf 'done: complete\n' > "$STATE/replacement"
 mv "$STATE/replacement" "$STATE/a.status"
 fm_stat_snapshot "$STATE/a.status"
-status_memo_to value last_status_line "$STATE/a.status"
+status_line_to value last_status_line "$STATE/a.status"
 [ "$value" = 'done: complete' ] || printf 'replacement status retained cached value: %q\n' "$value"
-WATCH_MEMO_FRESH=0
 printf 'working: changed after snapshot\n' > "$STATE/a.status"
-status_memo_to value last_status_line "$STATE/a.status"
+status_line_to value last_status_line "$STATE/a.status"
 [ "$value" = 'working: changed after snapshot' ] || printf 'stale snapshot suppressed a read: %q\n' "$value"
 pane_hash_to first s_fm-a 'pane one'
 pane_hash_to again s_fm-a 'pane one'
@@ -415,17 +413,16 @@ mkdir -p "$FM_CONFIG_OVERRIDE"
 printf 'paused: waiting on A\n' > "$STATE/task.status"
 cp -p "$STATE/task.status" "$STATE/stamp"
 fm_stat_snapshot "$STATE/task.status"
-WATCH_MEMO_FRESH=1
-status_memo_to value status_declared_wait_line "$STATE/task.status"
+status_line_to value status_declared_wait_line "$STATE/task.status"
 [ "$value" = 'paused: waiting on A' ] || printf 'initial status differs\n'
 # GNU stat's second-resolution snapshot permits an ordinary same-size rewrite
 # in the same second to keep this stamp. Pin it on all platforms for the proof.
 printf 'paused: waiting on B\n' > "$STATE/task.status"
 touch -r "$STATE/stamp" "$STATE/task.status"
 fm_stat_snapshot "$STATE/task.status"
-status_memo_to value status_declared_wait_line "$STATE/task.status"
+status_line_to value status_declared_wait_line "$STATE/task.status"
 want=$(status_declared_wait_line "$STATE/task.status")
-[ "$value" = "$want" ] || printf 'cached status %q differs from current reader %q after same-stamp rewrite\n' "$value" "$want"
+[ "$value" = "$want" ] || printf 'status %q differs from current reader %q after same-stamp rewrite\n' "$value" "$want"
 :
 SH
   run_everywhere "same-stamp status rewrite" "$script" "$home"
