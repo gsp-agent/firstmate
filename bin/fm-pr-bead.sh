@@ -3,7 +3,8 @@
 # Usage: fm-pr-bead.sh <task-id> <pr-url>
 # Uses fm-task-bead-lib.sh's authoritative resolver, never PR or brief prose.
 # A task without a bead is unchanged. An unreadable owner, conflicting or duplicate
-# Bead: line, or failed forge operation refuses registration, including at merge time.
+# owning line (any line the Observer deploy guard reads as one, such as bead: or
+# Bead <id>), or failed forge operation refuses registration, including at merge time.
 # The existing body remains a byte-for-byte prefix, preserving pipeline attestation.
 # Repeating the command leaves a matching single line unchanged.
 set -eu
@@ -38,7 +39,7 @@ gh pr view "$FM_PR_URL" --json body > "$TMP/pr.json"
 jq -e --arg bead "$FM_TASK_BEAD_ID" '
   .body as $body
   | if ($body | type) != "string" then error("unreadable PR body") else . end
-  | [$body | split("\n")[] | rtrimstr("\r") | select(test("^Bead:"))] as $lines
+  | [$body | split("\n")[] | rtrimstr("\r") | select(test("^[Bb]ead[ :]"))] as $lines
   | if ($lines | length) == 0 then
       {changed: true, body: ($body + (if $body == "" then "" else "\n\n" end) + "Bead: " + $bead)}
     elif $lines == ["Bead: " + $bead] then {changed: false, body: $body}

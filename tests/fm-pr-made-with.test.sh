@@ -314,7 +314,8 @@ test_registration_carries_verified_bead() {
 
 test_registration_refuses_conflicting_identity() {
   local body
-  for body in $'Bead: obs-other\n' $'Bead: obs-example\nBead: obs-example\n' $'Bead: \n'; do
+  for body in $'Bead: obs-other\n' $'Bead: obs-example\nBead: obs-example\n' $'Bead: \n' \
+    $'bead: obs-other\n' $'Bead obs-other tracks the follow-up.\n'; do
     new_registration "conflict-${RANDOM}"
     printf '%s' "$body" >> "$CASE/body"
     cp "$CASE/body" "$CASE/original"
