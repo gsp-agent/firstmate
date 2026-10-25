@@ -130,6 +130,7 @@ watch_polls() {  # <home> <log>
   ( unset TMUX FM_TASK_ID
     export PATH="$home/fakebin:$SHIMS:$REAL_PATH" FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
       FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 \
+      FM_SECONDMATE_LIVENESS_SECS=99999999 FM_INACTIVE_RECONCILE_SECS=1800 \
       FM_HEARTBEAT_MAX=999999 BASH_ENV="$COUNTER" FM_FORK_LOG="$log" \
       FM_FORK_MARK=watcher_world_gone FM_FORK_MARK_FUNC=main
     exec bash "$ROOT/bin/fm-watch.sh" ) > "$home/watch.out" 2>&1 &
