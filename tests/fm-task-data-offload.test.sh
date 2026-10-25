@@ -241,19 +241,57 @@ assert json.loads((home / "data/task-one/build").read_text())["backup"].startswi
 assert (home / "calls").read_text().splitlines().count("trash") == 1
 print("PASS: interruption after Trash recovers pointer only after reverifying both copies", flush=True)
 
-home = fixture("bead-only")
-(home / "data/task-one/report.md").write_text("Bead: .agent-config-fixture\n")
-database = home / "user/.agent-config-beads/.beads/beads.db"
-database.parent.mkdir(parents=True)
-with sqlite3.connect(database) as db:
-    db.execute("CREATE TABLE issues(id TEXT, description TEXT)")
-    db.execute("CREATE TABLE comments(issue_id TEXT, text TEXT)")
-    db.execute("INSERT INTO issues VALUES (?, ?)", (".agent-config-fixture", "Report archived."))
-    db.execute("INSERT INTO comments VALUES (?, ?)", (".agent-config-fixture", "Evidence: [build](build/)."))
-assert run(home, "offload-plan")["moves"][0]["path"] == "build"
-run(home, "offload")
-assert (home / "Trash/build/evidence.bin").is_file()
-print("PASS: bead-only evidence references are read locally including comments, with no network", flush=True)
+home = fixture("incidental-only")
+(home / "data/task-one/report.md").write_text("Completed without linked evidence.\n")
+(home / "data/task-one/brief.md").write_text("Inspect [build](build/) while working.\n")
+(home / "data/task-one/build.log").write_text("Output directory: build/\n")
+with (home / "data/backlog.md").open("a") as stream:
+    stream.write("  A work note mentions [build](build/).\n")
+plan = run(home, "offload-plan")
+assert plan["moves"] == [], "incidental brief, log or backlog path mentions must not authorize offload"
+assert run(home, "offload")["offloaded"] == []
+assert (home / "data/task-one/build/evidence.bin").read_bytes() == b"original-evidence" * 256
+assert not (home / "calls").exists()
+print("PASS: brief-only, log-only and backlog-prose-only path mentions do not authorize offload", flush=True)
+
+for locator in ("report", "row", "saved"):
+    home = fixture("bead-only-" + locator)
+    (home / "data/task-one/report.md").write_text("Completed.\n")
+    if locator == "report":
+        (home / "data/task-one/report.md").write_text("Bead: .agent-config-fixture\n")
+    elif locator == "row":
+        with (home / "data/backlog.md").open("a") as stream:
+            stream.write("  Bead: .agent-config-fixture\n")
+    else:
+        (home / "data/task-one/record").mkdir()
+        (home / "data/task-one/record/data-cleanup.json").write_text(json.dumps({
+            "version": 1, "task": "task-one", "sources": [{"beads": [".agent-config-fixture"],
+            "backlog": {"text": "Do not migrate [unrelated](unrelated/) from this saved prose."}}]}))
+        (home / "data/task-one/unrelated").mkdir()
+        (home / "data/task-one/unrelated/keep.bin").write_bytes(b"must stay")
+    database = home / "user/.agent-config-beads/.beads/beads.db"
+    database.parent.mkdir(parents=True)
+    with sqlite3.connect(database) as db:
+        db.execute("CREATE TABLE issues(id TEXT, description TEXT)")
+        db.execute("CREATE TABLE comments(issue_id TEXT, text TEXT)")
+        db.execute("INSERT INTO issues VALUES (?, ?)", (".agent-config-fixture", "Report archived."))
+        db.execute("INSERT INTO comments VALUES (?, ?)", (".agent-config-fixture", "Evidence: [build](build/)."))
+    assert [item["path"] for item in run(home, "offload-plan")["moves"]] == ["build"]
+    run(home, "offload")
+    assert (home / "Trash/build/evidence.bin").is_file()
+    if locator == "saved":
+        assert (home / "data/task-one/unrelated/keep.bin").read_bytes() == b"must stay"
+print("PASS: report/row/saved-source bead IDs resolve local bead comments, while saved-source prose is not move authority", flush=True)
+
+for bead in (".agent-config-unread", "unknown-prefix"):
+    home = fixture("unresolved-" + bead)
+    (home / "data/task-one/report.md").write_text(f"Evidence: [build](build/). Bead: {bead}\n")
+    plan = run(home, "offload-plan")
+    assert plan["moves"] == [] and plan["retained"]
+    run(home, "offload", ok=False)
+    assert (home / "data/task-one/build/evidence.bin").is_file()
+    assert not (home / "calls").exists()
+print("PASS: unread or unknown named bead sources retain the original without remote calls", flush=True)
 PY
 test_pid=$!
 wait "$test_pid"

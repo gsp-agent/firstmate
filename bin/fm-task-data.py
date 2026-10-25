@@ -148,9 +148,12 @@ does not fail the cleanup pass; later cleanup retries it before moving any data.
 
 Offload is an explicit second retention round, never an automatic sweep action.
 Offload-plan is read-only and scans the current markdown backlog and its configured
-archive once, using local report and bead database references without forge/network
+archive once, using canonical report.md and bead description/comment references without forge/network
 reads or content hashing; it prints candidates, retained reasons, logical bytes
 and allocated bytes (neither is a promise of APFS free space).
+A closed backlog row and saved cleanup sources can identify relevant beads;
+their path mentions, and those in briefs, logs or other incidental files, do not
+authorize offload.
 A current unchecked row overrides archived completion. Missing/ambiguous dates,
 live metadata, pending closes and every task containing a repository stay whole.
 Date-only completion waits through seven complete local calendar days.
@@ -1084,15 +1087,13 @@ def offload_bead_text(bead, locations, cache):
         return cache[bead]
     owners = [(prefix, home) for home, prefix in locations if bead.startswith(prefix + "-")]
     if not owners:
-        # Firstmate task ids are also shaped like beads; their backlog rows
-        # already contribute references, without inventing another database.
-        return ""
+        raise ValueError(f"unresolved bead owner: {bead}")
     _, home = max(owners, key=lambda item: len(item[0]))
     path = Path.home() / home / ".beads/beads.db"
     try:
         with sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=5) as db:
             columns = {row[1] for row in db.execute("PRAGMA table_info(issues)")}
-            fields = [name for name in ("description", "design", "acceptance_criteria", "notes") if name in columns]
+            fields = [name for name in ("description",) if name in columns]
             if "id" not in columns or not fields:
                 raise ValueError("unsupported bead database schema")
             projections = [f"substr({name}, 1, {KEPT_LIMIT + 1})" for name in fields]
@@ -1137,23 +1138,53 @@ def offload_pointer(path):
         return False
 
 
-def offload_candidates(data, state, task_id, rows, locations, cache):
-    closed, text = offload_closed(data, state, task_id, rows)
-    root = real_directory(data / task_id)
-    files, directories, repos = offload_inventory(root)
-    local, oversized = local_references(root, files, repos)
-    if oversized:
-        raise ValueError("kept evidence exceeds its per-file read limit")
-    text += "\n" + local
-    if len(text.encode()) > TOTAL_LIMIT:
-        raise ValueError("offload reference text exceeds its 16 MiB read limit")
-    # Only locally available report/bead evidence is needed here. Unlike
-    # scratch expiry, offload never consults a forge or reads a live PR.
-    beads = set(bead_ids(text))
+def offload_reference_text(root, row, locations, cache):
+    # The broader scratch keep rule reads incidental text too. Moving that
+    # evidence needs the narrower authority of a task report or named bead.
+    beads = set(bead_ids(row))
+    report = root / "report.md"
+    text = ""
+    if report.exists() or report.is_symlink():
+        if report.is_symlink() or not report.is_file() or report.stat().st_size > KEPT_LIMIT:
+            raise ValueError("unsafe or oversized task report")
+        with report.open("rb") as stream:
+            payload = stream.read(KEPT_LIMIT + 1)
+        if len(payload) > KEPT_LIMIT:
+            raise ValueError("task report exceeds its 16 MiB read limit")
+        text = payload.decode(errors="replace")
+        beads.update(bead_ids(text))
+    receipt = root / RECEIPT
+    if receipt.exists() or receipt.is_symlink():
+        if (receipt.parent.is_symlink() or receipt.is_symlink() or not receipt.is_file()
+                or receipt.stat().st_size > LIMIT):
+            raise ValueError("unsafe cleanup sources for bead discovery")
+        with receipt.open("rb") as stream:
+            payload = stream.read(LIMIT + 1)
+        if len(payload) > LIMIT:
+            raise ValueError("cleanup sources exceed their 1 MiB read limit")
+        record = json.loads(payload)
+        if (not isinstance(record, dict) or record.get("version") != 1 or record.get("task") != root.name
+                or not isinstance(record.get("sources"), list)):
+            raise ValueError("invalid cleanup sources for bead discovery")
+        for source in record["sources"]:
+            if (not isinstance(source, dict) or not isinstance(source.get("beads"), list)
+                    or any(not isinstance(bead, str) for bead in source["beads"])):
+                raise ValueError("invalid saved bead references")
+            beads.update(bead for bead in source["beads"] if is_bead_id(bead))
     for bead in sorted(beads):
         text += "\n" + offload_bead_text(bead, locations, cache)
         if len(text.encode()) > TOTAL_LIMIT:
             raise ValueError("offload reference text exceeds its 16 MiB read limit")
+    return text
+
+
+def offload_candidates(data, state, task_id, rows, locations, cache):
+    closed, row = offload_closed(data, state, task_id, rows)
+    root = real_directory(data / task_id)
+    files, directories, repos = offload_inventory(root)
+    # Only locally available report/bead evidence is needed here. Unlike
+    # scratch expiry, offload never consults a forge or reads a live PR.
+    text = offload_reference_text(root, row, locations, cache)
     targets, _ = retention_paths(root, files, directories, repos, text, ordinary=False)
     totals = {}
     for leaf in files:
