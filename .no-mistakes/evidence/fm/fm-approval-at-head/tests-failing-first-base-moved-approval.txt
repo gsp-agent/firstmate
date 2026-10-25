@@ -1,0 +1,11 @@
+### new moved-approval test against the base commit d6b8de4d script (expected to fail)
+### script: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-approval-lab.Se15d9/focused/base-test_approval_submitted_before_the_head_existed_refuses.sh
+not ok - moved-approval: a review submitted before the head commit existed must refuse: ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+verified: https://github.com/example/repo/pull/501 is open and mergeable, with every unwaived required check reported and every unwaived check green at head 1111111111111111111111111111111111111111: expected exit 1, got 0
+### exit code: 1

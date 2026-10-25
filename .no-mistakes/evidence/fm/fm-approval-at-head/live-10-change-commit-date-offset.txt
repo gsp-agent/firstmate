@@ -1,0 +1,30 @@
+=== case: commit-date-offset   (fm-pr-merge.sh from: change)
+--- scenario served by the fake GitHub API
+{"head":"53f93e3d0a32b3019ab9feef96ed3e5f5d6fd6da","committed":"2026-10-25T12:00:53+02:00","review_pages":[[{"id":5490000008,"user":{"login":"carmanchip23-dev"},"state":"APPROVED","commit_id":"53f93e3d0a32b3019ab9feef96ed3e5f5d6fd6da","submitted_at":"2026-10-25T10:30:00Z"}]],"commit_status":null}
+--- command
+bin/fm-pr-merge.sh task-x1 https://github.com/groovejones/groove-sight-platform/pull/4246 
+--- exit code: 1   elapsed: 45.98s
+--- stderr
+error: refusing to merge https://github.com/groovejones/groove-sight-platform/pull/4246
+  - no approval by carmanchip23-dev at head 53f93e3d0a32b3019ab9feef96ed3e5f5d6fd6da
+--- stdout
+armed: state/task-x1.check.sh
+--- fake GitHub request log
+POST /graphql  query PullRequestByNumber($owner: String!, $repo: String!, $pr_number: Int!) { repository(owner: $owner, name: $repo) { pullRequest(number: $pr_number) {headRe
+POST /graphql  query PullRequestByNumber($owner: String!, $repo: String!, $pr_number: Int!) { repository(owner: $owner, name: $repo) { pullRequest(number: $pr_number) {state,
+POST /graphql  query PullRequestByNumber($owner: String!, $repo: String!, $pr_number: Int!) { repository(owner: $owner, name: $repo) { pullRequest(number: $pr_number) {headRe
+GET /repos/groovejones/groove-sight-platform/actions/permissions
+GET /repos/groovejones/groove-sight-platform/branches/main
+GET /repos/groovejones/groove-sight-platform/rules/branches/main?per_page=100
+GET /repos/groovejones/groove-sight-platform/pulls/4246/reviews?per_page=100
+GET /repos/groovejones/groove-sight-platform/commits/53f93e3d0a32b3019ab9feef96ed3e5f5d6fd6da
+--- merge mutation sent to GitHub: no
+--- pull request merged on the fake GitHub: no
+--- recorded task meta
+window=fm-task-x1
+worktree=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-approval-lab.Se15d9/cases/change-commit-date-offset/wt
+project=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-approval-lab.Se15d9/cases/change-commit-date-offset/project
+kind=ship
+mode=no-mistakes
+pr=https://github.com/groovejones/groove-sight-platform/pull/4246
+pr_head=53f93e3d0a32b3019ab9feef96ed3e5f5d6fd6da

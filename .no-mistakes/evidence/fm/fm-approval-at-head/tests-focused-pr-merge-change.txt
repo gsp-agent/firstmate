@@ -1,0 +1,8 @@
+### tests/fm-pr-merge.test.sh: smoke test plus the four new approval tests, against this change
+### script: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-approval-lab.Se15d9/focused/pr-merge-focused.sh
+ok - fm-pr-merge reports exact queue retry flags after a zero-exit false success
+ok - fm-pr-merge refuses an approval submitted before the head commit existed
+ok - fm-pr-merge accepts an approval submitted once the head commit existed
+ok - fm-pr-merge reads a reviewer review on the second page
+ok - fm-pr-merge still merges under --attended-override when the approval predates the head
+### exit code: 0

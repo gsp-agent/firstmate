@@ -1,0 +1,36 @@
+=== case: skew-4s-inside   (fm-pr-merge.sh from: change)
+--- scenario served by the fake GitHub API
+{"head":"53f93e3d0a32b3019ab9feef96ed3e5f5d6fd6da","committed":"2026-10-25T10:00:53Z","review_pages":[[{"id":5490000005,"user":{"login":"carmanchip23-dev"},"state":"APPROVED","commit_id":"53f93e3d0a32b3019ab9feef96ed3e5f5d6fd6da","submitted_at":"2026-10-25T10:00:49Z"}]],"commit_status":null}
+--- command
+bin/fm-pr-merge.sh task-x1 https://github.com/groovejones/groove-sight-platform/pull/4246 
+--- exit code: 0   elapsed: 53.13s
+--- stderr
+verified: https://github.com/groovejones/groove-sight-platform/pull/4246 is open and mergeable, with every unwaived required check reported and every unwaived check green at head 53f93e3d0a32b3019ab9feef96ed3e5f5d6fd6da
+--- stdout
+armed: state/task-x1.check.sh
+verified: https://github.com/groovejones/groove-sight-platform/pull/4246 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+--- fake GitHub request log
+POST /graphql  query PullRequestByNumber($owner: String!, $repo: String!, $pr_number: Int!) { repository(owner: $owner, name: $repo) { pullRequest(number: $pr_number) {headRe
+POST /graphql  query PullRequestByNumber($owner: String!, $repo: String!, $pr_number: Int!) { repository(owner: $owner, name: $repo) { pullRequest(number: $pr_number) {state,
+POST /graphql  query PullRequestByNumber($owner: String!, $repo: String!, $pr_number: Int!) { repository(owner: $owner, name: $repo) { pullRequest(number: $pr_number) {headRe
+GET /repos/groovejones/groove-sight-platform/actions/permissions
+GET /repos/groovejones/groove-sight-platform/branches/main
+GET /repos/groovejones/groove-sight-platform/rules/branches/main?per_page=100
+GET /repos/groovejones/groove-sight-platform/pulls/4246/reviews?per_page=100
+GET /repos/groovejones/groove-sight-platform/commits/53f93e3d0a32b3019ab9feef96ed3e5f5d6fd6da
+POST /graphql query PullRequest_fields2{WorkflowRun: __type(name: "WorkflowRun"){fields(includeDeprecated: true){name}}}
+POST /graphql query PullRequest_fields{PullRequest: __type(name: "PullRequest"){fields(includeDeprecated: true){name}},StatusCheckRollupContextConnection: __type(name: "Statu
+POST /graphql  query PullRequestByNumber($owner: String!, $repo: String!, $pr_number: Int!) { repository(owner: $owner, name: $repo) { pullRequest(number: $pr_number) {id,num
+POST /graphql mutation PullRequestMerge($input:MergePullRequestInput!){mergePullRequest(input: $input){clientMutationId}}
+GRAPHQL-MUTATION mergePullRequest variables={"input": {"expectedHeadOid": "53f93e3d0a32b3019ab9feef96ed3e5f5d6fd6da", "mergeMethod": "SQUASH", "pullRequestId": "PR_lab4246"}}
+POST /graphql query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue baseRefName}}}
+--- merge mutation sent to GitHub: yes
+--- pull request merged on the fake GitHub: yes
+--- recorded task meta
+window=fm-task-x1
+worktree=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-approval-lab.Se15d9/cases/change-skew-4s-inside/wt
+project=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-approval-lab.Se15d9/cases/change-skew-4s-inside/project
+kind=ship
+mode=no-mistakes
+pr=https://github.com/groovejones/groove-sight-platform/pull/4246
+pr_head=53f93e3d0a32b3019ab9feef96ed3e5f5d6fd6da

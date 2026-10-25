@@ -1,0 +1,29 @@
+### tests/fm-captain-hold-lifecycle.test.sh: the two merge tests that read the updated gh mock, against this change
+### script: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-approval-lab.Se15d9/focused/captain-hold-focused.sh
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the requested message WILL still be sent.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+fm-send: doorbell not typed because the agent in firstmate:fm-sample-teardown-race-pr has exited; the steer is durably recorded at /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-captain-hold.ypwAOk/teardown-race-pr-entrypoint/state/sample-teardown-race-pr.inbox/001.msg for recovery (stuck-crewmate-recovery), and the watcher will not re-ring a dead pane
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the requested message WILL still be sent.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+fm-send: doorbell not typed because the agent in firstmate:fm-sample-teardown-race-local has exited; the steer is durably recorded at /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-captain-hold.ypwAOk/teardown-race-local-entrypoint/state/sample-teardown-race-local.inbox/001.msg for recovery (stuck-crewmate-recovery), and the watcher will not re-ring a dead pane
+ok - merge entrypoints own task state before forced cleanup can retire it
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the requested message WILL still be sent.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+fm-send: doorbell not typed because the agent in firstmate:fm-sample-released-merge has exited; the steer is durably recorded at /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-captain-hold.ypwAOk/released-merge-entrypoint/state/sample-released-merge.inbox/001.msg for recovery (stuck-crewmate-recovery), and the watcher will not re-ring a dead pane
+ok - a released merge passes the guarded entrypoint and remains recently landed
+### exit code: 0

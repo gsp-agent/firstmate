@@ -1,0 +1,434 @@
+### fakegh.py (disposable fake GitHub API served to the real gh over HTTP_PROXY)
+#!/usr/bin/env python3
+"""Disposable fake GitHub API for driving the real gh CLI in a lab.
+
+gh talks to it through HTTP_PROXY with GH_HOST=github.localhost, so every
+request arrives as an absolute http://api.github.localhost/... URL. The
+scenario is re-read from <lab>/scenario.json on every request, so one server
+serves every case. Every request is appended to <lab>/requests.log.
+"""
+import json
+import os
+import re
+import sys
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import urlsplit, parse_qs
+
+LAB = sys.argv[1]
+PORT = int(sys.argv[2])
+LOCK = threading.Lock()
+
+
+def scenario():
+    with open(os.path.join(LAB, "scenario.json")) as f:
+        return json.load(f)
+
+
+def log(line):
+    with LOCK, open(os.path.join(LAB, "requests.log"), "a") as f:
+        f.write(line + "\n")
+
+
+# ---- a small GraphQL executor: fields, aliases, args, inline fragments ----
+TOKEN = [REDACTED]'\s*(\.\.\.|"(?:\\.|[^"\\])*"|[A-Za-z_][A-Za-z0-9_]*|-?\d+(?:\.\d+)?|[{}()\[\]:!$=,@])')
+
+
+def tokenize(text):
+    text = re.sub(r"#[^\n]*", "", text)
+    pos, out = 0, []
+    while pos < len(text):
+        m = TOKEN.match(text, pos)
+        if not m:
+            if text[pos:].strip() == "":
+                break
+            raise ValueError("bad token at %r" % text[pos:pos + 20])
+        out.append(m.group(1))
+        pos = m.end()
+    return out
+
+
+class Parser:
+    def __init__(self, toks):
+        self.t, self.i = toks, 0
+
+    def peek(self):
+        return self.t[self.i] if self.i < len(self.t) else None
+
+    def take(self):
+        tok = self.t[self.i]
+        self.i += 1
+        return tok
+
+    def skip_balanced(self, open_, close):
+        depth = 0
+        raw = []
+        while True:
+            tok = self.take()
+            raw.append(tok)
+            if tok == open_:
+                depth += 1
+            elif tok == close:
+                depth -= 1
+                if depth == 0:
+                    return " ".join(raw)
+
+    def document(self):
+        ops, frags = [], {}
+        while self.peek() is not None:
+            if self.peek() == "fragment":
+                self.take()
+                name = self.take()
+                self.take()  # on
+                typ = self.take()
+                frags[name] = (typ, self.selection_set())
+                continue
+            kind = "query"
+            if self.peek() in ("query", "mutation", "subscription"):
+                kind = self.take()
+                if self.peek() not in ("(", "{"):
+                    self.take()
+                if self.peek() == "(":
+                    self.skip_balanced("(", ")")
+            ops.append((kind, self.selection_set()))
+        return ops, frags
+
+    def selection_set(self):
+        assert self.take() == "{"
+        sels = []
+        while self.peek() != "}":
+            if self.peek() == ",":
+                self.take()
+                continue
+            if self.peek() == "...":
+                self.take()
+                if self.peek() == "on":
+                    self.take()
+                    typ = self.take()
+                    sels.append(("inline", typ, self.selection_set()))
+                else:
+                    sels.append(("spread", self.take()))
+                continue
+            name = self.take()
+            alias = name
+            if self.peek() == ":":
+                self.take()
+                name = self.take()
+            args = ""
+            if self.peek() == "(":
+                args = self.skip_balanced("(", ")")
+            while self.peek() == "@":
+                self.take()
+                self.take()
+                if self.peek() == "(":
+                    self.skip_balanced("(", ")")
+            sub = self.selection_set() if self.peek() == "{" else None
+            sels.append(("field", alias, name, args, sub))
+        self.take()
+        return sels
+
+
+def resolve(value, sels, frags):
+    if value is None:
+        return None
+    if isinstance(value, list):
+        return [resolve(v, sels, frags) for v in value]
+    out = {}
+    for sel in sels:
+        if sel[0] == "inline":
+            if value.get("__typename") in (None, sel[1]):
+                out.update(resolve(value, sel[2], frags))
+        elif sel[0] == "spread":
+            typ, sub = frags[sel[1]]
+            if value.get("__typename") in (None, typ):
+                out.update(resolve(value, sub, frags))
+        else:
+            _, alias, name, _args, sub = sel
+            if name == "__typename":
+                out[alias] = value.get("__typename", "Object")
+                continue
+            v = value.get(name)
+            out[alias] = resolve(v, sub, frags) if sub is not None else v
+    return out
+
+
+def pull_request(sc):
+    head = sc["head"]
+    checks = [{"__typename": "CheckRun", "name": "ci", "status": "COMPLETED",
+               "conclusion": "SUCCESS", "startedAt": "2026-10-25T10:05:00Z",
+               "completedAt": "2026-10-25T10:09:00Z",
+               "detailsUrl": "https://github.com/%s/%s/runs/1" % (sc["owner"], sc["repo"]),
+               "checkSuite": {"workflowRun": {"workflow": {"name": "ci"}}}}]
+    merged = os.path.exists(os.path.join(LAB, "merged"))
+    commit = {"__typename": "Commit", "oid": head, "id": "C_" + head[:8],
+              "statusCheckRollup": {"state": "SUCCESS", "contexts": {
+                  "totalCount": 1, "nodes": checks,
+                  "pageInfo": {"hasNextPage": False, "endCursor": None}}}}
+    return {
+        "__typename": "PullRequest", "id": "PR_lab%d" % sc["number"],
+        "number": sc["number"], "title": "lab pull request",
+        "url": "https://github.com/%s/%s/pull/%d" % (sc["owner"], sc["repo"], sc["number"]),
+        "state": "MERGED" if merged else "OPEN", "merged": merged,
+        "isDraft": False, "mergeable": "MERGEABLE", "mergeStateStatus": "CLEAN",
+        "headRefOid": head, "headRefName": "feature", "baseRefName": "main",
+        "isInMergeQueue": False, "isMergeQueueEnabled": False,
+        "isCrossRepository": False, "maintainerCanModify": False,
+        "author": {"login": "gsp-agent"},
+        "headRepositoryOwner": {"__typename": "User", "id": "U_lab", "login": sc["owner"]},
+        "headRepository": {"id": "R_lab", "name": sc["repo"]},
+        "baseRepository": {"id": "R_lab", "name": sc["repo"]},
+        "commits": {"totalCount": 1, "nodes": [{"commit": commit}]},
+        "autoMergeRequest": None, "mergeCommit": None, "reviewDecision": "APPROVED",
+    }
+
+
+def graphql(sc, body):
+    ops, frags = Parser(tokenize(body["query"])).document()
+    kind, sels = ops[0]
+    pr = pull_request(sc)
+    repo = {"__typename": "Repository", "id": "R_lab", "name": sc["repo"],
+            "owner": {"login": sc["owner"]}, "pullRequest": pr,
+            "mergeCommitAllowed": True, "squashMergeAllowed": True,
+            "rebaseMergeAllowed": True, "viewerDefaultMergeMethod": "SQUASH",
+            "deleteBranchOnMerge": False, "viewerCanMergeAsAdmin": False}
+    root = {"repository": repo, "node": pr, "viewer": {"login": "lab-user"}}
+    if kind == "mutation":
+        names = [s[2] for s in sels if s[0] == "field"]
+        log("GRAPHQL-MUTATION %s variables=%s" % (",".join(names), json.dumps(body.get("variables", {}), sort_keys=True)))
+        for s in sels:
+            if s[0] == "field" and s[2] == "mergePullRequest":
+                expected = json.dumps(body.get("variables", {}))
+                if sc["head"] not in expected and sc["head"] not in s[3]:
+                    return {"data": None, "errors": [{"message": "Head branch was modified. Review and try the merge again."}]}
+                open(os.path.join(LAB, "merged"), "w").close()
+                pr = pull_request(sc)
+                root["mergePullRequest"] = {"clientMutationId": None, "pullRequest": pr}
+    return {"data": resolve(root, sels, frags)}
+
+
+class Handler(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+
+    def log_message(self, *a):
+        pass
+
+    def send_json(self, status, obj, headers=()):
+        data = json.dumps(obj).encode()
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("X-GitHub-Media-Type", "github.v3; format=json")
+        for k, v in headers:
+            self.send_header(k, v)
+        self.end_headers()
+        self.wfile.write(data)
+
+    def target(self):
+        parts = urlsplit(self.path)
+        return parts.path, parse_qs(parts.query)
+
+    def do_GET(self):
+        sc = scenario()
+        path, qs = self.target()
+        log("GET %s%s" % (path, ("?" + urlsplit(self.path).query) if urlsplit(self.path).query else ""))
+        o, r, n = sc["owner"], sc["repo"], sc["number"]
+        base = "/repos/%s/%s" % (o, r)
+        if path == "%s/pulls/%d/reviews" % (base, n):
+            pages = sc["review_pages"]
+            page = int(qs.get("page", ["1"])[0])
+            body = pages[page - 1] if 0 < page <= len(pages) else []
+            headers = []
+            if page < len(pages):
+                nxt = "http://api.github.localhost%s/pulls/%d/reviews?per_page=100&page=%d" % (base, n, page + 1)
+                last = "http://api.github.localhost%s/pulls/%d/reviews?per_page=100&page=%d" % (base, n, len(pages))
+                headers.append(("Link", '<%s>; rel="next", <%s>; rel="last"' % (nxt, last)))
+            return self.send_json(200, body, headers)
+        m = re.fullmatch(re.escape(base) + r"/commits/([0-9a-f]{40})", path)
+        if m:
+            sha = m.group(1)
+            if sha == sc["head"] and sc.get("commit_status", 200) != 200:
+                return self.send_json(sc["commit_status"], {"message": "Server Error"})
+            if sha == sc["head"]:
+                return self.send_json(200, {"sha": sha, "commit": {
+                    "message": sc.get("commit_message", "lab head"),
+                    "author": {"name": "lab", "date": sc["committed"]},
+                    "committer": {"name": "lab", "date": sc["committed"]}}, "files": []})
+            return self.send_json(404, {"message": "Not Found"})
+        if re.fullmatch(re.escape(base) + r"/commits/[0-9a-f]{40}/check-runs", path):
+            return self.send_json(200, {"total_count": 0, "check_runs": []})
+        if path == base + "/branches/main":
+            return self.send_json(200, {"name": "main", "protected": False})
+        if path == base + "/rules/branches/main":
+            return self.send_json(200, [])
+        if path == base + "/actions/permissions":
+            return self.send_json(200, {"enabled": True, "allowed_actions": "all"})
+        if path == base:
+            return self.send_json(200, {"name": r, "full_name": "%s/%s" % (o, r),
+                                        "allow_squash_merge": True, "allow_merge_commit": True,
+                                        "allow_rebase_merge": True, "default_branch": "main"})
+        return self.send_json(404, {"message": "Not Found", "lab_path": path})
+
+    def do_POST(self):
+        sc = scenario()
+        path, _ = self.target()
+        length = int(self.headers.get("Content-Length", "0"))
+        raw = self.rfile.read(length)
+        if path == "/graphql":
+            body = json.loads(raw)
+            q = re.sub(r"\s+", " ", body["query"])[:160]
+            log("POST /graphql %s" % q)
+            try:
+                return self.send_json(200, graphql(sc, body))
+            except Exception as e:  # surface parser gaps loudly in the log
+                log("GRAPHQL-ERROR %r" % e)
+                return self.send_json(200, {"data": None, "errors": [{"message": "lab: %s" % e}]})
+        log("POST %s" % path)
+        return self.send_json(404, {"message": "Not Found"})
+
+    do_PUT = do_PATCH = do_DELETE = do_POST
+
+
+if __name__ == "__main__":
+    srv = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
+    with open(os.path.join(LAB, "server.ready"), "w") as f:
+        f.write(str(os.getpid()))
+    srv.serve_forever()
+
+### fakebin/gh (routes the real /opt/homebrew/bin/gh to github.localhost -> lab server)
+#!/usr/bin/env bash
+# Lab route for the real gh: github.com URLs and --hostname github.com become
+# github.localhost, which gh serves over http://api.github.localhost/, and
+# HTTP_PROXY delivers that to the disposable fake server. No real GitHub.
+args=()
+for a in "$@"; do
+  case "$a" in
+    https://github.com/*) a="https://github.localhost/${a#https://github.com/}" ;;
+    github.com) a=github.localhost ;;
+  esac
+  args+=("$a")
+done
+printf '%s\n' "$*" >> "$FM_LAB_DIR/gh-argv.log"
+exec env -u GITHUB_TOKEN -u GH_ENTERPRISE_TOKEN -u GITHUB_ENTERPRISE_TOKEN \
+  GH_HOST=github.localhost GH_TOKEN=[REDACTED] GH_CONFIG_DIR="$FM_LAB_DIR/ghconfig" \
+  GH_NO_UPDATE_NOTIFIER=1 GH_PROMPT_DISABLED=1 DO_NOT_TRACK=1 GH_TELEMETRY=false \
+  HTTP_PROXY="http://127.0.0.1:$FM_LAB_PORT" http_proxy="http://127.0.0.1:$FM_LAB_PORT" \
+  HTTPS_PROXY="http://127.0.0.1:1" https_proxy="http://127.0.0.1:1" NO_PROXY= no_proxy= \
+  /opt/homebrew/bin/gh "${args[@]}"
+
+### fakebin/gh-axi (fallback reader, refuses so nothing reaches real GitHub)
+#!/usr/bin/env bash
+# Lab: gh-axi is the post-merge fallback only; it never reaches real GitHub here.
+printf 'gh-axi %s\n' "$*" >> "$FM_LAB_DIR/gh-argv.log"
+exit 1
+
+### run-case.sh
+#!/usr/bin/env bash
+# run-case.sh <case-name> <scenario.json> <root: change|base> [merge args...]
+# Mints a marked disposable lab home, points the real gh at the fake GitHub
+# server, and runs the real bin/fm-pr-merge.sh from <root>. Prints a
+# transcript: the scenario, the command, exit code, elapsed time, stderr,
+# stdout, the fake GitHub's request log, and whether a merge mutation was sent.
+set -u
+LAB=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-approval-lab.Se15d9
+CHANGE_ROOT=/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5SWD35FM0FQ1G9CNRYNHKF0
+name=$1 scen=$2 which=$3
+shift 3
+case "$which" in
+  change) root=$CHANGE_ROOT ;;
+  base) root=$LAB/base ;;
+  *) echo "bad root" >&2; exit 2 ;;
+esac
+case_dir=$LAB/cases/$which-$name
+rm -rf "${case_dir:?}"
+mkdir -p "$case_dir/user-home"
+home=$("$CHANGE_ROOT/bin/fm-lab-home.sh" create "$case_dir/home") || exit 1
+wt=$case_dir/wt
+mkdir -p "$wt"
+git -C "$wt" init -q -b main
+printf '# lab\n' > "$wt/README.md"
+git -C "$wt" add README.md
+git -C "$wt" -c user.name='Lab' -c user.email='lab@example.invalid' commit -qm initial
+git -C "$wt" update-ref refs/remotes/origin/main "$(git -C "$wt" rev-parse HEAD)"
+cat > "$home/.tasks.toml" <<'TOML'
+backend = "markdown"
+
+[markdown]
+path = "data/backlog.md"
+archive = "data/done-archive.md"
+done_keep = 10
+TOML
+printf '%s\n' '## In flight' '' '## Queued' '' '## Done' > "$home/data/backlog.md"
+printf '%s\n' "window=fm-task-x1" "worktree=$wt" "project=$case_dir/project" \
+  "kind=ship" "mode=no-mistakes" > "$home/state/task-x1.meta"
+
+cp "$scen" "$LAB/scenario.json"
+rm -f "$LAB/merged"
+: > "$LAB/requests.log"
+: > "$LAB/gh-argv.log"
+url=$(jq -r '"https://github.com/\(.owner)/\(.repo)/pull/\(.number)"' "$scen")
+
+echo "=== case: $name   (fm-pr-merge.sh from: $which)"
+echo "--- scenario served by the fake GitHub API"
+jq -c '{head, committed, review_pages: [.review_pages[] | if length > 5 then "\(length) reviews by other users" else . end], commit_status}' "$scen"
+echo "--- command"
+echo "bin/fm-pr-merge.sh task-x1 $url $*"
+start=$(python3 -c 'import time; print(time.time())')
+env -u NO_MISTAKES_GATE -u FM_GATE_REFUSE_BYPASS -u FM_ROOT_OVERRIDE -u FM_STATE_OVERRIDE \
+  -u FM_DATA_OVERRIDE -u FM_CONFIG_OVERRIDE -u FM_PROJECTS_OVERRIDE \
+  FM_HOME="$home" HOME="$case_dir/user-home" \
+  FM_LAB_DIR="$LAB" FM_LAB_PORT=28761 PATH="$LAB/fakebin:$PATH" \
+  "$root/bin/fm-pr-merge.sh" task-x1 "$url" "$@" > "$case_dir/stdout" 2> "$case_dir/stderr"
+rc=$?
+end=$(python3 -c 'import time; print(time.time())')
+echo "--- exit code: $rc   elapsed: $(python3 -c "print(round($end-$start,2))")s"
+echo "--- stderr"
+cat "$case_dir/stderr"
+echo "--- stdout"
+cat "$case_dir/stdout"
+echo "--- fake GitHub request log"
+cat "$LAB/requests.log"
+echo "--- merge mutation sent to GitHub: $(grep -q 'GRAPHQL-MUTATION mergePullRequest' "$LAB/requests.log" && echo yes || echo no)"
+echo "--- pull request merged on the fake GitHub: $([ -f "$LAB/merged" ] && echo yes || echo no)"
+echo "--- recorded task meta"
+cat "$home/state/task-x1.meta"
+cp "$LAB/requests.log" "$case_dir/requests.log"
+exit "$rc"
+
+### batch.sh
+#!/usr/bin/env bash
+# Runs every lab case in order (one fake server, one scenario at a time) and
+# writes each redacted transcript plus a summary into the evidence directory.
+set -u -o pipefail
+LAB=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-approval-lab.Se15d9
+EVID=/Users/dalecarman/.no-mistakes/evidence/01M5SWD35FM0FQ1G9CNRYNHKF0
+summary=$LAB/summary.txt
+: > "$summary"
+n=0
+run() {  # <expected-rc> <name> <scenario> <root> [args...]
+  local want=$1 name=$2 scen=$3 root=$4 rc file verdict
+  shift 4
+  n=$((n + 1))
+  file=$(printf '%s/live-%02d-%s-%s.txt' "$EVID" "$n" "$root" "$name")
+  bash "$LAB/run-case.sh" "$name" "$scen" "$root" "$@" 2>&1 | grep -v '^●' | no-mistakes redact 2>/dev/null > "$file"
+  rc=${PIPESTATUS[0]}
+  if [ "$rc" -eq "$want" ]; then verdict=as-expected; else verdict=UNEXPECTED; fi
+  printf '%-3s %-6s %-32s args=[%s] exit=%s expected=%s %s mutation=%s\n' "$n" "$root" "$name" "$*" "$rc" "$want" "$verdict" \
+    "$(grep -q 'GRAPHQL-MUTATION mergePullRequest' "$LAB/cases/$root-$name/requests.log" && echo sent || echo none)" >> "$summary"
+}
+S=$LAB/scen
+run 1 pr4246-moved-approval "$LAB/scenario.4246.json" change
+run 0 pr4246-moved-approval "$LAB/scenario.4246.json" base
+run 0 fresh-approval "$S/fresh-approval.json" change
+run 0 page2-approval "$S/page2-approval.json" change
+run 1 page2-approval "$S/page2-approval.json" base
+run 1 page2-veto "$S/page2-veto.json" change
+run 0 skew-4s-inside "$S/skew-4s-inside.json" change
+run 1 skew-6s-outside "$S/skew-6s-outside.json" change
+run 1 commit-read-500 "$S/commit-read-500.json" change
+run 1 commit-date-offset "$S/commit-date-offset.json" change
+run 0 pending-plus-fresh "$S/pending-plus-fresh.json" change
+run 1 moved-then-comment "$S/moved-then-comment.json" change
+run 1 fresh-approval-wrong-reviewer "$S/fresh-approval-wrong-reviewer.json" change
+run 0 pr4246-attended-override "$LAB/scenario.4246.json" change --attended-override
+no-mistakes redact < "$summary" 2>/dev/null > "$EVID/live-00-summary.txt"
+echo done

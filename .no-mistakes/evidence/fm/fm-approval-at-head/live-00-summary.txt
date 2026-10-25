@@ -1,0 +1,14 @@
+1   change pr4246-moved-approval            args=[] exit=1 expected=1 as-expected mutation=none
+2   base   pr4246-moved-approval            args=[] exit=0 expected=0 as-expected mutation=sent
+3   change fresh-approval                   args=[] exit=0 expected=0 as-expected mutation=sent
+4   change page2-approval                   args=[] exit=0 expected=0 as-expected mutation=sent
+5   base   page2-approval                   args=[] exit=1 expected=1 as-expected mutation=none
+6   change page2-veto                       args=[] exit=1 expected=1 as-expected mutation=none
+7   change skew-4s-inside                   args=[] exit=0 expected=0 as-expected mutation=sent
+8   change skew-6s-outside                  args=[] exit=1 expected=1 as-expected mutation=none
+9   change commit-read-500                  args=[] exit=1 expected=1 as-expected mutation=none
+10  change commit-date-offset               args=[] exit=1 expected=1 as-expected mutation=none
+11  change pending-plus-fresh               args=[] exit=0 expected=0 as-expected mutation=sent
+12  change moved-then-comment               args=[] exit=1 expected=1 as-expected mutation=none
+13  change fresh-approval-wrong-reviewer    args=[] exit=1 expected=1 as-expected mutation=none
+14  change pr4246-attended-override         args=[--attended-override] exit=0 expected=0 as-expected mutation=sent
