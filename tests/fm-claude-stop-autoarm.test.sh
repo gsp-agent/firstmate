@@ -2120,14 +2120,27 @@ test_plain_home_delivers_unread_rows_and_away_delivers_none() {
   assert_grep 'check: captain inbox note away - still queued' "$dir/state/.wake-queue" \
     "the away exit consumed the queued row"
 
-  dir=$(make_primary_dir "$TMP_ROOT/host-heartbeat-quiet")
+  dir=$(make_primary_dir "$TMP_ROOT/host-heartbeat-idle")
   enable_supervision_host "$dir"
-  queue_wake "$dir" heartbeat fleet "heartbeat: routine row for the park" \
+  queue_wake "$dir" heartbeat fleet "heartbeat: routine row with no park to run" \
     || fail "the routine heartbeat was not queued"
   out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+  expect_code 2 "$status" "an idle host home runs no park, so its routine heartbeat must reach main"
+  assert_contains "$out" "heartbeat: routine row with no park to run" \
+    "the idle host home's heartbeat was not delivered"
+  assert_absent "$dir/state/host-ran" "an idle host home ran the host"
+
+  dir=$(make_primary_dir "$TMP_ROOT/host-heartbeat-park")
+  enable_supervision_host "$dir"
+  : > "$dir/state/task.meta"
+  queue_wake "$dir" heartbeat fleet "heartbeat: routine row for the park" \
+    || fail "the routine heartbeat was not queued"
+  write_host_fixture "$dir" stood-down
+  out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+  assert_present "$dir/state/host-ran" "a routine heartbeat on a home that needs supervision did not reach the park"
   expect_code 0 "$status" "a routine heartbeat on an attended host home must stay with the park"
-  [ -z "$out" ] || fail "a routine heartbeat was delivered to main: $out"
-  pass "auto-arm: a plain home delivers every unread row, and the away record delivers none"
+  [ -z "$out" ] || fail "a routine heartbeat was delivered to main before the park: $out"
+  pass "auto-arm: a plain or idle host home delivers every unread row, the park keeps routine rows, and the away record delivers none"
 }
 
 # The queue lock is held until the hook's own generation claim reads arming,

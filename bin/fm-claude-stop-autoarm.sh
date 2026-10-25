@@ -24,7 +24,8 @@
 #     translation time so a mid-cycle AFK transition is honored).
 #   - Need: arms while the home needs supervision, as
 #     bin/fm-supervision-lib.sh defines it. An idle home with no unread
-#     record exits 0. An unread record is delivered.
+#     record exits 0. An unread record is delivered; on an idle host home
+#     that includes routine rows, because no park will run the engine.
 #   - Single-flight: Claude does not dedupe async hooks, so exactly one
 #     GENERATION owner arms per event epoch: the epoch ledger's monotonic
 #     sequence is the claim generation, every firing defers (exit 0) to a live
@@ -228,18 +229,22 @@ need_supervision() {
   fm_supervision_needed "$STATE" "$GRACE"
 }
 
-# main-only while an attended host owns routine rows. Every row on a plain
-# home or with the host off. No scope (return 1) while the away daemon's flag
-# or, on a host home, the away record is present: the daemon or the host then
-# takes every close.
+# main-only while an attended host home needs supervision, because the park
+# runs the engine that owns routine rows. Every row on a plain home, with the
+# host off, or on a host home with no supervision need, where no park will run
+# that engine. No scope (return 1) while the away daemon's flag or, on a host
+# home, the away record is present: the daemon or the host then takes every
+# close.
 main_unread_scope() {
   [ -e "$STATE/.afk" ] && return 1
   if fm_supervision_host_enabled "$CONFIG" claude; then
     fm_afk_contract_away_present "$STATE" && return 1
-    printf 'main-only\n'
-  else
-    printf 'any\n'
+    if need_supervision; then
+      printf 'main-only\n'
+      return 0
+    fi
   fi
+  printf 'any\n'
 }
 
 # Exit 2 when this generation delivers an unread record. Exit 0 when a record

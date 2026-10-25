@@ -88,6 +88,7 @@ Do not run the hook as a manual arm from a tool turn: a short-lived tool process
 The hook fires on every Stop.
 On each Stop, an eligible primary with [supervision need](turnend-guard.md#supervision-need), or one holding a wake-queue row main has not been shown (`fm_wake_main_unread` in `bin/fm-wake-lib.sh`), admits one home-scoped owner.
 That owner delivers such a row at once with exit 2; otherwise it foregrounds `bin/fm-watch-arm.sh` inside the hook-owned process tree, and a home admitted only for a row it can no longer find arms nothing.
+On a supervision-host home that needs supervision, main's rows are the main-only class, because the park runs the engine that owns routine rows; with no supervision need no park will run, so every unread row is main's.
 While away mode remains inactive, an actionable close wakes the idle session through exit 2, including when the event itself ends supervision need.
 
 ### Claude session-lock ownership
