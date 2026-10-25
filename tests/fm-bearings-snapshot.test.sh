@@ -513,15 +513,17 @@ case "$*" in
   *data/secondmates.md)
     if [ "$REGISTRY_READ_MODE" = wait ]; then
       sleep 3
-    else
+    elif [ "$REGISTRY_READ_MODE" = burn ]; then
       while :; do :; done
+    else
+      exit 7
     fi
     ;;
 esac
 exec /usr/bin/head "$@"
 SH
   chmod +x "$fakebin/head"
-  for mode in wait burn; do
+  for mode in wait burn error; do
     canonical=$(PATH="$fakebin:$PATH" REGISTRY_READ_MODE="$mode" FM_HOME="$home" \
       FM_SNAPSHOT_NOW=2026-07-11T18:00:00Z FM_SNAPSHOT_NOW_EPOCH=1783792800 \
       FM_SNAPSHOT_REGISTRY_TIMEOUT=1 \
@@ -532,12 +534,18 @@ SH
         | .available == true and .complete == true
           and [.records[].id] == ["domain-alpha"]
       ' >/dev/null || fail "a waiting registry read exhausted a 1s budget: $canonical"
-    else
+    elif [ "$mode" = burn ]; then
       printf '%s' "$canonical" | jq -e '
         .secondmate_current.registry
         | .available == false and .complete == false
           and .reason == "registered secondmate table read timed out"
       ' >/dev/null || fail "a CPU-burning registry read was not disclosed as timeout: $canonical"
+    else
+      printf '%s' "$canonical" | jq -e '
+        .secondmate_current.registry
+        | .available == false and .complete == false
+          and .reason == "registered secondmate table is unreadable"
+      ' >/dev/null || fail "a failed registry read did not stay unreadable: $canonical"
     fi
   done
   pass "registry budget excludes waiting and still bounds CPU-burning reads"

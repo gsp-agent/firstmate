@@ -46,7 +46,7 @@ printf '%s\n' bin/fm-stock-bash-check.sh bin/fm-timeout-lib.sh
 EOF
   chmod +x "$repo/bin/fm-lint.sh"
   write_suite "$repo/tests/fm-fleet-snapshot-view.test.sh" 19
-  write_suite "$repo/tests/fm-bearings-snapshot.test.sh" 61
+  write_suite "$repo/tests/fm-bearings-snapshot.test.sh" 62
   write_suite "$repo/tests/fm-public-followup.test.sh" 1
   write_suite "$repo/tests/fm-watch-triage.test.sh" 1
   write_suite "$repo/tests/fm-fork-free-helpers.test.sh" 16
@@ -117,7 +117,7 @@ test_a_count_mismatch_fails_naming_the_suite() {
   write_suite "$repo/tests/fm-bearings-snapshot.test.sh" 59
   run_check "$repo"
   expect_code 1 "$RC" "a short suite"
-  assert_contains "$OUT" "bearings: expected 61 passing tests from tests/fm-bearings-snapshot.test.sh, got 59" \
+  assert_contains "$OUT" "bearings: expected 62 passing tests from tests/fm-bearings-snapshot.test.sh, got 59" \
     "the failure names the suite and both counts"
   assert_contains "$OUT" "backend-adapter-file: " "later steps still run after a failure"
   pass "a suite short of its expected count fails naming the suite"
