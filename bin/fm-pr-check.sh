@@ -21,6 +21,9 @@
 # (bin/fm-project-capacity-lib.sh).
 # A registered GitHub pull request is also stamped with the engines that wrote
 # it through bin/fm-pr-made-with.sh, except on the merge-time re-record.
+# Before registration, bin/fm-pr-bead.sh carries the verified owning bead into
+# GitHub bodies, including at merge time after any pipeline body rewrite.
+# Annotation failure refuses registration before its record, poll or callback.
 # An optional home-owned config/pr-ready-callback executable receives
 # <owner/repo> <positive-pr-number> <40hex-head> after the canonical record and
 # static poll are published, before optional extras, except at merge time.
@@ -189,6 +192,10 @@ if { [ -z "$PR_HEAD" ] || ! fm_dod_forge_head_is_named_head "$MODE"; } \
   && ! GATE_REASON=$(fm_dod_accept_ship_done "${KIND:-ship}" "$MODE" "$WT" "$PROJECT" "$DONE_LINE" "$STATE" "$ID" "$META"); then
   echo "error: $GATE_REASON" >&2
   exit 1
+fi
+
+if [ "$PROVIDER" = github ]; then
+  "$SCRIPT_DIR/fm-pr-bead.sh" "$ID" "$URL" || exit 1
 fi
 
 META_TMP=

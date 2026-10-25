@@ -109,6 +109,9 @@ pr: 135
 pr: 134
 # Failing-first registered PR identity regressions in tests/fm-control-relaunch.test.sh: untraced and traced control relaunches reject pre-fix record ordering and preserve parser-readable PR identity after the writer fixes.
 pr: 133
+
+# tests/fm-pr-made-with.test.sh: registration omitted the verified bead before the fix; repeat, merge-time restore, same-bead lines read as the deploy guard reads them, refusal of lines naming another bead, and the warning on an unverified lookup now pass.
+pr: 132
 # Failing-first orphan-arm regressions in tests/fm-watch-arm.test.sh: on 41a0d972 an attached arm survived caller death, and inherited ignored TERM timed out with exit 124 and required KILL; both pass with the fix.
 # Failure/timeout fixture cleanup also passes with a TERM-ignoring child and stale PID record; post-file pgrep plus cwd checks find zero worktree/test-folder arms, including after failed baseline runs and a suite timeout.
 pr: 136

@@ -25,6 +25,13 @@ case "$1 $2 $3 $4 $5" in
     jq -n --rawfile body "$FM_TEST_BODY" --slurpfile commits "$FM_TEST_COMMITS" \
       --arg head "${FM_TEST_HEAD:-fm/task}" '{body: $body, commits: $commits, headRefName: $head}'
     ;;
+  "pr view https://github.com/o/r/pull/7 --json body")
+    [ "${FM_TEST_VIEW_FAIL:-0}" = 0 ] || exit 1
+    jq -n --rawfile body "$FM_TEST_BODY" '{body: $body}' ;;
+  "pr view https://github.com/o/r/pull/7 --json isDraft")
+    printf '{"isDraft":false}\n' ;;
+  "pr view https://github.com/o/r/pull/7 --json headRefOid")
+    printf '%040d\n' 1 ;;
   "pr edit https://github.com/o/r/pull/7 --body-file "*)
     [ "${FM_TEST_EDIT_FAIL:-0}" = 0 ] || exit 1
     cp "$5" "$FM_TEST_BODY"
@@ -251,3 +258,162 @@ test_crlf_body_already_naming_engines_is_left_alone
 test_absent_or_unreadable_database_still_names_the_worker
 test_non_github_url_needs_nothing
 test_failures_exit_nonzero
+
+
+new_registration() {
+  new_case "$1" codex default $'Description.\n<!-- no-mistakes attestation fixture -->\nMade-with: codex\n'
+  mkdir -p "$CASE/user/dev/agent-observer/.beads" "$CASE/root/bin" "$CASE/home/config" "$CASE/wt"
+  : > "$CASE/user/dev/agent-observer/.beads/beads.db"
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$CASE/root/bin/fm-guard.sh"
+  chmod +x "$CASE/root/bin/fm-guard.sh"
+  fm_write_meta "$CASE/home/state/obs-example.meta" kind=ship mode=no-mistakes \
+    "worktree=$CASE/wt" "project=$CASE/wt" branch=fm/example harness=codex spawn_gen=example-generation
+  printf '[{"id":"obs-example","status":"in_progress"}]\n' > "$CASE/bead.json"
+  cat > "$FAKEBIN/br" <<'SH'
+#!/usr/bin/env bash
+[ "$*" = "--db $HOME/dev/agent-observer/.beads/beads.db show obs-example --json" ] || exit 91
+cat "$FM_TEST_BEAD"
+exit "${FM_TEST_BEAD_RC:-0}"
+SH
+  chmod +x "$FAKEBIN/br"
+  cat > "$CASE/home/config/pr-ready-callback" <<'SH'
+#!/usr/bin/env bash
+cp "$FM_TEST_BODY" "$FM_TEST_CALLBACK_BODY"
+printf '{"schema":"pr-review-router.event.v1","repo":"o/r","pr":7,"head":"%040d","accepted":true,"disposition":"handled"}\n' 1
+SH
+  chmod +x "$CASE/home/config/pr-ready-callback"
+  cp "$CASE/body" "$CASE/original"
+}
+
+register_pr() {
+  HOME="$CASE/user" FM_HOME="$CASE/home" FM_ROOT_OVERRIDE="$CASE/root" NM_HOME="$CASE/nm" \
+    FM_TEST_BODY="$CASE/body" FM_TEST_COMMITS="$CASE/commits" FM_TEST_GH_LOG="$CASE/gh.log" \
+    FM_TEST_BEAD="$CASE/bead.json" FM_TEST_CALLBACK_BODY="$CASE/callback-body" \
+    PATH="$FAKEBIN:$PATH" bash "$ROOT/bin/fm-pr-check.sh" obs-example "$URL"
+}
+
+assert_not_registered() {
+  assert_not_contains "$(cat "$CASE/home/state/obs-example.meta")" 'pr=' 'refusal registered a PR'
+  [ ! -e "$CASE/home/state/obs-example.check.sh" ] || fail 'refusal armed a merge poll'
+  [ ! -e "$CASE/callback-body" ] || fail 'refusal called the ready callback'
+  cmp -s "$CASE/body" "$CASE/original" || fail 'refusal changed the body'
+}
+
+test_registration_carries_verified_bead() {
+  new_registration register
+  register_pr > "$CASE/out" 2>&1 || fail "registration failed: $(cat "$CASE/out")"
+  assert_equals "$(cat "$CASE/body")" $'Description.\n<!-- no-mistakes attestation fixture -->\nMade-with: codex\n\n\nBead: obs-example' 'registration omitted the verified bead or changed the original body'
+  cmp -s "$CASE/body" "$CASE/callback-body" || fail 'ready callback saw a body without the bead'
+  register_pr > "$CASE/out" 2>&1 || fail 'repeat registration failed'
+  assert_equals "$(edits)" 1 'repeat registration edited the complete body'
+  cp "$CASE/original" "$CASE/body"
+  FM_PR_CHECK_MERGE=1 register_pr > "$CASE/out" 2>&1 || fail 'merge-time registration did not repair a pipeline body rewrite'
+  assert_equals "$(grep -c '^Bead: obs-example$' "$CASE/body")" 1 'merge-time registration omitted the bead'
+  assert_equals "$(edits)" 2 'merge-time registration did not restore exactly one line'
+  pass 'registration and merge-time re-registration carry one verified bead before exposure and preserve body and attestation'
+}
+
+assert_registered_unchanged() {  # <case description>
+  assert_contains "$(cat "$CASE/home/state/obs-example.meta")" "pr=$URL" "$1 did not register"
+  [ -e "$CASE/home/state/obs-example.check.sh" ] || fail "$1 did not arm its poll"
+  cmp -s "$CASE/body" "$CASE/original" || fail "$1 changed the body"
+  assert_equals "$(edits)" 0 "$1 edited the body"
+}
+
+test_registration_refuses_conflicting_identity() {
+  local body
+  for body in $'Bead: `obs-example`\n' $'Bead: obs-example.\n' $'Bead obs-example:\n' \
+    $'Bead: obs-other\n' $'bead: obs-other\n' $'Bead obs-other tracks the follow-up.\n' \
+    $'Bead: obs-example\nBead obs-other tracks the follow-up.\n'; do
+    new_registration "conflict-${RANDOM}"
+    printf '%s' "$body" >> "$CASE/body"
+    cp "$CASE/body" "$CASE/original"
+    if register_pr > "$CASE/out" 2>&1; then fail 'registration accepted conflicting bead lines'; fi
+    assert_contains "$(cat "$CASE/out")" "$URL task obs-example: Bead lines name" 'refusal did not name the PR and task'
+    assert_contains "$(cat "$CASE/out")" 'not only verified bead obs-example' 'refusal did not name the verified bead'
+    assert_not_registered
+    if FM_PR_CHECK_MERGE=1 register_pr > "$CASE/out" 2>&1; then fail 'merge-time registration accepted conflicting bead lines'; fi
+    assert_not_registered
+  done
+  new_registration edit-failure
+  if FM_TEST_EDIT_FAIL=1 register_pr > "$CASE/out" 2>&1; then fail 'failed body edit allowed registration'; fi
+  assert_not_registered
+  assert_contains "$(cat "$CASE/out")" "could not edit the body of $URL; PR was not registered" 'failed edit did not explain registration failure'
+  new_registration read-failure
+  if FM_TEST_VIEW_FAIL=1 register_pr > "$CASE/out" 2>&1; then fail 'failed body read allowed registration'; fi
+  assert_not_registered
+  assert_contains "$(cat "$CASE/out")" "could not read the body of $URL; PR was not registered" 'failed read did not explain registration failure'
+  pass 'lines naming another bead and failed edits refuse before registration or ready callback'
+}
+
+test_registration_reads_lines_as_the_deploy_guard_does() {
+  local body mode
+  for mode in 0 1; do
+    for body in $'Bead obs-example (example project): prose.\n' $'bead: obs-example \r\n' \
+      $'Bead: obs-example \n' $'Bead: \n'; do
+      new_registration "canonical-${mode}-${RANDOM}"
+      printf '%s' "$body" >> "$CASE/body"
+      cp "$CASE/body" "$CASE/original"
+      FM_PR_CHECK_MERGE=$mode register_pr > "$CASE/out" 2>&1 || fail "same-bead registration failed: $(cat "$CASE/out")"
+      { cat "$CASE/original"; printf '\n\nBead: obs-example'; } | cmp -s - "$CASE/body" \
+        || fail 'same-bead prose did not gain the exact canonical line while preserving the body'
+      assert_equals 1 "$(grep -c '^Bead: obs-example$' "$CASE/body")" 'registration did not add exactly one canonical line'
+      if [ "$mode" = 0 ]; then
+        cmp -s "$CASE/body" "$CASE/callback-body" || fail 'ready callback missed the canonical line'
+      fi
+      FM_PR_CHECK_MERGE=$mode register_pr > "$CASE/out" 2>&1 || fail 'repeat same-bead registration failed'
+      assert_equals 1 "$(edits)" 'repeat registration edited an existing canonical line'
+    done
+  done
+  for body in $'Bead: obs-example\nBead: obs-example\n' $'Bead: obs-example\r\n' \
+    $'Bead obs-example tracks this change.\nBead: obs-example\n'; do
+    new_registration "canonical-present-${RANDOM}"
+    printf '%s' "$body" >> "$CASE/body"
+    cp "$CASE/body" "$CASE/original"
+    register_pr > "$CASE/out" 2>&1 || fail 'an existing canonical line refused registration'
+    assert_registered_unchanged 'an existing canonical line'
+    FM_PR_CHECK_MERGE=1 register_pr > "$CASE/out" 2>&1 || fail 'an existing canonical line refused merge-time registration'
+    assert_registered_unchanged 'an existing canonical line at merge time'
+  done
+  pass 'same-bead prose gains one canonical line before ready or merge; existing canonical lines stay unchanged'
+}
+
+test_registration_with_unverified_lookup_warns_without_a_line() {
+  local body
+  for body in '[]' '[{"id":"obs-other","status":"open"}]' '[{"id":"obs-long-form-example","status":"open"}]' \
+    '[{"id":"obs-example","status":"open"},{"id":"obs-example","status":"open"}]'; do
+    new_registration "unverified-${RANDOM}"
+    printf '%s\n' "$body" > "$CASE/bead.json"
+    register_pr > "$CASE/out" 2>&1 || fail "an unverified bead lookup refused registration: $(cat "$CASE/out")"
+    assert_registered_unchanged 'an unverified bead lookup'
+    assert_equals "$(grep -c "^fm-pr-bead: warning: $URL task obs-example: bead lookup returned 1 (" "$CASE/out")" 1 \
+      'an unverified bead lookup did not warn once naming the PR, task and resolver result'
+  done
+  new_registration unavailable-bead
+  FM_TEST_BEAD_RC=1 register_pr > "$CASE/out" 2>&1 || fail "an unavailable owning database refused registration: $(cat "$CASE/out")"
+  assert_registered_unchanged 'an unavailable owning database'
+  FM_TEST_BEAD_RC=1 FM_PR_CHECK_MERGE=1 register_pr > "$CASE/out" 2>&1 \
+    || fail "an unavailable owning database refused merge-time registration: $(cat "$CASE/out")"
+  assert_registered_unchanged 'merge-time registration with an unavailable owning database'
+  assert_contains "$(cat "$CASE/out")" "fm-pr-bead: warning: $URL task obs-example" 'merge-time registration did not warn'
+  pass 'an unverified or unavailable bead lookup registers with one warning and no Bead line'
+}
+
+test_registration_without_bead_keeps_generic_behavior() {
+  new_registration no-bead
+  printf '{"error":{"code":"ISSUE_NOT_FOUND"}}\n' > "$CASE/bead.json"
+  FM_TEST_BEAD_RC=3 register_pr > "$CASE/out" 2>&1 || fail 'a task without a bead could not register'
+  cmp -s "$CASE/body" "$CASE/original" || fail 'a missing bead was inferred from the task id'
+  [ -e "$CASE/home/state/obs-example.check.sh" ] || fail 'a task without a bead did not arm its poll'
+  new_registration absent-database
+  mv "$CASE/user/dev/agent-observer/.beads/beads.db" "$CASE/user/dev/agent-observer/.beads/unavailable.db"
+  register_pr > "$CASE/out" 2>&1 || fail 'an absent database changed generic registration'
+  cmp -s "$CASE/body" "$CASE/original" || fail 'an absent database manufactured a bead line'
+  pass 'no bead preserves generic registration'
+}
+
+test_registration_carries_verified_bead
+test_registration_refuses_conflicting_identity
+test_registration_reads_lines_as_the_deploy_guard_does
+test_registration_with_unverified_lookup_warns_without_a_line
+test_registration_without_bead_keeps_generic_behavior
