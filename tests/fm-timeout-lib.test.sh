@@ -548,6 +548,14 @@ test_cpu_bound_lets_a_wait_finish_and_stops_a_burn() {
   [ "$rc" -eq 124 ] || fail "a CPU burn under a 1s CPU bound did not report 124 (rc=$rc)"
   fm_timed_out "$rc" || fail "124 from a CPU bound was not a timed-out status"
   [ "$elapsed" -lt 20 ] || fail "a CPU burn was not stopped (${elapsed}s)"
+  # An ignored disposition survives exec, and macOS follows SIGXCPU with no
+  # SIGKILL: the 60s wall bounds only this test, the CPU bound must answer.
+  rc=0
+  out=$(fm_run_timed 60 perl -e '$SIG{XCPU} = "IGNORE"; exec @ARGV' \
+    bash -c '. "$1"; rc=0; fm_run_cpu_timed 1 bash -c "while :; do :; done" || rc=$?; echo "$rc"' \
+    fm-xcpu-ignored "$ROOT/bin/fm-timeout-lib.sh") || rc=$?
+  [ "$rc" -eq 0 ] && [ "$out" = 124 ] \
+    || fail "a CPU burn launched with SIGXCPU ignored was not stopped (rc=$rc out=$out)"
   rc=0
   out=$(fm_run_cpu_timed 1 bash -c 'echo kept; exit 7') || rc=$?
   [ "$rc" -eq 7 ] || fail "a real status was replaced (rc=$rc)"
@@ -555,7 +563,7 @@ test_cpu_bound_lets_a_wait_finish_and_stops_a_burn() {
   rc=0
   out=$(fm_run_cpu_timed 0 true) || rc=$?
   [ "$rc" -eq 125 ] || fail "a non-positive CPU bound ran (rc=$rc out=$out)"
-  pass "fm_run_cpu_timed counts CPU time, so a wait finishes and a burn reports 124"
+  pass "fm_run_cpu_timed counts CPU time, so a wait finishes and a burn reports 124, even with SIGXCPU ignored"
 }
 
 test_passes_the_command_status_and_output_through

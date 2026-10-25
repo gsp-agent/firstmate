@@ -28,10 +28,15 @@
 #       Runs the command with a per-process CPU-time bound of <seconds>
 #       (RLIMIT_CPU). Waiting does not count: scheduler delay, sleep, and a
 #       blocked read leave the bound intact. Exit status is the command's own,
-#       except 124 when the command dies by SIGXCPU (152) or by the kernel's
-#       follow-up SIGKILL (137). A descendant that hits the same limit is the
-#       command's to surface; this runner only sees the command's exit status.
-#       A non-positive or non-integer bound returns 125 and runs nothing. The
+#       except 124 when the command dies by SIGXCPU (152) or by the SIGKILL
+#       (137) Linux sends at the hard limit. macOS sends SIGXCPU once and never
+#       a SIGKILL, so the runner first resets SIGXCPU to its default action
+#       through perl: a command launched with SIGXCPU ignored is still
+#       stopped, one that ignores it itself is not. A descendant that hits
+#       the same limit is the command's to surface; this runner only sees the
+#       command's exit status.
+#       A non-positive or non-integer bound returns 125 and runs nothing, and
+#       with no perl on the host it returns 127 and runs nothing. The
 #       command stays in the caller's process group, so a wait that never ends
 #       is the caller's wall bound, not this one.
 #
@@ -314,7 +319,8 @@ fm_run_cpu_timed() {  # <seconds> <command...>
     printf 'fm_run_cpu_timed: missing command\n' >&2
     return 125
   fi
-  bash -c 'ulimit -t "$1" >/dev/null || exit 125; shift; exec "$@"' fm-cpu-timed "$seconds" "$@"
+  perl -e '$SIG{XCPU} = "DEFAULT"; exec @ARGV; exit 127' \
+    bash -c 'ulimit -t "$1" >/dev/null || exit 125; shift; exec "$@"' fm-cpu-timed "$seconds" "$@"
   rc=$?
   case "$rc" in
     137|152) return 124 ;;
