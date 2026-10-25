@@ -1538,7 +1538,7 @@ resolve_relaunch_profile() {
   # here so the journal and launch share one pre-stop decision; the control
   # handoff prevents spawn from selecting again against a changed file.
   if [ "$KIND" != secondmate ]; then
-    local dispatch_pair dispatch_model dispatch_effort route
+    local dispatch_pair dispatch_model dispatch_effort route route_effort
     local fallback_model='' fallback_effort=''
     if [ "$TARGET_HARNESS" = "$PRIOR_RECORDED_HARNESS" ] \
         && [ "$(fm_meta_get "$META" route_fallback)" = 1 ]; then
@@ -1568,8 +1568,9 @@ resolve_relaunch_profile() {
     route=$(FM_STATE_OVERRIDE="$STATE" "$SCRIPT_DIR/fm-cursor-guard.sh" route "$ID" "$TARGET_HARNESS" "$PRIOR_HARNESS") \
       || die "the launch route for $ID on '$TARGET_HARNESS' could not be read (bin/fm-cursor-guard.sh); nothing was stopped"
     if [ "${route%% *}" != "$TARGET_HARNESS" ]; then
-      echo "$TARGET_HARNESS fallback: relaunching $ID on the ${route%% *} harness (default model xhigh): ${route#* }" >&2
-      TARGET_HARNESS=${route%% *} TARGET_MODEL=default TARGET_EFFORT=xhigh
+      route_effort=$(fm_control_fallback_effort "${route%% *}")
+      echo "$TARGET_HARNESS fallback: relaunching $ID on the ${route%% *} harness (default model, effort $route_effort): ${route#* }" >&2
+      TARGET_HARNESS=${route%% *} TARGET_MODEL=default TARGET_EFFORT=$route_effort
       TARGET_ROUTE_FALLBACK=1
     fi
   fi
