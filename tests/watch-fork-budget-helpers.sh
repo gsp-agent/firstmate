@@ -16,11 +16,32 @@ TMP_ROOT=$(fm_test_tmproot fm-watch-fork-budget)
 REAL_PATH=$PATH
 
 BUDGET_WATCHER_PID=
-cleanup() {
-  if [ -n "$BUDGET_WATCHER_PID" ]; then
+# Consult this shell's own job table, including stopped jobs. A completed child
+# may have been reaped and its PID reused; that PID alone is never signal authority.
+budget_watcher_live() {
+  local candidate
+  [ -n "$BUDGET_WATCHER_PID" ] || return 1
+  { jobs -pr; jobs -ps; } > "$TMP_ROOT/active-jobs"
+  while IFS= read -r candidate; do
+    [ "$candidate" = "$BUDGET_WATCHER_PID" ] && return 0
+  done < "$TMP_ROOT/active-jobs"
+  return 1
+}
+
+budget_stop_watcher() {
+  local deadline=$((SECONDS + 10))
+  [ -n "$BUDGET_WATCHER_PID" ] || return 0
+  if budget_watcher_live; then
     kill -TERM "$BUDGET_WATCHER_PID" 2>/dev/null || true
-    wait "$BUDGET_WATCHER_PID" 2>/dev/null || true
+    while budget_watcher_live && [ "$SECONDS" -lt "$deadline" ]; do sleep 0.1; done
+    budget_watcher_live && kill -KILL "$BUDGET_WATCHER_PID" 2>/dev/null || true
   fi
+  wait "$BUDGET_WATCHER_PID" 2>/dev/null || true
+  BUDGET_WATCHER_PID=
+}
+
+cleanup() {
+  budget_stop_watcher
   fm_test_cleanup
 }
 trap cleanup EXIT
@@ -81,6 +102,7 @@ wait_markers() {  # <log> <count> <seconds>
   local limit=$(( $3 * 10 )) i=0
   while [ "$i" -lt "$limit" ]; do
     [ "$(markers_in "$1")" -ge "$2" ] && return 0
+    budget_watcher_live || return 1
     sleep 0.1
     i=$((i + 1))
   done
@@ -137,14 +159,10 @@ watch_polls() {  # <home> <log>
   pid=$!
   BUDGET_WATCHER_PID=$pid
   if ! wait_markers "$log" 6 90; then
-    kill -TERM "$pid" 2>/dev/null
-    wait "$pid" 2>/dev/null
-    BUDGET_WATCHER_PID=
+    budget_stop_watcher
     fail "watch: the watcher did not reach six polls: $(head -c 400 "$home/watch.out")"
   fi
-  kill -TERM "$pid" 2>/dev/null
-  wait "$pid" 2>/dev/null
-  BUDGET_WATCHER_PID=
+  budget_stop_watcher
   WATCH_POLLS=$(count_passes "$log" 1 4) || fail "watch: incomplete poll count"
 }
 
