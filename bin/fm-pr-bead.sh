@@ -2,11 +2,15 @@
 # Append exactly one verified owning Bead: line to a GitHub PR before registration.
 # Usage: fm-pr-bead.sh <task-id> <pr-url>
 # Uses fm-task-bead-lib.sh's authoritative resolver, never PR or brief prose.
-# A task without a bead is unchanged. An unreadable owner, conflicting or duplicate
-# owning line (any line the Observer deploy guard reads as one, such as bead: or
-# Bead <id>), or failed forge operation refuses registration, including at merge time.
+# A task without a bead is unchanged. A bead lookup the resolver cannot verify
+# warns once and leaves the body without a line, so the Observer deploy guard
+# still refuses deployment.
+# Existing lines are read the way that guard reads them: the first word after a
+# leading Bead or bead and spaces or colons, deduplicated. A body naming only the
+# verified bead is unchanged; one naming any other bead, or a failed forge
+# operation, refuses registration, including at merge time.
 # The existing body remains a byte-for-byte prefix, preserving pipeline attestation.
-# Repeating the command leaves a matching single line unchanged.
+# Repeating the command leaves a matching body unchanged.
 set -eu
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=bin/fm-pr-lib.sh
@@ -31,21 +35,28 @@ fm_task_bead_read "$1" || RC=$?
 case "$RC" in
   0) ;;
   3) exit 0 ;;
-  *) printf 'fm-pr-bead: %s\n' "$FM_TASK_BEAD_ERROR" >&2; exit 1 ;;
+  *)
+    printf 'fm-pr-bead: warning: %s task %s: bead lookup returned %s (%s); no Bead: line added\n' \
+      "$FM_PR_URL" "$1" "$RC" "$FM_TASK_BEAD_ERROR" >&2
+    exit 0
+    ;;
 esac
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/fm-pr-bead.XXXXXX")
 trap 'rm -rf "$TMP"' EXIT
 gh pr view "$FM_PR_URL" --json body > "$TMP/pr.json"
-jq -e --arg bead "$FM_TASK_BEAD_ID" '
-  .body as $body
-  | if ($body | type) != "string" then error("unreadable PR body") else . end
-  | [$body | split("\n")[] | rtrimstr("\r") | select(test("^[Bb]ead[ :]"))] as $lines
-  | if ($lines | length) == 0 then
-      {changed: true, body: ($body + (if $body == "" then "" else "\n\n" end) + "Bead: " + $bead)}
-    elif $lines == ["Bead: " + $bead] then {changed: false, body: $body}
-    else error("conflicting or duplicate Bead: lines") end
-' "$TMP/pr.json" > "$TMP/plan.json"
-if [ "$(jq -r '.changed' "$TMP/plan.json")" = true ]; then
-  jq -j '.body' "$TMP/plan.json" > "$TMP/body"
-  gh pr edit "$FM_PR_URL" --body-file "$TMP/body" >/dev/null
-fi
+IDS=$(jq -r '
+  .body | if type == "string" then . else error("unreadable PR body") end
+  | [split("\n")[] | capture("^[Bb]ead[ :]+(?<id>[^[:space:]]+)") | .id] | unique | join(" ")
+' "$TMP/pr.json")
+case "$IDS" in
+  '') ;;
+  "$FM_TASK_BEAD_ID") exit 0 ;;
+  *)
+    printf 'fm-pr-bead: %s task %s: Bead lines name %s, not only verified bead %s\n' \
+      "$FM_PR_URL" "$1" "$IDS" "$FM_TASK_BEAD_ID" >&2
+    exit 1
+    ;;
+esac
+jq -j --arg bead "$FM_TASK_BEAD_ID" '.body + (if .body == "" then "" else "\n\n" end) + "Bead: " + $bead' \
+  "$TMP/pr.json" > "$TMP/body"
+gh pr edit "$FM_PR_URL" --body-file "$TMP/body" >/dev/null

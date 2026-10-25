@@ -312,28 +312,74 @@ test_registration_carries_verified_bead() {
   pass 'registration and merge-time re-registration carry one verified bead before exposure and preserve body and attestation'
 }
 
+assert_registered_unchanged() {  # <case description>
+  assert_contains "$(cat "$CASE/home/state/obs-example.meta")" "pr=$URL" "$1 did not register"
+  [ -e "$CASE/home/state/obs-example.check.sh" ] || fail "$1 did not arm its poll"
+  cmp -s "$CASE/body" "$CASE/original" || fail "$1 changed the body"
+  assert_equals "$(edits)" 0 "$1 edited the body"
+}
+
 test_registration_refuses_conflicting_identity() {
   local body
-  for body in $'Bead: obs-other\n' $'Bead: obs-example\nBead: obs-example\n' $'Bead: \n' \
-    $'bead: obs-other\n' $'Bead obs-other tracks the follow-up.\n'; do
+  for body in $'Bead: obs-other\n' $'bead: obs-other\n' $'Bead obs-other tracks the follow-up.\n' \
+    $'Bead: obs-example\nBead obs-other tracks the follow-up.\n'; do
     new_registration "conflict-${RANDOM}"
     printf '%s' "$body" >> "$CASE/body"
     cp "$CASE/body" "$CASE/original"
-    if register_pr > "$CASE/out" 2>&1; then fail 'registration accepted conflicting or ambiguous bead lines'; fi
+    if register_pr > "$CASE/out" 2>&1; then fail 'registration accepted conflicting bead lines'; fi
+    assert_contains "$(cat "$CASE/out")" "$URL task obs-example: Bead lines name" 'refusal did not name the PR and task'
+    assert_contains "$(cat "$CASE/out")" 'not only verified bead obs-example' 'refusal did not name the verified bead'
     assert_not_registered
     if FM_PR_CHECK_MERGE=1 register_pr > "$CASE/out" 2>&1; then fail 'merge-time registration accepted conflicting bead lines'; fi
-    assert_not_registered
-  done
-  for body in '[]' '[{"id":"obs-other","status":"open"}]' '[{"id":"obs-example","status":"open"},{"id":"obs-example","status":"open"}]'; do
-    new_registration "bad-resolver-${RANDOM}"
-    printf '%s\n' "$body" > "$CASE/bead.json"
-    if register_pr > "$CASE/out" 2>&1; then fail 'registration accepted an ambiguous bead lookup'; fi
     assert_not_registered
   done
   new_registration edit-failure
   if FM_TEST_EDIT_FAIL=1 register_pr > "$CASE/out" 2>&1; then fail 'failed body edit allowed registration'; fi
   assert_not_registered
-  pass 'conflicting lines, ambiguous lookup and failed edits refuse before registration or ready callback'
+  pass 'lines naming another bead and failed edits refuse before registration or ready callback'
+}
+
+test_registration_reads_lines_as_the_deploy_guard_does() {
+  local body
+  for body in $'Bead: obs-example\nBead: obs-example\n' $'Bead obs-example (agent-observer, P1): example prose.\n' \
+    $'bead: obs-example \r\n'; do
+    new_registration "same-bead-${RANDOM}"
+    printf '%s' "$body" >> "$CASE/body"
+    cp "$CASE/body" "$CASE/original"
+    register_pr > "$CASE/out" 2>&1 || fail "registration refused lines naming only the verified bead: $(cat "$CASE/out")"
+    assert_registered_unchanged 'a body naming only the verified bead'
+    cmp -s "$CASE/body" "$CASE/callback-body" || fail 'a body naming only the verified bead skipped the ready callback'
+    FM_PR_CHECK_MERGE=1 register_pr > "$CASE/out" 2>&1 || fail 'merge-time registration refused lines naming only the verified bead'
+    assert_equals "$(edits)" 0 'merge-time registration edited a body naming only the verified bead'
+  done
+  new_registration blank-line
+  printf 'Bead: \n' >> "$CASE/body"
+  cp "$CASE/body" "$CASE/original"
+  register_pr > "$CASE/out" 2>&1 || fail "a line naming no bead refused registration: $(cat "$CASE/out")"
+  { cat "$CASE/original"; printf '\n\nBead: obs-example'; } | cmp -s - "$CASE/body" \
+    || fail 'a line naming no bead did not get the verified bead appended'
+  pass 'same-bead prose, repeats, case and spacing count as the verified bead, as the deploy guard reads them'
+}
+
+test_registration_with_unverified_lookup_warns_without_a_line() {
+  local body
+  for body in '[]' '[{"id":"obs-other","status":"open"}]' '[{"id":"obs-long-form-example","status":"open"}]' \
+    '[{"id":"obs-example","status":"open"},{"id":"obs-example","status":"open"}]'; do
+    new_registration "unverified-${RANDOM}"
+    printf '%s\n' "$body" > "$CASE/bead.json"
+    register_pr > "$CASE/out" 2>&1 || fail "an unverified bead lookup refused registration: $(cat "$CASE/out")"
+    assert_registered_unchanged 'an unverified bead lookup'
+    assert_equals "$(grep -c "^fm-pr-bead: warning: $URL task obs-example: bead lookup returned 1 (" "$CASE/out")" 1 \
+      'an unverified bead lookup did not warn once naming the PR, task and resolver result'
+  done
+  new_registration unavailable-bead
+  FM_TEST_BEAD_RC=1 register_pr > "$CASE/out" 2>&1 || fail "an unavailable owning database refused registration: $(cat "$CASE/out")"
+  assert_registered_unchanged 'an unavailable owning database'
+  FM_TEST_BEAD_RC=1 FM_PR_CHECK_MERGE=1 register_pr > "$CASE/out" 2>&1 \
+    || fail "an unavailable owning database refused merge-time registration: $(cat "$CASE/out")"
+  assert_registered_unchanged 'merge-time registration with an unavailable owning database'
+  assert_contains "$(cat "$CASE/out")" "fm-pr-bead: warning: $URL task obs-example" 'merge-time registration did not warn'
+  pass 'an unverified or unavailable bead lookup registers with one warning and no Bead line'
 }
 
 test_registration_without_bead_keeps_generic_behavior() {
@@ -346,12 +392,11 @@ test_registration_without_bead_keeps_generic_behavior() {
   mv "$CASE/user/dev/agent-observer/.beads/beads.db" "$CASE/user/dev/agent-observer/.beads/unavailable.db"
   register_pr > "$CASE/out" 2>&1 || fail 'an absent database changed generic registration'
   cmp -s "$CASE/body" "$CASE/original" || fail 'an absent database manufactured a bead line'
-  new_registration unavailable-bead
-  if FM_TEST_BEAD_RC=1 register_pr > "$CASE/out" 2>&1; then fail 'an unavailable owning database allowed registration'; fi
-  assert_not_registered
-  pass 'no bead preserves generic registration while an unavailable owner refuses'
+  pass 'no bead preserves generic registration'
 }
 
 test_registration_carries_verified_bead
 test_registration_refuses_conflicting_identity
+test_registration_reads_lines_as_the_deploy_guard_does
+test_registration_with_unverified_lookup_warns_without_a_line
 test_registration_without_bead_keeps_generic_behavior
