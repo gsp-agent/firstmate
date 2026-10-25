@@ -163,6 +163,7 @@ watch_polls() {  # <home> <log>
     fail "watch: the watcher did not reach six polls: $(head -c 400 "$home/watch.out")"
   fi
   budget_stop_watcher
+  # shellcheck disable=SC2034 # Output consumed by the importing budget test.
   WATCH_POLLS=$(count_passes "$log" 1 4) || fail "watch: incomplete poll count"
 }
 
