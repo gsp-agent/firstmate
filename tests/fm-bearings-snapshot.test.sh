@@ -501,6 +501,48 @@ SH
   pass "parent activity budget counts CPU time, so waiting does not exhaust it and a burn still times out"
 }
 
+test_registry_budget_counts_cpu_time_not_waiting() {
+  local home mate fakebin canonical mode
+  home=$(make_home registry-cpu-budget)
+  mate="$TMP_ROOT/registry-cpu-budget-home"
+  write_domain_alpha_fixture "$home" "$mate"
+  fakebin=$(make_fakebin "$home")
+  cat > "$fakebin/head" <<'SH'
+#!/usr/bin/env bash
+case "$*" in
+  *data/secondmates.md)
+    if [ "$REGISTRY_READ_MODE" = wait ]; then
+      sleep 3
+    else
+      while :; do :; done
+    fi
+    ;;
+esac
+exec /usr/bin/head "$@"
+SH
+  chmod +x "$fakebin/head"
+  for mode in wait burn; do
+    canonical=$(PATH="$fakebin:$PATH" REGISTRY_READ_MODE="$mode" FM_HOME="$home" \
+      FM_SNAPSHOT_NOW=2026-07-11T18:00:00Z FM_SNAPSHOT_NOW_EPOCH=1783792800 \
+      FM_SNAPSHOT_REGISTRY_TIMEOUT=1 \
+      "$ROOT/bin/fm-fleet-snapshot.sh" --json)
+    if [ "$mode" = wait ]; then
+      printf '%s' "$canonical" | jq -e '
+        .secondmate_current.registry
+        | .available == true and .complete == true
+          and [.records[].id] == ["domain-alpha"]
+      ' >/dev/null || fail "a waiting registry read exhausted a 1s budget: $canonical"
+    else
+      printf '%s' "$canonical" | jq -e '
+        .secondmate_current.registry
+        | .available == false and .complete == false
+          and .reason == "registered secondmate table read timed out"
+      ' >/dev/null || fail "a CPU-burning registry read was not disclosed as timeout: $canonical"
+    fi
+  done
+  pass "registry budget excludes waiting and still bounds CPU-burning reads"
+}
+
 test_parent_activity_evidence_is_bounded_and_disclosed() {
   local home mate fakebin canonical json i
   home=$(make_home bounded-parent-activity)
@@ -3418,6 +3460,7 @@ test_a_remote_home_without_any_ledger_is_explicitly_unreadable_without_remote_co
 test_domain_alpha_stale_parent_event_does_not_become_current_work
 test_gnu_stat_uses_file_formats_without_bsd_fallback_pollution
 test_parent_activity_budget_counts_cpu_time_not_waiting
+test_registry_budget_counts_cpu_time_not_waiting
 test_parent_activity_evidence_is_bounded_and_disclosed
 test_active_child_overrides_old_parent_event
 test_structured_child_decision_reaches_captains_call
