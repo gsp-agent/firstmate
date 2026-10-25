@@ -4,10 +4,11 @@
 . "$(dirname "${BASH_SOURCE[0]}")/watch-fork-budget-helpers.sh"
 
 # Detect the interpreter's capability independently of fm_sleep, so this exact
-# test also runs against upstream-lean before that helper exists.
+# test also runs against upstream-lean before that helper exists. Keep the
+# installation-relative path and disabled load aligned with _fm_sleep_load.
 cat > "$TMP_ROOT/probe-sleep.sh" <<'SH'
 lib="${BASH%/*}/../lib/bash/sleep"
-[ -f "$lib" ] && enable -f "$lib" sleep 2>/dev/null
+[ -f "$lib" ] && enable -n -f "$lib" sleep 2>/dev/null
 SH
 WAIT_FORKS=1
 bash "$TMP_ROOT/probe-sleep.sh" && WAIT_FORKS=0

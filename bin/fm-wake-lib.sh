@@ -86,10 +86,13 @@ _FM_SLEEP_BUILTIN=
 _fm_sleep_load() {
   local _fsl_lib="${BASH%/*}/../lib/bash/sleep"
   _FM_SLEEP_BUILTIN=0
-  [ "${FM_TEST_SEAM:-}" != 1 ] || [ -z "${FM_TEST_NO_SLEEP_BUILTIN:-}" ] || return 1
+  if [ "${FM_TEST_SEAM:-}" = 1 ] && [ -n "${FM_TEST_NO_SLEEP_BUILTIN:-}" ]; then
+    return 1
+  fi
   case "${BASH:-}" in /*) ;; *) return 1 ;; esac
   [ -f "$_fsl_lib" ] && [ -r "$_fsl_lib" ] || return 1
-  { enable -f "$_fsl_lib" sleep && enable -n sleep; } 2>/dev/null || return 1
+  # Load disabled in one operation; there is no enabled intermediate state.
+  enable -n -f "$_fsl_lib" sleep 2>/dev/null || return 1
   _FM_SLEEP_BUILTIN=1
 }
 
