@@ -102,3 +102,5 @@ pr: 124
 pr: 125
 # Failing-first parsed YAML regression in tests/fm-nm-test-contract.test.sh: test_nm_pins_gate_to_claude_then_codex fails on e0288d6e's [codex] pin and passes once the trusted list is [claude, codex] with disable_project_settings still true.
 pr: 128
+# Failing-first registered PR identity regressions in tests/fm-control-relaunch.test.sh: untraced and traced control relaunches reject pre-fix record ordering and preserve parser-readable PR identity after the writer fixes.
+pr: 133
