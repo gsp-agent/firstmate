@@ -340,25 +340,35 @@ test_registration_refuses_conflicting_identity() {
 }
 
 test_registration_reads_lines_as_the_deploy_guard_does() {
-  local body
-  for body in $'Bead: obs-example\nBead: obs-example\n' $'Bead obs-example (agent-observer, P1): example prose.\n' \
-    $'bead: obs-example \r\n'; do
-    new_registration "same-bead-${RANDOM}"
+  local body mode
+  for mode in 0 1; do
+    for body in $'Bead obs-example (example project): prose.\n' $'bead: obs-example \r\n' \
+      $'Bead: obs-example \n' $'Bead: \n'; do
+      new_registration "canonical-${mode}-${RANDOM}"
+      printf '%s' "$body" >> "$CASE/body"
+      cp "$CASE/body" "$CASE/original"
+      FM_PR_CHECK_MERGE=$mode register_pr > "$CASE/out" 2>&1 || fail "same-bead registration failed: $(cat "$CASE/out")"
+      { cat "$CASE/original"; printf '\n\nBead: obs-example'; } | cmp -s - "$CASE/body" \
+        || fail 'same-bead prose did not gain the exact canonical line while preserving the body'
+      assert_equals 1 "$(grep -c '^Bead: obs-example$' "$CASE/body")" 'registration did not add exactly one canonical line'
+      if [ "$mode" = 0 ]; then
+        cmp -s "$CASE/body" "$CASE/callback-body" || fail 'ready callback missed the canonical line'
+      fi
+      FM_PR_CHECK_MERGE=$mode register_pr > "$CASE/out" 2>&1 || fail 'repeat same-bead registration failed'
+      assert_equals 1 "$(edits)" 'repeat registration edited an existing canonical line'
+    done
+  done
+  for body in $'Bead: obs-example\nBead: obs-example\n' $'Bead: obs-example\r\n' \
+    $'Bead obs-example tracks this change.\nBead: obs-example\n'; do
+    new_registration "canonical-present-${RANDOM}"
     printf '%s' "$body" >> "$CASE/body"
     cp "$CASE/body" "$CASE/original"
-    register_pr > "$CASE/out" 2>&1 || fail "registration refused lines naming only the verified bead: $(cat "$CASE/out")"
-    assert_registered_unchanged 'a body naming only the verified bead'
-    cmp -s "$CASE/body" "$CASE/callback-body" || fail 'a body naming only the verified bead skipped the ready callback'
-    FM_PR_CHECK_MERGE=1 register_pr > "$CASE/out" 2>&1 || fail 'merge-time registration refused lines naming only the verified bead'
-    assert_equals "$(edits)" 0 'merge-time registration edited a body naming only the verified bead'
+    register_pr > "$CASE/out" 2>&1 || fail 'an existing canonical line refused registration'
+    assert_registered_unchanged 'an existing canonical line'
+    FM_PR_CHECK_MERGE=1 register_pr > "$CASE/out" 2>&1 || fail 'an existing canonical line refused merge-time registration'
+    assert_registered_unchanged 'an existing canonical line at merge time'
   done
-  new_registration blank-line
-  printf 'Bead: \n' >> "$CASE/body"
-  cp "$CASE/body" "$CASE/original"
-  register_pr > "$CASE/out" 2>&1 || fail "a line naming no bead refused registration: $(cat "$CASE/out")"
-  { cat "$CASE/original"; printf '\n\nBead: obs-example'; } | cmp -s - "$CASE/body" \
-    || fail 'a line naming no bead did not get the verified bead appended'
-  pass 'same-bead prose, repeats, case and spacing count as the verified bead, as the deploy guard reads them'
+  pass 'same-bead prose gains one canonical line before ready or merge; existing canonical lines stay unchanged'
 }
 
 test_registration_with_unverified_lookup_warns_without_a_line() {

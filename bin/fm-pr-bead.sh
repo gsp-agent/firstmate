@@ -7,8 +7,9 @@
 # still refuses deployment.
 # Existing lines are read the way that guard reads them: the first word after a
 # leading Bead or bead and spaces or colons, deduplicated. A body naming only the
-# verified bead is unchanged; one naming any other bead, or a failed forge
-# operation, refuses registration, including at merge time.
+# verified bead gains one exact Bead: line if it lacks one. An existing exact
+# line is unchanged. Any other bead or failed forge operation refuses
+# registration, including at merge time.
 # The existing body remains a byte-for-byte prefix, preserving pipeline attestation.
 # Repeating the command leaves a matching body unchanged.
 set -eu
@@ -50,13 +51,17 @@ IDS=$(jq -r '
 ' "$TMP/pr.json")
 case "$IDS" in
   '') ;;
-  "$FM_TASK_BEAD_ID") exit 0 ;;
+  "$FM_TASK_BEAD_ID") ;;
   *)
     printf 'fm-pr-bead: %s task %s: Bead lines name %s, not only verified bead %s\n' \
       "$FM_PR_URL" "$1" "$IDS" "$FM_TASK_BEAD_ID" >&2
     exit 1
     ;;
 esac
+if jq -e --arg line "Bead: $FM_TASK_BEAD_ID" \
+  '.body | split("\n") | any(.[]; rtrimstr("\r") == $line)' "$TMP/pr.json" >/dev/null; then
+  exit 0
+fi
 jq -j --arg bead "$FM_TASK_BEAD_ID" '.body + (if .body == "" then "" else "\n\n" end) + "Bead: " + $bead' \
   "$TMP/pr.json" > "$TMP/body"
 gh pr edit "$FM_PR_URL" --body-file "$TMP/body" >/dev/null
