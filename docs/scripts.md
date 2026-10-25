@@ -114,7 +114,7 @@ The shared no-mistakes gate lifecycle boundary is summarized in [architecture.md
 | `fm-ff-lib.sh`           | Shared guarded fast-forward/reconcile helper for origin pulls and secondmate syncs, with durable divergence markers |
 | `fm-lock-lib.sh`         | Shared "is this git lock provably abandoned?" proof used by teardown and fleet-sync   |
 | `fm-task-reap-lib.sh`    | Stop every process rooted in one task's own directories, for teardown and for a launch the spawn gate rejects |
-| `fm-task-bead-lib.sh`    | Resolve the bead a task answers to and read whether it is done, for teardown's bead gate |
+| `fm-task-bead-lib.sh`    | Resolve the bead a task answers to and read whether it is done, for teardown's bead gate and `fm-pr-bead.sh` |
 | `fm-config-inherit-lib.sh` | Shared primary-to-secondmate inherited local-material propagation and config-reread delivery |
 | `fm-tasks-axi.sh`        | Run `tasks-axi` against this home's backlog from any working directory               |
 | `fm-tasks-axi-lib.sh`    | Shared backlog-backend selector and `tasks-axi` compatibility probe                  |
@@ -148,7 +148,8 @@ The shared no-mistakes gate lifecycle boundary is summarized in [architecture.md
 | `fm-pr-poll.sh`          | Provide the byte-static watcher program for validated pull-request, merge-request, and Gerrit-change poll sidecars |
 | `fm-pr-queue-sweep.sh`   | Sweep queue removals in watched GitHub repositories; the [script header](../bin/fm-pr-queue-sweep.sh) owns discovery and reporting |
 | `fm-contributions.sh`    | Observe owned publications, retain exact-head judgments, measure required actors, and wake on maintainer signals |
-| `fm-pr-check.sh`         | Record validated task `pr=` and `pr_head=` values, atomically arm a static merge poll, then stamp a GitHub pull request's engines with `fm-pr-made-with.sh`; refuses GitHub drafts and persistent secondmate records (see [architecture.md](architecture.md)) |
+| `fm-pr-check.sh`         | Add a GitHub pull request's verified owning bead with `fm-pr-bead.sh`, record validated task `pr=` and `pr_head=` values, atomically arm a static merge poll, then stamp a GitHub pull request's engines with `fm-pr-made-with.sh`; refuses GitHub drafts, persistent secondmate records, and a failed bead annotation (see [architecture.md](architecture.md)) |
+| `fm-pr-bead.sh`          | Add the verified owning bead before GitHub PR registration; IDs end at whitespace or end of line, matching the deploy guard. Backticks and trailing punctuation remain part of the identity and refuse registration when they differ from the verified ID; see the helper header for merge-time behavior |
 | `fm-pr-made-with.sh`     | Append a `Made-with:` line to a task's GitHub pull request body for each engine that wrote its commits |
 | `fm-pr-merge.sh`         | Record PR metadata, merge a task's canonical full GitHub, GitLab, or Forgejo URL, refuse a Gerrit change because firstmate never submits one, then refuse an outcome it cannot prove landed or queued |
 | `fm-pr-state.sh`         | Read-only: print one line per GitHub pull-request blocker it can see, reporting on checks that have reported rather than verdicting merge-readiness |
