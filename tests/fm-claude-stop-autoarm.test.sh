@@ -508,8 +508,9 @@ test_arms_for_captain_probe_hold_without_inflight() {
     "the final probe release notification was discarded"
   [ "$(epoch_outcome "$dir")" = rewake ] || fail "the final probe release must record outcome=rewake"
   out=$(run_autoarm "$dir" 2>/dev/null); status=$?
-  expect_code 0 "$status" "the released probe hold must stop requiring auto-arm"
-  [ -z "$out" ] || fail "the final probe release notification was repeated: $out"
+  expect_code 2 "$status" "the next Stop delivers the same unread release row again"
+  assert_contains "$out" 'check: captain hold probe released after a passing probe' \
+    "the next Stop dropped the unread release row"
   [ "$(wc -l < "$dir/state/arm-ran" | tr -d ' ')" -eq 2 ] \
     || fail "the released probe hold armed the watcher again"
   "${captain[@]}" hold probe --reason 'choose the next action' >/dev/null \
@@ -521,7 +522,7 @@ test_arms_for_captain_probe_hold_without_inflight() {
       fail "an archived probe line kept an ordinary re-hold supervised"
     fi
   ) || fail "the shared predicate read a probe below the history header"
-  pass "auto-arm: a standalone captain probe hold arms and delivers its final release notification once"
+  pass "auto-arm: a standalone captain probe hold arms, delivers its release, and the next Stop delivers that same unread row again"
 }
 
 # --- the armed cycle ----------------------------------------------------------
@@ -540,8 +541,9 @@ test_actionable_close_rewakes_with_reason() {
   [ "$(epoch_outcome "$dir")" = rewake ] || fail "epoch must record outcome=rewake, got: $(epoch_outcome "$dir")"
   [ "$(epoch_field "$dir" session_pid)" = "$(cat "$dir/state/.lock")" ] \
     || fail "rewake epoch must bind the lock-owning Claude session"
-  [ "$(epoch_field "$dir" recovery_generation)" = fixture-generation ] \
-    || fail "rewake epoch must bind the watcher recovery generation"
+  if grep -q 'recovery_generation=' "$dir/state/.claude-autoarm-epoch"; then
+    fail "rewake epoch must bind the session and generation, not the recovery marker: $(head -n 1 "$dir/state/.claude-autoarm-epoch")"
+  fi
   [ ! -e "$dir/state/.claude-autoarm.lock" ] || fail "owner lock must be released after the cycle"
   [ -e "$dir/state/arm-ran" ] || fail "hook never foregrounded the arm wrapper"
   pass "auto-arm: actionable close translates to exactly one exit-2 rewake with reason"
@@ -737,7 +739,7 @@ test_unverified_clean_close_exhausts_retries() {
   pass "auto-arm: unverified clean close exhausts retries and fails closed"
 }
 
-test_post_alarm_actionable_close_is_suppressed() {
+test_post_alarm_actionable_close_is_delivered() {
   local dir out status
   dir=$(make_primary_dir "$TMP_ROOT/post-alarm-actionable")
   : > "$dir/state/task.meta"
@@ -745,12 +747,13 @@ test_post_alarm_actionable_close_is_suppressed() {
   : > "$dir/state/.claude-autoarm-failure-alarmed"
   write_arm_fixture "$dir" actionable
   out=$(run_autoarm "$dir" 2>/dev/null); status=$?
-  expect_code 0 "$status" "an actionable result after attended fail-open must not continue"
-  [ -z "$out" ] || fail "post-alarm actionable result produced continuation output: $out"
-  assert_present "$dir/state/.claude-autoarm-failure-notified" "post-alarm actionable result cleared the failure notice"
-  assert_present "$dir/state/.claude-autoarm-failure-alarmed" "post-alarm actionable result cleared the attended alarm"
-  [ "$(epoch_outcome "$dir")" = failed-suppressed ] || fail "post-alarm actionable result must record failed-suppressed"
-  pass "auto-arm: post-alarm actionable outcomes cannot continue or reset failure state"
+  expect_code 2 "$status" "an actionable result after the attended alarm must still be delivered"
+  assert_contains "$out" "stale: fixture-win actionable" "the post-alarm close was not delivered"
+  assert_not_contains "$out" "auto-arm FAILED" "the post-alarm close raised a new failure notice"
+  assert_present "$dir/state/.claude-autoarm-failure-notified" "post-alarm delivery cleared the failure notice"
+  assert_present "$dir/state/.claude-autoarm-failure-alarmed" "post-alarm delivery cleared the attended alarm"
+  [ "$(epoch_outcome "$dir")" = rewake ] || fail "post-alarm delivery must record outcome=rewake, got: $(epoch_outcome "$dir")"
+  pass "auto-arm: the attended alarm suppresses a new failure notice and still delivers the close"
 }
 
 test_benign_cycle_end_with_live_watcher_is_silent() {
@@ -1722,9 +1725,8 @@ test_host_stand_down_is_silent() {
   pass "auto-arm: a host that stood down closes silently without a retry"
 }
 
-# Main already drained and acknowledged the wake, so the rewake is refused on a
-# marker that is no longer downtime: that refusal stays silent and opens no
-# failure episode.
+# The host prints a wake after the marker has left downtime. The commit binds
+# the session and the generation, so the close is a rewake and opens no failure.
 test_host_benign_rewake_refusal_opens_no_failure_episode() {
   local dir out status
   dir=$(make_primary_dir "$TMP_ROOT/host-benign-refusal")
@@ -1733,17 +1735,17 @@ test_host_benign_rewake_refusal_opens_no_failure_episode() {
   : > "$dir/state/task.meta"
   write_host_fixture "$dir" benign-refusal
   out=$(run_autoarm "$dir" 2>/dev/null); status=$?
-  expect_code 0 "$status" "a refused rewake on an acknowledged marker must stay silent"
-  assert_not_contains "$out" "auto-arm FAILED" "a benign refusal must not deliver a failure notice"
-  assert_absent "$dir/state/.claude-autoarm-failure-notified" "a benign refusal opened a failure episode"
-  [ "$(epoch_outcome "$dir")" != failed ] || fail "a benign refusal must not record outcome=failed"
-  pass "auto-arm: a host rewake refused on an acknowledged marker opens no failure episode"
+  expect_code 2 "$status" "a host close after an acknowledged marker must still be delivered"
+  assert_contains "$out" "signal: fixture.status" "the host close was not delivered"
+  assert_not_contains "$out" "auto-arm FAILED" "an acknowledged marker must not deliver a failure notice"
+  assert_absent "$dir/state/.claude-autoarm-failure-notified" "the close opened a failure episode"
+  [ "$(epoch_outcome "$dir")" = rewake ] || fail "the close must record outcome=rewake, got: $(epoch_outcome "$dir")"
+  pass "auto-arm: a host close after an acknowledged marker is a rewake and opens no failure episode"
 }
 
-# The host handed a wake back but left the marker in handling (pending or
-# announced) with no live successor, so no rewake can commit: the hook delivers
-# the failure notice once per episode and keeps exiting 2 without repeating it.
-assert_host_lost_handback_notifies_once_per_episode() {
+# A host close while the marker is handling is a rewake. The marker does not
+# refuse the commit, and the close is not a failure episode.
+assert_host_handling_marker_close_is_a_rewake() {
   local kind=$1 dir out status
   dir=$(make_primary_dir "$TMP_ROOT/host-$kind")
   mkdir -p "$dir/config"
@@ -1751,25 +1753,27 @@ assert_host_lost_handback_notifies_once_per_episode() {
   : > "$dir/state/task.meta"
   write_host_fixture "$dir" "$kind"
   out=$(run_autoarm "$dir" 2>/dev/null); status=$?
-  expect_code 2 "$status" "a lost hand-back must reach main"
-  assert_contains "$out" "auto-arm FAILED - the supervision host returned an actionable wake" "a lost hand-back must deliver the failure notice"
-  assert_present "$dir/state/.claude-autoarm-failure-notified" "a lost hand-back did not record its failure episode"
-  [ "$(epoch_outcome "$dir")" = failed ] || fail "a lost hand-back must record outcome=failed, got: $(epoch_outcome "$dir")"
+  expect_code 2 "$status" "a handling-marker close must reach main"
+  assert_contains "$out" "signal: fixture.status" "the handling-marker close was not delivered"
+  assert_not_contains "$out" "auto-arm FAILED" "a handling marker must not open a failure notice"
+  assert_absent "$dir/state/.claude-autoarm-failure-notified" "a handling-marker close opened a failure episode"
+  [ "$(epoch_outcome "$dir")" = rewake ] || fail "a handling-marker close must record outcome=rewake, got: $(epoch_outcome "$dir")"
   out=$(run_autoarm "$dir" 2>/dev/null); status=$?
-  expect_code 2 "$status" "a repeated lost hand-back must still reach main"
-  assert_not_contains "$out" "auto-arm FAILED" "a repeated lost hand-back must not repeat the failure notice"
-  [ "$(epoch_outcome "$dir")" = failed-suppressed ] \
-    || fail "a repeated lost hand-back must record outcome=failed-suppressed, got: $(epoch_outcome "$dir")"
+  expect_code 2 "$status" "the same unread close is delivered again on the next Stop"
+  assert_contains "$out" "signal: fixture.status" "the second Stop dropped the handling-marker close"
+  assert_not_contains "$out" "auto-arm FAILED" "the second Stop opened a failure notice"
+  assert_absent "$dir/state/.claude-autoarm-failure-notified" "the second Stop opened a failure episode"
+  [ "$(epoch_outcome "$dir")" = rewake ] || fail "the second Stop must record outcome=rewake, got: $(epoch_outcome "$dir")"
 }
 
-test_host_lost_handback_notifies_once_per_episode() {
-  assert_host_lost_handback_notifies_once_per_episode lost-handback
-  pass "auto-arm: a lost host hand-back notifies once per failure episode"
+test_host_handling_marker_close_is_a_rewake() {
+  assert_host_handling_marker_close_is_a_rewake lost-handback
+  pass "auto-arm: a host close while the marker is handling is a rewake"
 }
 
-test_host_lost_announced_handback_notifies_once_per_episode() {
-  assert_host_lost_handback_notifies_once_per_episode lost-announced-handback
-  pass "auto-arm: a lost host hand-back on an announced marker notifies once per failure episode"
+test_host_announced_handling_marker_close_is_a_rewake() {
+  assert_host_handling_marker_close_is_a_rewake lost-announced-handback
+  pass "auto-arm: a host close while the marker is announced handling is a rewake"
 }
 
 test_host_crash_is_retried_then_reported() {
@@ -2099,7 +2103,7 @@ test_failed_close_rewakes_with_failure_banner
 test_failed_cycles_notify_once_and_keep_retrying
 test_failure_notice_marker_write_refuses_delivery_and_retries
 test_unverified_clean_close_exhausts_retries
-test_post_alarm_actionable_close_is_suppressed
+test_post_alarm_actionable_close_is_delivered
 test_benign_cycle_end_with_live_watcher_is_silent
 test_positive_recovery_budget_contention_preserves_episode
 test_owner_mutex_contention_preserves_failure_episode_reset
@@ -2136,8 +2140,8 @@ test_plain_arm_banner_keeps_its_wake_line_cap
 test_host_handback_carries_every_host_line
 test_host_stand_down_is_silent
 test_host_benign_rewake_refusal_opens_no_failure_episode
-test_host_lost_handback_notifies_once_per_episode
-test_host_lost_announced_handback_notifies_once_per_episode
+test_host_handling_marker_close_is_a_rewake
+test_host_announced_handling_marker_close_is_a_rewake
 test_host_crash_is_retried_then_reported
 test_arguments_never_arm
 test_fm_lock_status_still_works_with_shared_lib

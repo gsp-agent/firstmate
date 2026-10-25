@@ -1894,8 +1894,8 @@ fm_failure_episode_reset() {
 #
 #   - The CURRENT claim is the ledger's latest entry: line 1 begins with the
 #     "epoch=N owner_pid=P outcome=O updated_at=T" record. A "rewake" outcome
-#     also records "session_pid=S recovery_generation=G", binding that
-#     handling turn to its live session-lock owner and watcher recovery episode.
+#     also records "session_pid=S", binding that handling turn to its live
+#     session-lock owner and this generation.
 #     Line 2 is the claiming process's pid-identity, the same identity every other
 #     supervision lock in this repo records (fm_pid_identity above). The
 #     identity is MANDATORY: a claimant that cannot record it does not claim
@@ -2319,7 +2319,7 @@ fm_wake_append() {
 # deletes consumed rows under the same lock) acquire the lock once, run this and
 # their own write, then release.
 fm_wake_append_locked() {
-  local kind=$1 key=$2 payload=$3 clean_key clean_payload epoch seq seq_file status
+  local kind=$1 key=$2 payload=$3 clean_key clean_payload epoch seq seq_file status last
   local recovery_marker
   case "$kind" in
     signal|stale|check|heartbeat) ;;
@@ -2341,6 +2341,14 @@ fm_wake_append_locked() {
     esac
     seq=$((seq + 1))
     printf '%s\n' "$seq" > "$seq_file" || status=$?
+  fi
+  # A failed write can leave a partial last line. Keep that fragment on its
+  # own line so the next row stays whole. The drain already retires the fragment.
+  if [ "$status" -eq 0 ] && [ -s "$FM_WAKE_QUEUE" ]; then
+    last=$(tail -c 1 "$FM_WAKE_QUEUE" 2>/dev/null || true)
+    if [ "$last" != $'\n' ]; then
+      printf '\n' >> "$FM_WAKE_QUEUE" || status=$?
+    fi
   fi
   if [ "$status" -eq 0 ]; then
     printf '%s\t%s\t%s\t%s\t%s\n' "$epoch" "$seq" "$kind" "$clean_key" "$clean_payload" >> "$FM_WAKE_QUEUE" || status=$?
@@ -2625,6 +2633,150 @@ fm_wake_rows_queued() {  # <seq>...
     BEGIN { n = split(seqs, list, " "); for (i = 1; i <= n; i++) want[list[i]] = 1 }
     NF >= 5 && $2 ~ /^[0-9]+$/ && ($2 in want) { print $2 }
   ' "$FM_WAKE_QUEUE"
+}
+
+# 0 when another supervisor owns this home's ordinary rows: the away-mode
+# daemon, or the supervision host whose branch can claim them. On a plain
+# home main is the only supervisor, so ordinary queued rows stay main's.
+# When the host gate is not loaded, the host is off.
+resurface_alternate_owner() {
+  if [ "${FM_DAEMON_OWNS_SUPERVISION:-}" = 1 ] || [ -e "${STATE}/.afk" ]; then
+    return 0
+  fi
+  command -v fm_supervision_host_enabled >/dev/null 2>&1 || return 1
+  fm_supervision_host_enabled "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
+}
+
+# A queued row only main can do: a check-kind row, a needs-decision signal,
+# a signal or stale row whose task still holds an open decision or a
+# captain-held declaration, or a row this reader cannot classify (fail
+# safe: main looks). Heartbeat rows and ordinary signal/stale rows are the
+# supervision branch's or a live PM's, never a reason to wake main - unless
+# this home has no alternate supervisor (RESURFACE_ALT_OWNER=0), where main
+# owns every row.
+# Sets RESURFACE_ROW_PM=1 when a live PM owns the row.
+resurface_row_main_only() {  # <kind> <key> <payload>
+  local kind=$1 key=$2 payload=$3 task status_file
+  RESURFACE_ROW_PM=0
+  _fm_wake_require_classify || return 0
+  case "$kind" in
+    check)
+      case "$payload" in
+        'check: merge landed: '*)
+          task=${payload#'check: merge landed: '}; task=${task%% *}
+          if fm_pm_live_task "$STATE" "$task"; then RESURFACE_ROW_PM=1; return 1; fi
+          ;;
+      esac
+      return 0 ;;
+    heartbeat) if [ "$RESURFACE_ALT_OWNER" -eq 1 ]; then return 1; fi; return 0 ;;
+    signal)
+      task=${key%.status}; task=${task%.turn-ended}
+      ;;
+    stale)
+      task=$(window_to_task "$key" "$STATE")
+      [ -n "$task" ] || return 0
+      ;;
+    *) return 0 ;;
+  esac
+  case "$task" in ''|*[!A-Za-z0-9._-]*) return 0 ;; esac
+  if fm_pm_live_task "$STATE" "$task"; then RESURFACE_ROW_PM=1; return 1; fi
+  if [ "$RESURFACE_ALT_OWNER" -ne 1 ]; then return 0; fi
+  if [ "$kind" = signal ]; then
+    case "$payload" in needs-decision:*) return 0 ;; esac
+  fi
+  status_file="$STATE/$task.status"
+  [ -f "$status_file" ] || return 1
+  status_has_open_needs_decision "$status_file" && return 0
+  status_is_captain_held "$(status_declared_wait_line "$status_file")" && return 0
+  return 1
+}
+
+# fm_wake_main_unread <state> <scope>
+# Print the payloads of complete rows main has not been shown, oldest first.
+# A row is unread when its sequence is absent from state/.main-eligible-rows,
+# no live branch grant reserves it, and no live PM owns it.
+# Scope main-only keeps rows resurface_row_main_only accepts.
+# Scope any keeps every remaining complete row.
+# Return 0 when at least one payload is printed, 1 when none, 2 on a bad scope.
+# A queue lock that cannot be taken returns 0 and prints one stable check line.
+# Restores STATE, FM_WAKE_QUEUE, and FM_WAKE_QUEUE_LOCK before returning.
+fm_wake_main_unread() {  # <state> <scope>
+  local state=$1 scope=$2
+  local saved_state saved_queue saved_lock
+  local presented='' grant='' snapshot=''
+  local epoch seq kind key payload rest
+  local main matched=0 rc=1
+  case "$scope" in
+    main-only|any) ;;
+    *) return 2 ;;
+  esac
+  saved_state=$STATE
+  saved_queue=$FM_WAKE_QUEUE
+  saved_lock=$FM_WAKE_QUEUE_LOCK
+  STATE=$state
+  FM_WAKE_QUEUE=$state/.wake-queue
+  FM_WAKE_QUEUE_LOCK=$state/.wake-queue.lock
+  presented=$(cat "$state/.main-eligible-rows" 2>/dev/null || true)
+  if fm_wake_branch_grant_live "$state/.branch-eligible-rows" "$state/.branch-eligible-owner"; then
+    grant=$(cat "$state/.branch-eligible-rows" 2>/dev/null || true)
+  fi
+  # The caller already chose the scope. main-only means an alternate
+  # supervisor owns routine rows, including a heartbeat. any means main
+  # owns them. Detecting the host again here would use a different harness
+  # than the caller and would hand a host-home heartbeat to main.
+  if [ "$scope" = main-only ]; then
+    RESURFACE_ALT_OWNER=1
+  else
+    RESURFACE_ALT_OWNER=0
+  fi
+  if ! fm_lock_acquire_wait_max "$FM_WAKE_QUEUE_LOCK" 2; then
+    printf 'check: wake queue could not be read under its lock\n'
+    rc=0
+  elif [ ! -s "$FM_WAKE_QUEUE" ]; then
+    fm_lock_release "$FM_WAKE_QUEUE_LOCK"
+    rc=1
+  else
+    snapshot=$(awk -F '\t' 'NF >= 5 && $2 ~ /^[0-9]+$/ { print }' "$FM_WAKE_QUEUE" 2>/dev/null || true)
+    fm_lock_release "$FM_WAKE_QUEUE_LOCK"
+    while IFS="$(printf '\t')" read -r epoch seq kind key payload rest; do
+      case "$seq" in
+        ''|*[!0-9]*) continue ;;
+      esac
+      case "
+$presented
+" in
+        *"
+$seq
+"*) continue ;;
+      esac
+      if [ -n "$grant" ]; then
+        case "
+$grant
+" in
+          *"
+$seq
+"*) continue ;;
+        esac
+      fi
+      main=0
+      if resurface_row_main_only "$kind" "$key" "$payload"; then
+        main=1
+      fi
+      [ "${RESURFACE_ROW_PM:-0}" -eq 1 ] && continue
+      if [ "$scope" = main-only ] && [ "$main" -eq 0 ]; then
+        continue
+      fi
+      printf '%s\n' "$payload"
+      matched=1
+    done <<FM_UNREAD_ROWS
+$snapshot
+FM_UNREAD_ROWS
+    [ "$matched" -eq 1 ] && rc=0
+  fi
+  STATE=$saved_state
+  FM_WAKE_QUEUE=$saved_queue
+  FM_WAKE_QUEUE_LOCK=$saved_lock
+  return "$rc"
 }
 
 # --- signal announcement signatures -----------------------------------------

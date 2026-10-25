@@ -121,3 +121,4 @@ pr: 137
 pr: 138
 # Failing-first fixed-read budget in tests/fm-watch-fixed-fork-budget.test.sh: upstream-lean efbe1b61 starts 256 processes over four idle polls (64 per poll, fails the 12 budget); combined reads and conservative idle checks start 12 (3 per poll, passes). The shared counter exits between polls and waits for cleanup; both measured runs leave zero worktree/test-folder processes.
 pr: 139
+# Failing-first unread-record delivery. On 64117bbf these tests fail, and they pass once the queued record decides. tests/fm-claude-stop-autoarm.test.sh covers a released probe at admission and mid-cycle, a handling-marker close, an alarmed close, a healthy foreign watcher, a successor note, the guard after that rewake, a plain-home heartbeat, and an away record. tests/fm-wake-queue.test.sh covers a partial append. tests/fm-watch-recovery-loop.test.sh covers a handling successor and a row newer than its start.
