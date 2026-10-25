@@ -1958,7 +1958,7 @@ test_control_relaunch_of_a_cursor_task_records_the_harness_it_launched() {
   [ "$(meta_field "$dir" rl75 route_fallback)" = 1 ] || fail "the Cursor fallback must record its provenance"
   out=$(run_control "$dir" rl75 relaunch --note "continue on codex"); rc=$?
   expect_code 0 "$rc" "a Cursor fallback pair must remain eligible on codex"$'\n'"$out"
-  assert_contains "$out" "relaunched rl75 harness=codex from=codex model=default effort=xhigh" "the next relaunch must keep the Cursor fallback pair"
+  assert_contains "$out" "relaunched rl75 harness=codex from=codex model=default effort=medium" "the next relaunch must keep the Cursor fallback pair"
   [ "$(meta_field "$dir" rl75 route_fallback)" = 1 ] || fail "the next relaunch must carry Cursor fallback provenance"
   pass "fm-control relaunch: a cursor fallback records the actual harness and keeps its pair on the next relaunch"
 }

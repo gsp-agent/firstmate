@@ -1046,8 +1046,11 @@ test_cursor_fallback() {
   assert_contains "$(cat "$LAUNCH_LOG")" "codex " "fallback did not launch on codex"
   assert_not_contains "$(cat "$LAUNCH_LOG")" "grok-4.7-xhigh" "fallback must not carry the cursor model to codex"
   assert_grep 'harness=codex' "$HOME_DIR/state/$id.meta" "fallback harness was not recorded"
+  assert_grep 'effort=medium' "$HOME_DIR/state/$id.meta" "a Codex fallback must run at medium (Codex effort policy, Dale 10-24)"
+  assert_contains "$(cat "$LAUNCH_LOG")" "model_reasoning_effort" "the Codex fallback launch did not pass its effort"
+  assert_not_contains "$(cat "$LAUNCH_LOG")" "xhigh" "a Codex fallback must not launch at xhigh"
   assert_grep 'Cursor Models at 85%' "$HOME_DIR/state/$id.cursor-fallback" "fallback reason was not recorded in state"
-  pass "cursor spawn falls back to codex at the usage threshold"
+  pass "cursor spawn falls back to codex at medium at the usage threshold"
 
   id=profile-cursor-fallback-claude-z6h
   rec=$(make_spawn_case profile-cursor-fallback-claude cursor "$id")

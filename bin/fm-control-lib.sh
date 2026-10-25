@@ -104,6 +104,18 @@ fm_control_harness_family() {  # <recorded-harness>
   esac
 }
 
+# The effort a launch-route fallback runs at, by the harness it lands on. Codex
+# runs at medium: the operator's Codex effort policy keeps xhigh for tasks named
+# as among the hardest (agent-config .agent-config-uk4z8), and a route fallback
+# names none. Every other fallback harness keeps xhigh. fm-spawn and fm-control
+# relaunch both read it, so the two launch paths cannot disagree.
+fm_control_fallback_effort() {  # <harness>
+  case "$(fm_control_harness_family "${1-}")" in
+    codex) printf 'medium' ;;
+    *) printf 'xhigh' ;;
+  esac
+}
+
 # Which task kinds an adapter is verified to run. muse, gemini, rovo, agy, and devin
 # are crewmate/scout adapters only: none has a primary supervision protocol,
 # and bin/fm-spawn.sh refuses a --secondmate launch on any of them. The control

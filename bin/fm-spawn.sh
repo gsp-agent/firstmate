@@ -3252,8 +3252,9 @@ if [ "$KIND" != secondmate ] && [ "$SPAWN_CONTROL_PARENT" = 0 ]; then
       echo "error: raw launch command for $HARNESS would route to ${LAUNCH_ROUTE%% *}; use the canonical --harness $ROUTE_HARNESS launch" >&2
       exit 1
     fi
-    echo "$HARNESS fallback: launching $ID on the ${LAUNCH_ROUTE%% *} harness (default model xhigh): ${LAUNCH_ROUTE#* }" >&2
-    HARNESS=${LAUNCH_ROUTE%% *} MODEL='' EFFORT=xhigh
+    ROUTE_EFFORT=$(fm_control_fallback_effort "${LAUNCH_ROUTE%% *}")
+    echo "$HARNESS fallback: launching $ID on the ${LAUNCH_ROUTE%% *} harness (default model, effort $ROUTE_EFFORT): ${LAUNCH_ROUTE#* }" >&2
+    HARNESS=${LAUNCH_ROUTE%% *} MODEL='' EFFORT=$ROUTE_EFFORT
     ROUTE_FALLBACK=1
     LAUNCH=$(launch_template "$HARNESS" "$KIND") || {
       echo "error: no launch template for the fallback harness '$HARNESS'" >&2
