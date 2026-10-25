@@ -57,6 +57,47 @@ else
   fm_epoch_seconds_to() { printf -v "$1" '%s' "$(date +%s)"; }
 fi
 
+# Fork-free stand-in for `sleep <seconds>` on the watcher's terminal and
+# signal-grace waits, which otherwise start one process per wait. Where the running
+# Bash has its own `sleep` loadable builtin installed beside it (Homebrew and
+# the bash-builtins packages put it in <prefix>/lib/bash), fm_sleep waits in
+# that builtin and starts no process. The builtin is enabled only for the
+# wait, so every other `sleep`, and a test's PATH stand-in for it, is
+# unchanged; a trap that runs during the wait runs to completion, as it does
+# after a child sleep. Anywhere else fm_sleep runs sleep(1) as before.
+# Not a `read -t` timer: Bash abandons a trap that is still running when the
+# read's timeout fires, so a TERM's cleanup could stop half done while the
+# loop carried on.
+# FM_TEST_NO_SLEEP_BUILTIN=1, honored only when FM_TEST_SEAM=1, stands in for a
+# Bash without the builtin.
+_FM_SLEEP_BUILTIN=
+_fm_sleep_load() {
+  local _fsl_lib="${BASH%/*}/../lib/bash/sleep"
+  _FM_SLEEP_BUILTIN=0
+  [ "${FM_TEST_SEAM:-}" != 1 ] || [ -z "${FM_TEST_NO_SLEEP_BUILTIN:-}" ] || return 1
+  case "${BASH:-}" in /*) ;; *) return 1 ;; esac
+  [ -f "$_fsl_lib" ] && [ -r "$_fsl_lib" ] || return 1
+  { enable -f "$_fsl_lib" sleep && enable -n sleep; } 2>/dev/null || return 1
+  _FM_SLEEP_BUILTIN=1
+}
+
+# 0 when fm_sleep waits without a process in this shell.
+fm_sleep_builtin_available() {
+  [ -n "$_FM_SLEEP_BUILTIN" ] || _fm_sleep_load
+  [ "$_FM_SLEEP_BUILTIN" = 1 ]
+}
+
+fm_sleep() {  # <seconds>
+  local _fs_rc=0
+  [ -n "$_FM_SLEEP_BUILTIN" ] || _fm_sleep_load
+  if [ "$_FM_SLEEP_BUILTIN" = 1 ] && enable sleep 2>/dev/null; then
+    sleep "$@" || _fs_rc=$?
+    enable -n sleep 2>/dev/null
+    return "$_fs_rc"
+  fi
+  sleep "$@"
+}
+
 # Fork-free stand-in for `$(cat <file> 2>/dev/null || true)` on per-poll reads
 # of small state files: <out-var> gets the file's bytes with trailing newlines
 # removed, or nothing when it cannot be read. A file holding a NUL byte, which
