@@ -425,12 +425,20 @@ test_attached_arm_hands_a_stalled_holder_to_its_replacement() {
 # under, so once that caller is gone it ends on its next poll with its cycle row,
 # and the watcher it followed keeps running.
 test_attached_arm_exits_once_its_caller_is_gone() {
-  local dir state fakebin out armout caller arm i
-  dir=$(make_case attached-caller-gone)
+  local cover=${1:-0} with_harness=${2:-0} harness='' dir state fakebin out armout caller arm i
+  dir=$(make_case "attached-caller-gone-$cover-$with_harness")
   state="$dir/state"
   fakebin="$dir/fakebin"
   out="$dir/watch.out"
   armout="$dir/arm.out"
+  if [ "$with_harness" -eq 1 ]; then
+    sleep 300 &
+    harness=$!
+    fm_test_track_pid "$harness"
+    printf '%s\n' "$harness" > "$state/.lock"
+  else
+    [ ! -e "$state/.lock" ] || fail "fixture must start without a harness lock"
+  fi
   start_seed_watcher "$state" "$fakebin" "$out"
   # The caller waits on its arm, as the Stop hook and a harness task do. KILL
   # ends it without forwarding anything to the arm.
@@ -442,7 +450,7 @@ printf '%s\t%s\n' "$arm" "$(LC_ALL=C ps -o lstart= -p "$arm")" >> "$FM_TEST_PIDS
 printf '%s\n' "$arm" > "$CALLER_ARM_PID_FILE"
 wait
 SH
-  PATH="$fakebin:$PATH" FM_STATE_OVERRIDE="$state" FM_ARM_ATTACH_POLL=0.1 \
+  PATH="$fakebin:$PATH" FM_STATE_OVERRIDE="$state" FM_ARM_ATTACH_POLL=0.1 FM_WATCH_COVER="$cover" \
     FM_ARM_CONFIRM_TIMEOUT=1 CALLER_ARM_PID_FILE="$dir/arm.pid" \
     bash "$dir/caller.sh" "$WATCH_ARM" > "$armout" &
   caller=$!
@@ -459,6 +467,14 @@ SH
   fi
   kill -KILL "$caller" 2>/dev/null || true
   wait "$caller" 2>/dev/null || true
+  if [ "$with_harness" -eq 1 ]; then
+    # A recorded harness, unlike a bare cover flag, permits the handoff to
+    # outlive its parent. Keep it alive for several attachment polls.
+    sleep 1
+    is_live_non_zombie "$arm" || fail "a covering arm lost its live harness's coverage"
+    kill -TERM "$harness"
+    wait "$harness" 2>/dev/null || true
+  fi
   # A passing arm ends one 0.1s poll after its caller; the ceiling is for load.
   i=0
   while [ "$i" -lt 50 ] && is_live_non_zombie "$arm"; do
@@ -475,7 +491,15 @@ SH
   ' "$state/.watch-cycle-exits.log" \
     || fail "the orphaned arm did not close its cycle row: $(cat "$state/.watch-cycle-exits.log" 2>/dev/null)"
   is_live_non_zombie "$SEED_PID" || fail "an orphaned arm must leave the watcher it followed running"
-  pass "watch-arm: an attached arm whose caller is gone stops following on its next poll"
+  pass "watch-arm: attached caller loss closes the arm unless a covering harness is alive (cover=$cover harness=$with_harness)"
+}
+
+test_covering_arm_without_harness_exits_when_caller_is_gone() {
+  test_attached_arm_exits_once_its_caller_is_gone 1 0
+}
+
+test_covering_arm_outlives_caller_only_while_harness_is_alive() {
+  test_attached_arm_exits_once_its_caller_is_gone 1 1
 }
 
 # An arm a launcher started with TERM ignored inherits that disposition, and
@@ -1544,6 +1568,8 @@ test_take_over_preserves_downtime_from_watcher_self_exit() {
 start_cover_arm() {  # <home> <state> <fakebin> <arm-out> owned|left
   local home=$1 state=$2 fakebin=$3 armout=$4 owner=$5 i
   if [ "$owner" = left ]; then
+    # Main is still alive after the launching hook leaves its successor.
+    printf '%s\n' "$$" > "$state/.lock"
     (
       PATH="$fakebin:$PATH" FM_HOME="$home" FM_STATE_OVERRIDE="$state" \
         FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 \
@@ -2514,6 +2540,8 @@ run_case test_attached_arm_still_fails_on_a_wake_it_did_not_deliver
 run_case test_attached_arm_follows_a_slow_live_holder
 run_case test_attached_arm_hands_a_stalled_holder_to_its_replacement
 run_case test_attached_arm_exits_once_its_caller_is_gone
+run_case test_covering_arm_without_harness_exits_when_caller_is_gone
+run_case test_covering_arm_outlives_caller_only_while_harness_is_alive
 run_case test_arm_started_with_term_ignored_still_stops_on_term
 run_case test_arm_exits_when_its_harness_is_gone
 run_case test_already_orphaned_arm_does_not_attach_forever

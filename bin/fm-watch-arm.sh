@@ -60,7 +60,8 @@
 # with an arm-caller-gone cycle row instead of following successors for nobody;
 # an owned watcher is polled at the same interval before being waited on. The
 # liveness checks use `kill -0`, so they start no process. A covering arm
-# (FM_WATCH_COVER below) outlives its parent by design, but not its harness.
+# (FM_WATCH_COVER below) outlives its parent only with a recorded harness;
+# without one it still reports to its caller and must stop when that caller dies.
 # A parent of pid 1 at launch is already lost. A launcher with TERM ignored would
 # leave its TERM trap a silent no-op, since bash cannot trap a signal ignored at
 # entry, so the arm first re-execs itself once, under the same pid, with TERM
@@ -820,7 +821,7 @@ handle_arm_signal() {  # <signal|none> <rc> [reason]
 
 # Close this arm the way a signal does once its caller is gone (header).
 exit_if_caller_gone() {
-  if { [ "$COVER" -eq 0 ] && { [ "$ARM_CALLER_PID" -le 1 ] \
+  if { { [ "$COVER" -eq 0 ] || [ -z "$ARM_HARNESS_PID" ]; } && { [ "$ARM_CALLER_PID" -le 1 ] \
       || ! kill -0 "$ARM_CALLER_PID" 2>/dev/null; }; } \
     || { [ -n "$ARM_HARNESS_PID" ] && ! kill -0 "$ARM_HARNESS_PID" 2>/dev/null; }; then
     handle_arm_signal none 1 arm-caller-gone

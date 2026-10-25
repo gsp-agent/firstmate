@@ -150,6 +150,9 @@ esac
 
 # shellcheck source=bin/fm-primary-scope-lib.sh
 . "$SCRIPT_DIR/fm-primary-scope-lib.sh"
+# Check the existing home before fm-wake-lib creates STATE on source; the
+# Stop hook must not manufacture the prerequisite that admits a checkout.
+fm_primary_scope_matches "$FM_ROOT" "$STATE" || exit 0
 # shellcheck source=bin/fm-supervision-lib.sh
 . "$SCRIPT_DIR/fm-supervision-lib.sh"
 # shellcheck source=bin/fm-wake-lib.sh
@@ -168,7 +171,7 @@ GRACE=${FM_GUARD_GRACE:-$(fm_poll_derived_grace)}
 
 # Consume the Stop payload once. The decisions below are state-based; the
 # payload is read so a slow writer can never wedge on a full pipe, and its host
-# is inspected before anything else runs.
+# is inspected before any arming decision.
 PAYLOAD=$(cat 2>/dev/null || true)
 
 # Cursor loads the tracked Claude settings too. Cursor has no asyncRewake, so if
@@ -192,9 +195,6 @@ fm_hook_payload_is_foreign_host "$PAYLOAD" && exit 0
 if [ -n "$PAYLOAD" ] && command -v jq >/dev/null 2>&1; then
   printf '%s' "$PAYLOAD" | jq -e '(.transcript_path // "") | type == "string" and contains("/.pi/")' >/dev/null 2>&1 && exit 0
 fi
-
-# --- scope: genuine primary checkout only -----------------------------------
-fm_primary_scope_matches "$FM_ROOT" "$STATE" || exit 0
 
 # --- identity: only the lock-owning session's hooks may arm ------------------
 # A prior session may have died after leaving its numeric harness pid in .lock.
