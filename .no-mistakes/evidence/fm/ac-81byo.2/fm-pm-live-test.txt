@@ -1,0 +1,17 @@
+FM_TEST_BEGIN 2026-10-25T07:01:42Z tests/fm-pm-live.test.sh family=unclassified expected_gate_skip=none
+ok - a worker that is not alive gets one blocked PM handoff that names only a relaunch that can work, commits its marker, and is never re-judged on replay
+ok - the live-PM proof reads live, grace, stale, malformed, and symlinked registrations exactly
+ok - a live PM receives one pending-verification status handoff without a main queue row
+ok - a plain task's merged outcome still queues the merge-landed wake for main
+ok - a failed PM handoff stays unacknowledged and retries on the same task
+ok - a failed acknowledgement preserves the delivered event and retry deduplicates it
+ok - replay repairs the PM event even when a legacy notification marker already exists
+error: merge handoff for demo has missing, changed, or ambiguous task/PR identity
+error: merge handoff for demo has missing, changed, or ambiguous task/PR identity
+ok - stale PRs and missing records are refused; reused tasks receive explicit current incarnation/PR identity
+ok - restart and concurrent delivery keep one event and leave activation failures with the existing owner
+ok - a merge that reaches a closed task tells its live PM, never hands off into nothing, and binds only the archived PR
+FM_TEST_END 2026-10-25T07:02:35Z tests/fm-pm-live.test.sh exit=0 duration_ms=52420 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=61246
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=52420 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-pm-live.test.sh duration_ms=52420

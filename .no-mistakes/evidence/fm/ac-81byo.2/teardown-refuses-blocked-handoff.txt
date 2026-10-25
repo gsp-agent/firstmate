@@ -1,0 +1,18 @@
+# Teardown guard (F3): real br database under a disposable HOME; bead closed; worker shell-only; merge delivered by the real watcher
+bead heru-ppy: closed
+armed: state/heru-ppy.check.sh
+== watcher cycle (PR 74 merged, worker shell-only)
+watcher: started pid=53521 (beacon fresh)
+merge handoff for heru-ppy blocked: its worker reads dead, so its live PM was told on $TMPDIR/fm-lab.Ee5CxY/state/heru-ppy.status
+signal: $TMPDIR/fm-lab.Ee5CxY/state/other.status
+exit=0
+== heru-ppy.status
+done: PR https://github.com/example/repo/pull/74 checks green
+blocked [key=merged-owner-heru-ppy] [at=1792911315]: merged heru-ppy https://github.com/example/repo/pull/74 spawn_gen=g1; activation and live verification have no confirmed live owner: tmux endpoint firstmate:fm-heru-ppy reads dead; relaunch it with bin/fm-control.sh heru-ppy relaunch --note 'Merged https://github.com/example/repo/pull/74; activation and live verification remain pending'
+== bin/fm-teardown.sh heru-ppy  (bead closed, last line is the blocked handoff)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home $TMPDIR/fm-lab.Ee5CxY
+REFUSED: task heru-ppy's last status line is the merge handoff that leaves activation and live verification pending, so the task is not done even though bead heru-ppy is closed; nothing was changed. Its worker or owner records the verification result as a later status line before cleanup.
+exit=1
+kept: state/heru-ppy.meta
+kept: projects/example-wt-heru-ppy
+kept: tmux window fm-heru-ppy

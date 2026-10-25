@@ -1,0 +1,62 @@
+# Cycle 2 replay: wk-dead worker revived (real Claude CLI started in its shell), wk-live worker recorded its own result and exited.
+# First attempt (cycle 2a) re-delivered the undrained cycle-1 wake before the polls ran; main drain + ack, then cycle 2b ran the re-armed polls.
+== worker verdicts before the replay
+tmux firstmate:fm-wk-dead -> alive
+tmux firstmate:fm-wk-live -> missing
+== re-arm both merge polls through bin/fm-pr-check.sh
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+armed: state/wk-dead.check.sh
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+armed: state/wk-live.check.sh
+  wk-dead poll armed
+  wk-live poll armed
+== watcher cycle
+watcher: started pid=25836 (beacon fresh)
+signal: $TMPDIR/fm-lab.Ee5CxY/state/other.status
+exit=0
+== status streams unchanged by the replay?
+  wk-dead: unchanged
+  wk-live: unchanged
+
+$ bin/fm-wake-drain.sh  (main drains and acks cycle 1/2a wakes)
+1792911085	2	signal	other.status	signal: $TMPDIR/fm-lab.Ee5CxY/state/other.status
+wake annotation: unread wake-EVENT since last drain, not current state: other.status: done: other work finished
+wake annotation: latest wake-EVENT observed at drain, not current state: other.status: done: other work finished again
+UNREAD STATUS (new since last drain, not re-printed after this presentation):
+wk-live note [key=merged-wk-live] [at=1792911071]: merged wk-live https://github.com/example/repo/pull/73 spawn_gen=g1; activation and live verification pending with the existing owner
+STATUS OUTCOME BACKSTOP (newest captain-facing task event has no covering branch outcome):
+other done: other work finished again
+wk-live done: live check passed on the deployed revision
+OPEN DECISIONS (still open, folded from the durable status logs - not just the latest line):
+wk-dead [key=merged-owner-wk-dead] blocked: merged wk-dead https://github.com/example/repo/pull/71 spawn_gen=g1; activation and live verification have no confirmed live owner: tmux endpoint firstmate:fm-wk-d [truncated]
+wk-gone [key=merged-owner-wk-gone] blocked: merged wk-gone https://github.com/example/repo/pull/72 spawn_gen=g1; activation and live verification have no confirmed live owner: tmux endpoint firstmate:fm-wk-g [truncated]
+OPEN DECISIONS: close one by answering it: bin/fm-send.sh <task> --resolve-key <key> '<answer>'
+
+$ bin/fm-watch-arm.sh  (cycle 2b)
+watcher: started pid=48631 (beacon fresh)
+signal: $TMPDIR/fm-lab.Ee5CxY/state/other.status
+exit=0
+
+replay check: wk-dead and wk-live status streams byte-identical before/after cycle 2b (shasum compared)
+== wk-dead.status
+done: PR https://github.com/example/repo/pull/71 checks green
+blocked [key=merged-owner-wk-dead] [at=1792911055]: merged wk-dead https://github.com/example/repo/pull/71 spawn_gen=g1; activation and live verification have no confirmed live owner: tmux endpoint firstmate:fm-wk-dead reads dead; relaunch it with bin/fm-control.sh wk-dead relaunch --note 'Merged https://github.com/example/repo/pull/71; activation and live verification remain pending'
+  wk-dead.pr-poll-merge-notified: present
+  wk-dead.check.sh: absent
+  wk-dead.pr-poll: absent
+  wk-dead.pr-poll-registration: absent
+== wk-live.status
+done: PR https://github.com/example/repo/pull/73 checks green
+note [key=merged-wk-live] [at=1792911071]: merged wk-live https://github.com/example/repo/pull/73 spawn_gen=g1; activation and live verification pending with the existing owner
+done: live check passed on the deployed revision
+  wk-live.pr-poll-merge-notified: present
+  wk-live.check.sh: absent
+  wk-live.pr-poll: absent
+  wk-live.pr-poll-registration: absent
+== main wake queue (.wake-queue)
+1792911242	3	signal	other.status	signal: $TMPDIR/fm-lab.Ee5CxY/state/other.status
+1792911242	4	signal	other.status	signal: $TMPDIR/fm-lab.Ee5CxY/state/other.status
+== watcher cycle exits (last 3)
+arm_pid=48013	watcher_pid=48622	origin=started	started_at=1792911035	ended_at=1792911086	exit_code=0	signal=none	reason=actionable-signal	beacon_age=9	lock_before=pid:48622|identity:Sun Oct 25 01:50:35 2026     bash ~/.agent-scratch/nm-runs/a5e67f4ea77f/01M5RTGB5Q482EQH6YN3YRBSFC/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=25104	watcher_pid=25836	origin=started	started_at=1792911200	ended_at=1792911203	exit_code=0	signal=none	reason=actionable-signal	beacon_age=2	lock_before=pid:25836|identity:Sun Oct 25 01:53:20 2026     bash ~/.agent-scratch/nm-runs/a5e67f4ea77f/01M5RTGB5Q482EQH6YN3YRBSFC/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
+arm_pid=48323	watcher_pid=48631	origin=started	started_at=1792911224	ended_at=1792911243	exit_code=0	signal=none	reason=actionable-signal	beacon_age=4	lock_before=pid:48631|identity:Sun Oct 25 01:53:44 2026     bash ~/.agent-scratch/nm-runs/a5e67f4ea77f/01M5RTGB5Q482EQH6YN3YRBSFC/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none

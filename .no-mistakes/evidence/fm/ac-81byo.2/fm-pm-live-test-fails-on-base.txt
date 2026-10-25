@@ -1,0 +1,3 @@
+# target tests/fm-pm-live.test.sh run against base 41a0d972 bin/ (extracted tree)
+not ok - dead:tmux: a worker that is not alive was handed live verification: note [key=merged-demo] [at=1792911767]: merged demo https://github.com/example/repo/pull/79 spawn_gen=first; activation and live verification pending with the existing owner
+exit=1

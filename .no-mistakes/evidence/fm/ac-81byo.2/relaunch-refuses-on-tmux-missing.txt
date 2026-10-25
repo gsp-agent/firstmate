@@ -1,0 +1,11 @@
+# Adversarial: the relaunch the tmux-missing blocked line deliberately does not name
+$ bin/fm-control.sh wk-gone relaunch --note 'Merged https://github.com/example/repo/pull/72; activation and live verification remain pending'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home $TMPDIR/fm-lab.Ee5CxY
+error: task wk-gone's endpoint firstmate:fm-wk-gone reads 'missing', but tmux absence cannot be proven from a task record: the record does not carry the endpoint's socket identity, and a server-wide window inventory only describes the tmux server this process addresses, so a window absent from it may still be alive on another; exit will not claim an agent stopped at an address it cannot trust, nor send lifecycle input to one
+error: relaunch of wk-gone failed while stopping the old agent and its state is 'missing', so it was not proven stopped; its original instructions were restored and the durable record was retained for recovery
+exit=1
+task record and status stream unchanged
+lab tmux windows:
+  pm
+  fm-wk-dead
+  fm-wk-live

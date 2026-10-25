@@ -1,0 +1,23 @@
+# Herdr branch via bin/fm-herdr-lab.sh (named fm-lab-* session; every product herdr call routed through `fm-herdr-lab.sh run`)
+== verdicts: herdr fm-lab-ac81-handoff-66337-18588:w1:p1 -> dead;herdr fm-lab-ac81-handoff-66337-18588:w1:p2 -> dead;
+== H1: hd-dead on a shell-only Herdr pane, PR 81 merged
+armed: state/hd-dead.check.sh
+watcher: started pid=21704 (beacon fresh)
+merge handoff for hd-dead blocked: its worker reads dead, so its live PM was told on $TMPDIR/fm-lab.Ee5CxY/state/hd-dead.status
+signal: $TMPDIR/fm-lab.Ee5CxY/state/other.status
+exit=0
+blocked [key=merged-owner-hd-dead] [at=1792911576]: merged hd-dead https://github.com/example/repo/pull/81 spawn_gen=g1; activation and live verification have no confirmed live owner: herdr endpoint fm-lab-ac81-handoff-66337-18588:w1:p1 reads dead; relaunch it with bin/fm-control.sh hd-dead relaunch --note 'Merged https://github.com/example/repo/pull/81; activation and live verification remain pending'
+marker: committed
+poll: retired
+== H2: stop the lab session through the guarded helper; hd-gone's pane is now unreachable, PR 82 merged
+{"session":{"default":false,"name":"fm-lab-ac81-handoff-66337-18588","running":false,"session_dir":"~/.config/herdr/sessions/fm-lab-ac81-handoff-66337-18588","socket_path":"~/.config/herdr/sessions/fm-lab-ac81-handoff-66337-18588/herdr.sock"},"stopped":true}
+armed: state/hd-gone.check.sh
+verdict: herdr fm-lab-ac81-handoff-66337-18588:w1:p2 -> missing
+watcher: started pid=59104 (beacon fresh)
+merge handoff for hd-gone blocked: its worker reads missing, so its live PM was told on $TMPDIR/fm-lab.Ee5CxY/state/hd-gone.status
+signal: $TMPDIR/fm-lab.Ee5CxY/state/other.status
+exit=0
+blocked [key=merged-owner-hd-gone] [at=1792911603]: merged hd-gone https://github.com/example/repo/pull/82 spawn_gen=g1; activation and live verification have no confirmed live owner: herdr endpoint fm-lab-ac81-handoff-66337-18588:w1:p2 reads missing; relaunch it with bin/fm-control.sh hd-gone relaunch --note 'Merged https://github.com/example/repo/pull/82; activation and live verification remain pending'
+marker: committed
+poll: retired
+verdict after the cycle: herdr fm-lab-ac81-handoff-66337-18588:w1:p2 -> missing

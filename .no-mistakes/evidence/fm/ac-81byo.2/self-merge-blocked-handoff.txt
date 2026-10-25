@@ -1,0 +1,57 @@
+# Self-merge path through bin/fm-pr-merge.sh, worker shell-only
+# Attempt 1 (wk-self, PR 75): the repo GitHub stub returns no reviews, so the merge gate refused before merging (no approval by the configured reviewer); the poll later delivered the blocked handoff.
+armed: state/wk-self.check.sh
+== worker verdict: tmux firstmate:fm-wk-self -> dead
+== bin/fm-pr-merge.sh wk-self https://github.com/example/repo/pull/75
+armed: state/wk-self.check.sh
+error: refusing to merge https://github.com/example/repo/pull/75
+  - no approval by carmanchip23-dev at head 0123456789abcdef0123456789abcdef01234567
+exit=1
+gh pr merge calls so far: 0
+== wk-self.status after the self merge
+done: PR https://github.com/example/repo/pull/75 checks green
+marker: absent
+poll: still armed
+== watcher cycle (poll replays the merge)
+watcher: started pid=57510 (beacon fresh)
+merge handoff for wk-self blocked: its worker reads dead, so its live PM was told on $TMPDIR/fm-lab.Ee5CxY/state/wk-self.status
+signal: $TMPDIR/fm-lab.Ee5CxY/state/other.status
+exit=0
+== wk-self.status after the replay
+done: PR https://github.com/example/repo/pull/75 checks green
+blocked [key=merged-owner-wk-self] [at=1792911388]: merged wk-self https://github.com/example/repo/pull/75 spawn_gen=g1; activation and live verification have no confirmed live owner: tmux endpoint firstmate:fm-wk-self reads dead; relaunch it with bin/fm-control.sh wk-self relaunch --note 'Merged https://github.com/example/repo/pull/75; activation and live verification remain pending'
+status stream CHANGED by the replay
+poll: retired
+== main wake queue
+1792911394	7	signal	other.status	signal: $TMPDIR/fm-lab.Ee5CxY/state/other.status
+1792911394	8	signal	other.status	signal: $TMPDIR/fm-lab.Ee5CxY/state/other.status
+
+# Attempt 2 (wk-self2, PR 76): stub extended to report the configured reviewer approved the head
+armed: state/wk-self2.check.sh
+== worker verdict: tmux firstmate:fm-wk-self2 -> dead
+== bin/fm-pr-merge.sh wk-self2 https://github.com/example/repo/pull/76
+armed: state/wk-self2.check.sh
+verified: https://github.com/example/repo/pull/76 is open and mergeable, with every unwaived required check reported and every unwaived check green at head 0123456789abcdef0123456789abcdef01234567
+verified: https://github.com/example/repo/pull/76 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+merge handoff for wk-self2 blocked: its worker reads dead, so its live PM was told on $TMPDIR/fm-lab.Ee5CxY/state/wk-self2.status
+exit=0
+gh pr merge calls so far: 0
+== wk-self2.status after the self merge
+done: PR https://github.com/example/repo/pull/76 checks green
+blocked [key=merged-owner-wk-self2] [at=1792911465]: merged wk-self2 https://github.com/example/repo/pull/76 spawn_gen=g1; activation and live verification have no confirmed live owner: tmux endpoint firstmate:fm-wk-self2 reads dead; relaunch it with bin/fm-control.sh wk-self2 relaunch --note 'Merged https://github.com/example/repo/pull/76; activation and live verification remain pending'
+marker: committed
+poll: still armed
+== watcher cycle (poll replays the merge)
+watcher: started pid=82548 (beacon fresh)
+signal: $TMPDIR/fm-lab.Ee5CxY/state/other.status
+exit=0
+== wk-self2.status after the replay
+done: PR https://github.com/example/repo/pull/76 checks green
+blocked [key=merged-owner-wk-self2] [at=1792911465]: merged wk-self2 https://github.com/example/repo/pull/76 spawn_gen=g1; activation and live verification have no confirmed live owner: tmux endpoint firstmate:fm-wk-self2 reads dead; relaunch it with bin/fm-control.sh wk-self2 relaunch --note 'Merged https://github.com/example/repo/pull/76; activation and live verification remain pending'
+status stream unchanged by the replay
+poll: retired
+== main wake queue
+1792911485	9	signal	other.status	signal: $TMPDIR/fm-lab.Ee5CxY/state/other.status
+1792911485	10	signal	other.status	signal: $TMPDIR/fm-lab.Ee5CxY/state/other.status
+
+gh stub log: 1 'pr merge' call(s) recorded

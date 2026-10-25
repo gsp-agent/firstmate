@@ -1,0 +1,29 @@
+# Uncertain verdicts (F2): tmux window with a non-agent foreground process, legacy record without a session, cmux record
+armed: state/wk-amb.check.sh
+armed: state/wk-legacy.check.sh
+armed: state/wk-cmux.check.sh
+== verdicts
+tmux firstmate:fm-wk-amb -> ambiguous
+tmux fm-wk-legacy -> unreadable
+cmux workspace:1 -> unverified
+watcher: started pid=17193 (beacon fresh)
+merge handoff for wk-amb blocked: its worker reads ambiguous, so its live PM was told on $TMPDIR/fm-lab.Ee5CxY/state/wk-amb.status
+merge handoff for wk-cmux blocked: its worker reads unverified, so its live PM was told on $TMPDIR/fm-lab.Ee5CxY/state/wk-cmux.status
+merge handoff for wk-legacy blocked: its worker reads unreadable, so its live PM was told on $TMPDIR/fm-lab.Ee5CxY/state/wk-legacy.status
+signal: $TMPDIR/fm-lab.Ee5CxY/state/other.status
+exit=0
+== wk-amb.status (last line)
+blocked [key=merged-owner-wk-amb] [at=1792911844]: merged wk-amb https://github.com/example/repo/pull/91 spawn_gen=g1; activation and live verification have no confirmed live owner: tmux endpoint firstmate:fm-wk-amb reads ambiguous; relaunch would refuse on an endpoint that reads ambiguous; confirm by hand whether its worker still runs
+  names no relaunch
+  marker: committed
+  poll: retired
+== wk-legacy.status (last line)
+blocked [key=merged-owner-wk-legacy] [at=1792911859]: merged wk-legacy https://github.com/example/repo/pull/92 spawn_gen=g1; activation and live verification have no confirmed live owner: tmux endpoint fm-wk-legacy reads unreadable; relaunch would refuse on an endpoint that reads unreadable; confirm by hand whether its worker still runs
+  names no relaunch
+  marker: committed
+  poll: retired
+== wk-cmux.status (last line)
+blocked [key=merged-owner-wk-cmux] [at=1792911853]: merged wk-cmux https://github.com/example/repo/pull/93 spawn_gen=g1; activation and live verification have no confirmed live owner: cmux endpoint workspace:1 reads unverified; relaunch would refuse because cmux has no recovery-grade classifier; confirm by hand whether its worker still runs
+  names no relaunch
+  marker: committed
+  poll: retired

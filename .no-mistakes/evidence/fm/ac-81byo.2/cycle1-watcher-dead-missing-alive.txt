@@ -1,0 +1,40 @@
+$ bin/fm-watch-arm.sh   (lab FM_HOME, private tmux socket, GitHub stub reports PRs 71/72/73 MERGED)
+watcher: started pid=48622 (beacon fresh)
+merge handoff for wk-dead blocked: its worker reads dead, so its live PM was told on $TMPDIR/fm-lab.Ee5CxY/state/wk-dead.status
+merge handoff for wk-gone blocked: its worker reads missing, so its live PM was told on $TMPDIR/fm-lab.Ee5CxY/state/wk-gone.status
+signal: $TMPDIR/fm-lab.Ee5CxY/state/other.status
+exit=0
+
+$ persisted state after the cycle
+== wk-dead.status
+done: PR https://github.com/example/repo/pull/71 checks green
+blocked [key=merged-owner-wk-dead] [at=1792911055]: merged wk-dead https://github.com/example/repo/pull/71 spawn_gen=g1; activation and live verification have no confirmed live owner: tmux endpoint firstmate:fm-wk-dead reads dead; relaunch it with bin/fm-control.sh wk-dead relaunch --note 'Merged https://github.com/example/repo/pull/71; activation and live verification remain pending'
+  wk-dead.pr-poll-merge-notified: present
+  wk-dead.check.sh: absent
+  wk-dead.pr-poll: absent
+  wk-dead.pr-poll-registration: absent
+== wk-gone.status
+done: PR https://github.com/example/repo/pull/72 checks green
+blocked [key=merged-owner-wk-gone] [at=1792911062]: merged wk-gone https://github.com/example/repo/pull/72 spawn_gen=g1; activation and live verification have no confirmed live owner: tmux endpoint firstmate:fm-wk-gone reads missing; relaunch would refuse because tmux cannot prove that endpoint is gone; find it on the tmux server that owns it and confirm whether its worker still runs
+  wk-gone.pr-poll-merge-notified: present
+  wk-gone.check.sh: absent
+  wk-gone.pr-poll: absent
+  wk-gone.pr-poll-registration: absent
+== wk-live.status
+done: PR https://github.com/example/repo/pull/73 checks green
+note [key=merged-wk-live] [at=1792911071]: merged wk-live https://github.com/example/repo/pull/73 spawn_gen=g1; activation and live verification pending with the existing owner
+  wk-live.pr-poll-merge-notified: present
+  wk-live.check.sh: absent
+  wk-live.pr-poll: absent
+  wk-live.pr-poll-registration: absent
+== other.status
+done: other work finished
+  other.pr-poll-merge-notified: absent
+  other.check.sh: absent
+  other.pr-poll: absent
+  other.pr-poll-registration: absent
+== main wake queue (.wake-queue)
+1792911084	1	signal	other.status	signal: $TMPDIR/fm-lab.Ee5CxY/state/other.status
+1792911085	2	signal	other.status	signal: $TMPDIR/fm-lab.Ee5CxY/state/other.status
+== watcher cycle exits (last 3)
+arm_pid=48013	watcher_pid=48622	origin=started	started_at=1792911035	ended_at=1792911086	exit_code=0	signal=none	reason=actionable-signal	beacon_age=9	lock_before=pid:48622|identity:Sun Oct 25 01:50:35 2026     bash ~/.agent-scratch/nm-runs/a5e67f4ea77f/01M5RTGB5Q482EQH6YN3YRBSFC/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=none
