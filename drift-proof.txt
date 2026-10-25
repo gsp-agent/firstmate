@@ -115,3 +115,5 @@ pr: 132
 # Failing-first orphan-arm regressions in tests/fm-watch-arm.test.sh: on 41a0d972 an attached arm survived caller death, and inherited ignored TERM timed out with exit 124 and required KILL; both pass with the fix.
 # Failure/timeout fixture cleanup also passes with a TERM-ignoring child and stale PID record; post-file pgrep plus cwd checks find zero worktree/test-folder arms, including after failed baseline runs and a suite timeout.
 pr: 136
+# Failing-first window-read budget in tests/fm-watch-window-fork-budget.test.sh: upstream-lean 13b4a94e adds 35 processes per window per poll (560 over four polls with four windows, budget 160) and fails; this change adds 10 and passes.
+pr: 137
