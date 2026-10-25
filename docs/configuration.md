@@ -469,6 +469,11 @@ A backend spawn refusal from a missing dependency, version gate, or unauthentica
 
 ### Task metadata
 
+An optional `route_reason=`, supplied by `--route-reason` on `bin/fm-spawn.sh` or `bin/fm-control.sh <id> relaunch`, records why the runtime was chosen, with carriage returns and newlines flattened to spaces.
+A relaunch replaces it when supplied, preserves it when omitted and the resolved harness, model, and effort are unchanged, and otherwise removes it.
+When the launch route in `bin/fm-cursor-guard.sh` changes the harness, the route's own fallback reason replaces any supplied reason.
+`relaunch --restore` carries the archived reason over when `--harness`, `--model`, and `--effort` are all omitted.
+
 Task meta records `backend=` only for a non-default backend; an absent `backend=` means `tmux`, preserving existing default-path meta files.
 
 - Every new task records `endpoint_task_id=` as the cleanup binding between the metadata filename and its opaque runtime endpoint.
