@@ -423,15 +423,15 @@ run_arm() {  # <output file, or empty for none>
 # successor receives the closed arm's pid as FM_WATCH_PREDECESSOR_ARM_PID; it
 # must outlive this hook's exit, so it is detached three ways: nohup, stdio
 # away from the hook's pipes, and its own process group. Its one status line
-# is awaited within the arm's own confirmation budget plus slack. It is a
-# covering successor (bin/fm-watch-arm.sh FM_WATCH_COVER), so a fleet event
-# during the handling turn does not leave the home uncovered. Sets
-# SUCCESSOR_FAILURE to the banner line for an unconfirmed successor.
+# is awaited for 60 seconds. The child arm's confirm budget is 30 seconds and
+# is set only on this launch, so a short FM_ARM_CONFIRM_TIMEOUT in this
+# process does not shrink either wait. It is a covering successor
+# (bin/fm-watch-arm.sh FM_WATCH_COVER), so a fleet event during the handling
+# turn does not leave the home uncovered. Sets SUCCESSOR_FAILURE to the banner
+# line for an unconfirmed successor.
 SUCCESSOR_FAILURE=
 start_handling_successor() {  # <closed-arm-pid>
-  local out pid deadline budget line monitor_was_on=0 handoff_deadline=
-  budget=${FM_ARM_CONFIRM_TIMEOUT:-30}
-  case "$budget" in ''|*[!0-9]*) budget=30 ;; esac
+  local out pid deadline line monitor_was_on=0 handoff_deadline=
   case $- in *m*) monitor_was_on=1 ;; esac
   while :; do
     if ! out=$(mktemp "$STATE/.claude-autoarm-successor.XXXXXX"); then
@@ -439,11 +439,12 @@ start_handling_successor() {  # <closed-arm-pid>
       return 1
     fi
     set -m 2>/dev/null || true
-    FM_WATCH_COVER=1 FM_WATCH_PREDECESSOR_ARM_PID=$1 FM_GUARD_GRACE="$GRACE" \
+    FM_ARM_CONFIRM_TIMEOUT=30 FM_WATCH_COVER=1 FM_WATCH_PREDECESSOR_ARM_PID=$1 \
+      FM_GUARD_GRACE="$GRACE" \
       nohup "$SCRIPT_DIR/fm-watch-arm.sh" >"$out" 2>&1 </dev/null &
     pid=$!
     [ "$monitor_was_on" -eq 1 ] || set +m 2>/dev/null || true
-    deadline=$(( $(date +%s) + budget + 2 ))
+    deadline=$(( $(date +%s) + 60 ))
     while :; do
       grep -Eq '^watcher: (started|attached) pid=[0-9]+' "$out" 2>/dev/null && break
       grep -q '^watcher: FAILED' "$out" 2>/dev/null && break
@@ -455,7 +456,7 @@ start_handling_successor() {  # <closed-arm-pid>
         rm -f "$out" 2>/dev/null || true
         return 0
       fi
-      [ -n "$handoff_deadline" ] || handoff_deadline=$(( $(date +%s) + budget + 2 ))
+      [ -n "$handoff_deadline" ] || handoff_deadline=$(( $(date +%s) + 60 ))
       kill -TERM "$pid" 2>/dev/null || true
       wait "$pid" 2>/dev/null || true
       rm -f "$out" 2>/dev/null || true
