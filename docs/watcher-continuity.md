@@ -89,7 +89,9 @@ The hook fires on every Stop.
 On each Stop, an eligible primary with [supervision need](turnend-guard.md#supervision-need), or one holding a wake-queue row main has not been shown (`fm_wake_main_unread` in `bin/fm-wake-lib.sh`), admits one home-scoped owner.
 That owner delivers such a row at once with exit 2; otherwise it foregrounds `bin/fm-watch-arm.sh` inside the hook-owned process tree, and a home admitted only for a row it can no longer find arms nothing.
 On a supervision-host home that needs supervision, main's rows are the main-only class, because the park runs the engine that owns routine rows; with no supervision need no park will run, so every unread row is main's.
+While that home's away record is present the host takes every close, so the hook delivers no unread row.
 While away mode remains inactive, an actionable close wakes the idle session through exit 2, including when the event itself ends supervision need.
+Known limit: nothing yet records when a turn started, so a parked hook that delivers during a turn the captain typed is followed at that turn's end by a second delivery of the same rows, which costs one short turn.
 
 ### Claude session-lock ownership
 
@@ -502,7 +504,7 @@ It checks that a newly appended keyed decision is classified without rereading e
 
 - The auto-arm's scope.
 - Stale and live session owners.
-- Unchanged AFK and need boundaries.
+- AFK and admission boundaries, including delivery of an unread wake-queue row.
 - Single-flight.
 - Bounded failure retries.
 - Benign live-watcher cycle ends.
