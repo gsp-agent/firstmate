@@ -237,6 +237,25 @@ printf 'signal: task.status done: fixture peer cycle ended\n'
 exit 0
 SH
       ;;
+    actionable-queues)
+      cat >> "$dir/bin/fm-watch-arm.sh" <<'SH'
+printf 'pending:downtime:fixture-generation\n' > "$FM_HOME/state/.watcher-down"
+touch "$FM_HOME/state/.last-watcher-beat"
+. "$FM_HOME/bin/fm-wake-lib.sh"
+fm_wake_append check alarm-row "check: queued main row during alarm" || exit 1
+printf 'watcher: started pid=%s (beacon fresh)\n' "$$"
+printf 'stale: fixture-win actionable\n'
+exit 0
+SH
+      ;;
+    benign-queues)
+      cat >> "$dir/bin/fm-watch-arm.sh" <<'SH'
+. "$FM_HOME/bin/fm-wake-lib.sh"
+fm_wake_append check foreign-row "check: queued while a foreign watcher is healthy" || exit 1
+printf 'watcher: FAILED - cycle ended without an actionable reason\n'
+exit 1
+SH
+      ;;
     *)
       echo "unknown arm fixture: $kind" >&2
       return 2
@@ -1532,6 +1551,30 @@ SH
       crash)
         printf 'kill -KILL "$$"\n'
         ;;
+      probe-releases-silent)
+        cat <<'SH'
+FM_STATE_OVERRIDE="$FM_HOME/state" FM_DATA_OVERRIDE="$FM_HOME/data" \
+  FM_CONFIG_OVERRIDE="$FM_HOME/config" "$FM_HOME/bin/fm-captain-hold.sh" reprobe probe \
+  > "$FM_HOME/state/probe-result" || exit 1
+. "$FM_HOME/bin/fm-wake-lib.sh"
+fm_wake_append check captain-hold-probe-probe \
+  "check: captain hold probe released after a passing probe" || exit 1
+exit 0
+SH
+        ;;
+      pass-close)
+        cat <<'SH'
+printf '%s\n' "$(cat "$FM_HOME/state/handling-close-line")"
+exit 0
+SH
+        ;;
+      successor-note)
+        cat <<'SH'
+printf 'pending:handling:fixture-generation\n' > "$FM_HOME/state/.watcher-down"
+printf 'check: captain inbox note n1 - hello\n'
+exit 0
+SH
+        ;;
     esac
     printf 'exit 0\n'
   } > "$dir/bin/fm-supervision-host.sh"
@@ -1792,6 +1835,239 @@ test_arguments_never_arm() {
   pass "auto-arm: --help, -h, and an unknown argument arm nothing; the Stop path still arms"
 }
 
+install_captain_hold() {
+  local dir=$1
+  mkdir -p "$dir/data" "$dir/projects"
+  fm_test_tasks_toml "$dir/.tasks.toml"
+  printf '## In flight\n\n## Queued\n\n## Done\n' > "$dir/data/backlog.md"
+  printf '#!/usr/bin/env bash\nexec %q "$@"\n' "$ROOT/bin/fm-tasks-axi.sh" > "$dir/bin/fm-tasks-axi.sh"
+  printf '#!/usr/bin/env bash\nexec %q "$@"\n' "$ROOT/bin/fm-captain-hold.sh" > "$dir/bin/fm-captain-hold.sh"
+  chmod +x "$dir/bin/fm-tasks-axi.sh" "$dir/bin/fm-captain-hold.sh"
+}
+
+captain_hold() {
+  local dir=$1
+  shift
+  env "FM_HOME=$dir" "FM_STATE_OVERRIDE=$dir/state" \
+    "FM_DATA_OVERRIDE=$dir/data" "FM_CONFIG_OVERRIDE=$dir/config" \
+    "FM_DALE_ASKS_RULE=$dir/missing-asks-rule.py" \
+    "$dir/bin/fm-captain-hold.sh" "$@"
+}
+
+enable_supervision_host() {
+  mkdir -p "$1/config"
+  rm -f "$1/config/supervision-host-off"
+}
+
+queue_wake() {
+  local dir=$1 kind=$2 key=$3 payload=$4
+  FM_HOME="$dir" FM_STATE_OVERRIDE="$dir/state" bash -c '
+    # shellcheck disable=SC1090
+    . "$1"
+    fm_wake_append "$2" "$3" "$4"
+  ' _ "$dir/bin/fm-wake-lib.sh" "$kind" "$key" "$payload"
+}
+
+# The row is queued before this Stop, and the probe is already released, so
+# supervision need is gone. Delivery is the queued row, not another arm.
+test_released_probe_row_is_delivered_with_no_need() {
+  local dir out status seq
+  command -v tasks-axi >/dev/null 2>&1 || fail "tasks-axi is required for the probe-release delivery test"
+  dir=$(make_primary_dir "$TMP_ROOT/probe-admitted")
+  enable_supervision_host "$dir"
+  install_captain_hold "$dir"
+  captain_hold "$dir" hold probe --title 'Figma access' --reason 'sign in to Figma' \
+    --dale-step sign-in --probe 'test -f "$FM_HOME/probe-ready"' >/dev/null \
+    || fail "could not create the probe hold"
+  : > "$dir/probe-ready"
+  captain_hold "$dir" reprobe probe > "$dir/state/probe-result" \
+    || fail "the ready probe did not release"
+  assert_grep 'released: probe' "$dir/state/probe-result" "the ready probe did not release its hold"
+  queue_wake "$dir" check captain-hold-probe-probe \
+    "check: captain hold probe released after a passing probe" \
+    || fail "the release notification was not queued"
+  (
+    # shellcheck source=bin/fm-supervision-lib.sh
+    . "$dir/bin/fm-supervision-lib.sh"
+    if FM_HOME="$dir" FM_DATA_OVERRIDE="$dir/data" fm_supervision_needed "$dir/state"; then
+      fail "a released probe hold still requires supervision"
+    fi
+  ) || fail "the shared predicate retained the released probe hold"
+  out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+  expect_code 2 "$status" "a released probe's queued row must be delivered when nothing else needs supervision"
+  assert_contains "$out" "check: captain hold probe released after a passing probe" \
+    "the release notification was not delivered"
+  [ "$(epoch_outcome "$dir")" = rewake ] || fail "the release delivery must record outcome=rewake, got: $(epoch_outcome "$dir")"
+  seq=$(awk -F '\t' 'NF >= 5 && $2 ~ /^[0-9]+$/ { print $2; exit }' "$dir/state/.wake-queue")
+  [ -n "$seq" ] || fail "the queued release row had no sequence"
+  printf '%s\n' "$seq" > "$dir/state/.main-eligible-rows"
+  out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+  expect_code 0 "$status" "a row main was already shown must not be delivered again"
+  [ -z "$out" ] || fail "a presented release row was delivered again: $out"
+  pass "auto-arm: a released probe row is delivered once need is gone, and a presented row stays quiet"
+}
+
+# The row is appended by the host during the cycle, after the Stop has already
+# been admitted, so this is the vanished-need exit and not the admission gate.
+test_released_probe_row_is_delivered_when_need_vanishes_mid_cycle() {
+  local dir out status
+  command -v tasks-axi >/dev/null 2>&1 || fail "tasks-axi is required for the mid-cycle probe-release test"
+  dir=$(make_primary_dir "$TMP_ROOT/probe-mid-cycle")
+  enable_supervision_host "$dir"
+  install_captain_hold "$dir"
+  captain_hold "$dir" hold probe --title 'Figma access' --reason 'sign in to Figma' \
+    --dale-step sign-in --probe 'test -f "$FM_HOME/probe-ready"' >/dev/null \
+    || fail "could not create the probe hold"
+  : > "$dir/probe-ready"
+  write_host_fixture "$dir" probe-releases-silent
+  out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+  assert_grep 'released: probe' "$dir/state/probe-result" "the host did not release the probe"
+  assert_grep 'check: captain hold probe released after a passing probe' "$dir/state/.wake-queue" \
+    "the host did not queue the release notification"
+  expect_code 2 "$status" "a probe released during the cycle must still deliver its queued row"
+  assert_contains "$out" "check: captain hold probe released after a passing probe" \
+    "the mid-cycle release notification was not delivered"
+  [ "$(epoch_outcome "$dir")" = rewake ] || fail "the mid-cycle release must record outcome=rewake, got: $(epoch_outcome "$dir")"
+  pass "auto-arm: a probe released during the cycle delivers its queued row"
+}
+
+# A drain on an empty queue moves a downtime marker to handling. The host then
+# passes a close through without putting that marker back.
+test_drain_handling_marker_close_is_a_rewake() {
+  local dir out status
+  dir=$(make_primary_dir "$TMP_ROOT/drain-handling-close")
+  enable_supervision_host "$dir"
+  : > "$dir/state/task.meta"
+  printf 'pending:downtime:session-start.1.aaa\n' > "$dir/state/.watcher-down"
+  chmod 600 "$dir/state/.watcher-down"
+  : > "$dir/state/.wake-queue"
+  FM_HOME="$dir" FM_STATE_OVERRIDE="$dir/state" "$ROOT/bin/fm-wake-drain.sh" \
+    > "$dir/drain.out" 2> "$dir/drain.err" || fail "the session-start drain failed: $(cat "$dir/drain.err")"
+  grep -q '^pending:handling:' "$dir/state/.watcher-down" \
+    || fail "the drain did not move the marker to handling: $(cat "$dir/state/.watcher-down")"
+  printf 'signal: fixture.status\n' > "$dir/state/handling-close-line"
+  write_host_fixture "$dir" pass-close
+  out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+  expect_code 2 "$status" "a close passed through after the drain moved the marker must be delivered"
+  assert_contains "$out" "signal: fixture.status" "the passed-through close was not delivered"
+  assert_not_contains "$out" "auto-arm FAILED" "a handling marker must not turn the close into a failure notice"
+  [ "$(epoch_outcome "$dir")" = rewake ] || fail "the passed-through close must record outcome=rewake, got: $(epoch_outcome "$dir")"
+  assert_absent "$dir/state/.claude-autoarm-failure-notified" "the passed-through close opened a failure episode"
+  pass "auto-arm: a close passed through while the marker is handling is a rewake"
+}
+
+test_alarm_delivers_the_close_and_the_queued_row() {
+  local dir out status
+  dir=$(make_primary_dir "$TMP_ROOT/alarm-delivers")
+  : > "$dir/state/task.meta"
+  : > "$dir/state/.claude-autoarm-failure-notified"
+  : > "$dir/state/.claude-autoarm-failure-alarmed"
+  write_arm_fixture "$dir" actionable-queues
+  out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+  expect_code 2 "$status" "an alarm must not swallow an actionable close"
+  assert_contains "$out" "stale: fixture-win actionable" "the actionable close was not delivered"
+  assert_contains "$out" "check: queued main row during alarm" "the queued row was not delivered"
+  assert_not_contains "$out" "auto-arm FAILED" "an alarm delivery must not raise a new failure notice"
+  assert_present "$dir/state/.claude-autoarm-failure-notified" "delivery cleared the failure notice"
+  assert_present "$dir/state/.claude-autoarm-failure-alarmed" "delivery cleared the attended alarm"
+  [ "$(epoch_outcome "$dir")" = rewake ] || fail "the alarmed delivery must record outcome=rewake, got: $(epoch_outcome "$dir")"
+  pass "auto-arm: an alarm suppresses a new failure notice and still delivers the close and the queued row"
+}
+
+test_healthy_foreign_watcher_delivers_a_queued_row() {
+  local dir out status pid identity
+  dir=$(make_primary_dir "$TMP_ROOT/foreign-watcher-row")
+  : > "$dir/state/task.meta"
+  write_arm_fixture "$dir" benign-queues
+  sleep 60 &
+  pid=$!
+  identity=$(watcher_identity "$dir" "$pid") || fail "could not identify the foreign watcher"
+  record_watcher_lock "$dir" "$pid" "$identity"
+  touch "$dir/state/.last-watcher-beat"
+  out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+  expect_code 2 "$status" "a healthy foreign watcher must not swallow a queued main row"
+  assert_contains "$out" "check: queued while a foreign watcher is healthy" \
+    "the row queued beside the healthy watcher was not delivered"
+  kill -0 "$pid" 2>/dev/null || fail "delivery stopped the foreign watcher"
+  kill "$pid" 2>/dev/null || true
+  wait "$pid" 2>/dev/null || true
+  pass "auto-arm: a healthy foreign watcher leaves a queued main row delivered"
+}
+
+test_host_passes_successor_note_through() {
+  local dir out status
+  dir=$(make_primary_dir "$TMP_ROOT/successor-note")
+  enable_supervision_host "$dir"
+  : > "$dir/state/task.meta"
+  write_host_fixture "$dir" successor-note
+  out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+  expect_code 2 "$status" "a note the parked host passes through must be delivered"
+  assert_contains "$out" "check: captain inbox note n1 - hello" "the passed-through note was not delivered"
+  assert_not_contains "$out" "auto-arm FAILED" "a handling marker must not turn the note into a failure notice"
+  [ "$(epoch_outcome "$dir")" = rewake ] || fail "the passed-through note must record outcome=rewake, got: $(epoch_outcome "$dir")"
+  pass "auto-arm: a note passed through from a handling successor is a rewake"
+}
+
+test_rewake_with_handling_marker_allows_the_stop() {
+  local dir out status guard_out guard_status
+  dir=$(make_primary_dir "$TMP_ROOT/guard-handling-rewake")
+  enable_supervision_host "$dir"
+  : > "$dir/state/task.meta"
+  printf 'pending:downtime:session-start.1.aaa\n' > "$dir/state/.watcher-down"
+  chmod 600 "$dir/state/.watcher-down"
+  : > "$dir/state/.wake-queue"
+  FM_HOME="$dir" FM_STATE_OVERRIDE="$dir/state" "$ROOT/bin/fm-wake-drain.sh" \
+    > "$dir/drain.out" 2> "$dir/drain.err" || fail "the session-start drain failed: $(cat "$dir/drain.err")"
+  grep -q '^pending:handling:' "$dir/state/.watcher-down" \
+    || fail "the drain did not move the marker to handling: $(cat "$dir/state/.watcher-down")"
+  printf 'signal: fixture.status\n' > "$dir/state/handling-close-line"
+  write_host_fixture "$dir" pass-close
+  out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+  expect_code 2 "$status" "the hook must commit the close while the marker stays handling"
+  assert_contains "$out" "signal: fixture.status" "the close was not in the hook delivery"
+  assert_not_contains "$out" "auto-arm FAILED" "the handling marker refused the rewake commit"
+  [ "$(epoch_outcome "$dir")" = rewake ] || fail "the hook did not commit outcome=rewake, got: $(epoch_outcome "$dir")"
+  assert_absent "$dir/state/.claude-autoarm-failure-notified" "the rewake commit opened a failure episode"
+  cp "$ROOT/bin/fm-turnend-guard.sh" "$dir/bin/fm-turnend-guard.sh"
+  chmod +x "$dir/bin/fm-turnend-guard.sh"
+  guard_status=0
+  guard_out=$(printf '%s' '{"stop_hook_active":true,"session_id":"sess-autoarm"}' \
+    | CLAUDECODE=1 FM_HOME="$dir" bash "$dir/bin/fm-turnend-guard.sh" --claude 2>&1) || guard_status=$?
+  expect_code 0 "$guard_status" "a fresh rewake must let the stop end"
+  [ -z "$guard_out" ] || fail "the guard continued the turn after the rewake: $guard_out"
+  pass "auto-arm: a rewake committed while the marker is handling lets the stop end"
+}
+
+test_plain_home_delivers_unread_rows_and_away_delivers_none() {
+  local dir out status
+  dir=$(make_primary_dir "$TMP_ROOT/plain-heartbeat")
+  queue_wake "$dir" heartbeat fleet "heartbeat: fleet still beating" \
+    || fail "the heartbeat row was not queued"
+  out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+  expect_code 2 "$status" "a plain home must deliver a queued heartbeat when nothing else needs supervision"
+  assert_contains "$out" "heartbeat: fleet still beating" "the queued heartbeat was not delivered"
+
+  dir=$(make_primary_dir "$TMP_ROOT/away-queued")
+  : > "$dir/state/task.meta"
+  : > "$dir/state/.afk"
+  queue_wake "$dir" check away-row "check: captain inbox note away - still queued" \
+    || fail "the away row was not queued"
+  out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+  expect_code 0 "$status" "the away record must deliver nothing"
+  [ -z "$out" ] || fail "the away record delivered a row: $out"
+  assert_grep 'check: captain inbox note away - still queued' "$dir/state/.wake-queue" \
+    "the away exit consumed the queued row"
+
+  dir=$(make_primary_dir "$TMP_ROOT/host-heartbeat-quiet")
+  enable_supervision_host "$dir"
+  queue_wake "$dir" heartbeat fleet "heartbeat: routine row for the park" \
+    || fail "the routine heartbeat was not queued"
+  out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+  expect_code 0 "$status" "a routine heartbeat on an attended host home must stay with the park"
+  [ -z "$out" ] || fail "a routine heartbeat was delivered to main: $out"
+  pass "auto-arm: a plain home delivers every unread row, and the away record delivers none"
+}
+
 test_fm_lock_status_still_works_with_shared_lib() {
   local out
   out=$(FM_HOME="$TMP_ROOT/lock-status-home" bash "$ROOT/bin/fm-lock.sh" status 2>&1)
@@ -1866,3 +2142,11 @@ test_host_crash_is_retried_then_reported
 test_arguments_never_arm
 test_fm_lock_status_still_works_with_shared_lib
 test_stands_down_only_on_pi_code_transcript_path
+test_released_probe_row_is_delivered_with_no_need
+test_released_probe_row_is_delivered_when_need_vanishes_mid_cycle
+test_drain_handling_marker_close_is_a_rewake
+test_alarm_delivers_the_close_and_the_queued_row
+test_healthy_foreign_watcher_delivers_a_queued_row
+test_host_passes_successor_note_through
+test_rewake_with_handling_marker_allows_the_stop
+test_plain_home_delivers_unread_rows_and_away_delivers_none

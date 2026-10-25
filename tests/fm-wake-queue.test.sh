@@ -3533,6 +3533,39 @@ SH
   pass "watch liveness: an unreachable remote secondmate is probed, preserved, and never failed over"
 }
 
+test_partial_append_leaves_the_next_row_whole() {
+  local dir state fragment
+  dir=$(make_case partial-append)
+  state="$dir/state"
+  fragment='partial-row-without-newline'
+  printf '%s' "$fragment" > "$state/.wake-queue"
+  append_wake "$state" check "inbox:n1" "check: captain inbox note n1 - hello" \
+    || fail "the append after a partial row failed"
+  [ "$(awk 'END { print NR }' "$state/.wake-queue")" -eq 2 ] \
+    || fail "the next row joined the fragment: $(cat "$state/.wake-queue")"
+  [ "$(sed -n '1p' "$state/.wake-queue")" = "$fragment" ] \
+    || fail "the fragment was not left on its own line: $(sed -n '1p' "$state/.wake-queue")"
+  awk -F '\t' 'NR == 2 && $1 ~ /^[0-9]+$/ && NF >= 5 { found = 1 } END { exit found ? 0 : 1 }' \
+    "$state/.wake-queue" \
+    || fail "the next row is not a complete record: $(sed -n '2p' "$state/.wake-queue")"
+  FM_STATE_OVERRIDE="$state" "$DRAIN" > "$dir/drain.out" 2> "$dir/drain.err" \
+    || fail "drain after a fragment failed: $(cat "$dir/drain.err")"
+  grep -Fq 'retired 1 unusable queue row' "$dir/drain.err" \
+    || fail "the drain did not retire only the fragment: $(cat "$dir/drain.err")"
+  grep -Fq 'check: captain inbox note n1 - hello' "$dir/drain.out" \
+    || fail "the drain did not present the intact row"
+  ! grep -Fq "$fragment" "$state/.wake-queue" \
+    || fail "the fragment survived the drain: $(cat "$state/.wake-queue")"
+  grep -Fq 'check: captain inbox note n1 - hello' "$state/.wake-queue" \
+    || fail "the intact row was not left queued"
+  pass "a partial row stays on its own line, and the drain retires only that fragment"
+}
+
+if [ -n "${FM_TEST_ONLY:-}" ]; then
+  "$FM_TEST_ONLY"
+  exit
+fi
+
 test_self_held_lock_reclaims_instead_of_deadlocking
 test_subshell_lock_ownership_without_bashpid
 test_bounded_lock_handoff_after_contention
@@ -3602,3 +3635,4 @@ test_secondmate_liveness_tick_unqueued_outcome_is_an_error_not_a_wake
 test_secondmate_liveness_tick_skips_mate_whose_lock_is_held
 test_secondmate_liveness_tick_preserves_unreachable_remote
 test_liveness_relaunch_trust_write_stays_in_the_sandbox
+test_partial_append_leaves_the_next_row_whole
