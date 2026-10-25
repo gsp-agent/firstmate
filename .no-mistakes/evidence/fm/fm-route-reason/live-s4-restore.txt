@@ -1,0 +1,190 @@
+# relaunch --restore of closed tasks (real bin/fm-spawn.sh, bin/fm-teardown.sh, bin/fm-control.sh relaunch --restore)
+
+## setup: spawn three codex ship workers with route reasons
+$ <worktree>/bin/fm-spawn.sh rr4a2c9d-rsta <lab>/home/projects/notes --mode local-only --yolo on --harness codex --route-reason claude quota
+spawned rr4a2c9d-rsta harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rr4a2c9d-rsta worktree=<lab>/treehouse/.treehouse/notes-976807/1/notes
+exit=0
+--- rr4a2c9d-rsta record (state/rr4a2c9d-rsta.meta, profile and route keys) ---
+window=firstmate:fm-rr4a2c9d-rsta
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=claude quota
+spawn_gen=s1792951451.2036.13805
+route_reason lines: 1
+$ <worktree>/bin/fm-spawn.sh rr4a2c9d-rstb <lab>/home/projects/notes --mode local-only --yolo on --harness codex --route-reason claude quota
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+spawned rr4a2c9d-rstb harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rr4a2c9d-rstb worktree=<lab>/treehouse/.treehouse/notes-976807/2/notes
+exit=0
+--- rr4a2c9d-rstb record (state/rr4a2c9d-rstb.meta, profile and route keys) ---
+window=firstmate:fm-rr4a2c9d-rstb
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=claude quota
+spawn_gen=s1792951476.16729.6248
+route_reason lines: 1
+$ <worktree>/bin/fm-spawn.sh rr4a2c9d-rstc <lab>/home/projects/notes --mode local-only --yolo on --harness cursor
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+cursor fallback: launching rr4a2c9d-rstc on the codex harness (default model, effort medium): Cursor Models at 99% (limit 85%) and no prepaid/on-demand credit room in 20261025-spending.txt
+spawned rr4a2c9d-rstc harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rr4a2c9d-rstc worktree=<lab>/treehouse/.treehouse/notes-976807/3/notes
+exit=0
+--- rr4a2c9d-rstc record (state/rr4a2c9d-rstc.meta, profile and route keys) ---
+window=firstmate:fm-rr4a2c9d-rstc
+harness=codex
+kind=ship
+model=default
+effort=medium
+route_reason=Cursor Models at 99% (limit 85%) and no prepaid/on-demand credit room in 20261025-spending.txt
+route_fallback=1
+spawn_gen=s1792951503.46984.281
+route_reason lines: 1
+
+## close rr4a2c9d-rsta with real teardown
+$ <worktree>/bin/fm-teardown.sh rr4a2c9d-rsta
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+teardown: reaping leaked worktree process(es) for rr4a2c9d-rsta: 5971 11708 11885
+teardown: force-killing leaked worktree process(es) for rr4a2c9d-rsta: 5971
+A new version of treehouse is available: v2.3.0 → v3.1.6
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+teardown rr4a2c9d-rsta complete (window firstmate:fm-rr4a2c9d-rsta, worktree <lab>/treehouse/.treehouse/notes-976807/1/notes)
+Backlog: rr4a2c9d-rsta is closed in <lab>/home/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+exit=0
+--- rr4a2c9d-rsta record (archive data/rr4a2c9d-rsta/record/closed-task.meta, profile and route keys) ---
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=claude quota
+live record present: no
+
+## close rr4a2c9d-rstb with real teardown
+$ <worktree>/bin/fm-teardown.sh rr4a2c9d-rstb
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+teardown: reaping leaked worktree process(es) for rr4a2c9d-rstb: 30529 43889 44033
+teardown: force-killing leaked worktree process(es) for rr4a2c9d-rstb: 30529
+A new version of treehouse is available: v2.3.0 → v3.1.6
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+teardown rr4a2c9d-rstb complete (window firstmate:fm-rr4a2c9d-rstb, worktree <lab>/treehouse/.treehouse/notes-976807/2/notes)
+Backlog: rr4a2c9d-rstb is closed in <lab>/home/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+exit=0
+--- rr4a2c9d-rstb record (archive data/rr4a2c9d-rstb/record/closed-task.meta, profile and route keys) ---
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=claude quota
+live record present: no
+
+## close rr4a2c9d-rstc with real teardown
+$ <worktree>/bin/fm-teardown.sh rr4a2c9d-rstc
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+teardown: reaping leaked worktree process(es) for rr4a2c9d-rstc: 58237 67327 67614
+teardown: force-killing leaked worktree process(es) for rr4a2c9d-rstc: 58237
+A new version of treehouse is available: v2.3.0 → v3.1.6
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+teardown rr4a2c9d-rstc complete (window firstmate:fm-rr4a2c9d-rstc, worktree <lab>/treehouse/.treehouse/notes-976807/3/notes)
+Backlog: rr4a2c9d-rstc is closed in <lab>/home/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+exit=0
+--- rr4a2c9d-rstc record (archive data/rr4a2c9d-rstc/record/closed-task.meta, profile and route keys) ---
+harness=codex
+kind=ship
+model=default
+effort=medium
+route_reason=Cursor Models at 99% (limit 85%) and no prepaid/on-demand credit room in 20261025-spending.txt
+route_fallback=1
+live record present: no
+
+## S10 restore with --harness, --model, and --effort all omitted and no reason: the archived reason carries over
+$ <worktree>/bin/fm-control.sh rr4a2c9d-rsta relaunch --restore --note finish it
+spawned rr4a2c9d-rsta harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rr4a2c9d-rsta worktree=<lab>/treehouse/.treehouse/notes-976807/1/notes
+restored rr4a2c9d-rsta from <lab>/home/data/rr4a2c9d-rsta/record/closed-task.meta harness=codex kind=ship project=<lab>/home/projects/notes
+exit=0
+--- rr4a2c9d-rsta record (state/rr4a2c9d-rsta.meta, profile and route keys) ---
+window=firstmate:fm-rr4a2c9d-rsta
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=claude quota
+spawn_gen=s1792951622.55482.21522
+route_reason lines: 1
+
+## S11 restore with a supplied dash-leading reason (equals form): it replaces the archived one
+$ <worktree>/bin/fm-control.sh rr4a2c9d-rstb relaunch --restore --note finish it --route-reason=--quota-out
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+spawned rr4a2c9d-rstb harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rr4a2c9d-rstb worktree=<lab>/treehouse/.treehouse/notes-976807/2/notes
+restored rr4a2c9d-rstb from <lab>/home/data/rr4a2c9d-rstb/record/closed-task.meta harness=codex kind=ship project=<lab>/home/projects/notes
+exit=0
+--- rr4a2c9d-rstb record (state/rr4a2c9d-rstb.meta, profile and route keys) ---
+window=firstmate:fm-rr4a2c9d-rstb
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=--quota-out
+spawn_gen=s1792951638.66181.23572
+route_reason lines: 1
+
+## S12 restore that changes the effort with no reason: the archived reason is not carried
+$ <worktree>/bin/fm-control.sh rr4a2c9d-rstc relaunch --restore --note finish it --effort high
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+spawned rr4a2c9d-rstc harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rr4a2c9d-rstc worktree=<lab>/treehouse/.treehouse/notes-976807/3/notes
+restored rr4a2c9d-rstc from <lab>/home/data/rr4a2c9d-rstc/record/closed-task.meta harness=codex kind=ship project=<lab>/home/projects/notes
+exit=0
+--- rr4a2c9d-rstc record (state/rr4a2c9d-rstc.meta, profile and route keys) ---
+window=firstmate:fm-rr4a2c9d-rstc
+harness=codex
+kind=ship
+model=default
+effort=high
+spawn_gen=s1792951657.79209.8082
+route_reason lines: 0
+
+--- live pane firstmate:fm-rr4a2c9d-rsta (last non-blank lines) ---
+fm-rr4a2c9d-rsta cmd=node dead=0
+  Read the record the ask names for what remains before you change anything.
+  finish it
+■ {"error": {"type": "invalid_request_error", "message": "lab mock provider answers no turns"}}
+› Ask Codex to do anything
+  gpt-5 default · <lab>/treehouse/.treehouse/notes-976807/1/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+
+--- live pane firstmate:fm-rr4a2c9d-rstb (last non-blank lines) ---
+fm-rr4a2c9d-rstb cmd=node dead=0
+  Read the record the ask names for what remains before you change anything.
+  finish it
+■ {"error": {"type": "invalid_request_error", "message": "lab mock provider answers no turns"}}
+› Ask Codex to do anything
+  gpt-5 default · <lab>/treehouse/.treehouse/notes-976807/2/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+
+--- live pane firstmate:fm-rr4a2c9d-rstc (last non-blank lines) ---
+fm-rr4a2c9d-rstc cmd=node dead=0
+  Read the record the ask names for what remains before you change anything.
+  finish it
+■ {"error": {"type": "invalid_request_error", "message": "lab mock provider answers no turns"}}
+› Ask Codex to do anything
+  gpt-5 high · <lab>/treehouse/.treehouse/notes-976807/3/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+

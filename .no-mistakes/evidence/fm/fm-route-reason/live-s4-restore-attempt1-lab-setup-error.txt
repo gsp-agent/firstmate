@@ -1,0 +1,130 @@
+# relaunch --restore of closed tasks (real bin/fm-teardown.sh, then real bin/fm-control.sh relaunch --restore)
+
+## close rra0972c-batcha with real teardown
+$ <worktree>/bin/fm-teardown.sh rra0972c-batcha
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+teardown: reaping leaked worktree process(es) for rra0972c-batcha: 46443 51384 51507
+teardown: force-killing leaked worktree process(es) for rra0972c-batcha: 46443
+A new version of treehouse is available: v2.3.0 → v3.1.6
+Run "treehouse update" to update
+
+worktree /private<lab>/treehouse/.treehouse/notes-9560d0/6/notes is not managed by treehouse
+error: treehouse return failed for worktree /private<lab>/treehouse/.treehouse/notes-9560d0/6/notes; teardown aborted
+exit=1
+--- rra0972c-batcha record (archive data/rra0972c-batcha/record/closed-task.meta, profile and route keys) ---
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=--claude-out-of-quota
+live record present: yes
+
+## close rra0972c-batchb with real teardown
+$ <worktree>/bin/fm-teardown.sh rra0972c-batchb
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+teardown: reaping leaked worktree process(es) for rra0972c-batchb: 63495 71604 71696
+teardown: force-killing leaked worktree process(es) for rra0972c-batchb: 63495
+A new version of treehouse is available: v2.3.0 → v3.1.6
+Run "treehouse update" to update
+
+worktree /private<lab>/treehouse/.treehouse/notes-9560d0/7/notes is not managed by treehouse
+error: treehouse return failed for worktree /private<lab>/treehouse/.treehouse/notes-9560d0/7/notes; teardown aborted
+exit=1
+--- rra0972c-batchb record (archive data/rra0972c-batchb/record/closed-task.meta, profile and route keys) ---
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=--claude-out-of-quota
+live record present: yes
+
+## close rra0972c-cursor2 with real teardown
+$ <worktree>/bin/fm-teardown.sh rra0972c-cursor2
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+teardown: reaping leaked worktree process(es) for rra0972c-cursor2: 33933 38341 39133
+teardown: force-killing leaked worktree process(es) for rra0972c-cursor2: 33933
+A new version of treehouse is available: v2.3.0 → v3.1.6
+Run "treehouse update" to update
+
+worktree /private<lab>/treehouse/.treehouse/notes-9560d0/5/notes is not managed by treehouse
+error: treehouse return failed for worktree /private<lab>/treehouse/.treehouse/notes-9560d0/5/notes; teardown aborted
+exit=1
+--- rra0972c-cursor2 record (archive data/rra0972c-cursor2/record/closed-task.meta, profile and route keys) ---
+harness=codex
+kind=ship
+model=default
+effort=medium
+route_reason=Cursor Models at 99% (limit 85%) and no prepaid/on-demand credit room in 20261025-spending.txt
+route_fallback=1
+live record present: yes
+
+## S10 restore with --harness, --model, and --effort all omitted and no reason: the archived reason carries over
+$ <worktree>/bin/fm-control.sh rra0972c-batcha relaunch --restore --note finish it
+error: task rra0972c-batcha still has a live record at <lab>/home/state/rra0972c-batcha.meta; relaunch it without --restore
+exit=1
+--- rra0972c-batcha record (state/rra0972c-batcha.meta, profile and route keys) ---
+window=firstmate:fm-rra0972c-batcha
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=--claude-out-of-quota
+spawn_gen=s1792950288.42491.23883
+route_reason lines: 1
+
+## S11 restore with a supplied dash-leading reason (equals form): it replaces the archived one
+$ <worktree>/bin/fm-control.sh rra0972c-batchb relaunch --restore --note finish it --route-reason=--quota-out
+error: task rra0972c-batchb still has a live record at <lab>/home/state/rra0972c-batchb.meta; relaunch it without --restore
+exit=1
+--- rra0972c-batchb record (state/rra0972c-batchb.meta, profile and route keys) ---
+window=firstmate:fm-rra0972c-batchb
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=--claude-out-of-quota
+spawn_gen=s1792950309.54483.16270
+route_reason lines: 1
+
+## S12 restore that changes the effort with no reason: the archived reason is not carried
+$ <worktree>/bin/fm-control.sh rra0972c-cursor2 relaunch --restore --note finish it --effort high
+error: task rra0972c-cursor2 still has a live record at <lab>/home/state/rra0972c-cursor2.meta; relaunch it without --restore
+exit=1
+--- rra0972c-cursor2 record (state/rra0972c-cursor2.meta, profile and route keys) ---
+window=firstmate:fm-rra0972c-cursor2
+harness=codex
+kind=ship
+model=default
+effort=medium
+route_reason=Cursor Models at 99% (limit 85%) and no prepaid/on-demand credit room in 20261025-spending.txt
+route_fallback=1
+spawn_gen=s1792950270.28831.32626
+route_reason lines: 1
+
+--- live pane firstmate:fm-rra0972c-batcha (last non-blank lines) ---
+fm-rra0972c-batcha cmd=zsh dead=0
+■ {"error": {"type": "invalid_request_error", "message": "lab mock provider answers no turns"}}
+› %
+╭─notes on 🌱 fm/rra0972c-batcha
+╰─❯ 🌳 Left worktree. Pool state unchanged.
+╭─notes on 🌱 main
+╰─❯
+
+--- live pane firstmate:fm-rra0972c-batchb (last non-blank lines) ---
+fm-rra0972c-batchb cmd=zsh dead=0
+■ {"error": {"type": "invalid_request_error", "message": "lab mock provider answers no turns"}}
+› %
+╭─notes on 🌱 fm/rra0972c-batchb
+╰─❯ 🌳 Left worktree. Pool state unchanged.
+╭─notes on 🌱 main
+╰─❯
+
+--- live pane firstmate:fm-rra0972c-cursor2 (last non-blank lines) ---
+fm-rra0972c-cursor2 cmd=zsh dead=0
+■ {"error": {"type": "invalid_request_error", "message": "lab mock provider answers no turns"}}
+› %
+╭─notes on 🌱 fm/rra0972c-cursor2
+╰─❯ 🌳 Left worktree. Pool state unchanged.
+╭─notes on 🌱 main
+╰─❯
+

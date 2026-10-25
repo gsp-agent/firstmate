@@ -1,0 +1,8 @@
+== tests/fm-spawn-dispatch-profile.test.sh, route-reason cases only
+not ok - route reason spawn should succeed
+error: unknown harness '--route-reason'; pass a raw launch command to use an unverified adapter: expected exit 0, got 1
+exit=1
+== tests/fm-control-relaunch.test.sh, route-reason cases only
+not ok - route reason relaunch replace should succeed
+error: unexpected argument '--route-reason': expected exit 0, got 1
+exit=1

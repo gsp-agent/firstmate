@@ -1,0 +1,80 @@
+# Live lab: real bin/fm-spawn.sh on a marked lab home, private tmux server, real treehouse pool, real codex-cli 0.164.0 worker on a local mock provider (no model tokens)
+
+## S1 ship spawn with a multi-line route reason
+$ <worktree>/bin/fm-spawn.sh rra0972c-ship1 <lab>/home/projects/notes --mode local-only --yolo on --harness codex --route-reason claude out of quota
+using codexfor now
+spawned rra0972c-ship1 harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rra0972c-ship1 worktree=/private<lab>/treehouse/.treehouse/notes-9560d0/1/notes
+exit=0
+--- rra0972c-ship1 record (state/rra0972c-ship1.meta, profile and route keys) ---
+window=firstmate:fm-rra0972c-ship1
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=claude out of quota using codex for now
+spawn_gen=s1792950180.62288.8482
+route_reason lines: 1
+
+## S2 scout spawn with a multi-line route reason
+$ <worktree>/bin/fm-spawn.sh rra0972c-scout1 <lab>/home/projects/notes --scout --harness codex --route-reason scout rule
+picks codex
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+spawned rra0972c-scout1 harness=codex kind=scout window=firstmate:fm-rra0972c-scout1 worktree=/private<lab>/treehouse/.treehouse/notes-9560d0/2/notes
+exit=0
+--- rra0972c-scout1 record (state/rra0972c-scout1.meta, profile and route keys) ---
+window=firstmate:fm-rra0972c-scout1
+harness=codex
+kind=scout
+model=default
+effort=default
+route_reason=scout rule picks codex
+spawn_gen=s1792950198.79393.2960
+route_reason lines: 1
+
+## S3 ship spawn without --route-reason (the reason is optional)
+$ <worktree>/bin/fm-spawn.sh rra0972c-plain1 <lab>/home/projects/notes --mode local-only --yolo on --harness codex
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+spawned rra0972c-plain1 harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rra0972c-plain1 worktree=/private<lab>/treehouse/.treehouse/notes-9560d0/3/notes
+exit=0
+--- rra0972c-plain1 record (state/rra0972c-plain1.meta, profile and route keys) ---
+window=firstmate:fm-rra0972c-plain1
+harness=codex
+kind=ship
+model=default
+effort=default
+spawn_gen=s1792950211.94758.163
+route_reason lines: 0
+
+--- live pane firstmate:fm-rra0972c-ship1 (last non-blank lines) ---
+fm-rra0972c-ship1 cmd=node dead=0
+  When it is implemented and committed, append `done [at=<epoch>]: ready in branch fm/rra0972c-ship1` to the status file and stop.
+  The configured merge authority approves the ready branch, then firstmate merges it into local `main` through the guarded fast-forward path.
+■ {"error": {"type": "invalid_request_error", "message": "lab mock provider answers no turns"}}
+› Ask Codex to do anything
+  gpt-5 default · /private<lab>/treehouse/.treehouse/notes-9560d0/1/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+
+--- live pane firstmate:fm-rra0972c-scout1 (last non-blank lines) ---
+fm-rra0972c-scout1 cmd=node dead=0
+  If your findings reveal work that should ship (e.g. you reproduced a bug and the fix is clear), say so in the report; firstmate may promote this task in place, and you would then receive mode-specific ship
+  instructions as a follow-up message.
+■ {"error": {"type": "invalid_request_error", "message": "lab mock provider answers no turns"}}
+› Ask Codex to do anything
+  gpt-5 default · /private<lab>/treehouse/.treehouse/notes-9560d0/2/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+
+--- live pane firstmate:fm-rra0972c-plain1 (last non-blank lines) ---
+fm-rra0972c-plain1 cmd=node dead=0
+  When it is implemented and committed, append `done [at=<epoch>]: ready in branch fm/rra0972c-plain1` to the status file and stop.
+  The configured merge authority approves the ready branch, then firstmate merges it into local `main` through the guarded fast-forward path.
+■ {"error": {"type": "invalid_request_error", "message": "lab mock provider answers no turns"}}
+› Ask Codex to do anything
+  gpt-5 default · /private<lab>/treehouse/.treehouse/notes-9560d0/3/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+

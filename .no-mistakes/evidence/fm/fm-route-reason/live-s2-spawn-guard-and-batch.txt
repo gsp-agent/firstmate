@@ -1,0 +1,98 @@
+# Cursor/Grok pool reading in the lab usage dir: cursor_models_pct=99
+
+## S4 Cursor spawn the launch route moves to Codex; the supplied reason is replaced by the route's
+$ <worktree>/bin/fm-spawn.sh rra0972c-cursor1 <lab>/home/projects/notes --mode local-only --yolo on --harness cursor --route-reason frontend rule picks cursor
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+cursor fallback: launching rra0972c-cursor1 on the codex harness (default model, effort medium): Cursor Models at 99% (limit 85%) and no prepaid/on-demand credit room in 20261025-spending.txt
+spawned rra0972c-cursor1 harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rra0972c-cursor1 worktree=/private<lab>/treehouse/.treehouse/notes-9560d0/4/notes
+exit=0
+--- rra0972c-cursor1 record (state/rra0972c-cursor1.meta, profile and route keys) ---
+window=firstmate:fm-rra0972c-cursor1
+harness=codex
+kind=ship
+model=default
+effort=medium
+route_reason=Cursor Models at 99% (limit 85%) and no prepaid/on-demand credit room in 20261025-spending.txt
+route_fallback=1
+spawn_gen=s1792950254.16424.30114
+route_reason lines: 1
+state/rra0972c-cursor1.cursor-fallback: Cursor Models at 99% (limit 85%) and no prepaid/on-demand credit room in 20261025-spending.txt
+
+## S5 Cursor spawn with no supplied reason; the launch route still records its own
+$ <worktree>/bin/fm-spawn.sh rra0972c-cursor2 <lab>/home/projects/notes --mode local-only --yolo on --harness cursor
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+cursor fallback: launching rra0972c-cursor2 on the codex harness (default model, effort medium): Cursor Models at 99% (limit 85%) and no prepaid/on-demand credit room in 20261025-spending.txt
+spawned rra0972c-cursor2 harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rra0972c-cursor2 worktree=/private<lab>/treehouse/.treehouse/notes-9560d0/5/notes
+exit=0
+--- rra0972c-cursor2 record (state/rra0972c-cursor2.meta, profile and route keys) ---
+window=firstmate:fm-rra0972c-cursor2
+harness=codex
+kind=ship
+model=default
+effort=medium
+route_reason=Cursor Models at 99% (limit 85%) and no prepaid/on-demand credit room in 20261025-spending.txt
+route_fallback=1
+spawn_gen=s1792950270.28831.32626
+route_reason lines: 1
+
+## S6 batch dispatch of two pairs with a shared dash-leading reason (equals form)
+$ <worktree>/bin/fm-spawn.sh rra0972c-batcha=<lab>/home/projects/notes rra0972c-batchb=<lab>/home/projects/notes --mode local-only --yolo on --harness codex --route-reason=--claude-out-of-quota
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+spawned rra0972c-batcha harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rra0972c-batcha worktree=/private<lab>/treehouse/.treehouse/notes-9560d0/6/notes
+spawned rra0972c-batchb harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rra0972c-batchb worktree=/private<lab>/treehouse/.treehouse/notes-9560d0/7/notes
+exit=0
+--- rra0972c-batcha record (state/rra0972c-batcha.meta, profile and route keys) ---
+window=firstmate:fm-rra0972c-batcha
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=--claude-out-of-quota
+spawn_gen=s1792950288.42491.23883
+route_reason lines: 1
+--- rra0972c-batchb record (state/rra0972c-batchb.meta, profile and route keys) ---
+window=firstmate:fm-rra0972c-batchb
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=--claude-out-of-quota
+spawn_gen=s1792950309.54483.16270
+route_reason lines: 1
+
+--- live pane firstmate:fm-rra0972c-cursor1 (last non-blank lines) ---
+fm-rra0972c-cursor1 cmd=node dead=0
+  When it is implemented and committed, append `done [at=<epoch>]: ready in branch fm/rra0972c-cursor1` to the status file and stop.
+  The configured merge authority approves the ready branch, then firstmate merges it into local `main` through the guarded fast-forward path.
+■ {"error": {"type": "invalid_request_error", "message": "lab mock provider answers no turns"}}
+› Ask Codex to do anything
+  gpt-5 medium · /private<lab>/treehouse/.treehouse/notes-9560d0/4/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+
+--- live pane firstmate:fm-rra0972c-cursor2 (last non-blank lines) ---
+fm-rra0972c-cursor2 cmd=node dead=0
+  When it is implemented and committed, append `done [at=<epoch>]: ready in branch fm/rra0972c-cursor2` to the status file and stop.
+  The configured merge authority approves the ready branch, then firstmate merges it into local `main` through the guarded fast-forward path.
+■ {"error": {"type": "invalid_request_error", "message": "lab mock provider answers no turns"}}
+› Ask Codex to do anything
+  gpt-5 medium · /private<lab>/treehouse/.treehouse/notes-9560d0/5/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+
+--- live pane firstmate:fm-rra0972c-batcha (last non-blank lines) ---
+fm-rra0972c-batcha cmd=node dead=0
+  When it is implemented and committed, append `done [at=<epoch>]: ready in branch fm/rra0972c-batcha` to the status file and stop.
+  The configured merge authority approves the ready branch, then firstmate merges it into local `main` through the guarded fast-forward path.
+■ {"error": {"type": "invalid_request_error", "message": "lab mock provider answers no turns"}}
+› Ask Codex to do anything
+  gpt-5 default · /private<lab>/treehouse/.treehouse/notes-9560d0/6/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+
+--- live pane firstmate:fm-rra0972c-batchb (last non-blank lines) ---
+fm-rra0972c-batchb cmd=node dead=0
+  When it is implemented and committed, append `done [at=<epoch>]: ready in branch fm/rra0972c-batchb` to the status file and stop.
+  The configured merge authority approves the ready branch, then firstmate merges it into local `main` through the guarded fast-forward path.
+■ {"error": {"type": "invalid_request_error", "message": "lab mock provider answers no turns"}}
+› Ask Codex to do anything
+  gpt-5 default · /private<lab>/treehouse/.treehouse/notes-9560d0/7/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+

@@ -1,0 +1,153 @@
+# Relaunches of the live codex worker rra0972c-ship1 (real bin/fm-control.sh -> bin/fm-spawn.sh --relaunch)
+
+--- rra0972c-ship1 record (state/rra0972c-ship1.meta, profile and route keys) ---
+window=firstmate:fm-rra0972c-ship1
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=claude out of quota using codex for now
+spawn_gen=s1792950180.62288.8482
+route_reason lines: 1
+
+## R1 relaunch with no reason and an unchanged harness, model, and effort keeps the recorded reason
+$ <worktree>/bin/fm-control.sh rra0972c-ship1 relaunch --note resume
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+relaunched rra0972c-ship1 harness=codex from=codex model=default effort=default backend=tmux endpoint=firstmate:fm-rra0972c-ship1 worktree=/private<lab>/treehouse/.treehouse/notes-9560d0/1/notes
+exit=0
+--- rra0972c-ship1 record (state/rra0972c-ship1.meta, profile and route keys) ---
+window=firstmate:fm-rra0972c-ship1
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=claude out of quota using codex for now
+spawn_gen=s1792950357.349.23742
+route_reason lines: 1
+--- live pane firstmate:fm-rra0972c-ship1 (last non-blank lines) ---
+fm-rra0972c-ship1 cmd=node dead=0
+  <lab>/home/state/rra0972c-ship1.inbox/handled/. A steer sent before the relaunch survives there.
+  resume
+■ {"error": {"type": "invalid_request_error", "message": "lab mock provider answers no turns"}}
+› Ask Codex to do anything
+  gpt-5 default · /private<lab>/treehouse/.treehouse/notes-9560d0/1/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+
+## R2 relaunch with a supplied multi-line reason replaces it
+$ <worktree>/bin/fm-control.sh rra0972c-ship1 relaunch --note resume --route-reason quota back
+staying on codex
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+relaunched rra0972c-ship1 harness=codex from=codex model=default effort=default backend=tmux endpoint=firstmate:fm-rra0972c-ship1 worktree=/private<lab>/treehouse/.treehouse/notes-9560d0/1/notes
+exit=0
+--- rra0972c-ship1 record (state/rra0972c-ship1.meta, profile and route keys) ---
+window=firstmate:fm-rra0972c-ship1
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=quota back staying on codex
+spawn_gen=s1792950380.26619.16065
+route_reason lines: 1
+--- live pane firstmate:fm-rra0972c-ship1 (last non-blank lines) ---
+fm-rra0972c-ship1 cmd=node dead=0
+  <lab>/home/state/rra0972c-ship1.inbox/handled/. A steer sent before the relaunch survives there.
+  resume
+■ {"error": {"type": "invalid_request_error", "message": "lab mock provider answers no turns"}}
+› Ask Codex to do anything
+  gpt-5 default · /private<lab>/treehouse/.treehouse/notes-9560d0/1/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+
+## R3 relaunch with a dash-leading reason in equals form succeeds and records it (the stop is not followed by a refused spawn)
+$ <worktree>/bin/fm-control.sh rra0972c-ship1 relaunch --note resume --route-reason=--quota-out
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+relaunched rra0972c-ship1 harness=codex from=codex model=default effort=default backend=tmux endpoint=firstmate:fm-rra0972c-ship1 worktree=/private<lab>/treehouse/.treehouse/notes-9560d0/1/notes
+exit=0
+--- rra0972c-ship1 record (state/rra0972c-ship1.meta, profile and route keys) ---
+window=firstmate:fm-rra0972c-ship1
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=--quota-out
+spawn_gen=s1792950405.51195.31910
+route_reason lines: 1
+--- live pane firstmate:fm-rra0972c-ship1 (last non-blank lines) ---
+fm-rra0972c-ship1 cmd=node dead=0
+  <lab>/home/state/rra0972c-ship1.inbox/handled/. A steer sent before the relaunch survives there.
+  resume
+■ {"error": {"type": "invalid_request_error", "message": "lab mock provider answers no turns"}}
+› Ask Codex to do anything
+  gpt-5 default · /private<lab>/treehouse/.treehouse/notes-9560d0/1/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+
+## R4 relaunch that changes the effort with no reason removes the reason
+$ <worktree>/bin/fm-control.sh rra0972c-ship1 relaunch --note resume --effort high
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+relaunched rra0972c-ship1 harness=codex from=codex model=default effort=high backend=tmux endpoint=firstmate:fm-rra0972c-ship1 worktree=/private<lab>/treehouse/.treehouse/notes-9560d0/1/notes
+exit=0
+--- rra0972c-ship1 record (state/rra0972c-ship1.meta, profile and route keys) ---
+window=firstmate:fm-rra0972c-ship1
+harness=codex
+kind=ship
+model=default
+effort=high
+spawn_gen=s1792950430.83631.12808
+route_reason lines: 0
+--- live pane firstmate:fm-rra0972c-ship1 (last non-blank lines) ---
+fm-rra0972c-ship1 cmd=node dead=0
+  <lab>/home/state/rra0972c-ship1.inbox/handled/. A steer sent before the relaunch survives there.
+  resume
+■ {"error": {"type": "invalid_request_error", "message": "lab mock provider answers no turns"}}
+› Ask Codex to do anything
+  gpt-5 high · /private<lab>/treehouse/.treehouse/notes-9560d0/1/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+
+## R5 relaunch asking for cursor with a supplied reason; the relaunch-time route moves it to codex and its reason replaces the supplied one
+$ <worktree>/bin/fm-control.sh rra0972c-ship1 relaunch --note resume --harness cursor --route-reason cursor by rule
+cursor fallback: relaunching rra0972c-ship1 on the codex harness (default model, effort medium): Cursor Models at 99% (limit 85%) and no prepaid/on-demand credit room in 20261025-spending.txt
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+relaunched rra0972c-ship1 harness=codex from=codex model=default effort=medium backend=tmux endpoint=firstmate:fm-rra0972c-ship1 worktree=/private<lab>/treehouse/.treehouse/notes-9560d0/1/notes
+exit=0
+--- rra0972c-ship1 record (state/rra0972c-ship1.meta, profile and route keys) ---
+window=firstmate:fm-rra0972c-ship1
+harness=codex
+kind=ship
+model=default
+effort=medium
+route_reason=Cursor Models at 99% (limit 85%) and no prepaid/on-demand credit room in 20261025-spending.txt
+route_fallback=1
+spawn_gen=s1792950461.18440.9722
+route_reason lines: 1
+--- live pane firstmate:fm-rra0972c-ship1 (last non-blank lines) ---
+fm-rra0972c-ship1 cmd=node dead=0
+  <lab>/home/state/rra0972c-ship1.inbox/handled/. A steer sent before the relaunch survives there.
+  resume
+■ {"error": {"type": "invalid_request_error", "message": "lab mock provider answers no turns"}}
+› Ask Codex to do anything
+  gpt-5 medium · /private<lab>/treehouse/.treehouse/notes-9560d0/1/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+
+## R6 relaunch with no reason after the route fallback, same runtime, keeps the route's reason
+$ <worktree>/bin/fm-control.sh rra0972c-ship1 relaunch --note resume
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+relaunched rra0972c-ship1 harness=codex from=codex model=default effort=medium backend=tmux endpoint=firstmate:fm-rra0972c-ship1 worktree=/private<lab>/treehouse/.treehouse/notes-9560d0/1/notes
+exit=0
+--- rra0972c-ship1 record (state/rra0972c-ship1.meta, profile and route keys) ---
+window=firstmate:fm-rra0972c-ship1
+harness=codex
+kind=ship
+model=default
+effort=medium
+route_reason=Cursor Models at 99% (limit 85%) and no prepaid/on-demand credit room in 20261025-spending.txt
+route_fallback=1
+spawn_gen=s1792950489.45502.13229
+route_reason lines: 1
+--- live pane firstmate:fm-rra0972c-ship1 (last non-blank lines) ---
+fm-rra0972c-ship1 cmd=node dead=0
+  <lab>/home/state/rra0972c-ship1.inbox/handled/. A steer sent before the relaunch survives there.
+  resume
+■ {"error": {"type": "invalid_request_error", "message": "lab mock provider answers no turns"}}
+› Ask Codex to do anything
+  gpt-5 medium · /private<lab>/treehouse/.treehouse/notes-9560d0/1/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+

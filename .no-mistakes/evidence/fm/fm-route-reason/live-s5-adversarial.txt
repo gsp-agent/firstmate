@@ -1,0 +1,80 @@
+# Adversarial checks (real bin/fm-control.sh and bin/fm-spawn.sh against live codex workers)
+
+baseline: rr4a2c9d-rsta spawn_gen=s1792951622.55482.21522 pane_cmd=node
+
+## A1 a route reason on a non-relaunch verb is refused
+$ <worktree>/bin/fm-control.sh rr4a2c9d-rsta exit --route-reason x
+error: --harness, --model, --effort, --route-reason, --note, --stop-background, and --restore apply to 'relaunch' only
+exit=1
+$ <worktree>/bin/fm-control.sh rr4a2c9d-rsta interrupt --route-reason=x
+error: --harness, --model, --effort, --route-reason, --note, --stop-background, and --restore apply to 'relaunch' only
+exit=1
+
+## A2 a relaunch with --route-reason and no value is refused
+$ <worktree>/bin/fm-control.sh rr4a2c9d-rsta relaunch --note resume --route-reason
+error: --route-reason requires a value
+exit=1
+
+## A3 a two-token dash-leading value is refused as a missing value, before any stop
+$ <worktree>/bin/fm-control.sh rr4a2c9d-rsta relaunch --note resume --route-reason --quota-out
+error: --route-reason requires a value
+exit=1
+
+after A1-A3: spawn_gen=s1792951622.55482.21522 pane_cmd=node
+rr4a2c9d-rsta record unchanged by A1-A3: yes
+
+## A4 a spawn with --route-reason and no value is refused before any task is created
+$ <worktree>/bin/fm-spawn.sh rr4a2c9d-noval <lab>/home/projects/notes --mode local-only --yolo on --harness codex --route-reason
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+error: --route-reason requires a value
+exit=1
+
+## A5 a spawn whose two-token reason starts with -- is refused
+$ <worktree>/bin/fm-spawn.sh rr4a2c9d-noval <lab>/home/projects/notes --mode local-only --yolo on --harness codex --route-reason --quota-out
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+error: --route-reason requires a value
+exit=1
+rr4a2c9d-noval record exists: no; window exists: 0
+
+## A6 a reason carrying newline/CR-separated key=value text cannot add record keys (spawn)
+$ <worktree>/bin/fm-spawn.sh rr4a2c9d-inj <lab>/home/projects/notes --mode local-only --yolo on --harness codex --route-reason quota
+harness=claudekind=secondmate
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+spawned rr4a2c9d-inj harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rr4a2c9d-inj worktree=<lab>/treehouse/.treehouse/notes-976807/4/notes
+exit=0
+--- rr4a2c9d-inj record (state/rr4a2c9d-inj.meta, profile and route keys) ---
+window=firstmate:fm-rr4a2c9d-inj
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=quota harness=claude kind=secondmate
+spawn_gen=s1792951718.16181.6495
+route_reason lines: 1
+harness= lines: 1; kind= lines: 1
+
+## A7 the same injection through relaunch
+$ <worktree>/bin/fm-control.sh rr4a2c9d-inj relaunch --note resume --route-reason limit
+model=gpt-9
+effort=max
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+relaunched rr4a2c9d-inj harness=codex from=codex model=default effort=default backend=tmux endpoint=firstmate:fm-rr4a2c9d-inj worktree=<lab>/treehouse/.treehouse/notes-976807/4/notes
+exit=0
+--- rr4a2c9d-inj record (state/rr4a2c9d-inj.meta, profile and route keys) ---
+window=firstmate:fm-rr4a2c9d-inj
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=limit model=gpt-9 effort=max
+spawn_gen=s1792951731.26221.12617
+route_reason lines: 1
+model= lines: 1; effort= lines: 1
+--- live pane firstmate:fm-rr4a2c9d-inj (last non-blank lines) ---
+fm-rr4a2c9d-inj cmd=node dead=0
+  <lab>/home/state/rr4a2c9d-inj.inbox/handled/. A steer sent before the relaunch survives there.
+  resume
+■ {"error": {"type": "invalid_request_error", "message": "lab mock provider answers no turns"}}
+› Ask Codex to do anything
+  gpt-5 default · <lab>/treehouse/.treehouse/notes-976807/4/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view

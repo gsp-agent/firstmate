@@ -1,0 +1,11 @@
+== tests/fm-spawn-dispatch-profile.test.sh, route-reason cases only
+ok - spawn records a single-line route reason for ships and scouts
+ok - a spawn the launch route moves to another harness records the route's reason
+ok - batch dispatch forwards a shared route reason to every pair
+# selected route-reason spawn tests passed
+exit=0
+== tests/fm-control-relaunch.test.sh, route-reason cases only
+ok - relaunch preserves, clears, or replaces the route reason with its runtime
+ok - fm-control relaunch --restore: an unchanged runtime keeps its archived route reason, and a supplied one replaces it
+# selected route-reason control tests passed
+exit=0

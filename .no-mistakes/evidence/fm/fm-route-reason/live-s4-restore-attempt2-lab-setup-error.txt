@@ -1,0 +1,148 @@
+# relaunch --restore of closed tasks (real bin/fm-spawn.sh, bin/fm-teardown.sh, bin/fm-control.sh relaunch --restore)
+
+## setup: spawn three codex ship workers with route reasons
+$ <worktree>/bin/fm-spawn.sh rra0972c-rsta <lab>/home/projects/notes --mode local-only --yolo on --harness codex --route-reason claude quota
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+spawned rra0972c-rsta harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rra0972c-rsta worktree=/private<lab>/treehouse/.treehouse/notes-9560d0/1/notes
+exit=0
+--- rra0972c-rsta record (state/rra0972c-rsta.meta, profile and route keys) ---
+window=firstmate:fm-rra0972c-rsta
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=claude quota
+spawn_gen=s1792951046.12530.1271
+route_reason lines: 1
+$ <worktree>/bin/fm-spawn.sh rra0972c-rstb <lab>/home/projects/notes --mode local-only --yolo on --harness codex --route-reason claude quota
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+spawned rra0972c-rstb harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rra0972c-rstb worktree=/private<lab>/treehouse/.treehouse/notes-9560d0/2/notes
+exit=0
+--- rra0972c-rstb record (state/rra0972c-rstb.meta, profile and route keys) ---
+window=firstmate:fm-rra0972c-rstb
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=claude quota
+spawn_gen=s1792951109.59913.9162
+route_reason lines: 1
+$ <worktree>/bin/fm-spawn.sh rra0972c-rstc <lab>/home/projects/notes --mode local-only --yolo on --harness cursor
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+cursor fallback: launching rra0972c-rstc on the codex harness (default model, effort medium): Cursor Models at 99% (limit 85%) and no prepaid/on-demand credit room in 20261025-spending.txt
+spawned rra0972c-rstc harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rra0972c-rstc worktree=/private<lab>/treehouse/.treehouse/notes-9560d0/3/notes
+exit=0
+--- rra0972c-rstc record (state/rra0972c-rstc.meta, profile and route keys) ---
+window=firstmate:fm-rra0972c-rstc
+harness=codex
+kind=ship
+model=default
+effort=medium
+route_reason=Cursor Models at 99% (limit 85%) and no prepaid/on-demand credit room in 20261025-spending.txt
+route_fallback=1
+spawn_gen=s1792951181.20604.17314
+route_reason lines: 1
+
+## close rra0972c-rsta with real teardown
+$ <worktree>/bin/fm-teardown.sh rra0972c-rsta
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+REFUSED: task rra0972c-rsta's recorded worktree /private<lab>/treehouse/.treehouse/notes-9560d0/1/notes is also task rra0972c-ship1's recorded worktree.
+Returning that pool slot would kill rra0972c-ship1's processes and reset its copy, so nothing was changed - not even with --force.
+Reconcile whichever record is wrong (bin/fm-crew-state.sh rra0972c-rsta; bin/fm-crew-state.sh rra0972c-ship1), then re-run teardown.
+exit=1
+--- rra0972c-rsta record (archive data/rra0972c-rsta/record/closed-task.meta, profile and route keys) ---
+(no archive)
+live record present: yes
+
+## close rra0972c-rstb with real teardown
+$ <worktree>/bin/fm-teardown.sh rra0972c-rstb
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+REFUSED: task rra0972c-rstb's recorded worktree /private<lab>/treehouse/.treehouse/notes-9560d0/2/notes is also task rra0972c-scout1's recorded worktree.
+Returning that pool slot would kill rra0972c-scout1's processes and reset its copy, so nothing was changed - not even with --force.
+Reconcile whichever record is wrong (bin/fm-crew-state.sh rra0972c-rstb; bin/fm-crew-state.sh rra0972c-scout1), then re-run teardown.
+exit=1
+--- rra0972c-rstb record (archive data/rra0972c-rstb/record/closed-task.meta, profile and route keys) ---
+(no archive)
+live record present: yes
+
+## close rra0972c-rstc with real teardown
+$ <worktree>/bin/fm-teardown.sh rra0972c-rstc
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+REFUSED: task rra0972c-rstc's recorded worktree /private<lab>/treehouse/.treehouse/notes-9560d0/3/notes is also task rra0972c-plain1's recorded worktree.
+Returning that pool slot would kill rra0972c-plain1's processes and reset its copy, so nothing was changed - not even with --force.
+Reconcile whichever record is wrong (bin/fm-crew-state.sh rra0972c-rstc; bin/fm-crew-state.sh rra0972c-plain1), then re-run teardown.
+exit=1
+--- rra0972c-rstc record (archive data/rra0972c-rstc/record/closed-task.meta, profile and route keys) ---
+(no archive)
+live record present: yes
+
+## S10 restore with --harness, --model, and --effort all omitted and no reason: the archived reason carries over
+$ <worktree>/bin/fm-control.sh rra0972c-rsta relaunch --restore --note finish it
+error: task rra0972c-rsta still has a live record at <lab>/home/state/rra0972c-rsta.meta; relaunch it without --restore
+exit=1
+--- rra0972c-rsta record (state/rra0972c-rsta.meta, profile and route keys) ---
+window=firstmate:fm-rra0972c-rsta
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=claude quota
+spawn_gen=s1792951046.12530.1271
+route_reason lines: 1
+
+## S11 restore with a supplied dash-leading reason (equals form): it replaces the archived one
+$ <worktree>/bin/fm-control.sh rra0972c-rstb relaunch --restore --note finish it --route-reason=--quota-out
+error: task rra0972c-rstb still has a live record at <lab>/home/state/rra0972c-rstb.meta; relaunch it without --restore
+exit=1
+--- rra0972c-rstb record (state/rra0972c-rstb.meta, profile and route keys) ---
+window=firstmate:fm-rra0972c-rstb
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=claude quota
+spawn_gen=s1792951109.59913.9162
+route_reason lines: 1
+
+## S12 restore that changes the effort with no reason: the archived reason is not carried
+$ <worktree>/bin/fm-control.sh rra0972c-rstc relaunch --restore --note finish it --effort high
+error: task rra0972c-rstc still has a live record at <lab>/home/state/rra0972c-rstc.meta; relaunch it without --restore
+exit=1
+--- rra0972c-rstc record (state/rra0972c-rstc.meta, profile and route keys) ---
+window=firstmate:fm-rra0972c-rstc
+harness=codex
+kind=ship
+model=default
+effort=medium
+route_reason=Cursor Models at 99% (limit 85%) and no prepaid/on-demand credit room in 20261025-spending.txt
+route_fallback=1
+spawn_gen=s1792951181.20604.17314
+route_reason lines: 1
+
+--- live pane firstmate:fm-rra0972c-rsta (last non-blank lines) ---
+fm-rra0972c-rsta cmd=node dead=0
+  When it is implemented and committed, append `done [at=<epoch>]: ready in branch fm/rra0972c-rsta` to the status file and stop.
+  The configured merge authority approves the ready branch, then firstmate merges it into local `main` through the guarded fast-forward path.
+■ {"error": {"type": "invalid_request_error", "message": "lab mock provider answers no turns"}}
+› Ask Codex to do anything
+  gpt-5 default · /private<lab>/treehouse/.treehouse/notes-9560d0/1/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+
+--- live pane firstmate:fm-rra0972c-rstb (last non-blank lines) ---
+fm-rra0972c-rstb cmd=node dead=0
+  When it is implemented and committed, append `done [at=<epoch>]: ready in branch fm/rra0972c-rstb` to the status file and stop.
+  The configured merge authority approves the ready branch, then firstmate merges it into local `main` through the guarded fast-forward path.
+■ {"error": {"type": "invalid_request_error", "message": "lab mock provider answers no turns"}}
+› Ask Codex to do anything
+  gpt-5 default · /private<lab>/treehouse/.treehouse/notes-9560d0/2/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+
+--- live pane firstmate:fm-rra0972c-rstc (last non-blank lines) ---
+fm-rra0972c-rstc cmd=node dead=0
+  When it is implemented and committed, append `done [at=<epoch>]: ready in branch fm/rra0972c-rstc` to the status file and stop.
+  The configured merge authority approves the ready branch, then firstmate merges it into local `main` through the guarded fast-forward path.
+■ {"error": {"type": "invalid_request_error", "message": "lab mock provider answers no turns"}}
+› Ask Codex to do anything
+  gpt-5 medium · /private<lab>/treehouse/.treehouse/notes-9560d0/3/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+
