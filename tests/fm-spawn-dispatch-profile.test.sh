@@ -2333,8 +2333,23 @@ test_launch_route_records_its_own_route_reason() {
   pass "a spawn the launch route moves to another harness records the route's reason"
 }
 
+test_batch_forwards_the_route_reason_to_every_pair() {
+  local rec id1=reason-batch-a id2=reason-batch-b id out rc
+  rec=$(make_spawn_case reason-batch codex "$id1" "$id2")
+  read_case_record "$rec"
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" \
+    "$id1=$PROJ_DIR" "$id2=$PROJ_DIR" --harness codex --route-reason=--claude-out-of-quota); rc=$?
+  expect_code 0 "$rc" "a batch spawn with a route reason should succeed"$'\n'"$out"
+  for id in "$id1" "$id2"; do
+    grep -qx 'route_reason=--claude-out-of-quota' "$HOME_DIR/state/$id.meta" \
+      || fail "batch pair $id lost the shared route reason"
+  done
+  pass "batch dispatch forwards a shared route reason to every pair"
+}
+
 test_route_reason_is_single_line_for_ship_and_scout
 test_launch_route_records_its_own_route_reason
+test_batch_forwards_the_route_reason_to_every_pair
 test_launch_environment_allowlist
 test_launch_environment_invalid_config_refuses
 test_launch_environment_inaccessible_config_refuses
