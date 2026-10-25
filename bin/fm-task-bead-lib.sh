@@ -101,7 +101,7 @@ fm_task_bead_read() {  # <task-id>
       return 1
       ;;
   esac
-  FM_TASK_BEAD_ID=$canonical
+  FM_TASK_BEAD_ID=$bead
   return 0
 }
 

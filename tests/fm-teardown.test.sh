@@ -5660,10 +5660,9 @@ export BEAD_RESPONSE
   . "$ROOT/bin/fm-task-bead-lib.sh"
   fm_task_data_bead_locations() { printf 'fixture sample\nother sample-other\n'; }
   for variant in exact expanded unrelated suffix prefix owner multiple; do
-    expected=sample-demo
     case "$variant" in
       exact) BEAD_RESPONSE='[{"id":"sample-demo","status":"open"}]' ;;
-      expanded) expected=sample-long-demo; BEAD_RESPONSE='[{"id":"sample-long-demo","status":"closed"}]' ;;
+      expanded) BEAD_RESPONSE='[{"id":"sample-long-demo","status":"closed"}]' ;;
       unrelated) BEAD_RESPONSE='[{"id":"sample-unrelated","status":"closed"}]' ;;
       suffix) BEAD_RESPONSE='[{"id":"sample-long-other","status":"closed"}]' ;;
       prefix) BEAD_RESPONSE='[{"id":"different-long-demo","status":"closed"}]' ;;
@@ -5675,7 +5674,7 @@ export BEAD_RESPONSE
     case "$variant" in
       exact|expanded)
         expect_code 0 "$rc" "bead-resolution $variant: ${FM_TASK_BEAD_ERROR:-}"
-        [ "$FM_TASK_BEAD_ID" = "$expected" ] || fail "bead-resolution $variant: canonical ID missing"
+        [ "$FM_TASK_BEAD_ID" = sample-demo ] || fail "bead-resolution $variant: asked ID missing"
         if [ "$variant" = exact ]; then expected=open; else expected=closed; fi
         [ "$FM_TASK_BEAD_STATUS" = "$expected" ] || fail "bead-resolution $variant: status missing"
         ;;
