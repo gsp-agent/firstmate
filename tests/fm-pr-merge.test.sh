@@ -4860,6 +4860,15 @@ test_approval_submitted_after_the_head_existed_merges() {
   expect_code 0 "$APPROVAL_RC" \
     "skew-inside: a review submitted four seconds before the head commit must merge: $(cat "$case_dir/stderr")"
   assert_logged_gh_merge "$case_dir" 505 example/repo --squash
+
+  # GitHub shows a reviewer their own unsubmitted review, with no submitted_at.
+  case_dir=$(prepare_approval_case pending-after-approval)
+  install_review_pages "$case_dir" \
+    "[$(github_review 205 carmanchip23-dev APPROVED "$head" 2026-01-15T12:05:00Z),{\"id\":206,\"user\":{\"login\":\"carmanchip23-dev\"},\"state\":\"PENDING\",\"commit_id\":\"$head\"}]"
+  run_approval_case "$case_dir" 509
+  expect_code 0 "$APPROVAL_RC" \
+    "pending-after-approval: an unsubmitted review must not refuse a timely approval: $(cat "$case_dir/stderr")"
+  assert_logged_gh_merge "$case_dir" 509 example/repo --squash
   pass "fm-pr-merge accepts an approval submitted once the head commit existed"
 }
 

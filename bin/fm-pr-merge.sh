@@ -1069,7 +1069,7 @@ github_reviewer_refusal() {
         if type != "string" then error("time")
         else sub("\\.[0-9]+"; "") | fromdateiso8601 end;
       ($committed | epoch) as $born
-      | [ .[] | select(.user.login == $reviewer and .commit_id == $head) ] as $same
+      | [ .[] | select(.user.login == $reviewer and .commit_id == $head and .submitted_at != null) ] as $same
       | [ $same[]
           | (.submitted_at | epoch) as $at
           | select($at + $skew >= $born)
