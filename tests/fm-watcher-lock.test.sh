@@ -1631,6 +1631,11 @@ test_msys_pid_identity_uses_proc() {
   pass "MSYS process identity uses compatible /proc fields"
 }
 
+if [ -n "${FM_TEST_ONLY:-}" ]; then
+  run_case "$FM_TEST_ONLY"
+  exit $?
+fi
+
 run_case test_wait_deadline_reaps_a_stopped_child
 run_case test_singleton_start
 run_case test_pid_identity_is_locale_invariant

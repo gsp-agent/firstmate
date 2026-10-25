@@ -2713,6 +2713,23 @@ $fm_out
 EOF
 }
 
+# FM_STAT_SNAPSHOT_AT gets the snapshot index of <path>; fails when the last
+# fm_stat_snapshot did not cover it.
+FM_STAT_SNAPSHOT_AT=
+# shellcheck disable=SC2034 # Output global, read by the callers that source this library.
+fm_stat_snapshot_find() {  # <path>
+  local fm_i=0 fm_n=${#FM_STAT_SNAPSHOT_PATHS[@]}
+  FM_STAT_SNAPSHOT_AT=
+  while [ "$fm_i" -lt "$fm_n" ]; do
+    if [ "${FM_STAT_SNAPSHOT_PATHS[$fm_i]}" = "$1" ] && [ -n "${FM_STAT_SNAPSHOT_OK[$fm_i]}" ]; then
+      FM_STAT_SNAPSHOT_AT=$fm_i
+      return 0
+    fi
+    fm_i=$((fm_i + 1))
+  done
+  return 1
+}
+
 fm_wake_signal_seen_path_to() {  # <out-var> <state> <file>
   local _fsp_task
   fm_basename_to _fsp_task "$3"

@@ -372,6 +372,17 @@ fm_backend_target_of_meta() {  # <meta-file>
   [ -n "$target" ] && printf '%s' "$target"
 }
 
+# The same target into <out-var> (empty when there is none), for callers that
+# read every meta on every poll and must not fork a substitution per meta.
+fm_backend_target_of_meta_to() {  # <out-var> <meta-file>
+  local _btm_backend _btm_window _btm_terminal _btm_target
+  fm_meta_get "$2" backend _btm_backend
+  fm_meta_get "$2" window _btm_window
+  fm_meta_get "$2" terminal _btm_terminal
+  fm_backend_endpoint_of_fields "$_btm_backend" "$_btm_window" "$_btm_terminal" _btm_backend _btm_target
+  printf -v "$1" '%s' "$_btm_target"
+}
+
 # fm_backend_validate_task_endpoint: validate a task cleanup record entirely
 # from its durable metadata before any runtime command or cleanup mutation.
 # The validation binds the exact task id, selected backend, target, project,
