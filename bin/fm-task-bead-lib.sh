@@ -45,7 +45,7 @@ fm_task_bead_candidate() {  # <task-id>
 
 # shellcheck disable=SC2034 # FM_TASK_BEAD_* are results for sourcing callers.
 fm_task_bead_read() {  # <task-id>
-  local bead db out status=0 secs=${FM_TASK_BEAD_TIMEOUT_SECS:-10} code
+  local bead db out canonical status=0 secs=${FM_TASK_BEAD_TIMEOUT_SECS:-10} code
   FM_TASK_BEAD_ID=
   FM_TASK_BEAD_STATUS=
   FM_TASK_BEAD_ERROR=
@@ -83,7 +83,14 @@ fm_task_bead_read() {  # <task-id>
     fi
     return 1
   fi
-  FM_TASK_BEAD_STATUS=$(printf '%s\n' "$out" | jq -r --arg id "$bead" '
+  canonical=$(printf '%s\n' "$out" | jq -r '
+    if type == "array" and length == 1 and (.[0].id | type) == "string"
+    then .[0].id else empty end' 2>/dev/null)
+  if [ -z "$canonical" ] || ! fm_task_data_bead_id_matches "$bead" "$canonical" "$db"; then
+    FM_TASK_BEAD_ERROR="br show $bead returned no readable status"
+    return 1
+  fi
+  FM_TASK_BEAD_STATUS=$(printf '%s\n' "$out" | jq -r --arg id "$canonical" '
     if type == "array" and length == 1 and .[0].id == $id
        and (.[0].status | type) == "string" and (.[0].status | length) > 0
     then .[0].status else empty end' 2>/dev/null)
@@ -94,7 +101,7 @@ fm_task_bead_read() {  # <task-id>
       return 1
       ;;
   esac
-  FM_TASK_BEAD_ID=$bead
+  FM_TASK_BEAD_ID=$canonical
   return 0
 }
 

@@ -244,6 +244,14 @@ fm_task_data_bead_database() { # <bead>
   [ -n "$owner" ] && printf '%s\n' "$HOME/$owner/.beads/beads.db"
 }
 
+fm_task_data_bead_id_matches() { # <asked-id> <canonical-id> <database>
+  local bead=$1 canonical=$2 db=$3
+  [ "$canonical" != "$bead" ] || return 0
+  # br expands unique short IDs while preserving prefix, suffix and owner.
+  case "$canonical" in "${bead%-*}"-*-"${bead##*-}") ;; *) return 1 ;; esac
+  [ "$(fm_task_data_bead_database "$canonical")" = "$db" ]
+}
+
 # A named bead has one owner: the database its prefix maps to, else this
 # home's backlog for an id a task can carry. Prints the bead and returns 0,
 # returns 3 when the owner answered that it does not exist or nothing can own
@@ -262,13 +270,7 @@ fm_task_data_bead_reference() { # <data> <bead>
     fi
     [ "$status" = 0 ] && canonical=$(printf '%s\n' "$out" | jq -er \
       'if type == "array" and length == 1 and (.[0].id | type) == "string" then .[0].id else error("ambiguous bead") end') || return 1
-    if [ "$canonical" != "$bead" ]; then
-      # br resolves a unique short ID to its longer canonical ID. Require
-      # the same prefix, suffix and owning database; never accept a partial
-      # or ambiguous answer just because br returned success.
-      case "$canonical" in "${bead%-*}"-*-"${bead##*-}") ;; *) return 1 ;; esac
-      [ "$(fm_task_data_bead_database "$canonical")" = "$db" ] || return 1
-    fi
+    fm_task_data_bead_id_matches "$bead" "$canonical" "$db" || return 1
     printf '%s\n' "$out"
     return 0
   fi

@@ -5639,8 +5639,8 @@ test_task_with_no_bead_is_cleaned_up_as_before_and_archived() {
   pass "fm-teardown: a task with no bead is cleaned up as before, and its record is archived for a restore"
 }
 
-test_task_bead_resolves_canonical_id() (
-  local case_dir variant rc expected
+test_task_bead_resolves_canonical_id() {
+  local case_dir
   case_dir="$TMP_ROOT/bead-resolution"
   mkdir -p "$case_dir/fakebin" "$case_dir/home/fixture/.beads"
   touch "$case_dir/home/fixture/.beads/beads.db"
@@ -5650,7 +5650,11 @@ test_task_bead_resolves_canonical_id() (
 printf '%s\n' "$BEAD_RESPONSE"
 SH
   chmod +x "$case_dir/fakebin/br"
-  export HOME="$case_dir/home" PATH="$case_dir/fakebin:$PATH" BEAD_RESPONSE
+  cat > "$case_dir/check.sh" <<'SH'
+#!/usr/bin/env bash
+set -u
+. "$1/tests/lib.sh"
+export BEAD_RESPONSE
   . "$ROOT/bin/fm-timeout-lib.sh"
   . "$ROOT/bin/fm-task-data-lib.sh"
   . "$ROOT/bin/fm-task-bead-lib.sh"
@@ -5682,7 +5686,9 @@ SH
     esac
     pass "bead-resolution $variant"
   done
-)
+SH
+  HOME="$case_dir/home" PATH="$case_dir/fakebin:$PATH" bash "$case_dir/check.sh" "$ROOT"
+}
 
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = bead-resolution ]; then
   test_task_bead_resolves_canonical_id || exit 1
