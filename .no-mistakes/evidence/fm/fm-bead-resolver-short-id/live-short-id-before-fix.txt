@@ -1,0 +1,82 @@
+
+=== code under test: base d6b8de4d (before fix) ===
+br: br 0.5.10
+obs database canonical id: obs-long-form-fcn   short id: obs-fcn   partial id: obs-fc
+gj-tool database canonical id: gj-gitlab-config-27j   short id: gj-27j
+
+=== what real br answers (cd /, --db, --json) ===
+br show obs-fcn -> exit 0, id=obs-long-form-fcn
+br show obs-fc -> exit 0, id=obs-long-form-fcn
+br show obs-zzz -> exit 3, id=ISSUE_NOT_FOUND
+br show gj-27j (gj-tool db) -> exit 0, id=gj-gitlab-config-27j
+
+=== teardown, task named by short id obs-fcn, bead OPEN ===
+teardown obs-fcn -> exit 1
+  | REFUSED: task obs-fcn's bead could not be read (br show obs-fcn returned no readable status). Its done decides cleanup, so nothing was changed; retry once the bead database answers.
+  task record: kept
+  worker copy: kept
+  backlog row: in_flight
+(closed obs-long-form-fcn with real br: status now closed)
+
+=== teardown, task named by short id obs-fcn, bead CLOSED ===
+teardown obs-fcn -> exit 1
+  | REFUSED: task obs-fcn's bead could not be read (br show obs-fcn returned no readable status). Its done decides cleanup, so nothing was changed; retry once the bead database answers.
+  task record: kept
+  worker copy: kept
+  backlog row: in_flight
+
+=== teardown, task named by full canonical id obs-long-form-fcn, bead CLOSED ===
+teardown obs-long-form-fcn -> exit 0
+  task record: removed
+  worker copy: kept
+  backlog row: done
+
+=== adversarial: task obs-fc, which br partially matches to closed obs-long-form-fcn ===
+teardown obs-fc -> exit 1
+  | REFUSED: task obs-fc's bead could not be read (br show obs-fc returned no readable status). Its done decides cleanup, so nothing was changed; retry once the bead database answers.
+  task record: kept
+  worker copy: kept
+  backlog row: in_flight
+
+=== adversarial: task gj-27j, which br expands to closed gj-gitlab-config-27j owned by another database ===
+teardown gj-27j -> exit 1
+  | REFUSED: task gj-27j's bead could not be read (br show gj-27j returned no readable status). Its done decides cleanup, so nothing was changed; retry once the bead database answers.
+  task record: kept
+  worker copy: kept
+  backlog row: in_flight
+
+=== unchanged: task obs-zzz, which no bead has (br ISSUE_NOT_FOUND) ===
+teardown obs-zzz -> exit 0
+  task record: removed
+  worker copy: kept
+  backlog row: done
+
+=== registration: task obs-fcn, PR body without a Bead line ===
+  exit 0; edits=0
+  stderr | fm-pr-bead: warning: https://github.com/example/repo/pull/7 task obs-fcn: bead lookup returned 1 (br show obs-fcn returned no readable status); no Bead: line added
+  body now:
+  > Synthetic description.
+  > Made-with: claude
+
+  repeat:
+  exit 0; edits=0
+  stderr | fm-pr-bead: warning: https://github.com/example/repo/pull/7 task obs-fcn: bead lookup returned 1 (br show obs-fcn returned no readable status); no Bead: line added
+  body now:
+  > Synthetic description.
+  > Made-with: claude
+
+
+=== registration: task obs-fcn, PR body already naming Bead: obs-fcn ===
+  exit 0; edits=0
+  stderr | fm-pr-bead: warning: https://github.com/example/repo/pull/7 task obs-fcn: bead lookup returned 1 (br show obs-fcn returned no readable status); no Bead: line added
+  body now:
+  > Synthetic description.
+  > 
+  > Bead: obs-fcn
+
+=== adversarial registration: task obs-fc (br partial match) ===
+  exit 0; edits=0
+  stderr | fm-pr-bead: warning: https://github.com/example/repo/pull/7 task obs-fc: bead lookup returned 1 (br show obs-fc returned no readable status); no Bead: line added
+  body now:
+  > Synthetic description.
+

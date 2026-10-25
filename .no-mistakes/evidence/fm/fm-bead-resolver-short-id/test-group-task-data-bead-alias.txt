@@ -1,0 +1,3 @@
+jq: error (at <stdin>:1): ambiguous bead
+jq: error (at <stdin>:1): ambiguous bead
+ok - fm-teardown: unique short bead IDs resolve in their owning database; ambiguous and mismatched answers refuse

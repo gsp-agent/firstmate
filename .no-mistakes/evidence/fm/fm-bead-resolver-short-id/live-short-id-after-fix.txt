@@ -1,0 +1,82 @@
+
+=== code under test: branch target bdd04c9a (with fix) ===
+br: br 0.5.10
+obs database canonical id: obs-long-form-1aj   short id: obs-1aj   partial id: obs-1a
+gj-tool database canonical id: gj-gitlab-config-lgc   short id: gj-lgc
+
+=== what real br answers (cd /, --db, --json) ===
+br show obs-1aj -> exit 0, id=obs-long-form-1aj
+br show obs-1a -> exit 0, id=obs-long-form-1aj
+br show obs-zzz -> exit 3, id=ISSUE_NOT_FOUND
+br show gj-lgc (gj-tool db) -> exit 0, id=gj-gitlab-config-lgc
+
+=== teardown, task named by short id obs-1aj, bead OPEN ===
+teardown obs-1aj -> exit 1
+  | REFUSED: task obs-1aj answers to bead obs-1aj, which is open. A merge or a measurement is a milestone; the bead's done decides when the task is done. Its worker, pane, local copy, and backlog item stay with their owner; nothing was changed. Tear it down after the bead closes.
+  task record: kept
+  worker copy: kept
+  backlog row: in_flight
+(closed obs-long-form-1aj with real br: status now closed)
+
+=== teardown, task named by short id obs-1aj, bead CLOSED ===
+teardown obs-1aj -> exit 0
+  task record: removed
+  worker copy: kept
+  backlog row: done
+
+=== teardown, task named by full canonical id obs-long-form-1aj, bead CLOSED ===
+teardown obs-long-form-1aj -> exit 0
+  task record: removed
+  worker copy: kept
+  backlog row: done
+
+=== adversarial: task obs-1a, which br partially matches to closed obs-long-form-1aj ===
+teardown obs-1a -> exit 1
+  | REFUSED: task obs-1a's bead could not be read (br show obs-1a returned no readable status). Its done decides cleanup, so nothing was changed; retry once the bead database answers.
+  task record: kept
+  worker copy: kept
+  backlog row: in_flight
+
+=== adversarial: task gj-lgc, which br expands to closed gj-gitlab-config-lgc owned by another database ===
+teardown gj-lgc -> exit 1
+  | REFUSED: task gj-lgc's bead could not be read (br show gj-lgc returned no readable status). Its done decides cleanup, so nothing was changed; retry once the bead database answers.
+  task record: kept
+  worker copy: kept
+  backlog row: in_flight
+
+=== unchanged: task obs-zzz, which no bead has (br ISSUE_NOT_FOUND) ===
+teardown obs-zzz -> exit 0
+  task record: removed
+  worker copy: kept
+  backlog row: done
+
+=== registration: task obs-1aj, PR body without a Bead line ===
+  exit 0; edits=1
+  body now:
+  > Synthetic description.
+  > Made-with: claude
+  > 
+  > 
+  > Bead: obs-1aj
+  repeat:
+  exit 0; edits=1
+  body now:
+  > Synthetic description.
+  > Made-with: claude
+  > 
+  > 
+  > Bead: obs-1aj
+
+=== registration: task obs-1aj, PR body already naming Bead: obs-1aj ===
+  exit 0; edits=0
+  body now:
+  > Synthetic description.
+  > 
+  > Bead: obs-1aj
+
+=== adversarial registration: task obs-1a (br partial match) ===
+  exit 0; edits=0
+  stderr | fm-pr-bead: warning: https://github.com/example/repo/pull/7 task obs-1a: bead lookup returned 1 (br show obs-1a returned no readable status); no Bead: line added
+  body now:
+  > Synthetic description.
+

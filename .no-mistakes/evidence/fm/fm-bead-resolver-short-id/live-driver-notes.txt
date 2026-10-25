@@ -1,0 +1,26 @@
+How live-short-id-before-fix.txt and live-short-id-after-fix.txt were produced
+(one driver script, run once against the branch target and once against an
+extracted copy of the base commit's bin/; only fm-task-bead-lib.sh and
+fm-task-data-lib.sh differ between the two).
+
+1. A disposable HOME holding two REAL br 0.5.10 databases, created with
+   `br init --prefix obs` under dev/agent-observer and `br init --prefix gj`
+   under dev/gj-tool (the bead-prefix map's owners).
+2. Real beads made with `br create --slug long-form` (-> obs-long-form-<hash>)
+   and `br create --slug gitlab-config` in the gj-tool database
+   (-> gj-gitlab-config-<hash>, whose prefix maps to a different owner).
+   Status changes use real `br close`.
+3. For each teardown scenario, a fresh FM_HOME minted by
+   `bin/fm-lab-home.sh create`, a git origin/project/worktree, a ship task
+   meta with recorded merged PR 7, and a backlog row started with tasks-axi.
+   The real bin/fm-teardown.sh ran with FM_HOME=<lab> and HOME=<disposable>,
+   with NO_MISTAKES_GATE, FM_GATE_REFUSE_BYPASS and every FM_*_OVERRIDE unset
+   (the lab marker is what permits the lifecycle call). Only external services
+   were stood in, exactly as the repo's teardown suite does: gh-axi (PR merged),
+   gh, treehouse, tmux, no-mistakes, and a ps filtered to the lab's processes so
+   teardown's orphan scan could not touch real processes. Because treehouse is a
+   stand-in, "worker copy: kept" on a successful teardown is expected.
+4. For registration, the real bin/fm-pr-bead.sh ran against the same real br
+   database with a gh stand-in that serves and records the PR body.
+5. Output paths were rewritten to <lab> and piped through `no-mistakes redact`.
+All lab directories were removed afterwards.
