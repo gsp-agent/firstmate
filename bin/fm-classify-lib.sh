@@ -329,7 +329,7 @@ status_is_captain_relevant() {
 status_is_paused() {  # <status-line>
   local line=$1 verb
   [ -n "$line" ] || return 1
-  verb=$(status_line_verb "$line")
+  status_line_verb "$line" verb
   [ "$verb" = "${FM_CLASSIFY_PAUSED_VERB:-$FM_CLASSIFY_PAUSED_VERB_DEFAULT}" ]
 }
 
@@ -399,7 +399,7 @@ status_awaits_merge() {  # <status-line>
 status_is_captain_held() {  # <status-line>
   local line=$1 verb
   [ -n "$line" ] || return 1
-  verb=$(status_line_verb "$line")
+  status_line_verb "$line" verb
   [ "$verb" = "${FM_CLASSIFY_CAPTAIN_HELD_VERB:-$FM_CLASSIFY_CAPTAIN_HELD_VERB_DEFAULT}" ]
 }
 
@@ -2288,30 +2288,39 @@ status_open_activities() {  # <status-file-or-dash>
 # task id from a recorded window target, falling back to the tmux-shaped
 # "<session>:fm-<id>" form when no metadata state is available.
 window_to_task() {
-  local w=$1 state=${2:-${STATE:-${FM_STATE_OVERRIDE:-}}} meta mw mt t line
-  if [ -n "$state" ]; then
-    for meta in "$state"/*.meta; do
-      [ -e "$meta" ] || continue
+  local _wt_task
+  window_to_task_to _wt_task "$@"
+  printf '%s' "$_wt_task"
+}
+
+# The same task into <out-var>, as $(window_to_task <window> [<state>]) reads
+# it, for the watcher's per-window lookups.
+window_to_task_to() {  # <out-var> <window> [<state-dir>]
+  local _wtt_w=$2 _wtt_state=${3:-${STATE:-${FM_STATE_OVERRIDE:-}}} _wtt_meta _wtt_mw _wtt_mt _wtt_t _wtt_line
+  if [ -n "$_wtt_state" ]; then
+    for _wtt_meta in "$_wtt_state"/*.meta; do
+      [ -e "$_wtt_meta" ] || continue
       # The last window= and terminal= values, read in one pass without the
       # grep | tail -1 | cut -d= -f2- pipelines this once forked per key.
-      mw=
-      mt=
+      _wtt_mw=
+      _wtt_mt=
       {
-        while IFS= read -r line || [ -n "$line" ]; do
-          case "$line" in
-            window=*) mw=${line#window=} ;;
-            terminal=*) mt=${line#terminal=} ;;
+        while IFS= read -r _wtt_line || [ -n "$_wtt_line" ]; do
+          case "$_wtt_line" in
+            window=*) _wtt_mw=${_wtt_line#window=} ;;
+            terminal=*) _wtt_mt=${_wtt_line#terminal=} ;;
           esac
-        done < "$meta"
+        done < "$_wtt_meta"
       } 2>/dev/null
-      [ "$mw" = "$w" ] || [ "$mt" = "$w" ] || continue
-      t=${meta##*/}
-      t=${t%.meta}
-      printf '%s' "$t"
+      [ "$_wtt_mw" = "$_wtt_w" ] || [ "$_wtt_mt" = "$_wtt_w" ] || continue
+      _wtt_t=${_wtt_meta##*/}
+      _wtt_t=${_wtt_t%.meta}
+      printf -v "$1" '%s' "${_wtt_t%"${_wtt_t##*[!$'\n']}"}"
       return 0
     done
   fi
-  t="${w##*:}"; t="${t#fm-}"; printf '%s' "$t"
+  _wtt_t="${_wtt_w##*:}"; _wtt_t="${_wtt_t#fm-}"
+  printf -v "$1" '%s' "${_wtt_t%"${_wtt_t##*[!$'\n']}"}"
 }
 
 # --- home-owned status-append ledger ----------------------------------------

@@ -261,21 +261,30 @@ fm_busy_source_trusted() {  # <harness> <source>
 #                existing record
 #   gen-mismatch a record from a stale incarnation
 fm_busy_record_read() {  # <state-dir> <id>
-  local state=$1 id=$2 rec gen line extra ver f
+  local _brr_out _brr_rc=0
+  fm_busy_record_read_to _brr_out "$@" || _brr_rc=$?
+  printf '%s' "$_brr_out"
+  return "$_brr_rc"
+}
+
+# The same reading into <out-var> with the same status, for the per-poll
+# busy classification, which must not fork a substitution for it.
+fm_busy_record_read_to() {  # <out-var> <state-dir> <id>
+  local _brr_var=$1 state=$2 id=$3 rec gen line extra ver f
   local r_gen='' r_seq='' r_state='' r_source='' r_event='' r_ts=''
-  rec=$(fm_busy_record_path "$state" "$id")
+  rec="$state/$id.busy-state"
   if [ ! -f "$rec" ]; then
-    printf 'missing'
+    printf -v "$_brr_var" '%s' missing
     return 1
   fi
   if ! gen=$(fm_busy_current_gen "$state" "$id"); then
     # A record without an armed gen has no incarnation to bind to.
-    printf 'malformed'
+    printf -v "$_brr_var" '%s' malformed
     return 1
   fi
   # shellcheck disable=SC2034 # extra exists only to prove the record is one line
   { IFS= read -r line && ! IFS= read -r extra; } < "$rec" 2>/dev/null || {
-    printf 'malformed'
+    printf -v "$_brr_var" '%s' malformed
     return 1
   }
   # `read -a` rather than `set --`: it never glob-expands a field and never
@@ -283,7 +292,7 @@ fm_busy_record_read() {  # <state-dir> <id>
   local -a fields
   IFS=' ' read -r -a fields <<< "$line"
   ver=${fields[0]:-}
-  [ "$ver" = "$FM_BUSY_LIB_VERSION" ] || { printf 'malformed'; return 1; }
+  [ "$ver" = "$FM_BUSY_LIB_VERSION" ] || { printf -v "$_brr_var" '%s' malformed; return 1; }
   for f in "${fields[@]:1}"; do
     case "$f" in
       gen=*) r_gen=${f#gen=} ;;
@@ -292,20 +301,20 @@ fm_busy_record_read() {  # <state-dir> <id>
       source=*) r_source=${f#source=} ;;
       event=*) r_event=${f#event=} ;;
       ts=*) r_ts=${f#ts=} ;;
-      *) printf 'malformed'; return 1 ;;
+      *) printf -v "$_brr_var" '%s' malformed; return 1 ;;
     esac
   done
-  fm_busy_token_valid "$r_gen" || { printf 'malformed'; return 1; }
-  fm_busy_token_valid "$r_source" || { printf 'malformed'; return 1; }
-  fm_busy_token_valid "$r_event" || { printf 'malformed'; return 1; }
-  case "$r_seq" in ''|*[!0-9]*) printf 'malformed'; return 1 ;; esac
-  case "$r_ts" in ''|*[!0-9]*) printf 'malformed'; return 1 ;; esac
-  case "$r_state" in busy|idle|unknown) : ;; *) printf 'malformed'; return 1 ;; esac
+  fm_busy_token_valid "$r_gen" || { printf -v "$_brr_var" '%s' malformed; return 1; }
+  fm_busy_token_valid "$r_source" || { printf -v "$_brr_var" '%s' malformed; return 1; }
+  fm_busy_token_valid "$r_event" || { printf -v "$_brr_var" '%s' malformed; return 1; }
+  case "$r_seq" in ''|*[!0-9]*) printf -v "$_brr_var" '%s' malformed; return 1 ;; esac
+  case "$r_ts" in ''|*[!0-9]*) printf -v "$_brr_var" '%s' malformed; return 1 ;; esac
+  case "$r_state" in busy|idle|unknown) : ;; *) printf -v "$_brr_var" '%s' malformed; return 1 ;; esac
   if [ "$r_gen" != "$gen" ]; then
-    printf 'gen-mismatch'
+    printf -v "$_brr_var" '%s' gen-mismatch
     return 1
   fi
-  printf '%s %s %s %s' "$r_state" "$r_source" "$r_event" "$r_seq"
+  printf -v "$_brr_var" '%s %s %s %s' "$r_state" "$r_source" "$r_event" "$r_seq"
 }
 
 # ---------------------------------------------------------------------------
@@ -1077,7 +1086,7 @@ fm_busy_classify() {  # <backend> <target> <harness> <id> <state-dir> [tail40]
       return 0
       ;;
   esac
-  out=$(fm_busy_record_read "$state" "$id") && rc=0 || rc=$?
+  fm_busy_record_read_to out "$state" "$id" && rc=0 || rc=$?
   if [ "$rc" = 0 ]; then
     r_state=${out%% *}
     out=${out#* }
@@ -1218,9 +1227,12 @@ fm_busy_classify_live() {  # <backend> <target> <harness> <id> <state-dir> [expe
 fm_busy_classify_meta() {  # <meta-file> <id> <state-dir> [tail40]
   local meta=$1 id=$2 state=$3 tail40=${4-} backend target harness
   [ -f "$meta" ] || { printf 'unknown missing'; return 0; }
-  backend=$(fm_backend_of_meta "$meta")
-  target=$(fm_backend_target_of_meta "$meta")
-  harness=$(fm_meta_get "$meta" harness)
+  # The same fields fm_backend_of_meta (tmux when none is recorded),
+  # fm_backend_target_of_meta, and fm_meta_get print, read in this shell.
+  fm_meta_get "$meta" backend backend
+  [ -n "$backend" ] || backend=tmux
+  fm_backend_target_of_meta_to target "$meta"
+  fm_meta_get "$meta" harness harness
   if [ -z "$target" ]; then
     printf 'unknown no-target'
     return 0

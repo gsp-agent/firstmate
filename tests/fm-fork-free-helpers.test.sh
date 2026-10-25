@@ -300,12 +300,136 @@ for f in "${files[@]}"; do
   fi
   i=$((i + 1))
 done
+fm_stat_snapshot_find "$d/a.status" || printf 'a snapshot path was not found\n'
+fm_stat_snapshot_find "$d/never.status" && printf 'a path outside the snapshot was found\n'
 [ "$fast" -ge 4 ] || printf 'only %s regular status logs took the one-stat path\n' "$fast"
 :
 SH
   run_everywhere "one-stat snapshot" "$script" "$dir"
   chmod 600 "$dir/unread.status"
   pass "one stat of every scanned file yields the signatures, turn-ended stamps, and mtimes the per-file reads print"
+}
+
+test_target_of_meta_to_matches_the_printing_form() {
+  local script="$TMP_ROOT/target.sh" dir="$TMP_ROOT/target-metas"
+  mkdir -p "$dir"
+  printf 'window=sess:w1\n' > "$dir/plain.meta"
+  printf 'backend=orca\nwindow=sess:w2\nterminal=term-2\n' > "$dir/orca.meta"
+  printf 'backend=orca\nwindow=sess:w3\n' > "$dir/orca-bare.meta"
+  printf 'backend=herdr\nwindow=w4:p1\nterminal=t4\n' > "$dir/herdr.meta"
+  : > "$dir/empty.meta"
+  cat > "$script" <<'SH'
+. "$1/bin/fm-wake-lib.sh"
+. "$1/bin/fm-backend.sh"
+for meta in "$2"/*.meta "$2/missing.meta"; do
+  want=$(fm_backend_target_of_meta "$meta")
+  fm_backend_target_of_meta_to got "$meta"
+  [ "$got" = "$want" ] || printf 'target %s: helper %q, printing form %q\n' "${meta##*/}" "$got" "$want"
+done
+:
+SH
+  run_everywhere "meta target" "$script" "$dir"
+  pass "fm_backend_target_of_meta_to reads every meta's target as the printing form does"
+}
+
+test_watch_read_helpers_preserve_results() {
+  local script="$TMP_ROOT/watch-reads.sh" home="$TMP_ROOT/watch-home"
+  mkdir -p "$home/state" "$home/config"
+  cat > "$script" <<'SH'
+case_home=$(mktemp -d "$2/read-case.XXXXXX")
+export FM_HOME=$case_home FM_STATE_OVERRIDE=$case_home/state FM_CONFIG_OVERRIDE=$case_home/config
+mkdir -p "$FM_CONFIG_OVERRIDE"
+. "$1/bin/fm-watch.sh"
+printf 'window=s:fm-a\nharness=claude\nkind=ship\n' > "$STATE/a.meta"
+printf 'backend=orca\nterminal=term-b\nharness=codex\nkind=secondmate\n' > "$STATE/b.meta"
+printf 'window=s:fm-a\n' > "$STATE/c.meta"
+fm_backend_window_index_load "$STATE"
+window_kind s:fm-a kind
+window_backend s:fm-a backend
+window_harness s:fm-a harness
+[ "$kind|$backend|$harness" = 'ship|tmux|claude' ] || printf 'metadata output-variable collision: %s\n' "$kind|$backend|$harness"
+recorded_windows_to listed
+[ "$listed" = $'s:fm-a\nterm-b' ] || printf 'window order or dedup differs: %q\n' "$listed"
+printf 1 > "$STATE/.count-s_fm-a"
+touch -t 202001010000 "$STATE/.count-s_fm-a"
+fm_stat_snapshot "$STATE/.count-s_fm-a"
+stale_scan_windows_to order
+[ "$order" = $'term-b\ns:fm-a' ] || printf 'never-visited window order differs: %q\n' "$order"
+printf 1 > "$STATE/.count-term-b"
+touch -t 202001010000 "$STATE/.count-term-b"
+fm_stat_snapshot "$STATE/.count-s_fm-a" "$STATE/.count-term-b"
+stale_scan_windows_to order
+[ "$order" = $'s:fm-a\nterm-b' ] || printf 'equal-age ordering was not stable: %q\n' "$order"
+# Inbox fast path must leave every cleanup/delivery marker to the owner.
+inbox_quiet_without_records a || printf 'absent inbox was not quiet\n'
+mkdir -p "$STATE/a.inbox"
+for marker in .ring-state .escalated .busy-state .retry-ring 0001.msg; do
+  : > "$STATE/a.inbox/$marker"
+  inbox_quiet_without_records a && printf 'ignored inbox marker %s\n' "$marker"
+  rm -f "$STATE/a.inbox/$marker"
+done
+ln -s absent "$STATE/a.inbox/.ring-state"
+inbox_quiet_without_records a && printf 'ignored broken inbox marker symlink\n'
+# A new snapshot must invalidate a cached status after a write or replacement.
+printf 'paused: external wait\n' > "$STATE/a.status"
+fm_stat_snapshot "$STATE/a.status"
+WATCH_MEMO_FRESH=1
+for reader in last_status_line status_declared_wait_line; do
+  status_memo_to value "$reader" "$STATE/a.status"
+  want=$("$reader" "$STATE/a.status")
+  [ "$value" = "$want" ] || printf '%s memo differs initially\n' "$reader"
+  status_memo_to value "$reader" "$STATE/a.status"
+  [ "$value" = "$want" ] || printf '%s memo differs on reuse\n' "$reader"
+done
+printf 'working: resumed\n' >> "$STATE/a.status"
+fm_stat_snapshot "$STATE/a.status"
+status_memo_to value status_declared_wait_line "$STATE/a.status"
+[ -z "$value" ] || printf 'resumed status retained its wait: %q\n' "$value"
+printf 'done: complete\n' > "$STATE/replacement"
+mv "$STATE/replacement" "$STATE/a.status"
+fm_stat_snapshot "$STATE/a.status"
+status_memo_to value last_status_line "$STATE/a.status"
+[ "$value" = 'done: complete' ] || printf 'replacement status retained cached value: %q\n' "$value"
+WATCH_MEMO_FRESH=0
+printf 'working: changed after snapshot\n' > "$STATE/a.status"
+status_memo_to value last_status_line "$STATE/a.status"
+[ "$value" = 'working: changed after snapshot' ] || printf 'stale snapshot suppressed a read: %q\n' "$value"
+pane_hash_to first s_fm-a 'pane one'
+pane_hash_to again s_fm-a 'pane one'
+pane_hash_to changed s_fm-a 'pane two'
+[ "$first" = "$again" ] && [ "$first" != "$changed" ] || printf 'pane hash memo ignored changed text\n'
+:
+SH
+  run_everywhere "watch read helpers" "$script" "$home"
+  pass "watch reads preserve metadata, visit order, inbox bookkeeping and changed status/pane results"
+}
+
+test_status_reads_notice_same_stamp_rewrites() {
+  local script="$TMP_ROOT/status-rewrite.sh" home="$TMP_ROOT/rewrite-home"
+  mkdir -p "$home"
+  cat > "$script" <<'SH'
+case_home=$(mktemp -d "$2/case.XXXXXX")
+export FM_HOME=$case_home FM_STATE_OVERRIDE=$case_home/state FM_CONFIG_OVERRIDE=$case_home/config
+mkdir -p "$FM_CONFIG_OVERRIDE"
+. "$1/bin/fm-watch.sh"
+printf 'paused: waiting on A\n' > "$STATE/task.status"
+cp -p "$STATE/task.status" "$STATE/stamp"
+fm_stat_snapshot "$STATE/task.status"
+WATCH_MEMO_FRESH=1
+status_memo_to value status_declared_wait_line "$STATE/task.status"
+[ "$value" = 'paused: waiting on A' ] || printf 'initial status differs\n'
+# GNU stat's second-resolution snapshot permits an ordinary same-size rewrite
+# in the same second to keep this stamp. Pin it on all platforms for the proof.
+printf 'paused: waiting on B\n' > "$STATE/task.status"
+touch -r "$STATE/stamp" "$STATE/task.status"
+fm_stat_snapshot "$STATE/task.status"
+status_memo_to value status_declared_wait_line "$STATE/task.status"
+want=$(status_declared_wait_line "$STATE/task.status")
+[ "$value" = "$want" ] || printf 'cached status %q differs from current reader %q after same-stamp rewrite\n' "$value" "$want"
+:
+SH
+  run_everywhere "same-stamp status rewrite" "$script" "$home"
+  pass "status reads notice same-size rewrites even when the recorded timestamp is unchanged"
 }
 
 if [ -n "${FM_TEST_ONLY:-}" ]; then
@@ -319,4 +443,7 @@ else
   test_classify_stat_helpers_read_the_kernel_name_once
   test_read_text_helper_matches_cat
   test_one_stat_snapshot_matches_the_per_file_signatures
+  test_target_of_meta_to_matches_the_printing_form
+  test_watch_read_helpers_preserve_results
+  test_status_reads_notice_same_stamp_rewrites
 fi
