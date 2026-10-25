@@ -172,8 +172,12 @@ an unverified backup is insufficient; a refusal retains the original.
 Do not put credentials in verifier arguments or output.
 
 Copies use ssh mini-ts and rsync into /Volumes/MINI-DATA/firstmate-task-evidence,
-with a SHA256 content-addressed directory per home/task/source path. MINI-DATA
-must be mounted. The checksum is SHA256 of a canonical JSON tree manifest: sorted
+with a SHA256 content-addressed directory per home/task/source path. Directory
+contents land directly in payload/; a single file lands at payload. MINI-DATA
+must be mounted. Existing payloads are reused only after manifest verification;
+mismatched or incomplete copies are preserved in an incomplete-*/payload sibling
+before retrying, without deleting anything on the destination.
+The checksum is SHA256 of a canonical JSON tree manifest: sorted
 arrays [relative-name,type,mode] for directories and
 [relative-name,"file",mode,size,sha256-of-file] for files, with '.' for the root,
 ensure_ascii=True and separators (',', ':'). Size is summed file bytes.
@@ -185,6 +189,8 @@ record/data-offload.json journals verified moves before Trash, so a retry after
 interruption can reverify both copies and finish a missing pointer. Existing
 pointers are no-ops. Recovery copies remain in Trash until its normal expiry;
 restore an original by first moving its pointer aside, never overwriting work.
+If a later candidate fails, stdout still reports completed moves and total bytes,
+plus the failed task/path/reason; the command retains its nonzero exit status.
 """
 
 from array import array
@@ -1283,11 +1289,29 @@ def offload_manifest(path):
     return {"checksum": hashlib.sha256(payload).hexdigest(), "size": size}
 
 
-def offload_remote(action, destination):
+def offload_prepare(destination, expected):
+    if destination.is_symlink():
+        raise ValueError("unsafe payload symlink")
+    if not destination.exists():
+        return {"verified": False}
+    try:
+        if offload_manifest(destination) == expected:
+            return {"verified": True}
+    except (OSError, ValueError):
+        # An interrupted copy may itself be unreadable or incomplete.
+        # Keep it recoverable rather than deleting or merging over it.
+        pass
+    recovery = Path(tempfile.mkdtemp(prefix="incomplete-", dir=destination.parent))
+    destination.rename(recovery / "payload")
+    return {"verified": False}
+
+
+def offload_remote(action, destination, expected=None):
     # Send only fixed code in the remote shell command; paths travel as JSON
     # on stdin. The same manifest function runs on both machines.
     import inspect
-    program = "import os, sys, json, stat, hashlib\nfrom pathlib import Path\n" + inspect.getsource(offload_manifest) + '''
+    program = ("import os, sys, json, stat, hashlib, tempfile\nfrom pathlib import Path\n"
+               + inspect.getsource(offload_manifest) + inspect.getsource(offload_prepare) + '''
 request = json.load(sys.stdin)
 volume = Path("/Volumes/MINI-DATA")
 if volume.is_symlink() or not volume.is_mount():
@@ -1304,14 +1328,15 @@ for part in destination.parent.relative_to(volume).parts:
     if request["action"] == "prepare":
         parent.mkdir(exist_ok=True)
 if request["action"] == "prepare":
-    print(json.dumps({"exists": destination.exists() or destination.is_symlink()}))
+    print(json.dumps(offload_prepare(destination, request["expected"])))
 elif request["action"] == "verify":
     print(json.dumps(offload_manifest(destination)))
 else:
     raise ValueError("unknown operation")
-'''
+''')
     output = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", "mini-ts",
-                             "python3", "-c", shlex.quote(program)], input=json.dumps({"action": action, "destination": destination}),
+                             "python3", "-c", shlex.quote(program)],
+                            input=json.dumps({"action": action, "destination": destination, "expected": expected}),
                             capture_output=True, text=True, timeout=86400, check=True)
     return json.loads(output.stdout)
 
@@ -1381,50 +1406,58 @@ def offload(data, state, task_id):
         if not path.exists() and not path.is_symlink():
             candidates[relative] = {"recovery": pointer}
     moved = []
-    for relative, candidate in candidates.items():
-        source = root / relative
-        if source.parent.resolve() != source.parent:
-            raise ValueError("unsafe evidence parent")
-        recovery = candidate.get("recovery")
-        if recovery:
-            pointer = recovery
-            destination = pointer["location"].removeprefix("mini-ts:")
-            if (pointer.get("format") != OFFLOAD_POINTER or not pointer["location"].startswith("mini-ts:" + OFFLOAD_ROOT + "/")
-                    or pointer.get("original") != str(source)):
-                raise ValueError("invalid offload recovery pointer")
-        else:
-            manifest = offload_manifest(source)
-            home = hashlib.sha256(str(data).encode()).hexdigest()[:16]
-            identity = hashlib.sha256(relative.encode()).hexdigest()[:16]
-            destination = f"{OFFLOAD_ROOT}/{home}/{task_id}/{identity}/{manifest['checksum']}/payload"
-            pointer = {"format": OFFLOAD_POINTER, "original": str(source), "location": "mini-ts:" + destination,
-                       **manifest, "checksum_algorithm": "sha256-canonical-tree-v1", "closed": candidate["closed"]}
-            exists = offload_remote("prepare", destination)
-            if exists.get("exists") is not True:
-                subprocess.run(["rsync", "-a", "--", str(source), "mini-ts:" + destination],
-                               capture_output=True, text=True, timeout=86400, check=True)
-        expected = {"checksum": pointer["checksum"], "size": pointer["size"]}
-        if offload_remote("verify", destination) != expected:
-            raise ValueError("remote copy checksum or size mismatch; original retained")
-        pointer["backup"] = offload_backup(command, pointer)
-        offload_closed(data, state, task_id, completed_row_index(data))
-        if not recovery:
-            if offload_manifest(source) != expected:
-                raise ValueError("local evidence changed after copy; original retained")
-            record["entries"][relative] = pointer
-            safe_directory(root, Path("record"))
-            offload_write(record_path, record)
-            guard_command(["trash", "-s", str(source)])
-            if source.exists() or source.is_symlink():
-                raise ValueError("Trash did not move the original; pointer not published")
-        # Never replace newly created work, including a concurrent broken link.
-        with source.open("x") as stream:
-            json.dump(pointer, stream, sort_keys=True)
-            stream.write("\n")
-            stream.flush()
-            os.fsync(stream.fileno())
-        moved.append({"task": task_id, "path": relative, **expected, "location": pointer["location"]})
-    print(json.dumps({"offloaded": moved, "total_bytes": sum(item["size"] for item in moved)}))
+    result = {"offloaded": moved}
+    try:
+        for relative, candidate in candidates.items():
+            source = root / relative
+            if source.parent.resolve() != source.parent:
+                raise ValueError("unsafe evidence parent")
+            recovery = candidate.get("recovery")
+            if recovery:
+                pointer = recovery
+                destination = pointer["location"].removeprefix("mini-ts:")
+                if (pointer.get("format") != OFFLOAD_POINTER or not pointer["location"].startswith("mini-ts:" + OFFLOAD_ROOT + "/")
+                        or pointer.get("original") != str(source)):
+                    raise ValueError("invalid offload recovery pointer")
+            else:
+                manifest = offload_manifest(source)
+                home = hashlib.sha256(str(data).encode()).hexdigest()[:16]
+                identity = hashlib.sha256(relative.encode()).hexdigest()[:16]
+                destination = f"{OFFLOAD_ROOT}/{home}/{task_id}/{identity}/{manifest['checksum']}/payload"
+                pointer = {"format": OFFLOAD_POINTER, "original": str(source), "location": "mini-ts:" + destination,
+                           **manifest, "checksum_algorithm": "sha256-canonical-tree-v1", "closed": candidate["closed"]}
+                prepared = offload_remote("prepare", destination, manifest)
+                if prepared.get("verified") is not True:
+                    copy_source = str(source) + ("/" if source.is_dir() else "")
+                    subprocess.run(["rsync", "-a", "--", copy_source, "mini-ts:" + destination],
+                                   capture_output=True, text=True, timeout=86400, check=True)
+            expected = {"checksum": pointer["checksum"], "size": pointer["size"]}
+            if offload_remote("verify", destination) != expected:
+                raise ValueError("remote copy checksum or size mismatch; original retained")
+            pointer["backup"] = offload_backup(command, pointer)
+            offload_closed(data, state, task_id, completed_row_index(data))
+            if not recovery:
+                if offload_manifest(source) != expected:
+                    raise ValueError("local evidence changed after copy; original retained")
+                record["entries"][relative] = pointer
+                safe_directory(root, Path("record"))
+                offload_write(record_path, record)
+                guard_command(["trash", "-s", str(source)])
+                if source.exists() or source.is_symlink():
+                    raise ValueError("Trash did not move the original; pointer not published")
+            # Never replace newly created work, including a concurrent broken link.
+            with source.open("x") as stream:
+                json.dump(pointer, stream, sort_keys=True)
+                stream.write("\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+            moved.append({"task": task_id, "path": relative, **expected, "location": pointer["location"]})
+    except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
+        result["failed"] = {"task": task_id, "path": relative, "reason": str(error)}
+        raise
+    finally:
+        result["total_bytes"] = sum(item["size"] for item in moved)
+        print(json.dumps(result))
 
 
 def cleanup(action, data, state, task_id, project="", pr=""):

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deterministic task-evidence offload tests; every transport is a local fake.
+# Task-evidence offload tests; transports stay local, including macOS openrsync checks.
 set -euo pipefail
 # shellcheck source=tests/lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
@@ -63,7 +63,8 @@ if tool == "ssh":
         sys.exit(9)
     if request["action"] == "prepare":
         path.parent.mkdir(parents=True, exist_ok=True)
-        print(json.dumps({"exists": path.exists()}))
+        helper = runpy.run_path(os.environ["OFFLOAD_HELPER"])
+        print(json.dumps(helper["offload_prepare"](path, request["expected"])))
     else:
         result = runpy.run_path(os.environ["OFFLOAD_HELPER"])["offload_manifest"](path)
         if mode == "remote-mismatch":
@@ -73,8 +74,26 @@ elif tool == "rsync":
     if mode == "copy-failed":
         sys.exit(8)
     source, target = p(sys.argv[-2]), remote(sys.argv[-1])
+    if os.environ.get("OFFLOAD_REAL_RSYNC") == "1":
+        # openrsync starts its local receiver via PATH; keep that receiver real too.
+        os.environ["PATH"] = "/usr/bin:/bin:/usr/sbin:/sbin"
+        os.execv("/usr/bin/rsync", ["/usr/bin/rsync", *sys.argv[1:-1], str(target)])
+    if mode in ("copy-partial", "copy-wrong"):
+        if source.is_dir():
+            target.mkdir(exist_ok=True)
+            if mode == "copy-wrong":
+                shutil.copytree(source, target / source.name)
+            else:
+                (target / "evidence.bin").write_bytes(b"partial")
+        else:
+            target.write_bytes(b"x" * (source.stat().st_size if mode == "copy-wrong" else 3))
+            shutil.copystat(source, target)
+        sys.exit(8)
     if source.is_dir():
-        shutil.copytree(source, target, copy_function=shutil.copy2)
+        # Apple's openrsync nests the named directory without a trailing slash.
+        target.mkdir(exist_ok=True)
+        destination = target if sys.argv[-2].endswith("/") else target / source.name
+        shutil.copytree(source, destination, copy_function=shutil.copy2, dirs_exist_ok=True)
     else:
         shutil.copy2(source, target)
     if mode == "source-changed":
@@ -82,7 +101,7 @@ elif tool == "rsync":
         leaf.write_bytes(b"changed after copy")
 elif tool == "backup":
     request = json.load(sys.stdin)
-    if mode == "backup-failed":
+    if mode == "backup-failed" or (mode == "second-backup-failed" and p(request["original"]).name == "z.bin"):
         sys.exit(7)
     source = remote(request["location"])
     target = home / "independent-backup" / request["checksum"]
@@ -134,10 +153,11 @@ def fixture(name, *, status="closed", days=10, configured=True):
         (home / "config/task-data-offload.json").write_text(json.dumps({"backup_verifier": [str(fake / "backup")]}))
     return home
 
-def run(home, action, *, fault="", ok=True):
+def run(home, action, *, fault="", ok=True, real_rsync=False, raw=False):
     global active
     env = dict(os.environ, HOME=str(home / "user"), FM_HOME=str(home), PATH=str(fake) + os.pathsep + os.environ["PATH"],
-               OFFLOAD_HELPER=str(code / "bin/fm-task-data.py"), OFFLOAD_FAULT=fault, FM_TASK_DATA_SWEEP="off")
+               OFFLOAD_HELPER=str(code / "bin/fm-task-data.py"), OFFLOAD_FAULT=fault, FM_TASK_DATA_SWEEP="off",
+               OFFLOAD_REAL_RSYNC="1" if real_rsync else "0")
     for name in ("TASKS_AXI_BACKEND", "TASKS_AXI_FILE", "TASKS_AXI_ROOT", "BEADS_DIR", "BEADS_DB", "BR_DB"):
         env.pop(name, None)
     command = ["bash", str(code / "bin/fm-task-data-lib.sh"), action, str(home / "data"), str(home / "state"), "task-one"]
@@ -148,6 +168,8 @@ def run(home, action, *, fault="", ok=True):
     finally:
         stop()
     assert (rc == 0) == ok, (command, rc, stdout, stderr)
+    if raw:
+        return stdout, stderr
     return (stdout if action == "expire" else json.loads(stdout)) if rc == 0 else stderr
 
 def tree(home):
@@ -155,6 +177,88 @@ def tree(home):
                    None if path.is_dir() else path.stat().st_size,
                    None if path.is_dir() else path.stat().st_mtime_ns)
                   for directory in (home / "data", home / "state") for path in directory.rglob("*"))
+
+def copy_fixture(name, kind):
+    home = fixture(name)
+    source = home / "data/task-one" / ("build" if kind == "directory" else "solo.bin")
+    if kind == "file":
+        source.write_bytes(b"single-file-evidence" * 256)
+        (source.parent / "report.md").write_text("Evidence: [file](solo.bin).\n")
+    return home, source
+
+def check_placement(kind, real_rsync=False):
+    home, source = copy_fixture(("real-" if real_rsync else "fake-") + kind, kind)
+    result = run(home, "offload", real_rsync=real_rsync)
+    pointer = json.loads(source.read_text())
+    payload = home / "remote" / pointer["location"].removeprefix("mini-ts:").lstrip("/")
+    assert len(result["offloaded"]) == 1
+    if kind == "directory":
+        assert (payload / "evidence.bin").read_bytes() == b"original-evidence" * 256
+        assert (payload / "empty").is_dir() and not (payload / "build").exists()
+    else:
+        assert payload.is_file() and payload.read_bytes() == b"single-file-evidence" * 256
+
+def check_retry(kind, fault):
+    home, source = copy_fixture(kind + "-" + fault, kind)
+    original = tree(home)
+    run(home, "offload", fault=fault, ok=False)
+    assert tree(home) == original and not (home / "Trash").exists()
+    payload = next((home / "remote").rglob("payload"))
+    wrong_file = payload / ("build/evidence.bin" if fault == "copy-wrong" else "evidence.bin") if kind == "directory" else payload
+    wrong_bytes = wrong_file.read_bytes()
+    result = run(home, "offload")
+    assert len(result["offloaded"]) == 1
+    preserved = list(payload.parent.glob("incomplete-*/payload"))
+    assert len(preserved) == 1, "a mismatched payload must be preserved before retrying"
+    saved_file = preserved[0] / wrong_file.relative_to(payload) if kind == "directory" else preserved[0]
+    assert saved_file.read_bytes() == wrong_bytes
+    calls = (home / "calls").read_text()
+    assert run(home, "offload")["offloaded"] == []
+    assert (home / "calls").read_text() == calls
+
+def check_verified_reuse():
+    home, _ = copy_fixture("verified-reuse", "file")
+    run(home, "offload", fault="backup-failed", ok=False)
+    copies = (home / "calls").read_text().splitlines().count("rsync")
+    assert len(run(home, "offload")["offloaded"]) == 1
+    assert (home / "calls").read_text().splitlines().count("rsync") == copies
+
+def check_partial_report():
+    home = fixture("partial-report")
+    task = home / "data/task-one"
+    (task / "a.bin").write_bytes(b"first-evidence")
+    (task / "z.bin").write_bytes(b"second-evidence")
+    (task / "report.md").write_text("Evidence: [first](a.bin) and [second](z.bin).\n")
+    stdout, _ = run(home, "offload", fault="second-backup-failed", ok=False, raw=True)
+    result = json.loads(stdout)
+    assert [item["path"] for item in result["offloaded"]] == ["a.bin"]
+    assert result["total_bytes"] == len(b"first-evidence")
+    assert result["failed"]["task"] == "task-one" and result["failed"]["path"] == "z.bin" and result["failed"]["reason"]
+    assert json.loads((task / "a.bin").read_text())["format"] == "firstmate-task-evidence-v1"
+    assert (task / "z.bin").read_bytes() == b"second-evidence"
+    assert [item["path"] for item in run(home, "offload")["offloaded"]] == ["z.bin"]
+
+# Collect the independent review regressions so a broken directory copy cannot
+# hide the single-file, retry, or partial-report result on the reviewed head.
+regressions = [("fake directory placement", lambda: check_placement("directory")),
+               ("fake single-file placement", lambda: check_placement("file"))]
+for kind in ("directory", "file"):
+    for fault in ("copy-partial", "copy-wrong"):
+        regressions.append((kind + " retries " + fault, lambda kind=kind, fault=fault: check_retry(kind, fault)))
+regressions.extend([("verified existing payload is reused", check_verified_reuse),
+                    ("partial round reports completed moves", check_partial_report)])
+if sys.platform == "darwin":
+    regressions.extend([("real /usr/bin/rsync directory placement", lambda: check_placement("directory", True)),
+                        ("real /usr/bin/rsync single-file placement", lambda: check_placement("file", True))])
+failures = []
+for name, check in regressions:
+    try:
+        check()
+        print("PASS: " + name, flush=True)
+    except (AssertionError, ValueError, OSError, StopIteration) as error:
+        failures.append(name)
+        print("FAIL: " + name + ": " + str(error), flush=True)
+assert not failures, failures
 
 home = fixture("closed")
 before = tree(home)
