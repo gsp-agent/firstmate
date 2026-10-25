@@ -751,6 +751,9 @@ scan() {
     marker_rc=$?
     self=''
   fi
+  # bin/fm-watch.sh inactive_reconcile_idle mirrors this main-home cadence
+  # rule (and the tunable checks above) to skip starting a scan that would
+  # only return here; change the two together.
   if [ "$startup" != 1 ] && [ "$(scan_marker_age)" -lt "$FM_INACTIVE_RECONCILE_SECS" ]; then
     return 0
   fi

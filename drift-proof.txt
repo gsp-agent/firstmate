@@ -117,3 +117,5 @@ pr: 132
 pr: 136
 # Failing-first window-read budget in tests/fm-watch-window-fork-budget.test.sh: upstream-lean 13b4a94e adds 35 processes per window per poll (560 over four polls with four windows, budget 160) and fails; this change adds 10 and passes.
 pr: 137
+# Failing-first inactive-reconcile budget in tests/fm-watch-inactive-fork-budget.test.sh: upstream-lean 446eb1e7 starts 656 processes over four not-due polls (164 per poll, fails the 256 budget); the cadence guard starts 256 (64 per poll, passes), preserving due scans and per-poll secondmate ledger delivery.
+pr: 138

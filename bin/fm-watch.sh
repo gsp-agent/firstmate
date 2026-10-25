@@ -2262,6 +2262,33 @@ snapshot_age_to() {  # <out-var> <path>
   printf -v "$1" '%s' "$(age_of "$2")"
 }
 
+# True when `fm-inactive-reconcile.sh scan` would only reread its cadence
+# marker and exit: a main home, which has no per-poll ledger-first delivery,
+# valid scan tunables, the outcome directory in place, and a marker younger
+# than the scan interval. That script's scan owns these rules; this reads the
+# marker from the poll's snapshot instead of starting it (and waiting on its
+# scan lock) every poll. Anything else starts it as before.
+inactive_reconcile_idle() {
+  local secs=${FM_INACTIVE_RECONCILE_SECS:-300} budget=${FM_INACTIVE_RECONCILE_BUDGET_SECS:-30}
+  local marker="$STATE/.inactive-outcome-reconcile" mtime now
+  [ ! -e "$FM_HOME/.fm-secondmate-home" ] && [ ! -L "$FM_HOME/.fm-secondmate-home" ] || return 1
+  case "$secs" in ''|*[!0-9]*|0) return 1 ;; esac
+  [ "$secs" -ge 60 ] && [ "$secs" -le 1800 ] || return 1
+  case "$budget" in ''|*[!0-9]*|0) return 1 ;; esac
+  [ "$budget" -le 30 ] || return 1
+  [ -d "$STATE/terminal-outcomes" ] && [ ! -L "$STATE/terminal-outcomes" ] || return 1
+  [ -e "$marker" ] && [ ! -L "$marker" ] || return 1
+  fm_stat_snapshot_find "$marker" && [ "${FM_STAT_SNAPSHOT_OK[$FM_STAT_SNAPSHOT_AT]}" = 1 ] || return 1
+  mtime=${FM_STAT_SNAPSHOT_MTIME[$FM_STAT_SNAPSHOT_AT]}
+  case "$mtime" in ''|*[!0-9]*) return 1 ;; esac
+  case "${FM_INACTIVE_RECONCILE_NOW:-}" in
+    ''|*[!0-9]*) fm_epoch_seconds_to now ;;
+    *) now=$FM_INACTIVE_RECONCILE_NOW ;;
+  esac
+  [ "$now" -lt "$mtime" ] && return 0
+  [ $((now - mtime)) -lt "$secs" ]
+}
+
 # Deliver a durably queued process-event result to firstmate. Publication is
 # owned by bin/fm-procevent.sh - by the runner at capture time and by reconcile's
 # re-announcement - so this decides only whether a queued check record has been
@@ -3343,8 +3370,12 @@ while :; do
   # The existing poll loop also owns the bounded inactive-outcome cadence.
   # This is mechanical and silent unless a durable terminal-outcome obligation
   # was created, so quiet cycles never wake firstmate or consume model tokens.
+  # Read the existing cadence before starting a scan that would return idle.
+  fm_stat_snapshot "$STATE/.inactive-outcome-reconcile"
   inactive_out=
-  if inactive_out=$(FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" \
+  if inactive_reconcile_idle; then
+    :
+  elif inactive_out=$(FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" \
     FM_INACTIVE_RECONCILE_SECS="${FM_INACTIVE_RECONCILE_SECS:-300}" \
     FM_INACTIVE_RECONCILE_BUDGET_SECS="${FM_INACTIVE_RECONCILE_BUDGET_SECS:-30}" \
     "$SCRIPT_DIR/fm-inactive-reconcile.sh" scan 2>/dev/null); then
