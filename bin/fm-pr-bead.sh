@@ -44,7 +44,13 @@ case "$RC" in
 esac
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/fm-pr-bead.XXXXXX")
 trap 'rm -rf "$TMP"' EXIT
-gh pr view "$FM_PR_URL" --json body > "$TMP/pr.json"
+gh pr view "$FM_PR_URL" --json body > "$TMP/pr.json" || {
+  printf 'fm-pr-bead: could not read the body of %s; PR was not registered\n' "$FM_PR_URL" >&2
+  exit 1
+}
+# Match the deploy guard: the ID ends only at whitespace or end of line.
+# Backticks, a trailing period, or a trailing colon are part of its identity;
+# do not normalize them or append a second identity the guard would reject.
 IDS=$(jq -r '
   .body | if type == "string" then . else error("unreadable PR body") end
   | [split("\n")[] | capture("^[Bb]ead[ :]+(?<id>[^[:space:]]+)") | .id] | unique | join(" ")
@@ -64,4 +70,7 @@ if jq -e --arg line "Bead: $FM_TASK_BEAD_ID" \
 fi
 jq -j --arg bead "$FM_TASK_BEAD_ID" '.body + (if .body == "" then "" else "\n\n" end) + "Bead: " + $bead' \
   "$TMP/pr.json" > "$TMP/body"
-gh pr edit "$FM_PR_URL" --body-file "$TMP/body" >/dev/null
+gh pr edit "$FM_PR_URL" --body-file "$TMP/body" >/dev/null || {
+  printf 'fm-pr-bead: could not edit the body of %s; PR was not registered\n' "$FM_PR_URL" >&2
+  exit 1
+}

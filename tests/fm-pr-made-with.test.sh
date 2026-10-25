@@ -26,6 +26,7 @@ case "$1 $2 $3 $4 $5" in
       --arg head "${FM_TEST_HEAD:-fm/task}" '{body: $body, commits: $commits, headRefName: $head}'
     ;;
   "pr view https://github.com/o/r/pull/7 --json body")
+    [ "${FM_TEST_VIEW_FAIL:-0}" = 0 ] || exit 1
     jq -n --rawfile body "$FM_TEST_BODY" '{body: $body}' ;;
   "pr view https://github.com/o/r/pull/7 --json isDraft")
     printf '{"isDraft":false}\n' ;;
@@ -321,7 +322,8 @@ assert_registered_unchanged() {  # <case description>
 
 test_registration_refuses_conflicting_identity() {
   local body
-  for body in $'Bead: obs-other\n' $'bead: obs-other\n' $'Bead obs-other tracks the follow-up.\n' \
+  for body in $'Bead: `obs-example`\n' $'Bead: obs-example.\n' $'Bead obs-example:\n' \
+    $'Bead: obs-other\n' $'bead: obs-other\n' $'Bead obs-other tracks the follow-up.\n' \
     $'Bead: obs-example\nBead obs-other tracks the follow-up.\n'; do
     new_registration "conflict-${RANDOM}"
     printf '%s' "$body" >> "$CASE/body"
@@ -336,6 +338,11 @@ test_registration_refuses_conflicting_identity() {
   new_registration edit-failure
   if FM_TEST_EDIT_FAIL=1 register_pr > "$CASE/out" 2>&1; then fail 'failed body edit allowed registration'; fi
   assert_not_registered
+  assert_contains "$(cat "$CASE/out")" "could not edit the body of $URL; PR was not registered" 'failed edit did not explain registration failure'
+  new_registration read-failure
+  if FM_TEST_VIEW_FAIL=1 register_pr > "$CASE/out" 2>&1; then fail 'failed body read allowed registration'; fi
+  assert_not_registered
+  assert_contains "$(cat "$CASE/out")" "could not read the body of $URL; PR was not registered" 'failed read did not explain registration failure'
   pass 'lines naming another bead and failed edits refuse before registration or ready callback'
 }
 
