@@ -1,0 +1,13 @@
+##### watcher / PR poll authentication after all relaunches (02:23:13 CT)
+== lab3f37003795ef-worker
+fm_pr_poll_artifacts_valid: AUTHENTICATED (https://github.com/example/repo/pull/4242)
+watcher rejection entries so far (deliveries, then triage):
+  Sun Oct 25 02:05:41 2026     bash /private/tmp/fmlab.aVrdX8/home/bin/fm-watch.sh
+  [2026-10-25T02:12:56-0500] absorbed rejected check (announced once, owner lab3f37003795ef-worker): /private/tmp/fmlab.aVrdX8/home/state/lab3f37003795ef-worker.check.sh
+latest watcher triage entry: [2026-10-25T02:23:10-0500] absorbed stale (paused, awaiting external, age 207s): firstmate:fm-lab3f37003795ef-fresh
+== lab3f37003795ef-fresh
+fm_pr_poll_artifacts_valid: AUTHENTICATED (https://github.com/example/repo/pull/4343)
+watcher rejection entries so far (deliveries, then triage):
+  Sun Oct 25 02:05:41 2026     bash /private/tmp/fmlab.aVrdX8/home/bin/fm-watch.sh
+  [2026-10-25T02:12:56-0500] absorbed rejected check (announced once, owner lab3f37003795ef-worker): /private/tmp/fmlab.aVrdX8/home/state/lab3f37003795ef-worker.check.sh
+latest watcher triage entry: [2026-10-25T02:23:10-0500] absorbed stale (paused, awaiting external, age 207s): firstmate:fm-lab3f37003795ef-fresh

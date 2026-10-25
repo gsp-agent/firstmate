@@ -1,0 +1,4 @@
+##### bin/fm-spawn.sh from 98be17e7, regression tests from 82822351
+ok - fm-control relaunch: durable task metadata survives replacement launch publication
+not ok - the registered PR identity must remain readable after a traced relaunch
+exit=1

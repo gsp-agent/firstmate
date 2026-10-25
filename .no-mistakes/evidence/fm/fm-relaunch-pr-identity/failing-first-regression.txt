@@ -1,0 +1,7 @@
+##### bin/fm-spawn.sh from 41a0d972, regression tests from 82822351
+not ok - the registered PR identity must remain readable after relaunch
+exit=1
+##### bin/fm-spawn.sh from 82822351, regression tests from 82822351
+ok - fm-control relaunch: durable task metadata survives replacement launch publication
+ok - fm-control relaunch: a traced relaunch keeps the registered PR identity readable
+exit=0

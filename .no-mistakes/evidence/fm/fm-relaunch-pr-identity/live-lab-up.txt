@@ -1,0 +1,13 @@
+lab: /private/tmp/fmlab.aVrdX8 (tear down with: bin/fm-live-lab.sh down /private/tmp/fmlab.aVrdX8)
+tree: 82822351233be6168a83910e3eeae3ee6ea050a5 from /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5RV0BWDF70AFHT5M6C3TBR3
+spawned lab3f37003795ef-worker harness=claude kind=ship mode=local-only yolo=on window=firstmate:fm-lab3f37003795ef-worker worktree=/private/tmp/fmlab.aVrdX8/treehouse/.treehouse/notes-e1bd6e/1/notes
+gate: /private/tmp/fmlab.aVrdX8/home/data/lab3f37003795ef-worker/gate (touch, then message the worker to resume)
+primary: claude --setting-sources project,local --model sonnet --effort medium --permission-mode auto
+ok primary: claude pid 78471 in /private/tmp/fmlab.aVrdX8/home
+ok probe: the primary answered LABREADY-3f37003795ef
+ok trust: /private/tmp/fmlab.aVrdX8/home is trusted in the Claude store
+fail host: supervision host pid 14669 runs (expected none)
+ok watcher: live watcher with a fresh beacon
+ok worker: lab3f37003795ef-worker parked on /private/tmp/fmlab.aVrdX8/home/data/lab3f37003795ef-worker/gate
+ok treehouse: ~/.treehouse unchanged
+not ready after 600s; the lab is left up for inspection: bin/fm-live-lab.sh pane /private/tmp/fmlab.aVrdX8, then bin/fm-live-lab.sh down /private/tmp/fmlab.aVrdX8

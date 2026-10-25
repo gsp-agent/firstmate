@@ -1,0 +1,57 @@
+##### PHASE C - fresh traced spawn (no PR yet), then PR registration
+trace decision at spawn: 78471 on
+$ bin/fm-spawn.sh lab3f37003795ef-fresh projects/notes --mode local-only --yolo on --harness claude --model sonnet --effort low
+spawned lab3f37003795ef-fresh harness=claude kind=ship mode=local-only yolo=on window=firstmate:fm-lab3f37003795ef-fresh worktree=/private/tmp/fmlab.aVrdX8/treehouse/.treehouse/notes-e1bd6e/2/notes
+exit=0
+=== fresh traced spawn, before any PR: /private/tmp/fmlab.aVrdX8/home/state/lab3f37003795ef-fresh.meta
+--- record keys in order (values shown for the PR, trace and relaunch keys)
+  1 window
+  2 endpoint_task_id
+  3 worktree
+  4 project
+  5 harness
+  6 kind
+  7 decision_owner
+  8 mode
+  9 yolo
+ 10 branch
+ 11 tasktmp
+ 12 model
+ 13 effort
+ 14 busy_gen
+ 15 spawn_gen
+ 16 traceparent=00-1a5fde33d7221f0b4e02dd2b567b294d-a690f11edbe55692-01
+--- keys after the first pr= line:
+fm_pr_metadata_identity_parse: UNREADABLE (exit 1)
+fm_merge_authority_persist: REFUSED (exit 1)
+--- $ bin/fm-pr-check.sh lab3f37003795ef-fresh https://github.com/example/repo/pull/4343
+NOTICE: wake rows held by the live supervision branch - it presents and acknowledges them; do not drain them from here.
+armed: state/lab3f37003795ef-fresh.check.sh
+exit=0
+=== fresh traced spawn after PR registration: /private/tmp/fmlab.aVrdX8/home/state/lab3f37003795ef-fresh.meta
+--- record keys in order (values shown for the PR, trace and relaunch keys)
+  1 window
+  2 endpoint_task_id
+  3 worktree
+  4 project
+  5 harness
+  6 kind
+  7 decision_owner
+  8 mode
+  9 yolo
+ 10 branch
+ 11 tasktmp
+ 12 model
+ 13 effort
+ 14 busy_gen
+ 15 spawn_gen
+ 16 traceparent=00-1a5fde33d7221f0b4e02dd2b567b294d-a690f11edbe55692-01
+ 17 pr=https://github.com/example/repo/pull/4343
+ 18 pr_head=3a4d840fe24a6c72f6e96df53454b4d55e3f379f
+--- keys after the first pr= line:
+  pr_head
+fm_pr_metadata_identity_parse: READABLE provider=github url=https://github.com/example/repo/pull/4343 number=4343
+fm_merge_authority_persist: REFUSED (exit 1)
+(probe rerun: the merge-authority call above used a hard-coded PR 4242, so its refusal for PR 4343 was the expected identity mismatch; this rerun passes the parsed number)
+fm_pr_metadata_identity_parse: READABLE provider=github url=https://github.com/example/repo/pull/4343 number=4343
+fm_merge_authority_persist: recorded (fm-merge-authority-v1 github github.com example/repo 4343 attended )

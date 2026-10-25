@@ -1,0 +1,61 @@
+##### PHASE B - fixed writer (82822351), trace ON
+lab tree: 8282235; bin/fm-spawn.sh blob 2304be6cdb17e9c0edcbf002af1ebdae6a07bf52 (HEAD blob 2304be6cdb17e9c0edcbf002af1ebdae6a07bf52)
+trace decision: 78471 on (session lock 78471)
+=== before relaunch: /private/tmp/fmlab.aVrdX8/home/state/lab3f37003795ef-worker.meta
+--- record keys in order (values shown for the PR, trace and relaunch keys)
+  1 window
+  2 endpoint_task_id
+  3 worktree
+  4 project
+  5 harness
+  6 kind
+  7 decision_owner
+  8 mode
+  9 yolo
+ 10 branch
+ 11 tasktmp
+ 12 model
+ 13 effort
+ 14 busy_gen
+ 15 spawn_gen
+ 16 control_relaunch_tx=54474.20261025T071343Z.7737
+ 17 pr=https://github.com/example/repo/pull/4242
+ 18 pr_head=3a4d840fe24a6c72f6e96df53454b4d55e3f379f
+--- keys after the first pr= line:
+  pr_head
+fm_pr_metadata_identity_parse: READABLE provider=github url=https://github.com/example/repo/pull/4242 number=4242
+fm_merge_authority_persist: recorded (fm-merge-authority-v1 github github.com example/repo 4242 attended )
+--- $ bin/fm-control.sh lab3f37003795ef-worker relaunch --note "Lab relaunch check B: continue exactly as your brief says; the gate is still absent, so remain paused."
+relaunched lab3f37003795ef-worker harness=claude from=claude model=sonnet effort=low backend=tmux endpoint=firstmate:fm-lab3f37003795ef-worker worktree=/private/tmp/fmlab.aVrdX8/treehouse/.treehouse/notes-e1bd6e/1/notes
+exit=0
+--- journal state/lab3f37003795ef-worker.control-relaunch:
+  phase=complete
+=== after relaunch: /private/tmp/fmlab.aVrdX8/home/state/lab3f37003795ef-worker.meta
+--- record keys in order (values shown for the PR, trace and relaunch keys)
+  1 window
+  2 endpoint_task_id
+  3 worktree
+  4 project
+  5 harness
+  6 kind
+  7 decision_owner
+  8 mode
+  9 yolo
+ 10 branch
+ 11 tasktmp
+ 12 model
+ 13 effort
+ 14 busy_gen
+ 15 spawn_gen
+ 16 control_relaunch_tx=820.20261025T071727Z.28970
+ 17 traceparent=00-569ef739a26e03aa700ec0381f90e067-18cae90bf81f6009-01
+ 18 pr=https://github.com/example/repo/pull/4242
+ 19 pr_head=3a4d840fe24a6c72f6e96df53454b4d55e3f379f
+--- keys after the first pr= line:
+  pr_head
+fm_pr_metadata_identity_parse: READABLE provider=github url=https://github.com/example/repo/pull/4242 number=4242
+fm_merge_authority_persist: recorded (fm-merge-authority-v1 github github.com example/repo 4242 attended )
+--- replacement agent in the worker window (pane command, last lines):
+  window=firstmate:fm-lab3f37003795ef-worker pane_current_command=2.1.310
+--- TRACEPARENT exported into the replacement pane before launch (pane scrollback):
+export TRACEPARENT=00-569ef739a26e03aa700ec0381f90e067-18cae90bf81f6009-01

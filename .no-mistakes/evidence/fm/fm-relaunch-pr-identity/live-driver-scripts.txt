@@ -1,0 +1,162 @@
+===== fakebin/gh
+#!/usr/bin/env bash
+# Disposable lab forge stand-in. It answers only the two read-only PR queries
+# bin/fm-pr-check.sh makes (draft state, head commit) so registration never
+# reaches github.com; every other call fails like an unreachable forge.
+log=${FM_LAB_GH_LOG:-/dev/null}
+printf '%s\n' "gh $*" >> "$log"
+case "$*" in
+  "pr view "*" --json isDraft") printf '{"isDraft":false}\n' ;;
+  "pr view "*" --json headRefOid -q .headRefOid") git rev-parse HEAD ;;
+  *) echo "lab gh stand-in: unsupported: $*" >&2; exit 1 ;;
+esac
+===== labrun.sh
+#!/usr/bin/env bash
+# labrun.sh <lab-root> <command...>: run a command in the lab's clean environment,
+# the same base fm-live-lab.sh's lab_run gives every lab process, with the lab
+# gh stand-in first on PATH and FM_HOME set to the lab home.
+set -u
+root=$1; shift
+rec() { sed -n "s/^$1=//p" "$root/.fm-live-lab" | head -n 1; }
+home=$(rec home)
+tmux_dir=$(rec tmux_dir)
+claude_dir=$(rec claude_config_dir)
+scr=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+base=(HOME="$HOME" USER="${USER:-$(id -un)}" LOGNAME="${USER:-$(id -un)}"
+  PATH="$scr/fakebin:$PATH" SHELL="${SHELL:-/bin/zsh}" TERM=xterm-256color LANG="${LANG:-en_US.UTF-8}"
+  TMUX_TMPDIR="$tmux_dir" TREEHOUSE_ROOT="$root/treehouse" FM_BACKEND=tmux DISABLE_AUTOUPDATER=1
+  FM_HOME="$home" FM_LAB_GH_LOG="$root/gh-calls.log")
+[ -z "$claude_dir" ] || base+=(CLAUDE_CONFIG_DIR="$claude_dir")
+cd "$home" && exec env -i "${base[@]}" "$@"
+===== probe.sh
+#!/usr/bin/env bash
+# probe.sh <lab-home> <task-id> <label>: show the published task record's key
+# order and whether the lab tree's own PR readers accept it.
+#   - fm_pr_metadata_identity_parse (bin/fm-pr-lib.sh), the canonical reader
+#   - fm_merge_authority_persist (bin/fm-merge-authority-lib.sh), one of the
+#     callers that refused in the original report; it writes only the lab's
+#     state/<id>.merge-authority and is removed again right after.
+set -u
+home=$1 id=$2 label=$3
+meta="$home/state/$id.meta"
+echo "=== $label: $meta"
+echo "--- record keys in order (values shown for the PR, trace and relaunch keys)"
+awk -F= '{ k=$1; v=substr($0, length($1)+2)
+  if (k=="pr"||k=="pr_head"||k=="traceparent"||k=="control_relaunch_tx") printf "%3d %s=%s\n", NR, k, v
+  else printf "%3d %s\n", NR, k }' "$meta"
+echo "--- keys after the first pr= line:"
+awk -F= 'seen { printf "  %s\n", $1 } $1=="pr" { seen=1 }' "$meta"
+# shellcheck source=/dev/null
+. "$home/bin/fm-pr-lib.sh"
+number=4242
+if fm_pr_metadata_identity_parse "$meta"; then
+  echo "fm_pr_metadata_identity_parse: READABLE provider=$FM_PR_META_PROVIDER url=$FM_PR_META_URL number=$FM_PR_META_NUMBER"
+  number=$FM_PR_META_NUMBER
+else
+  echo "fm_pr_metadata_identity_parse: UNREADABLE (exit 1)"
+fi
+# shellcheck source=/dev/null
+. "$home/bin/fm-merge-authority-lib.sh"
+# The lock helpers, sourced the way bin/fm-pr-merge.sh sources them.
+# shellcheck source=/dev/null
+. "$home/bin/fm-wake-lib.sh"
+if fm_merge_authority_persist "$home/state" "$id" "$meta" github github.com example/repo "$number" attended; then
+  echo "fm_merge_authority_persist: recorded ($(tr '\n' ' ' < "$home/state/$id.merge-authority"))"
+  rm -f "$home/state/$id.merge-authority" "$home/state/$id.merge-authority.lock"
+else
+  echo "fm_merge_authority_persist: REFUSED (exit 1)"
+fi
+===== relaunch-phase.sh
+#!/usr/bin/env bash
+# relaunch-phase.sh <lab-root> <label> <note>: relaunch the lab worker through the
+# lab tree's own bin/fm-control.sh, then show the published record, the
+# transaction journal, and the replacement agent's pane.
+set -u
+root=$1 label=$2 note=$3
+scr=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+rec() { sed -n "s/^$1=//p" "$root/.fm-live-lab" | head -n 1; }
+home=$(rec home) id=$(rec worker_id) tmux_dir=$(rec tmux_dir)
+echo "##### $label"
+echo "lab tree: $(git -C "$home" rev-parse --short HEAD); bin/fm-spawn.sh blob $(git -C "$home" hash-object bin/fm-spawn.sh) (HEAD blob $(git -C "$home" rev-parse HEAD:bin/fm-spawn.sh))"
+echo "trace decision: $(cat "$home/state/.trace-context-effective" 2>/dev/null || echo absent) (session lock $(cat "$home/state/.lock" 2>/dev/null || echo absent))"
+"$scr/probe.sh" "$home" "$id" "before relaunch"
+echo "--- \$ bin/fm-control.sh $id relaunch --note \"$note\""
+"$scr/labrun.sh" "$root" "$home/bin/fm-control.sh" "$id" relaunch --note "$note"
+echo "exit=$?"
+echo "--- journal state/$id.control-relaunch:"
+grep -E "^(phase|tx)=" "$home/state/$id.control-relaunch" 2>/dev/null | sed "s/^/  /"
+"$scr/probe.sh" "$home" "$id" "after relaunch"
+echo "--- replacement agent in the worker window (pane command, last lines):"
+window=$(sed -n 's/^window=//p' "$home/state/$id.meta" | tail -1)
+echo "  window=$window pane_current_command=$(env -u TMUX TMUX_TMPDIR="$tmux_dir" tmux display-message -p -t "$window" '#{pane_current_command}' 2>&1)"
+===== poll-auth.sh
+#!/usr/bin/env bash
+# poll-auth.sh <lab-home> <task-id>: ask the lab tree's own PR poll authenticator
+# (fm_pr_poll_artifacts_valid, which the watcher runs before it will execute a
+# task's merge-poll check) whether the task's armed poll still authenticates,
+# and list the watcher's own rejection entries with their times.
+set -u
+home=$1 id=$2
+# shellcheck source=/dev/null
+. "$home/bin/fm-pr-lib.sh"
+if fm_pr_poll_artifacts_valid "$home/state" "$id" "$home/bin/fm-pr-poll.sh"; then
+  echo "fm_pr_poll_artifacts_valid: AUTHENTICATED ($FM_PR_DATA_URL)"
+else
+  echo "fm_pr_poll_artifacts_valid: REJECTED"
+fi
+echo "watcher rejection entries so far (deliveries, then triage):"
+grep -h "unauthenticated" "$home/state/.watch-deliveries.log" 2>/dev/null | cut -f2,4 | sed 's/^/  /'
+grep -h "rejected check" "$home/state/.watch-triage.log" 2>/dev/null | sed 's/^/  /'
+echo "latest watcher triage entry: $(tail -1 "$home/state/.watch-triage.log" 2>/dev/null)"
+===== fresh-spawn.sh
+#!/usr/bin/env bash
+# fresh-spawn.sh <lab-root> <task-id>: scaffold and spawn one more real Claude
+# lab worker through the lab tree's own fm-brief.sh, tasks-axi, and fm-spawn.sh,
+# the same way fm-live-lab.sh's spawn_worker does, while this lab session's
+# trace decision is on.
+set -u
+root=$1 id=$2
+scr=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+home=$(sed -n 's/^home=//p' "$root/.fm-live-lab" | head -n 1)
+"$scr/labrun.sh" "$root" "$home/bin/fm-brief.sh" "$id" notes --mode local-only >/dev/null || exit 1
+TASK_TEXT="Lab traced fresh-spawn check for a live validation lab. There is no code change to make." \
+SPEC_TEXT="Right after setup, append one paused status line saying the lab check needs no work, and end your turn. Do not edit, commit, poll, or sleep. Nothing else is in scope." \
+  python3 - "$home/data/$id/brief.md" <<'PY' || exit 1
+import os, sys
+path = sys.argv[1]
+text = open(path, encoding="utf-8").read()
+text = text.replace("{TASK}", os.environ["TASK_TEXT"], 1).replace("{FIRSTMATE_SPEC}", os.environ["SPEC_TEXT"], 1)
+open(path, "w", encoding="utf-8").write(text)
+PY
+"$scr/labrun.sh" "$root" "$home/bin/fm-tasks-axi.sh" add "$id" "lab traced fresh spawn" --kind ship --repo notes >/dev/null || exit 1
+echo "trace decision at spawn: $(cat "$home/state/.trace-context-effective")"
+echo "\$ bin/fm-spawn.sh $id projects/notes --mode local-only --yolo on --harness claude --model sonnet --effort low"
+"$scr/labrun.sh" "$root" "$home/bin/fm-spawn.sh" "$id" "$home/projects/notes" \
+  --mode local-only --yolo on --harness claude --model sonnet --effort low
+echo "exit=$?"
+===== failing-first.sh
+#!/usr/bin/env bash
+# failing-first.sh <worktree> <out-dir>: run only the two PR-identity relaunch
+# regressions from the change's test file against throwaway exports of the base
+# commit's and the fixed commit's bin/fm-spawn.sh. The test file is copied
+# unchanged except that its run list is cut to those two tests.
+set -u
+wt=$1 out=$2
+mkdir -p "$out"
+for rev in ${REVS:-41a0d972 82822351}; do
+  tree="$out/tree-$rev"
+  rm -rf "${tree:?}"
+  mkdir -p "$tree"
+  git -C "$wt" archive 82822351 | tar -x -C "$tree"
+  git -C "$wt" show "$rev:bin/fm-spawn.sh" > "$tree/bin/fm-spawn.sh"
+  chmod +x "$tree/bin/fm-spawn.sh"
+  git -C "$tree" init -q && git -C "$tree" add -A && git -C "$tree" -c user.name=t -c user.email=t@example.invalid commit -qm snapshot
+  awk '
+    /^test_[a-z_]+$/ && $0 != "test_relaunch_preserves_durable_task_metadata" \
+      && $0 != "test_traced_relaunch_keeps_the_registered_pr_identity_readable" { next }
+    { print }
+  ' "$wt/tests/fm-control-relaunch.test.sh" > "$tree/tests/fm-control-relaunch.test.sh"
+  echo "##### bin/fm-spawn.sh from $rev, regression tests from 82822351"
+  (cd "$tree" && bash tests/fm-control-relaunch.test.sh 2>&1)
+  echo "exit=$?"
+done

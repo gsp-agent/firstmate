@@ -1,0 +1,57 @@
+$ bin/fm-pr-check.sh lab3f37003795ef-worker https://github.com/example/repo/pull/4242   (lab gh stand-in answers the forge reads)
+lab gh stand-in: unsupported: pr view https://github.com/example/repo/pull/4242 --json body,commits,headRefName
+fm-pr-made-with: could not read the body of https://github.com/example/repo/pull/4242
+actionable: PR https://github.com/example/repo/pull/4242 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh lab3f37003795ef-worker https://github.com/example/repo/pull/4242
+armed: state/lab3f37003795ef-worker.check.sh
+exit=0
+forge calls made:
+gh pr view https://github.com/example/repo/pull/4242 --json isDraft
+gh pr view https://github.com/example/repo/pull/4242 --json headRefOid -q .headRefOid
+gh pr view https://github.com/example/repo/pull/4242 --json body,commits,headRefName
+=== after PR registration: /private/tmp/fmlab.aVrdX8/home/state/lab3f37003795ef-worker.meta
+--- record keys in order (values shown for the PR, trace and relaunch keys)
+  1 window
+  2 endpoint_task_id
+  3 worktree
+  4 project
+  5 harness
+  6 kind
+  7 decision_owner
+  8 mode
+  9 yolo
+ 10 branch
+ 11 tasktmp
+ 12 model
+ 13 effort
+ 14 busy_gen
+ 15 spawn_gen
+ 16 pr=https://github.com/example/repo/pull/4242
+ 17 pr_head=3a4d840fe24a6c72f6e96df53454b4d55e3f379f
+--- keys after the first pr= line:
+  pr_head
+fm_pr_metadata_identity_parse: READABLE provider=github url=https://github.com/example/repo/pull/4242 number=4242
+/private/tmp/fmlab.aVrdX8/home/bin/fm-merge-authority-lib.sh: line 119: fm_lock_acquire_wait: command not found
+fm_merge_authority_persist: REFUSED (exit 1)
+=== after PR registration (probe rerun with lock helpers): /private/tmp/fmlab.aVrdX8/home/state/lab3f37003795ef-worker.meta
+--- record keys in order (values shown for the PR, trace and relaunch keys)
+  1 window
+  2 endpoint_task_id
+  3 worktree
+  4 project
+  5 harness
+  6 kind
+  7 decision_owner
+  8 mode
+  9 yolo
+ 10 branch
+ 11 tasktmp
+ 12 model
+ 13 effort
+ 14 busy_gen
+ 15 spawn_gen
+ 16 pr=https://github.com/example/repo/pull/4242
+ 17 pr_head=3a4d840fe24a6c72f6e96df53454b4d55e3f379f
+--- keys after the first pr= line:
+  pr_head
+fm_pr_metadata_identity_parse: READABLE provider=github url=https://github.com/example/repo/pull/4242 number=4242
+fm_merge_authority_persist: recorded (fm-merge-authority-v1 github github.com example/repo 4242 attended )
