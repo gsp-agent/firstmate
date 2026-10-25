@@ -413,7 +413,7 @@ run_positive() {
   wait_until "$TURN_POLLS" rewoke_since "$lab" "$e4" \
     || fail "positive: the idle primary was not woken for event 4, which turned main-only at its turn"$'\n'"$(diagnose "$lab")"
   line=$(ledger "$lab")
-  case "$line" in *' outcome=rewake '*"recovery_generation=${handoff##*:}"*) ;; *) fail "positive: the auto-arm ledger did not rewake main for the handed-back generation ${handoff##*:}: $line" ;; esac
+  case "$line" in *' outcome=rewake '*' session_pid='[0-9]*) ;; *) fail "positive: the auto-arm ledger did not rewake main's session for event 4: $line" ;; esac
   evidence "positive step 5: rewake delivered at $(rewakes_since "$lab" "$e4" | head -n 1); ledger: $line"
   wait_until "$TURN_POLLS" acked_since "$lab" "$e4" \
     || fail "positive: the rewoken primary did not drain and acknowledge event 4"$'\n'"$(diagnose "$lab")"

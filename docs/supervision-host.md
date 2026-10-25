@@ -111,7 +111,7 @@ On every attended pass-through the host starts the successor watcher cycle and l
 That successor is a covering one ([Claude handling successor](watcher-continuity.md#claude-handling-successor)), so a fleet event during main's turn does not leave the home uncovered until the turn ends.
 That successor, like one a turn hands back at its start (see [Away](#away)), runs in a process group of its own, so the harness tearing down the hook's group after the rewake does not stop it.
 The host records the coverage handover before detaching the successor; [Claude handling successor](watcher-continuity.md#claude-handling-successor) owns continuity during the owner's exit cleanup.
-The host leaves the watcher's recovery marker reading downtime, confirming no handling handoff, because the re-arm owner delivers a close to main only while that marker reads downtime.
+The host leaves the watcher's recovery marker reading downtime and confirms no handling handoff, because main, not the engine, handles the close; the Claude re-arm owner commits its rewake on the session and generation, whatever the marker reads.
 The session's next park without `--restart` requests a take-over to restore a single host-owned arm; the [host header](../bin/fm-supervision-host.sh) owns successor persistence and cleanup, and the [arm header](../bin/fm-watch-arm.sh) owns take-over eligibility and fallback.
 OpenCode and omp still launch the host with `--restart`, which takes precedence over recorded take-over and lacks its acknowledgement-preserving handover; changing that first-cycle path remains a follow-up.
 The host-off Claude Stop hook's detached handling successor covers main's turn the same way; see [Claude handling successor](watcher-continuity.md#claude-handling-successor).

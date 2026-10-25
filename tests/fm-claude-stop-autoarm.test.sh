@@ -256,6 +256,28 @@ printf 'watcher: FAILED - cycle ended without an actionable reason\n'
 exit 1
 SH
       ;;
+    failed-queues)
+      cat >> "$dir/bin/fm-watch-arm.sh" <<'SH'
+. "$FM_HOME/bin/fm-wake-lib.sh"
+fm_wake_append check failed-row "check: queued during a failed cycle" || exit 1
+printf 'watcher: FAILED - no live watcher with a fresh beacon\n'
+exit 1
+SH
+      ;;
+    actionable-queued-reason)
+      cat >> "$dir/bin/fm-watch-arm.sh" <<'SH'
+printf 'pending:downtime:fixture-generation\n' > "$FM_HOME/state/.watcher-down"
+touch "$FM_HOME/state/.last-watcher-beat"
+. "$FM_HOME/bin/fm-wake-lib.sh"
+fm_wake_append check own-close "check: own close reason" || exit 1
+for i in 1 2 3 4 5 6 7 8; do
+  fm_wake_append check "extra-$i" "check: extra queued row $i" || exit 1
+done
+printf 'watcher: started pid=%s (beacon fresh)\n' "$$"
+printf 'check: own close reason\n'
+exit 0
+SH
+      ;;
     *)
       echo "unknown arm fixture: $kind" >&2
       return 2
@@ -724,6 +746,24 @@ test_failure_notice_marker_write_refuses_delivery_and_retries() {
   delivered=$(printf '%s\n%s\n' "$out2" "$out3" | grep -c 'automatic supervision mechanism is broken' || true)
   [ "$delivered" -eq 1 ] || fail "the restored episode delivered $delivered failure notices instead of one"
   pass "auto-arm: marker-write refusal defers delivery until one successor commits the notice"
+}
+
+# The failure notice's marker write is refused, and a row was queued during
+# the failed cycle. The row is delivered, and the refused notice is not.
+test_refused_failure_notice_is_not_carried_by_a_row_delivery() {
+  local dir marker out status
+  dir=$(make_primary_dir "$TMP_ROOT/refused-notice-row")
+  : > "$dir/state/task.meta"
+  write_arm_fixture "$dir" failed-queues
+  marker="$dir/state/.claude-autoarm-failure-notified"
+  ln -s "$dir/state/missing/notice" "$marker"
+  out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+  expect_code 2 "$status" "a row queued during a failed cycle must still be delivered"
+  assert_contains "$out" "check: queued during a failed cycle" "the queued row was not delivered"
+  assert_not_contains "$out" "auto-arm FAILED" "the refused failure notice reached main with the row"
+  [ -L "$marker" ] || fail "the refused notice replaced its dangling marker"
+  [ "$(epoch_outcome "$dir")" = rewake ] || fail "the row delivery must record outcome=rewake, got: $(epoch_outcome "$dir")"
+  pass "auto-arm: a refused failure notice is not delivered with the unread row that follows it"
 }
 
 test_unverified_clean_close_exhausts_retries() {
@@ -1690,6 +1730,24 @@ test_plain_arm_banner_keeps_its_wake_line_cap() {
   pass "auto-arm: without the host the rewake banner is unchanged, eight wake lines at most"
 }
 
+# The close's own reason is also an unread row. The banner shows it once, then
+# the other unread rows, eight wake lines in all.
+test_banner_shows_a_queued_close_reason_once_within_the_cap() {
+  local dir out status
+  dir=$(make_primary_dir "$TMP_ROOT/banner-dedupe")
+  : > "$dir/state/task.meta"
+  write_arm_fixture "$dir" actionable-queued-reason
+  out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+  expect_code 2 "$status" "an actionable close must rewake main"
+  [ "$(printf '%s\n' "$out" | grep -cx 'check: own close reason')" -eq 1 ] \
+    || fail "the close reason must appear once in the banner:"$'\n'"$out"
+  [ "$(printf '%s\n' "$out" | grep -c '^check: ')" -eq 8 ] \
+    || fail "the banner must keep eight wake lines in all:"$'\n'"$out"
+  assert_contains "$out" "check: extra queued row 7" "the unread rows under the cap were not shown"
+  assert_not_contains "$out" "check: extra queued row 8" "the banner went past its eight-line cap"
+  pass "auto-arm: a queued close reason is shown once, and the banner keeps eight wake lines"
+}
+
 test_host_handback_carries_every_host_line() {
   local dir out status expected
   dir=$(make_primary_dir "$TMP_ROOT/host-many")
@@ -2188,3 +2246,5 @@ test_host_passes_successor_note_through
 test_rewake_with_handling_marker_allows_the_stop
 test_plain_home_delivers_unread_rows_and_away_delivers_none
 test_host_away_record_delivers_no_unread_row
+test_refused_failure_notice_is_not_carried_by_a_row_delivery
+test_banner_shows_a_queued_close_reason_once_within_the_cap

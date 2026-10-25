@@ -3231,12 +3231,18 @@ resurface_queue_has_main_only() {
 }
 
 resurface_after_downtime() {
-  local epoch seq kind key payload rest start newer
+  local epoch seq kind key payload rest start newer queue_seq
   start=${WATCHER_START_SEQ:-0}
   newer=
   RESURFACE_ALT_OWNER=1
   resurface_alternate_owner || RESURFACE_ALT_OWNER=0
-  if [ -s "${FM_WAKE_QUEUE:-}" ]; then
+  # Every append raises the counter before it writes its row, so a counter at
+  # or below this watcher's start proves no newer row exists.
+  fm_read_text_to queue_seq "$STATE/.wake-queue.seq" || queue_seq=
+  case "$queue_seq" in
+    ''|*[!0-9]*) queue_seq= ;;
+  esac
+  if [ -s "${FM_WAKE_QUEUE:-}" ] && { [ -z "$queue_seq" ] || [ "$queue_seq" -gt "$start" ]; }; then
     if fm_lock_acquire_wait_max "$FM_WAKE_QUEUE_LOCK" 2; then
       while IFS="$(printf '\t')" read -r epoch seq kind key payload rest; do
         case "$seq" in

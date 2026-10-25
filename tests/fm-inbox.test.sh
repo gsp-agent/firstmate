@@ -491,7 +491,7 @@ kill_holder() {
 trap 'kill_holder; fm_test_cleanup' EXIT
 printf '%s\n' "$holder_pid" > "$home/state/.lock"
 printf 'acked:handling:ready-recovery\n' > "$home/state/.watcher-down"
-printf 'epoch=1 owner_pid=%s outcome=rewake session_pid=%s recovery_generation=ready-recovery\n' \
+printf 'epoch=1 owner_pid=%s outcome=rewake updated_at=1 session_pid=%s\n' \
   "$holder_pid" "$holder_pid" > "$home/state/.claude-autoarm-epoch"
 python3 - "$home/state/.last-watcher-beat" <<'PY_AGE'
 import os, sys, time
