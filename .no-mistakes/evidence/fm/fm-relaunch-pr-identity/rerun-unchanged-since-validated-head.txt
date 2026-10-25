@@ -1,0 +1,5 @@
+$ git diff --stat aeb1ce8f 639a1ad0
+ drift-proof.txt | 2 ++
+ 1 file changed, 2 insertions(+)
+$ git diff --name-only aeb1ce8f 639a1ad0 -- bin tests .agents
+(empty above = no executable or test content changed since the previously validated head)

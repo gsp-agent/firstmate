@@ -1,0 +1,280 @@
+===== fakebin/gh
+#!/usr/bin/env bash
+# Disposable lab forge stand-in. It answers only the two read-only PR queries
+# bin/fm-pr-check.sh makes (draft state, head commit) so registration never
+# reaches github.com; every other call fails like an unreachable forge.
+log=${FM_LAB_GH_LOG:-/dev/null}
+printf '%s\n' "gh $*" >> "$log"
+case "$*" in
+  "pr view "*" --json isDraft") printf '{"isDraft":false}\n' ;;
+  "pr view "*" --json headRefOid -q .headRefOid") git rev-parse HEAD ;;
+  *) echo "lab gh stand-in: unsupported: $*" >&2; exit 1 ;;
+esac
+===== labrun.sh
+#!/usr/bin/env bash
+# labrun.sh <lab-root> <command...>: run a command in the lab's clean environment,
+# the same base fm-live-lab.sh's lab_run gives every lab process, with the lab
+# gh stand-in first on PATH and FM_HOME set to the lab home.
+set -u
+root=$1; shift
+rec() { sed -n "s/^$1=//p" "$root/.fm-live-lab" | head -n 1; }
+home=$(rec home)
+tmux_dir=$(rec tmux_dir)
+claude_dir=$(rec claude_config_dir)
+scr=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+base=(HOME="$HOME" USER="${USER:-$(id -un)}" LOGNAME="${USER:-$(id -un)}"
+  PATH="$scr/fakebin:$PATH" SHELL="${SHELL:-/bin/zsh}" TERM=xterm-256color LANG="${LANG:-en_US.UTF-8}"
+  TMUX_TMPDIR="$tmux_dir" TREEHOUSE_ROOT="$root/treehouse" FM_BACKEND=tmux DISABLE_AUTOUPDATER=1
+  FM_HOME="$home" FM_LAB_GH_LOG="$root/gh-calls.log")
+[ -z "$claude_dir" ] || base+=(CLAUDE_CONFIG_DIR="$claude_dir")
+cd "$home" && exec env -i "${base[@]}" "$@"
+===== probe.sh
+#!/usr/bin/env bash
+# probe.sh <lab-home> <task-id> <label>: show the published task record's key
+# order and whether the lab tree's own PR readers accept it.
+#   - fm_pr_metadata_identity_parse (bin/fm-pr-lib.sh), the canonical reader
+#   - fm_merge_authority_persist (bin/fm-merge-authority-lib.sh), one of the
+#     callers that refused in the original report; it writes only the lab's
+#     state/<id>.merge-authority and is removed again right after.
+set -u
+home=$1 id=$2 label=$3
+meta="$home/state/$id.meta"
+echo "=== $label: $meta"
+echo "--- record keys in order (values shown for the PR, trace and relaunch keys)"
+awk -F= '{ k=$1; v=substr($0, length($1)+2)
+  if (k=="pr"||k=="pr_head"||k=="traceparent"||k=="control_relaunch_tx") printf "%3d %s=%s\n", NR, k, v
+  else printf "%3d %s\n", NR, k }' "$meta"
+echo "--- keys after the first pr= line:"
+awk -F= 'seen { printf "  %s\n", $1 } $1=="pr" { seen=1 }' "$meta"
+# shellcheck source=/dev/null
+. "$home/bin/fm-pr-lib.sh"
+number=4242
+if fm_pr_metadata_identity_parse "$meta"; then
+  echo "fm_pr_metadata_identity_parse: READABLE provider=$FM_PR_META_PROVIDER url=$FM_PR_META_URL number=$FM_PR_META_NUMBER"
+  number=$FM_PR_META_NUMBER
+else
+  echo "fm_pr_metadata_identity_parse: UNREADABLE (exit 1)"
+fi
+# shellcheck source=/dev/null
+. "$home/bin/fm-merge-authority-lib.sh"
+# The lock helpers, sourced the way bin/fm-pr-merge.sh sources them.
+# shellcheck source=/dev/null
+. "$home/bin/fm-wake-lib.sh"
+if fm_merge_authority_persist "$home/state" "$id" "$meta" github github.com example/repo "$number" attended; then
+  echo "fm_merge_authority_persist: recorded ($(tr '\n' ' ' < "$home/state/$id.merge-authority"))"
+  rm -f "$home/state/$id.merge-authority" "$home/state/$id.merge-authority.lock"
+else
+  echo "fm_merge_authority_persist: REFUSED (exit 1)"
+fi
+===== relaunch-phase.sh
+#!/usr/bin/env bash
+# relaunch-phase.sh <lab-root> <label> <note>: relaunch the lab worker through the
+# lab tree's own bin/fm-control.sh, then show the published record, the
+# transaction journal, and the replacement agent's pane.
+set -u
+root=$1 label=$2 note=$3
+scr=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+rec() { sed -n "s/^$1=//p" "$root/.fm-live-lab" | head -n 1; }
+home=$(rec home) id=$(rec worker_id) tmux_dir=$(rec tmux_dir)
+echo "##### $label"
+echo "lab tree: $(git -C "$home" rev-parse --short HEAD); bin/fm-spawn.sh blob $(git -C "$home" hash-object bin/fm-spawn.sh) (HEAD blob $(git -C "$home" rev-parse HEAD:bin/fm-spawn.sh))"
+echo "trace decision: $(cat "$home/state/.trace-context-effective" 2>/dev/null || echo absent) (session lock $(cat "$home/state/.lock" 2>/dev/null || echo absent))"
+"$scr/probe.sh" "$home" "$id" "before relaunch"
+echo "--- \$ bin/fm-control.sh $id relaunch --note \"$note\""
+"$scr/labrun.sh" "$root" "$home/bin/fm-control.sh" "$id" relaunch --note "$note"
+echo "exit=$?"
+echo "--- journal state/$id.control-relaunch:"
+grep -E "^(phase|tx)=" "$home/state/$id.control-relaunch" 2>/dev/null | sed "s/^/  /"
+"$scr/probe.sh" "$home" "$id" "after relaunch"
+echo "--- replacement agent in the worker window (pane command, last lines):"
+window=$(sed -n 's/^window=//p' "$home/state/$id.meta" | tail -1)
+echo "  window=$window pane_current_command=$(env -u TMUX TMUX_TMPDIR="$tmux_dir" tmux display-message -p -t "$window" '#{pane_current_command}' 2>&1)"
+===== poll-auth.sh
+#!/usr/bin/env bash
+# poll-auth.sh <lab-home> <task-id>: ask the lab tree's own PR poll authenticator
+# (fm_pr_poll_artifacts_valid, which the watcher runs before it will execute a
+# task's merge-poll check) whether the task's armed poll still authenticates,
+# and list the watcher's own rejection entries with their times.
+set -u
+home=$1 id=$2
+# shellcheck source=/dev/null
+. "$home/bin/fm-pr-lib.sh"
+if fm_pr_poll_artifacts_valid "$home/state" "$id" "$home/bin/fm-pr-poll.sh"; then
+  echo "fm_pr_poll_artifacts_valid: AUTHENTICATED ($FM_PR_DATA_URL)"
+else
+  echo "fm_pr_poll_artifacts_valid: REJECTED"
+fi
+echo "watcher rejection entries so far (deliveries, then triage):"
+grep -h "unauthenticated" "$home/state/.watch-deliveries.log" 2>/dev/null | cut -f2,4 | sed 's/^/  /'
+grep -h "rejected check" "$home/state/.watch-triage.log" 2>/dev/null | sed 's/^/  /'
+echo "latest watcher triage entry: $(tail -1 "$home/state/.watch-triage.log" 2>/dev/null)"
+===== lab-drive.sh
+#!/usr/bin/env bash
+# lab-drive.sh <worktree> <lab-root> <evidence-dir>: drive the live relaunch
+# scenarios against the lab's real Claude worker, one scrubbed evidence file per
+# phase. Every lifecycle call is the lab tree's own script, run through
+# labrun.sh with FM_HOME set to the lab home and the lab's private tmux dir.
+set -u
+wt=$1 root=$2 ev=$3
+scr=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+rec() { sed -n "s/^$1=//p" "$root/.fm-live-lab" | head -n 1; }
+home=$(rec home) id=$(rec worker_id)
+url=https://github.com/example/repo/pull/4242
+save() { set -o pipefail; no-mistakes redact 2>/dev/null > "$ev/$1"; }
+trace() {  # <on|off>: the lab session's frozen trace decision, bound to its lock
+  local lock tmp
+  lock=$(cat "$home/state/.lock")
+  tmp="$home/state/.trace-context-effective.lab.$$"
+  printf '%s %s\n' "$lock" "$1" > "$tmp" && mv -f "$tmp" "$home/state/.trace-context-effective"
+}
+settle() {  # wait (bounded) until the worker reads as paused again
+  local i out
+  for i in $(seq 1 60); do
+    out=$("$scr/labrun.sh" "$root" "$home/bin/fm-crew-state.sh" "$id" 2>&1)
+    case "$out" in "state: paused"*) echo "settled: $out"; return 0 ;; esac
+    sleep 5
+  done
+  echo "not settled after 300s: $out"
+}
+settle | save live-00-worker-settled.txt
+
+{
+  echo "\$ bin/fm-pr-check.sh $id $url   (lab gh stand-in answers the forge reads)"
+  "$scr/labrun.sh" "$root" "$home/bin/fm-pr-check.sh" "$id" "$url"
+  echo "exit=$?"
+  echo "forge calls made:"; cat "$root/gh-calls.log" 2>/dev/null
+  "$scr/probe.sh" "$home" "$id" "after PR registration"
+} 2>&1 | save live-01-pr-registration.txt
+
+git -C "$wt" show 41a0d972:bin/fm-spawn.sh > "$home/bin/fm-spawn.sh"
+trace off
+{
+  echo "(lab home's bin/fm-spawn.sh replaced by the base commit 41a0d972 writer for this phase only)"
+  "$scr/relaunch-phase.sh" "$root" "PHASE 0 - base writer (41a0d972), trace off: reproduce the report" \
+    "Lab relaunch check 0: continue exactly as your brief says; the gate is still absent, so remain paused."
+} 2>&1 | save live-02-base-relaunch-reproduces-bug.txt
+git -C "$home" checkout -- bin/fm-spawn.sh
+settle | save live-02b-worker-settled.txt
+
+trace off
+"$scr/relaunch-phase.sh" "$root" "PHASE A - target writer (639a1ad0), trace off" \
+  "Lab relaunch check A: continue exactly as your brief says; the gate is still absent, so remain paused." \
+  2>&1 | save live-03-fixed-relaunch-trace-off.txt
+settle | save live-03b-worker-settled.txt
+
+trace on
+{
+  "$scr/relaunch-phase.sh" "$root" "PHASE B - target writer (639a1ad0), trace ON" \
+    "Lab relaunch check B: continue exactly as your brief says; the gate is still absent, so remain paused."
+  echo "--- TRACEPARENT exported into the replacement pane before launch (pane scrollback):"
+  window=$(sed -n 's/^window=//p' "$home/state/$id.meta" | tail -1)
+  env -u TMUX TMUX_TMPDIR="$(rec tmux_dir)" tmux capture-pane -p -S -400 -t "$window" | grep -m1 -o 'export TRACEPARENT=[0-9a-f-]*'
+} 2>&1 | save live-04-fixed-relaunch-trace-on.txt
+settle | save live-04b-worker-settled.txt
+
+{
+  echo "recorded carrier before: $(sed -n 's/^traceparent=//p' "$home/state/$id.meta")"
+  "$scr/relaunch-phase.sh" "$root" "PHASE C - second traced relaunch (recorded carrier reused, one line, before pr=)" \
+    "Lab relaunch check C: continue exactly as your brief says; the gate is still absent, so remain paused."
+  echo "recorded carrier after: $(sed -n 's/^traceparent=//p' "$home/state/$id.meta")"
+  echo "traceparent lines in the record: $(grep -c '^traceparent=' "$home/state/$id.meta")"
+} 2>&1 | save live-05-second-traced-relaunch.txt
+settle | save live-05b-worker-settled.txt
+
+{
+  echo "##### PR readers after all relaunches"
+  echo "\$ bin/fm-crew-state.sh $id"
+  "$scr/labrun.sh" "$root" "$home/bin/fm-crew-state.sh" "$id"
+  echo "exit=$?"
+  "$scr/poll-auth.sh" "$home" "$id"
+} 2>&1 | save live-06-pr-readers-after-relaunches.txt
+===== failing-first.sh
+#!/usr/bin/env bash
+# failing-first.sh <worktree> <out-dir>: run only the two PR-identity relaunch
+# regressions from the change's test file against throwaway exports of the base
+# commit's and the fixed commit's bin/fm-spawn.sh. The test file is copied
+# unchanged except that its run list is cut to those two tests.
+set -u
+wt=$1 out=$2
+mkdir -p "$out"
+for rev in ${REVS:-41a0d972 639a1ad0}; do
+  tree="$out/tree-$rev"
+  rm -rf "${tree:?}"
+  mkdir -p "$tree"
+  git -C "$wt" archive 639a1ad0 | tar -x -C "$tree"
+  git -C "$wt" show "$rev:bin/fm-spawn.sh" > "$tree/bin/fm-spawn.sh"
+  chmod +x "$tree/bin/fm-spawn.sh"
+  git -C "$tree" init -q && git -C "$tree" add -A && git -C "$tree" -c user.name=t -c user.email=t@example.invalid commit -qm snapshot
+  awk '
+    /^test_[a-z_]+$/ && $0 != "test_relaunch_preserves_durable_task_metadata" \
+      && $0 != "test_traced_relaunch_keeps_the_registered_pr_identity_readable" { next }
+    { print }
+  ' "$wt/tests/fm-control-relaunch.test.sh" > "$tree/tests/fm-control-relaunch.test.sh"
+  echo "##### bin/fm-spawn.sh from $rev, regression tests from 639a1ad0"
+  (cd "$tree" && bash tests/fm-control-relaunch.test.sh 2>&1)
+  echo "exit=$?"
+done
+===== failing-first-traced.sh
+#!/usr/bin/env bash
+# failing-first-traced.sh <worktree> <out-dir>: same as failing-first.sh, but runs only the traced PR-identity regression.
+# regressions from the change's test file against throwaway exports of the base
+# commit's and the fixed commit's bin/fm-spawn.sh. The test file is copied
+# unchanged except that its run list is cut to those two tests.
+set -u
+wt=$1 out=$2
+mkdir -p "$out"
+for rev in ${REVS:-41a0d972 639a1ad0}; do
+  tree="$out/tree-$rev"
+  rm -rf "${tree:?}"
+  mkdir -p "$tree"
+  git -C "$wt" archive 639a1ad0 | tar -x -C "$tree"
+  git -C "$wt" show "$rev:bin/fm-spawn.sh" > "$tree/bin/fm-spawn.sh"
+  chmod +x "$tree/bin/fm-spawn.sh"
+  git -C "$tree" init -q && git -C "$tree" add -A && git -C "$tree" -c user.name=t -c user.email=t@example.invalid commit -qm snapshot
+  awk '
+    /^test_[a-z_]+$/ \
+      && $0 != "test_traced_relaunch_keeps_the_registered_pr_identity_readable" { next }
+    { print }
+  ' "$wt/tests/fm-control-relaunch.test.sh" > "$tree/tests/fm-control-relaunch.test.sh"
+  echo "##### bin/fm-spawn.sh from $rev, regression tests from 639a1ad0"
+  (cd "$tree" && bash tests/fm-control-relaunch.test.sh 2>&1)
+  echo "exit=$?"
+done
+===== drift-manifest.sh
+#!/usr/bin/env bash
+# drift-manifest.sh <worktree> <scratch>: drive the manifest's real consumer,
+# bin/fm-drift-nightly.sh check, against a disposable repo that mimics the fork
+# after PR 133 squash-merges. Upstream is one commit; the fork carries the base
+# manifest in a "(#128)" commit, then a "(#133)" squash commit changing
+# bin/fm-spawn.sh and drift-proof.txt. Run 1 uses the target drift-proof.txt;
+# run 2 (adversarial) uses the same squash with the base manifest, which has no
+# pr: 133 entry.
+set -u
+wt=$1 scratch=$2
+checker="$wt/bin/fm-drift-nightly.sh"
+build() {  # <repo> <manifest-rev>
+  local repo=$1 rev=$2
+  rm -rf "${repo:?}"; mkdir -p "$repo"
+  git -C "$repo" init -q -b main
+  g() { git -C "$repo" -c user.name=lab -c user.email=lab@example.invalid "$@"; }
+  printf 'upstream\n' > "$repo/README"
+  mkdir -p "$repo/bin"
+  git -C "$wt" show 41a0d972:bin/fm-spawn.sh > "$repo/bin/fm-spawn.sh"
+  g add -A && g commit -qm "upstream main" && g branch -q kmain
+  git -C "$wt" show 41a0d972:drift-proof.txt > "$repo/drift-proof.txt"
+  g add -A && g commit -qm "chore: carry fork proof manifest (#128)"
+  git -C "$wt" show 639a1ad0:bin/fm-spawn.sh > "$repo/bin/fm-spawn.sh"
+  git -C "$wt" show "$rev:drift-proof.txt" > "$repo/drift-proof.txt"
+  g add -A && g commit -qm "fix: preserve readable PR identity on control relaunch (#133)"
+}
+for case in "target 639a1ad0" "adversarial-base-manifest 41a0d972"; do
+  set -- $case
+  repo="$scratch/$1"
+  build "$repo" "$2"
+  echo "##### $1: squash (#133) carries drift-proof.txt from $2"
+  echo "pr: 133 lines in the fork tip's drift-proof.txt: $(git -C "$repo" show HEAD:drift-proof.txt | grep -c '^pr: 133$')"
+  echo "\$ fm-drift-nightly.sh check --repo <disposable> --fork HEAD --upstream kmain --no-fetch"
+  "$checker" check --repo "$repo" --fork HEAD --upstream kmain --no-fetch 2>&1 | grep -v '^unmatched: '
+  echo "exit=${PIPESTATUS[0]}"
+  echo "(unmatched lines for the manifest's other historical PRs omitted: $("$checker" check --repo "$repo" --fork HEAD --upstream kmain --no-fetch 2>/dev/null | grep -c '^unmatched: '))"
+done

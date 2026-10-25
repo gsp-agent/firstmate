@@ -1,0 +1,23 @@
+##### target: squash (#133) carries drift-proof.txt from 639a1ad0
+pr: 133 lines in the fork tip's drift-proof.txt: 1
+$ fm-drift-nightly.sh check --repo <disposable> --fork HEAD --upstream kmain --no-fetch
+behind: 0
+ahead: 2
+path-ok: bin/fm-spawn.sh
+path-ok: drift-proof.txt
+keep: 87bf0f126969b115d5e0c484f8b9092af6ce588d fix: preserve readable PR identity on control relaunch (#133)
+keep: 1307941a8d5dea0d95578ee2523f66b54941173f chore: carry fork proof manifest (#128)
+exit=0
+(unmatched lines for the manifest's other historical PRs omitted: 60)
+##### adversarial-base-manifest: squash (#133) carries drift-proof.txt from 41a0d972
+pr: 133 lines in the fork tip's drift-proof.txt: 0
+$ fm-drift-nightly.sh check --repo <disposable> --fork HEAD --upstream kmain --no-fetch
+behind: 0
+ahead: 2
+path-ok: drift-proof.txt
+path-drift: bin/fm-spawn.sh
+unproven: a573499af07c22d63e7909e73f2f1cb96f047fba fix: preserve readable PR identity on control relaunch (#133)
+keep: c4898f0bb478d87114b5ca64623b327e2433f2b3 chore: carry fork proof manifest (#128)
+error: missing manifest entry for PR 133
+exit=1
+(unmatched lines for the manifest's other historical PRs omitted: 60)

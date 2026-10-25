@@ -1,0 +1,7 @@
+$ git diff --stat aeb1ce8f 639a1ad0
+ drift-proof.txt | 2 ++
+ 1 file changed, 2 insertions(+)
+$ git diff --name-only aeb1ce8f 639a1ad0 -- bin tests
+(empty above = no executable or test content changed since the previously validated head)
+bin/fm-spawn.sh aeb1ce8f=df3ab18d1b0b576d6aafc0cde01c763ac47d3eac 639a1ad0=df3ab18d1b0b576d6aafc0cde01c763ac47d3eac
+tests/fm-control-relaunch.test.sh aeb1ce8f=0ca97c4934aa17aeb35b2de6e8b6929aa47840ab 639a1ad0=0ca97c4934aa17aeb35b2de6e8b6929aa47840ab

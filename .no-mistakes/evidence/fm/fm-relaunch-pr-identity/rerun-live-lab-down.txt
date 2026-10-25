@@ -1,0 +1,6 @@
+stopped: lab tmux server and lab processes
+removed: task temp /tmp/fm-labfe156a9324fd-worker+da85d4dc8e69bcf293893149966c09a2e2b8af2b1c99effbd89f53085a35bd62
+removed: task temp /tmp/fm-labfe156a9324fd-worker
+removed: 3 Claude project entries under /private/tmp/fmlab.Rn6PYJ
+removed: /private/tmp/fmlab.Rn6PYJ
+exit=0

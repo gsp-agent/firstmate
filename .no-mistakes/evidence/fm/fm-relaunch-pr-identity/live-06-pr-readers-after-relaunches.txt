@@ -1,0 +1,7 @@
+##### PR readers after all relaunches
+$ bin/fm-crew-state.sh labb180b0b14ad5-worker
+state: paused · source: status-log · waiting for gate file /private/tmp/fmlab.Lnfs9u/home/data/labb180b0b14ad5-worker/gate and a resume message
+exit=0
+fm_pr_poll_artifacts_valid: AUTHENTICATED (https://github.com/example/repo/pull/4242)
+watcher rejection entries so far (deliveries, then triage):
+latest watcher triage entry: [2026-10-25T03:41:46-0500] absorbed heartbeat (no captain-relevant change)

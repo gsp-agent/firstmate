@@ -1,7 +1,8 @@
+(lab home's bin/fm-spawn.sh replaced by the base commit 41a0d972 writer for this phase only)
 ##### PHASE 0 - base writer (41a0d972), trace off: reproduce the report
-lab tree: 8282235; bin/fm-spawn.sh blob 9a53d0c0e612feb78bb2c3fd98b7625868a690c0 (HEAD blob 2304be6cdb17e9c0edcbf002af1ebdae6a07bf52)
-trace decision: 78471 off (session lock 78471)
-=== before relaunch: /private/tmp/fmlab.aVrdX8/home/state/lab3f37003795ef-worker.meta
+lab tree: 639a1ad; bin/fm-spawn.sh blob 9a53d0c0e612feb78bb2c3fd98b7625868a690c0 (HEAD blob df3ab18d1b0b576d6aafc0cde01c763ac47d3eac)
+trace decision: 50436 off (session lock 50436)
+=== before relaunch: /private/tmp/fmlab.Lnfs9u/home/state/labb180b0b14ad5-worker.meta
 --- record keys in order (values shown for the PR, trace and relaunch keys)
   1 window
   2 endpoint_task_id
@@ -19,16 +20,18 @@ trace decision: 78471 off (session lock 78471)
  14 busy_gen
  15 spawn_gen
  16 pr=https://github.com/example/repo/pull/4242
- 17 pr_head=3a4d840fe24a6c72f6e96df53454b4d55e3f379f
+ 17 pr_head=ba59c198b5d5a388739b2137656dcdf5c006567a
 --- keys after the first pr= line:
   pr_head
 fm_pr_metadata_identity_parse: READABLE provider=github url=https://github.com/example/repo/pull/4242 number=4242
 fm_merge_authority_persist: recorded (fm-merge-authority-v1 github github.com example/repo 4242 attended )
---- $ bin/fm-control.sh lab3f37003795ef-worker relaunch --note "Lab relaunch check: continue exactly as your brief says; the gate is still absent, so remain paused."
-relaunched lab3f37003795ef-worker harness=claude from=claude model=sonnet effort=low backend=tmux endpoint=firstmate:fm-lab3f37003795ef-worker worktree=/private/tmp/fmlab.aVrdX8/treehouse/.treehouse/notes-e1bd6e/1/notes
+--- $ bin/fm-control.sh labb180b0b14ad5-worker relaunch --note "Lab relaunch check 0: continue exactly as your brief says; the gate is still absent, so remain paused."
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+relaunched labb180b0b14ad5-worker harness=claude from=claude model=sonnet effort=low backend=tmux endpoint=firstmate:fm-labb180b0b14ad5-worker worktree=/private/tmp/fmlab.Lnfs9u/treehouse/.treehouse/notes-f0916b/1/notes
 exit=0
---- journal state/lab3f37003795ef-worker.control-relaunch:
-=== after relaunch: /private/tmp/fmlab.aVrdX8/home/state/lab3f37003795ef-worker.meta
+--- journal state/labb180b0b14ad5-worker.control-relaunch:
+  phase=complete
+=== after relaunch: /private/tmp/fmlab.Lnfs9u/home/state/labb180b0b14ad5-worker.meta
 --- record keys in order (values shown for the PR, trace and relaunch keys)
   1 window
   2 endpoint_task_id
@@ -46,12 +49,12 @@ exit=0
  14 busy_gen
  15 spawn_gen
  16 pr=https://github.com/example/repo/pull/4242
- 17 pr_head=3a4d840fe24a6c72f6e96df53454b4d55e3f379f
- 18 control_relaunch_tx=28208.20261025T070346Z.6340
+ 17 pr_head=ba59c198b5d5a388739b2137656dcdf5c006567a
+ 18 control_relaunch_tx=26007.20261025T082422Z.10147
 --- keys after the first pr= line:
   pr_head
   control_relaunch_tx
 fm_pr_metadata_identity_parse: UNREADABLE (exit 1)
 fm_merge_authority_persist: REFUSED (exit 1)
 --- replacement agent in the worker window (pane command, last lines):
-  window=firstmate:fm-lab3f37003795ef-worker pane_current_command=2.1.310
+  window=firstmate:fm-labb180b0b14ad5-worker pane_current_command=2.1.310
