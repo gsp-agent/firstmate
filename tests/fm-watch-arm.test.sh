@@ -2130,19 +2130,23 @@ test_arm_refuses_a_disposable_validation_checkout() {
 # so the watcher's own exit reason, which it logs to stderr, is readable there.
 WATCH_PID=
 start_owned_watcher() {  # <home> <state> <fakebin> <arm-out>
-  local home=$1 state=$2 fakebin=$3 armout=$4 i real_sleep
-  # A fresh beacon precedes the first poll's setup. Teardown cases need a
-  # settled watcher, not a race with that setup recreating state directories.
-  real_sleep=$(command -v sleep)
-  cat > "$fakebin/sleep" <<SH
-#!/usr/bin/env bash
-if [ "\$*" = 1 ] && [ "\$PPID" = "\$(cat "\$FM_STATE_OVERRIDE/.watch.lock/pid" 2>/dev/null)" ]; then
-  : > "\$FM_HOME/watcher-idle"
-fi
-exec "$real_sleep" "\$@"
+  local home=$1 state=$2 fakebin=$3 armout=$4 i idle_hook
+  # A fresh beacon precedes the first poll's setup. Observe the real watcher's
+  # first terminal wait from inside its shell, whether sleep is builtin or
+  # external. Stop observing before teardown so the marker cannot be rewritten
+  # after its home is removed. Production needs no fixture-specific branch.
+  idle_hook="$fakebin/watcher-idle.sh"
+  cat > "$idle_hook" <<'SH'
+case "$0" in
+  */bin/fm-watch.sh)
+    trap 'if [ "$BASH_COMMAND" = event_wait_or_sleep ]; then
+      trap - DEBUG
+      : > "$FM_HOME/watcher-idle"
+    fi' DEBUG
+    ;;
+esac
 SH
-  chmod +x "$fakebin/sleep"
-  PATH="$fakebin:$PATH" FM_HOME="$home" FM_STATE_OVERRIDE="$state" \
+  PATH="$fakebin:$PATH" BASH_ENV="$idle_hook" FM_HOME="$home" FM_STATE_OVERRIDE="$state" \
     FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 \
     FM_ARM_CONFIRM_TIMEOUT="$REARM_CONFIRM_SECONDS" "$WATCH_ARM" > "$armout" 2>&1 &
   ARM_PID=$!
@@ -2493,6 +2497,11 @@ EOF
 }
 
 [ "${BASH_SOURCE[0]}" = "$0" ] || return 0
+
+if [ -n "${FM_TEST_ONLY:-}" ]; then
+  run_case "$FM_TEST_ONLY"
+  exit
+fi
 
 run_case test_attached_arm_reports_the_delivered_wake
 run_case test_attached_arm_reports_the_delivered_wake_after_drain
