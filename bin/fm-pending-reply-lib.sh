@@ -167,6 +167,19 @@ fm_pending_reply_dir() {  # <state-dir>
   printf '%s/pending-replies' "$state"
 }
 
+# The same directory into <out-var>, for the watcher's per-poll tick, as
+# $(fm_pending_reply_dir <state-dir>) would read it.
+fm_pending_reply_dir_to() {  # <out-var> <state-dir>
+  local _prd_dir
+  if [ -n "${FM_PENDING_REPLY_DIR_OVERRIDE:-}" ]; then
+    _prd_dir=$FM_PENDING_REPLY_DIR_OVERRIDE
+    _prd_dir=${_prd_dir%"${_prd_dir##*[!$'\n']}"}
+  else
+    _prd_dir="$2/pending-replies"
+  fi
+  printf -v "$1" '%s' "$_prd_dir"
+}
+
 fm_pending_reply_path() {  # <state-dir> <corr_id>
   printf '%s/%s' "$(fm_pending_reply_dir "$1")" "$2"
 }
@@ -1549,7 +1562,7 @@ fm_pending_reply_tick() {  # <state-dir>
   local state=$1 dir rec corr task_id phase delivered meta backend target label busy sm_home harness remote_host
   local observation observation_task found i
   local -a observation_tasks=() observation_values=() records=() selected=()
-  dir=$(fm_pending_reply_dir "$state")
+  fm_pending_reply_dir_to dir "$state"
   [ -d "$dir" ] || return 0
   for rec in "$dir"/*; do
     [ -f "$rec" ] || continue

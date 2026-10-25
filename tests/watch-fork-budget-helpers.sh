@@ -61,6 +61,13 @@ fi
 if [ -n "${FM_FORK_MARK:-}" ] && [ "${BASH_COMMAND:-}" = "$FM_FORK_MARK" ] \
   && [ "${FUNCNAME[0]:-main}" = "${FM_FORK_MARK_FUNC:-main}" ]; then
   printf "m %s\n" "${BASHPID:-}" >> "$FM_FORK_LOG"
+  # End between polls, before another bounded scan can start. Killing the
+  # watcher from the parent after observing this marker races that scan and
+  # can leave its watchdog finishing after the fixture has been removed.
+  fm_budget_marks=$(( ${fm_budget_marks:-0} + 1 ))
+  if [ "${FM_FORK_STOP_AFTER:-0}" -gt 0 ] && [ "$fm_budget_marks" -ge "$FM_FORK_STOP_AFTER" ]; then
+    exit 0
+  fi
 fi' DEBUG
 SH
 
@@ -154,7 +161,7 @@ watch_polls() {  # <home> <log>
       FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 \
       FM_SECONDMATE_LIVENESS_SECS=99999999 FM_INACTIVE_RECONCILE_SECS=1800 \
       FM_HEARTBEAT_MAX=999999 BASH_ENV="$COUNTER" FM_FORK_LOG="$log" \
-      FM_FORK_MARK=watcher_world_gone FM_FORK_MARK_FUNC=main
+      FM_FORK_MARK=watcher_world_gone FM_FORK_MARK_FUNC=main FM_FORK_STOP_AFTER=6
     exec bash "$ROOT/bin/fm-watch.sh" ) > "$home/watch.out" 2>&1 &
   pid=$!
   BUDGET_WATCHER_PID=$pid
@@ -162,7 +169,8 @@ watch_polls() {  # <home> <log>
     budget_stop_watcher
     fail "watch: the watcher did not reach six polls: $(head -c 400 "$home/watch.out")"
   fi
-  budget_stop_watcher
+  wait "$pid" || fail "watch: watcher failed during bounded fixture shutdown"
+  BUDGET_WATCHER_PID=
   # shellcheck disable=SC2034 # Output consumed by the importing budget test.
   WATCH_POLLS=$(count_passes "$log" 1 4) || fail "watch: incomplete poll count"
 }
