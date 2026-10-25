@@ -7,6 +7,8 @@ Usage: fm-task-data.py prepare DATA STATE ID [PR]
        fm-task-data.py expire DATA STATE ID
        fm-task-data.py pending DATA
        fm-task-data.py plan DATA STATE ID
+       fm-task-data.py offload-plan DATA STATE [ID]
+       bash fm-task-data-lib.sh offload DATA STATE ID
        fm-task-data.py mark DATA ID cut-off|too-large
 Prepare, retire, stage, expire and mark need the caller to hold STATE/.meta-ID.lock, the
 lock also used by spawn.
@@ -143,11 +145,49 @@ retains the remaining recovery and reports an error. No allowlist is modified.
 Moving to the hold does not reclaim disk space; expiry does.
 An unread PR is named in the warning and record, retains the whole folder, and
 does not fail the cleanup pass; later cleanup retries it before moving any data.
+
+Offload is an explicit second retention round, never an automatic sweep action.
+Offload-plan is read-only and scans the current markdown backlog and its configured
+archive once, using local report and bead database references without forge/network
+reads or content hashing; it prints candidates, retained reasons, logical bytes
+and allocated bytes (neither is a promise of APFS free space).
+A current unchecked row overrides archived completion. Missing/ambiguous dates,
+live metadata, pending closes and every task containing a repository stay whole.
+Date-only completion waits through seven complete local calendar days.
+Small text and root brief/report files stay. Referenced directories or larger
+files may move, but symlink and hardlink evidence stays pending alias ownership.
+
+Live offload must run through the shell wrapper, which holds the spawn meta lock.
+It requires private config/task-data-offload.json, mode without group/other writes,
+containing {"backup_verifier": ["/absolute/trusted/executable", "optional-argument"]}.
+No such configuration is installed by this change. The trusted verifier receives
+the proposed pointer JSON on stdin after the MINI-DATA copy is checksummed.
+It must independently verify a second copy of this exact object on another
+physical device/failure domain, then emit JSON with independent:true, location,
+checksum and size matching the request. A schedule, a same-drive partition or
+an unverified backup is insufficient; a refusal retains the original.
+Do not put credentials in verifier arguments or output.
+
+Copies use ssh mini-ts and rsync into /Volumes/MINI-DATA/firstmate-task-evidence,
+with a SHA256 content-addressed directory per home/task/source path. MINI-DATA
+must be mounted. The checksum is SHA256 of a canonical JSON tree manifest: sorted
+arrays [relative-name,type,mode] for directories and
+[relative-name,"file",mode,size,sha256-of-file] for files, with '.' for the root,
+ensure_ascii=True and separators (',', ':'). Size is summed file bytes.
+Only matching remote and independent-backup manifests allow dcg-checked `trash -s`
+on the original, using the machine's existing Trash expiry (24 hours).
+A small JSON pointer replaces the exact original pathname, naming the destination,
+size, checksum, checksum format and independent backup. No offload path runs rm.
+record/data-offload.json journals verified moves before Trash, so a retry after
+interruption can reverify both copies and finish a missing pointer. Existing
+pointers are no-ops. Recovery copies remain in Trash until its normal expiry;
+restore an original by first moving its pointer aside, never overwriting work.
 """
 
 from array import array
 import copy
-from datetime import date
+from datetime import date, timedelta
+import hashlib
 import html
 import json
 import os
@@ -156,6 +196,7 @@ import re
 import shlex
 import shutil
 import signal
+import sqlite3
 import stat
 import string
 import subprocess
@@ -400,7 +441,7 @@ def expiry_reference_batches(views, sources, task_id, limit=None):
             yield text
 
 
-def completed_rows(data, task_id, limit=None):
+def completed_row_index(data, limit=None):
     try:
         import tomllib
     except ImportError as error:
@@ -427,7 +468,7 @@ def completed_rows(data, task_id, limit=None):
                 archive = data.parent / value
     if archive == backlog:
         raise ValueError("archive path must not be the active backlog path")
-    candidates = []
+    candidates = {}
     bullet = re.compile(r"^- (?:\[([ x])\] ([A-Za-z0-9][A-Za-z0-9._-]*)|\*\*([A-Za-z0-9][A-Za-z0-9._-]*)\*\*) - (.*)$")
     for path in dict.fromkeys((archive, backlog)):
         if path != backlog and not path.exists() and not path.is_symlink():
@@ -437,11 +478,12 @@ def completed_rows(data, task_id, limit=None):
         lines = path.read_text().splitlines()
         for index, line in enumerate(lines):
             match = bullet.fullmatch(line)
-            if not match or (match[2] or match[3]) != task_id:
+            if not match:
                 continue
+            task_id = match[2] or match[3]
             if match[1] != "x":
                 if path == backlog:
-                    raise ValueError("task still has a live backlog row")
+                    candidates.setdefault(task_id, []).append((True, None, "", ""))
                 continue
             end = index + 1
             while end < len(lines) and (not lines[end] or lines[end].startswith("  ")):
@@ -451,7 +493,14 @@ def completed_rows(data, task_id, limit=None):
                 completed = date.fromisoformat(next(iter(dates))).isoformat() if len(dates) == 1 else ""
             except ValueError:
                 completed = ""
-            candidates.append((path == backlog, completed, match[4], "\n".join(lines[index:end])))
+            candidates.setdefault(task_id, []).append((path == backlog, completed, match[4], "\n".join(lines[index:end])))
+    return candidates
+
+
+def completed_rows(data, task_id, limit=None):
+    candidates = completed_row_index(data, limit).get(task_id, [])
+    if any(row[1] is None for row in candidates):
+        raise ValueError("task still has a live backlog row")
     return candidates
 
 
@@ -728,9 +777,28 @@ def protected(path, targets):
     return path in targets or any(parent in targets for parent in path.parents)
 
 
-def retention_paths(root, files, all_directories, repos, text, limit=None):
+def retention_paths(root, files, all_directories, repos, text, limit=None, *, ordinary=True):
     check_limit(limit)
     targets, directories = set(), set()
+    # Pointers are durable evidence even if a later report stops linking the
+    # original. The offload journal preserves their virtual paths through the
+    # ordinary scratch hold/restore cycle as well.
+    if ordinary:
+        journal = root / OFFLOAD_RECORD
+        if journal.exists() or journal.is_symlink():
+            if journal.is_symlink() or not journal.is_file() or journal.stat().st_size > LIMIT:
+                raise RetainWhole("unsafe offload journal; retain pointer evidence")
+            try:
+                record = json.loads(journal.read_text())
+                if record.get("version") != 1 or not isinstance(record.get("entries"), dict):
+                    raise ValueError("invalid offload journal")
+                for relative in record["entries"]:
+                    rel = Path(relative)
+                    if rel.is_absolute() or ".." in rel.parts or not rel.parts:
+                        raise ValueError("unsafe pointer path")
+                    targets.add(root / rel)
+            except (ValueError, AttributeError) as error:
+                raise RetainWhole("unread offload journal; retain pointer evidence") from error
     batches = (text,) if isinstance(text, str) else text
     entries = {root / rel: (root / rel).lstat() for rel in files + all_directories}
     children = {}
@@ -775,7 +843,7 @@ def retention_paths(root, files, all_directories, repos, text, limit=None):
         return None, path, path
 
     for rel in files:
-        if rel.parts[0] != HOLD and ordinary_evidence(root / rel, rel, repos):
+        if ordinary and rel.parts[0] != HOLD and ordinary_evidence(root / rel, rel, repos):
             targets.add(root / rel)
     remaining = files + all_directories
     find_names = filename_matcher(rel.name for rel in remaining)
@@ -984,6 +1052,346 @@ def stage_limit():
     value = os.environ.get("FM_TEARDOWN_DATA_STAGE_TIMEOUT", "")
     seconds = int(value) if value.isdigit() and not value.startswith("0") else 10
     return time.monotonic() + seconds, seconds
+
+
+OFFLOAD_RECORD = "record/data-offload.json"
+OFFLOAD_ROOT = "/Volumes/MINI-DATA/firstmate-task-evidence"
+OFFLOAD_POINTER = "firstmate-task-evidence-v1"
+
+
+def offload_closed(data, state, task_id, rows):
+    if not TASK_ID.fullmatch(task_id):
+        raise ValueError("invalid task id")
+    for suffix in ("meta", "backlog-close"):
+        path = state / f"{task_id}.{suffix}"
+        if path.exists() or path.is_symlink():
+            raise ValueError("task is live or its close is unfinished")
+    candidates = rows.get(task_id, [])
+    if any(row[1] is None for row in candidates):
+        raise ValueError("task still has an open or in-progress backlog row")
+    candidates = [row for row in candidates if row[0]] or candidates
+    if not candidates or any(not row[1] for row in candidates):
+        raise ValueError("closed date is missing or ambiguous")
+    closed = max(row[1] for row in candidates)
+    # Dates have no time of day: wait through the whole seventh local day.
+    if date.today() <= date.fromisoformat(closed) + timedelta(days=7):
+        raise ValueError("task has not been closed for seven complete days")
+    return closed, "\n".join(row[3] for row in candidates if row[1] == closed)
+
+
+def offload_bead_text(bead, locations, cache):
+    if bead in cache:
+        return cache[bead]
+    owners = [(prefix, home) for home, prefix in locations if bead.startswith(prefix + "-")]
+    if not owners:
+        # Firstmate task ids are also shaped like beads; their backlog rows
+        # already contribute references, without inventing another database.
+        return ""
+    _, home = max(owners, key=lambda item: len(item[0]))
+    path = Path.home() / home / ".beads/beads.db"
+    try:
+        with sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=5) as db:
+            columns = {row[1] for row in db.execute("PRAGMA table_info(issues)")}
+            fields = [name for name in ("description", "design", "acceptance_criteria", "notes") if name in columns]
+            if "id" not in columns or not fields:
+                raise ValueError("unsupported bead database schema")
+            projections = [f"substr({name}, 1, {KEPT_LIMIT + 1})" for name in fields]
+            result = db.execute("SELECT " + ",".join(projections) + " FROM issues WHERE id = ?", (bead,)).fetchone()
+            texts = [value for value in (result or ()) if isinstance(value, str)]
+            length = sum(len(value.encode()) for value in texts)
+            if length > KEPT_LIMIT:
+                raise ValueError("bead evidence exceeds 16 MiB")
+            comments = {row[1] for row in db.execute("PRAGMA table_info(comments)")}
+            if {"issue_id", "text"} <= comments:
+                for row in db.execute(f"SELECT substr(text, 1, {KEPT_LIMIT + 1}) FROM comments WHERE issue_id = ?", (bead,)):
+                    if isinstance(row[0], str):
+                        length += len(row[0].encode())
+                        if length > KEPT_LIMIT:
+                            raise ValueError("bead evidence exceeds 16 MiB")
+                        texts.append(row[0])
+            text = "\n".join(texts)
+            if len(text.encode()) > KEPT_LIMIT:
+                raise ValueError("bead evidence exceeds 16 MiB")
+    except (sqlite3.Error, OSError, ValueError) as error:
+        raise ValueError(f"unread bead {bead}: {type(error).__name__}") from error
+    if len(text.encode()) + sum(len(value.encode()) for value in cache.values()) <= TOTAL_LIMIT:
+        cache[bead] = text
+    return text
+
+
+def offload_inventory(root):
+    # Repositories are a separate retention decision. Do not inspect their
+    # objects or treat stale remote-tracking refs as proof that work is safe.
+    for directory, names, leaves in os.walk(root, followlinks=False):
+        if ".git" in names or ".git" in leaves or {"objects", "refs"} <= set(names) and "HEAD" in leaves:
+            raise ValueError("task contains repository work; repository verification is out of scope")
+    return inventory(root)
+
+
+def offload_pointer(path):
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > LIMIT:
+        return False
+    try:
+        return json.loads(path.read_text()).get("format") == OFFLOAD_POINTER
+    except (ValueError, UnicodeError, AttributeError):
+        return False
+
+
+def offload_candidates(data, state, task_id, rows, locations, cache):
+    closed, text = offload_closed(data, state, task_id, rows)
+    root = real_directory(data / task_id)
+    files, directories, repos = offload_inventory(root)
+    local, oversized = local_references(root, files, repos)
+    if oversized:
+        raise ValueError("kept evidence exceeds its per-file read limit")
+    text += "\n" + local
+    if len(text.encode()) > TOTAL_LIMIT:
+        raise ValueError("offload reference text exceeds its 16 MiB read limit")
+    # Only locally available report/bead evidence is needed here. Unlike
+    # scratch expiry, offload never consults a forge or reads a live PR.
+    beads = set(bead_ids(text))
+    for bead in sorted(beads):
+        text += "\n" + offload_bead_text(bead, locations, cache)
+        if len(text.encode()) > TOTAL_LIMIT:
+            raise ValueError("offload reference text exceeds its 16 MiB read limit")
+    targets, _ = retention_paths(root, files, directories, repos, text, ordinary=False)
+    totals = {}
+    for leaf in files:
+        path = root / leaf
+        info = path.lstat()
+        blocked = stat.S_ISLNK(info.st_mode) or info.st_nlink != 1
+        for ancestor in (path, *path.parents):
+            if ancestor == root:
+                break
+            summary = totals.setdefault(ancestor, [0, 0, 0, False])
+            summary[0] += 1
+            summary[1] += info.st_size
+            summary[2] += info.st_blocks * 512
+            summary[3] = summary[3] or blocked
+    selected = []
+    for path in sorted(targets, key=lambda item: (len(item.parts), str(item))):
+        rel = path.relative_to(root)
+        if not rel.parts or rel.parts[0] in (HOLD, "record"):
+            continue
+        if any(parent in selected for parent in path.parents):
+            continue
+        if path.is_file() and (ordinary_evidence(path, rel, repos) or offload_pointer(path)):
+            continue
+        # Symlinks and multiply linked files may still be in use through an
+        # alias outside this task. Retain them until that ownership is proven.
+        summary = totals.get(path, [0, 0, 0, False])
+        if path.is_symlink() or summary[3]:
+            continue
+        if summary[0]:
+            selected.append(path)
+    result = []
+    for path in selected:
+        result.append({"task": task_id, "path": str(path.relative_to(root)), "closed": closed,
+                       "size": totals[path][1], "allocated_bytes": totals[path][2],
+                       "reason": "report or bead referenced evidence; task closed over seven days"})
+    return result
+
+
+def offload_context(data, state):
+    data, state = real_directory(data, resolve_parent=True), real_directory(state, resolve_parent=True)
+    locations = read_command(["bash", str(Path(__file__).absolute().with_name("fm-task-data-lib.sh")),
+                              "bead-locations"], str(data.parent))
+    return data, state, completed_row_index(data), [line.split() for line in locations.splitlines()], {}
+
+
+def offload_plan(data, state, task_id=None):
+    data, state, rows, locations, cache = offload_context(data, state)
+    moves, retained = [], []
+    ids = [task_id] if task_id is not None else sorted(path.name for path in data.iterdir() if path.is_dir())
+    for task in ids:
+        try:
+            lock = state / f".meta-{task}.lock"
+            if lock.exists() or lock.is_symlink():
+                raise ValueError("task meta lock is present")
+            moves.extend(offload_candidates(data, state, task, rows, locations, cache))
+        except (OSError, ValueError, sqlite3.Error, subprocess.SubprocessError) as error:
+            retained.append({"task": task, "reason": str(error)})
+    print(json.dumps({"moves": moves, "retained": retained,
+                      "total_bytes": sum(row["size"] for row in moves),
+                      "total_allocated_bytes": sum(row["allocated_bytes"] for row in moves),
+                      "backup_required": True}))
+
+
+def offload_manifest(path):
+    entries, size = [], 0
+    device = path.lstat().st_dev
+    pending = [(path, ".")]
+    while pending:
+        current, relative = pending.pop()
+        info = current.lstat()
+        if info.st_dev != device or stat.S_ISLNK(info.st_mode):
+            raise ValueError("cross-device or symlink evidence")
+        mode = stat.S_IMODE(info.st_mode)
+        if stat.S_ISDIR(info.st_mode):
+            entries.append([relative, "directory", mode])
+            children = list(current.iterdir())
+            names = {child.name for child in children}
+            if ".git" in names or {"objects", "refs", "HEAD"} <= names:
+                raise ValueError("repository work is never offloaded")
+            pending.extend((child, child.name if relative == "." else relative + "/" + child.name)
+                           for child in children)
+        elif stat.S_ISREG(info.st_mode) and info.st_nlink == 1:
+            digest = hashlib.sha256()
+            with current.open("rb") as stream:
+                for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                    digest.update(chunk)
+            after = current.lstat()
+            if (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns) != (
+                    after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns):
+                raise ValueError("evidence changed while checksumming")
+            size += info.st_size
+            entries.append([relative, "file", mode, info.st_size, digest.hexdigest()])
+        else:
+            raise ValueError("special or multiply linked evidence")
+    payload = json.dumps(sorted(entries), ensure_ascii=True, separators=(",", ":")).encode()
+    return {"checksum": hashlib.sha256(payload).hexdigest(), "size": size}
+
+
+def offload_remote(action, destination):
+    # Send only fixed code in the remote shell command; paths travel as JSON
+    # on stdin. The same manifest function runs on both machines.
+    import inspect
+    program = "import os, sys, json, stat, hashlib\nfrom pathlib import Path\n" + inspect.getsource(offload_manifest) + '''
+request = json.load(sys.stdin)
+volume = Path("/Volumes/MINI-DATA")
+if volume.is_symlink() or not volume.is_mount():
+    raise ValueError("MINI-DATA is not mounted")
+destination = Path(request["destination"])
+relative = destination.relative_to(volume / "firstmate-task-evidence")
+if not relative.parts or any(part in (".", "..") for part in relative.parts):
+    raise ValueError("unsafe destination")
+parent = volume
+for part in destination.parent.relative_to(volume).parts:
+    parent = parent / part
+    if parent.is_symlink() or (parent.exists() and not parent.is_dir()):
+        raise ValueError("unsafe destination ancestor")
+    if request["action"] == "prepare":
+        parent.mkdir(exist_ok=True)
+if request["action"] == "prepare":
+    print(json.dumps({"exists": destination.exists() or destination.is_symlink()}))
+elif request["action"] == "verify":
+    print(json.dumps(offload_manifest(destination)))
+else:
+    raise ValueError("unknown operation")
+'''
+    output = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", "mini-ts",
+                             "python3", "-c", shlex.quote(program)], input=json.dumps({"action": action, "destination": destination}),
+                            capture_output=True, text=True, timeout=86400, check=True)
+    return json.loads(output.stdout)
+
+
+def offload_config(data):
+    path = data.parent / "config/task-data-offload.json"
+    if (path.parent.resolve() != path.parent or path.is_symlink() or not path.is_file() or path.stat().st_size > LIMIT
+            or path.stat().st_mode & 0o022 or path.stat().st_uid != os.getuid() or path.stat().st_nlink != 1):
+        raise ValueError("offload disabled: private config/task-data-offload.json with a backup verifier is required")
+    config = json.loads(path.read_text())
+    command = config.get("backup_verifier") if isinstance(config, dict) else None
+    if (not isinstance(command, list) or not command or any(not isinstance(arg, str) or not arg for arg in command)
+            or not Path(command[0]).is_absolute() or not os.access(command[0], os.X_OK)):
+        raise ValueError("offload disabled: backup_verifier must name a trusted absolute executable")
+    return command
+
+
+def offload_backup(command, pointer):
+    result = subprocess.run(command, input=json.dumps(pointer), capture_output=True, text=True,
+                            timeout=86400, check=True)
+    backup = json.loads(result.stdout)
+    if (not isinstance(backup, dict) or backup.get("independent") is not True
+            or not isinstance(backup.get("location"), str) or not backup["location"].strip()
+            or backup["location"] == pointer["location"]
+            or backup.get("checksum") != pointer["checksum"] or backup.get("size") != pointer["size"]):
+        raise ValueError("backup verifier did not prove an independent matching copy")
+    return backup["location"]
+
+
+def offload_write(path, value):
+    if path.parent.is_symlink() or (path.exists() and (path.is_symlink() or not path.is_file() or path.stat().st_nlink != 1)):
+        raise ValueError("unsafe offload record")
+    descriptor, name = tempfile.mkstemp(prefix=".data-offload-", dir=path.parent)
+    with os.fdopen(descriptor, "w") as stream:
+        json.dump(value, stream, sort_keys=True)
+        stream.write("\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+    Path(name).replace(path)
+
+
+def offload(data, state, task_id):
+    data, state = real_directory(data, resolve_parent=True), real_directory(state, resolve_parent=True)
+    command = offload_config(data)  # Refuse before even contacting the remote.
+    data, state, rows, locations, cache = offload_context(data, state)
+    offload_closed(data, state, task_id, rows)
+    root = real_directory(data / task_id)
+    safe_directory(root, Path("record"))
+    record_path = root / OFFLOAD_RECORD
+    if record_path.exists() or record_path.is_symlink():
+        if record_path.is_symlink() or record_path.stat().st_size > LIMIT or record_path.stat().st_nlink != 1:
+            raise ValueError("unsafe offload record")
+        record = json.loads(record_path.read_text())
+        if not isinstance(record, dict) or record.get("task") != task_id or record.get("version") != 1 or not isinstance(record.get("entries"), dict):
+            raise ValueError("invalid offload record")
+    else:
+        record = {"version": 1, "task": task_id, "entries": {}}
+    candidates = {item["path"]: item for item in offload_candidates(data, state, task_id, rows, locations, cache)}
+    # A crash after Trash but before pointer publication leaves this journal.
+    # Complete the pointer only after both copies are freshly verified again.
+    for relative, pointer in record["entries"].items():
+        rel = Path(relative)
+        if rel.is_absolute() or ".." in rel.parts or not rel.parts or rel.parts[0] in ("record", HOLD):
+            raise ValueError("unsafe offload journal path")
+        path = root / rel
+        if not path.exists() and not path.is_symlink():
+            candidates[relative] = {"recovery": pointer}
+    moved = []
+    for relative, candidate in candidates.items():
+        source = root / relative
+        if source.parent.resolve() != source.parent:
+            raise ValueError("unsafe evidence parent")
+        recovery = candidate.get("recovery")
+        if recovery:
+            pointer = recovery
+            destination = pointer["location"].removeprefix("mini-ts:")
+            if (pointer.get("format") != OFFLOAD_POINTER or not pointer["location"].startswith("mini-ts:" + OFFLOAD_ROOT + "/")
+                    or pointer.get("original") != str(source)):
+                raise ValueError("invalid offload recovery pointer")
+        else:
+            manifest = offload_manifest(source)
+            home = hashlib.sha256(str(data).encode()).hexdigest()[:16]
+            identity = hashlib.sha256(relative.encode()).hexdigest()[:16]
+            destination = f"{OFFLOAD_ROOT}/{home}/{task_id}/{identity}/{manifest['checksum']}/payload"
+            pointer = {"format": OFFLOAD_POINTER, "original": str(source), "location": "mini-ts:" + destination,
+                       **manifest, "checksum_algorithm": "sha256-canonical-tree-v1", "closed": candidate["closed"]}
+            exists = offload_remote("prepare", destination)
+            if exists.get("exists") is not True:
+                subprocess.run(["rsync", "-a", "--", str(source), "mini-ts:" + destination],
+                               capture_output=True, text=True, timeout=86400, check=True)
+        expected = {"checksum": pointer["checksum"], "size": pointer["size"]}
+        if offload_remote("verify", destination) != expected:
+            raise ValueError("remote copy checksum or size mismatch; original retained")
+        pointer["backup"] = offload_backup(command, pointer)
+        offload_closed(data, state, task_id, completed_row_index(data))
+        if not recovery:
+            if offload_manifest(source) != expected:
+                raise ValueError("local evidence changed after copy; original retained")
+            record["entries"][relative] = pointer
+            offload_write(record_path, record)
+            guard_command(["trash", "-s", str(source)])
+            if source.exists() or source.is_symlink():
+                raise ValueError("Trash did not move the original; pointer not published")
+        # Never replace newly created work, including a concurrent broken link.
+        with source.open("x") as stream:
+            json.dump(pointer, stream, sort_keys=True)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        moved.append({"task": task_id, "path": relative, **expected, "location": pointer["location"]})
+    print(json.dumps({"offloaded": moved, "total_bytes": sum(item["size"] for item in moved)}))
 
 
 def cleanup(action, data, state, task_id, project="", pr=""):
@@ -1266,10 +1674,15 @@ if __name__ == "__main__":
         print(__doc__)
         sys.exit(0)
     try:
-        arities = {"prepare": {5, 6}, "retire": {5, 6}, "stage": {7}, "expire": {5}, "plan": {5}, "pending": {3}, "mark": {5}}
+        arities = {"prepare": {5, 6}, "retire": {5, 6}, "stage": {7}, "expire": {5}, "plan": {5}, "pending": {3}, "mark": {5},
+                   "offload-plan": {4, 5}, "offload": {5}}
         if len(sys.argv) < 2 or len(sys.argv) not in arities.get(sys.argv[1], ()):
             raise ValueError(__doc__)
-        if sys.argv[1] == "pending":
+        if sys.argv[1] == "offload-plan":
+            offload_plan(*sys.argv[2:])
+        elif sys.argv[1] == "offload":
+            offload(*sys.argv[2:])
+        elif sys.argv[1] == "pending":
             pending(sys.argv[2])
         elif sys.argv[1] == "mark":
             mark(*sys.argv[2:])
