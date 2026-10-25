@@ -57,6 +57,25 @@ else
   fm_epoch_seconds_to() { printf -v "$1" '%s' "$(date +%s)"; }
 fi
 
+# Fork-free stand-in for `$(cat <file> 2>/dev/null || true)` on per-poll reads
+# of small state files: <out-var> gets the file's bytes with trailing newlines
+# removed, or nothing when it cannot be read. A file holding a NUL byte, which
+# read cannot carry, is read by cat as before. Fails when the file cannot be
+# read.
+fm_read_text_to() {  # <out-var> <file>
+  local _frt_text=''
+  if [ ! -r "$2" ] || [ -d "$2" ]; then
+    printf -v "$1" '%s' ''
+    return 1
+  fi
+  if IFS= read -r -d '' _frt_text < "$2" 2>/dev/null; then
+    _frt_text=$(cat "$2" 2>/dev/null || true)
+  else
+    _frt_text=${_frt_text%"${_frt_text##*[!$'\n']}"}
+  fi
+  printf -v "$1" '%s' "$_frt_text"
+}
+
 fm_pid_alive() {
   local pid=$1
   case "$pid" in
@@ -2596,6 +2615,108 @@ fm_wake_signal_sig() {  # <file> -> reported-state signature
       if [ "$_FM_UNAME" = Darwin ]; then /usr/bin/stat -f '%z:%Fm' "$1" 2>/dev/null; else stat -c '%s:%Y' "$1" 2>/dev/null; fi
       ;;
   esac
+}
+
+# One stat(1) for every path a watcher poll reads metadata from, in place of
+# up to four per path. fm_stat_snapshot <path>... fills, in argument order:
+# FM_STAT_SNAPSHOT_PATHS; FM_STAT_SNAPSHOT_OK, 1 when stat read the path, 0
+# when it could not, and empty for a path holding a tab or newline, which is
+# left out so its reader stats it alone; the path state, size, and identity
+# status_observed_signature reads (FM_STAT_SNAPSHOT_STATE, _SIZE, _IDENT, the
+# last empty when _fm_open_decisions_file_ident would fail); the turn-ended
+# signature fm_wake_signal_sig prints (_TESIG); and the whole-second mtime
+# (_MTIME). Every field uses the same lstat formats, stat binary, and locale
+# as the single-path helpers, so each value is the one they print.
+FM_STAT_SNAPSHOT_PATHS=()
+FM_STAT_SNAPSHOT_OK=()
+FM_STAT_SNAPSHOT_STATE=()
+FM_STAT_SNAPSHOT_SIZE=()
+FM_STAT_SNAPSHOT_IDENT=()
+FM_STAT_SNAPSHOT_TESIG=()
+FM_STAT_SNAPSHOT_MTIME=()
+# shellcheck disable=SC2034 # Output arrays, read by the callers that source this library.
+fm_stat_snapshot() {  # <path>...
+  local fm_out='' fm_line fm_name fm_i=0 fm_n=$# fm_state fm_size fm_ident fm_birth fm_epoch fm_tesig fm_mtime
+  local -a fm_args=()
+  FM_STAT_SNAPSHOT_PATHS=("$@")
+  FM_STAT_SNAPSHOT_OK=()
+  FM_STAT_SNAPSHOT_STATE=()
+  FM_STAT_SNAPSHOT_SIZE=()
+  FM_STAT_SNAPSHOT_IDENT=()
+  FM_STAT_SNAPSHOT_TESIG=()
+  FM_STAT_SNAPSHOT_MTIME=()
+  while [ "$fm_i" -lt "$fm_n" ]; do
+    case "${FM_STAT_SNAPSHOT_PATHS[$fm_i]}" in
+      *$'\t'*|*$'\n'*) FM_STAT_SNAPSHOT_OK[fm_i]= ;;
+      *)
+        FM_STAT_SNAPSHOT_OK[fm_i]=0
+        fm_args[${#fm_args[@]}]=${FM_STAT_SNAPSHOT_PATHS[$fm_i]}
+        ;;
+    esac
+    FM_STAT_SNAPSHOT_STATE[fm_i]=
+    FM_STAT_SNAPSHOT_SIZE[fm_i]=
+    FM_STAT_SNAPSHOT_IDENT[fm_i]=
+    FM_STAT_SNAPSHOT_TESIG[fm_i]=
+    FM_STAT_SNAPSHOT_MTIME[fm_i]=
+    fm_i=$((fm_i + 1))
+  done
+  [ "${#fm_args[@]}" -gt 0 ] || return 0
+  # exec: the substitution's own process runs stat, so the read is one process.
+  if [ "$_FM_UNAME" = Darwin ]; then
+    fm_out=$(LC_ALL=C; export LC_ALL
+      exec /usr/bin/stat -f '%HT:%p%t%z%t%d:%i %B %FB%t%z:%Fm%t%m%t%N' -- "${fm_args[@]}" 2>/dev/null)
+  else
+    fm_out=$(LC_ALL=C; export LC_ALL
+      exec stat --printf='%F:%f\t%s\t%d:%i\t%W\t%w\t%s:%Y\t%Y\t%n\n' -- "${fm_args[@]}" 2>/dev/null)
+  fi
+  # stat prints one line per path it read, in argument order, ending in the
+  # path itself; match each line back to the next index naming that path.
+  fm_i=0
+  while IFS= read -r fm_line; do
+    [ -n "$fm_line" ] || continue
+    fm_name=${fm_line##*$'\t'}
+    while [ "$fm_i" -lt "$fm_n" ] && { [ "${FM_STAT_SNAPSHOT_OK[$fm_i]}" != 0 ] \
+      || [ "${FM_STAT_SNAPSHOT_PATHS[$fm_i]}" != "$fm_name" ]; }; do
+      fm_i=$((fm_i + 1))
+    done
+    [ "$fm_i" -lt "$fm_n" ] || break
+    fm_line=${fm_line%$'\t'*}
+    fm_state=${fm_line%%$'\t'*}; fm_line=${fm_line#*$'\t'}
+    fm_size=${fm_line%%$'\t'*}; fm_line=${fm_line#*$'\t'}
+    if [ "$_FM_UNAME" = Darwin ]; then
+      # "%d:%i %B %FB", read as _fm_open_decisions_file_ident reads it.
+      fm_birth=${fm_line%%$'\t'*}; fm_line=${fm_line#*$'\t'}
+      fm_ident=${fm_birth%% *}; fm_birth=${fm_birth#* }
+      fm_epoch=${fm_birth%% *}; fm_birth=${fm_birth#* }
+      [ "$fm_epoch" != 0 ] || fm_birth=''
+    else
+      fm_ident=${fm_line%%$'\t'*}; fm_line=${fm_line#*$'\t'}
+      fm_epoch=${fm_line%%$'\t'*}; fm_line=${fm_line#*$'\t'}
+      fm_birth=${fm_line%%$'\t'*}; fm_line=${fm_line#*$'\t'}
+      [ "$fm_epoch" != 0 ] || fm_birth=''
+    fi
+    fm_tesig=${fm_line%%$'\t'*}
+    fm_mtime=${fm_line#*$'\t'}
+    case "$fm_ident$fm_birth" in
+      *$'\t'*|*$'\n'*|'') fm_ident= ;;
+      *) if [ -n "$fm_birth" ]; then fm_ident="strong:$fm_ident:$fm_birth"; else fm_ident="weak:$fm_ident"; fi ;;
+    esac
+    FM_STAT_SNAPSHOT_OK[fm_i]=1
+    FM_STAT_SNAPSHOT_STATE[fm_i]=$fm_state
+    FM_STAT_SNAPSHOT_SIZE[fm_i]=$fm_size
+    FM_STAT_SNAPSHOT_IDENT[fm_i]=$fm_ident
+    FM_STAT_SNAPSHOT_TESIG[fm_i]=$fm_tesig
+    FM_STAT_SNAPSHOT_MTIME[fm_i]=$fm_mtime
+    fm_i=$((fm_i + 1))
+  done <<EOF
+$fm_out
+EOF
+}
+
+fm_wake_signal_seen_path_to() {  # <out-var> <state> <file>
+  local _fsp_task
+  fm_basename_to _fsp_task "$3"
+  printf -v "$1" '%s/.seen-%s' "$2" "${_fsp_task//./_}"
 }
 
 fm_wake_signal_seen_path() {  # <state> <file>
