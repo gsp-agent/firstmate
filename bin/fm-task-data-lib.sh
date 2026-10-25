@@ -9,6 +9,10 @@
 # and FM_TASK_DATA_SWEEP=off suppresses that start.
 # Usage: bash fm-task-data-lib.sh expire DATA STATE ID
 #        bash fm-task-data-lib.sh sweep DATA STATE [REQUESTING_ID]
+#        bash fm-task-data-lib.sh offload-plan DATA STATE [ID]
+#        bash fm-task-data-lib.sh offload DATA STATE ID
+# Offload is explicit only; it never runs from automatic teardown/sweep.
+# fm-task-data.py --help owns its backup-verifier and pointer contract.
 # A named sweep request atomically replaces STATE/.task-data-sweep.rerun with that completion's id.
 # An active sweep takes another pass when that slot changes.
 # An explicit sweep omits REQUESTING_ID and never replaces an existing slot.
@@ -213,13 +217,8 @@ fm_task_data_sweep_start() { # <data> <state>
 
 # The bead-prefix map: each home, under HOME, whose .beads/beads.db owns
 # the prefix after it. The longest matching prefix wins.
-fm_task_data_bead_database() { # <bead>
-  local bead=$1 prefix home best='' owner=''
-  while read -r home prefix; do
-    case "$bead" in
-      "$prefix"-*) [ "${#prefix}" -le "${#best}" ] || { best=$prefix; owner=$home; } ;;
-    esac
-  done <<'MAP'
+fm_task_data_bead_locations() {
+  cat <<'MAP'
 .agent-config-beads .agent-config
 dev/be-still bd
 dev/carman-compound carmanco
@@ -233,6 +232,15 @@ dev/gsp-beads gsp
 dev/heru-vr-vision-sim heru
 dev/agent-observer obs
 MAP
+}
+
+fm_task_data_bead_database() { # <bead>
+  local bead=$1 prefix home best='' owner=''
+  while read -r home prefix; do
+    case "$bead" in
+      "$prefix"-*) [ "${#prefix}" -le "${#best}" ] || { best=$prefix; owner=$home; } ;;
+    esac
+  done < <(fm_task_data_bead_locations)
   [ -n "$owner" ] && printf '%s\n' "$HOME/$owner/.beads/beads.db"
 }
 
@@ -375,6 +383,26 @@ fm_task_data_pr_references() {
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   set -o pipefail
   case "${1:-}" in
+    bead-locations)
+      fm_task_data_bead_locations
+      ;;
+    offload-plan)
+      [ "$#" -eq 3 ] || [ "$#" -eq 4 ] || exit 1
+      exec python3 "$(dirname "${BASH_SOURCE[0]}")/fm-task-data.py" "$@"
+      ;;
+    offload)
+      [ "$#" -eq 4 ] || exit 1
+      export FM_STATE_OVERRIDE=$3
+      # shellcheck source=/dev/null
+      . "$(dirname "${BASH_SOURCE[0]}")/fm-wake-lib.sh" || exit 1
+      # shellcheck source=/dev/null
+      . "$(dirname "${BASH_SOURCE[0]}")/fm-pr-lib.sh" || exit 1
+      fm_task_id_path_safe "$4" || exit 1
+      offload_lock=$(fm_meta_lock_path "$3/$4.meta") || exit 1
+      fm_lock_try_acquire "$offload_lock" || { echo "error: task is locked; nothing was offloaded" >&2; exit 1; }
+      trap 'fm_lock_release "$offload_lock"' EXIT
+      python3 "$(dirname "${BASH_SOURCE[0]}")/fm-task-data.py" "$@"
+      ;;
     backlog-location)
       [ "$#" -eq 2 ] || exit 1
       # shellcheck source=bin/fm-tasks-axi-lib.sh

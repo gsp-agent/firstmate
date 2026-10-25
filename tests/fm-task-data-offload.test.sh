@@ -1,0 +1,406 @@
+#!/usr/bin/env bash
+# Task-evidence offload tests; transports stay local, including macOS openrsync checks.
+set -euo pipefail
+# shellcheck source=tests/lib.sh
+. "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+TMP_ROOT=$(fm_test_tmproot fm-offload-tests)
+test_pid=''
+cleanup() {
+  if [ -n "$test_pid" ]; then
+    kill -TERM "$test_pid" 2>/dev/null || true
+    wait "$test_pid" 2>/dev/null || true
+  fi
+  fm_test_cleanup
+}
+trap cleanup EXIT
+trap 'exit 143' TERM
+trap 'exit 130' INT
+python3 - "$ROOT" "$TMP_ROOT" <<'PY' &
+import atexit
+from datetime import date, timedelta
+import hashlib
+import json
+import os
+from pathlib import Path
+import signal
+import sqlite3
+import subprocess
+import sys
+
+code, base = map(Path, sys.argv[1:])
+active = None
+
+def stop():
+    global active
+    if active is not None:
+        try:
+            os.killpg(active.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        active.wait()
+        active = None
+
+atexit.register(stop)
+signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
+signal.signal(signal.SIGINT, lambda *_: sys.exit(130))
+
+fake = base / "fakebin"
+fake.mkdir()
+shim = '''#!/usr/bin/env python3
+import json, os, pathlib, runpy, shutil, sys
+p = pathlib.Path
+home = p(os.environ["FM_HOME"])
+tool = p(sys.argv[0]).name
+with (home / "calls").open("a") as log:
+    log.write(tool + "\\n")
+mode = os.environ.get("OFFLOAD_FAULT", "")
+def remote(name):
+    return home / "remote" / name.removeprefix("mini-ts:").lstrip("/")
+if tool == "ssh":
+    request = json.load(sys.stdin)
+    path = remote(request["destination"])
+    if mode == "remote-failed":
+        sys.exit(9)
+    if request["action"] == "prepare":
+        path.parent.mkdir(parents=True, exist_ok=True)
+        helper = runpy.run_path(os.environ["OFFLOAD_HELPER"])
+        print(json.dumps(helper["offload_prepare"](path, request["expected"])))
+    else:
+        result = runpy.run_path(os.environ["OFFLOAD_HELPER"])["offload_manifest"](path)
+        if mode == "remote-mismatch":
+            result["checksum"] = "0" * 64
+        print(json.dumps(result))
+elif tool == "rsync":
+    if mode == "copy-failed":
+        sys.exit(8)
+    source, target = p(sys.argv[-2]), remote(sys.argv[-1])
+    if os.environ.get("OFFLOAD_REAL_RSYNC") == "1":
+        # openrsync starts its local receiver via PATH; keep that receiver real too.
+        os.environ["PATH"] = "/usr/bin:/bin:/usr/sbin:/sbin"
+        os.execv("/usr/bin/rsync", ["/usr/bin/rsync", *sys.argv[1:-1], str(target)])
+    if mode in ("copy-partial", "copy-wrong"):
+        if source.is_dir():
+            target.mkdir(exist_ok=True)
+            if mode == "copy-wrong":
+                shutil.copytree(source, target / source.name)
+            else:
+                (target / "evidence.bin").write_bytes(b"partial")
+        else:
+            target.write_bytes(b"x" * (source.stat().st_size if mode == "copy-wrong" else 3))
+            shutil.copystat(source, target)
+        sys.exit(8)
+    if source.is_dir():
+        # Apple's openrsync nests the named directory without a trailing slash.
+        target.mkdir(exist_ok=True)
+        destination = target if sys.argv[-2].endswith("/") else target / source.name
+        shutil.copytree(source, destination, copy_function=shutil.copy2, dirs_exist_ok=True)
+    else:
+        shutil.copy2(source, target)
+    if mode == "source-changed":
+        leaf = next(source.rglob("*.bin")) if source.is_dir() else source
+        leaf.write_bytes(b"changed after copy")
+elif tool == "backup":
+    request = json.load(sys.stdin)
+    if mode == "backup-failed" or (mode == "second-backup-failed" and p(request["original"]).name == "z.bin"):
+        sys.exit(7)
+    source = remote(request["location"])
+    target = home / "independent-backup" / request["checksum"]
+    if not target.exists():
+        target.parent.mkdir(exist_ok=True)
+        if source.is_dir():
+            shutil.copytree(source, target, copy_function=shutil.copy2)
+        else:
+            shutil.copy2(source, target)
+    result = runpy.run_path(os.environ["OFFLOAD_HELPER"])["offload_manifest"](target)
+    result.update(independent=True, location="backup-host:" + str(target))
+    if mode == "backup-mismatch":
+        result["checksum"] = "f" * 64
+    print(json.dumps(result))
+elif tool == "trash":
+    source = p(sys.argv[-1])
+    trash = home / "Trash"
+    trash.mkdir(exist_ok=True)
+    source.rename(trash / source.name)
+    if mode == "trash-interrupted":
+        sys.exit(6)
+elif tool == "dcg":
+    json.load(sys.stdin)
+    if mode == "dcg-deny":
+        print(json.dumps({"hookSpecificOutput":{"permissionDecision":"deny"}}))
+else:
+    sys.exit(88)
+'''
+for name in ("ssh", "rsync", "backup", "trash", "dcg"):
+    path = fake / name
+    path.write_text(shim)
+    path.chmod(0o755)
+
+def fixture(name, *, status="closed", days=10, configured=True):
+    home = base / name
+    for directory in ("data/task-one/build", "state", "config", "user"):
+        (home / directory).mkdir(parents=True)
+    (home / ".tasks.toml").write_text('backend="markdown"\n[markdown]\npath="data/backlog.md"\narchive="data/done-archive.md"\n')
+    closed = (date.today() - timedelta(days=days)).isoformat()
+    row = f"- [{'x' if status == 'closed' else ' '}] task-one - fixture (repo: example) (closed {closed})\n"
+    (home / "data/backlog.md").write_text(row)
+    if status == "in-progress":
+        (home / "state/task-one.meta").write_text("kind=ship\n")
+    task = home / "data/task-one"
+    (task / "report.md").write_text("Evidence: [build](build/).\n")
+    (task / "build/evidence.bin").write_bytes(b"original-evidence" * 256)
+    (task / "build/empty").mkdir()
+    if configured:
+        (home / "config/task-data-offload.json").write_text(json.dumps({"backup_verifier": [str(fake / "backup")]}))
+    return home
+
+def run(home, action, *, fault="", ok=True, real_rsync=False, raw=False):
+    global active
+    env = dict(os.environ, HOME=str(home / "user"), FM_HOME=str(home), PATH=str(fake) + os.pathsep + os.environ["PATH"],
+               OFFLOAD_HELPER=str(code / "bin/fm-task-data.py"), OFFLOAD_FAULT=fault, FM_TASK_DATA_SWEEP="off",
+               OFFLOAD_REAL_RSYNC="1" if real_rsync else "0")
+    for name in ("TASKS_AXI_BACKEND", "TASKS_AXI_FILE", "TASKS_AXI_ROOT", "BEADS_DIR", "BEADS_DB", "BR_DB"):
+        env.pop(name, None)
+    command = ["bash", str(code / "bin/fm-task-data-lib.sh"), action, str(home / "data"), str(home / "state"), "task-one"]
+    active = subprocess.Popen(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try:
+        stdout, stderr = active.communicate(timeout=120)
+        rc = active.returncode
+    finally:
+        stop()
+    assert (rc == 0) == ok, (command, rc, stdout, stderr)
+    if raw:
+        return stdout, stderr
+    return (stdout if action == "expire" else json.loads(stdout)) if rc == 0 else stderr
+
+def tree(home):
+    return sorted((str(path.relative_to(home)), "directory" if path.is_dir() else "file",
+                   None if path.is_dir() else path.stat().st_size,
+                   None if path.is_dir() else path.stat().st_mtime_ns)
+                  for directory in (home / "data", home / "state") for path in directory.rglob("*"))
+
+def copy_fixture(name, kind):
+    home = fixture(name)
+    source = home / "data/task-one" / ("build" if kind == "directory" else "solo.bin")
+    if kind == "file":
+        source.write_bytes(b"single-file-evidence" * 256)
+        (source.parent / "report.md").write_text("Evidence: [file](solo.bin).\n")
+    return home, source
+
+def check_placement(kind, real_rsync=False):
+    home, source = copy_fixture(("real-" if real_rsync else "fake-") + kind, kind)
+    result = run(home, "offload", real_rsync=real_rsync)
+    pointer = json.loads(source.read_text())
+    payload = home / "remote" / pointer["location"].removeprefix("mini-ts:").lstrip("/")
+    assert len(result["offloaded"]) == 1
+    if kind == "directory":
+        assert (payload / "evidence.bin").read_bytes() == b"original-evidence" * 256
+        assert (payload / "empty").is_dir() and not (payload / "build").exists()
+    else:
+        assert payload.is_file() and payload.read_bytes() == b"single-file-evidence" * 256
+
+def check_retry(kind, fault):
+    home, source = copy_fixture(kind + "-" + fault, kind)
+    original = tree(home)
+    run(home, "offload", fault=fault, ok=False)
+    assert tree(home) == original and not (home / "Trash").exists()
+    payload = next((home / "remote").rglob("payload"))
+    wrong_file = payload / ("build/evidence.bin" if fault == "copy-wrong" else "evidence.bin") if kind == "directory" else payload
+    wrong_bytes = wrong_file.read_bytes()
+    result = run(home, "offload")
+    assert len(result["offloaded"]) == 1
+    preserved = list(payload.parent.glob("incomplete-*/payload"))
+    assert len(preserved) == 1, "a mismatched payload must be preserved before retrying"
+    saved_file = preserved[0] / wrong_file.relative_to(payload) if kind == "directory" else preserved[0]
+    assert saved_file.read_bytes() == wrong_bytes
+    calls = (home / "calls").read_text()
+    assert run(home, "offload")["offloaded"] == []
+    assert (home / "calls").read_text() == calls
+
+def check_verified_reuse():
+    home, _ = copy_fixture("verified-reuse", "file")
+    run(home, "offload", fault="backup-failed", ok=False)
+    copies = (home / "calls").read_text().splitlines().count("rsync")
+    assert len(run(home, "offload")["offloaded"]) == 1
+    assert (home / "calls").read_text().splitlines().count("rsync") == copies
+
+def check_partial_report():
+    home = fixture("partial-report")
+    task = home / "data/task-one"
+    (task / "a.bin").write_bytes(b"first-evidence")
+    (task / "z.bin").write_bytes(b"second-evidence")
+    (task / "report.md").write_text("Evidence: [first](a.bin) and [second](z.bin).\n")
+    stdout, _ = run(home, "offload", fault="second-backup-failed", ok=False, raw=True)
+    result = json.loads(stdout)
+    assert [item["path"] for item in result["offloaded"]] == ["a.bin"]
+    assert result["total_bytes"] == len(b"first-evidence")
+    assert result["failed"]["task"] == "task-one" and result["failed"]["path"] == "z.bin" and result["failed"]["reason"]
+    assert json.loads((task / "a.bin").read_text())["format"] == "firstmate-task-evidence-v1"
+    assert (task / "z.bin").read_bytes() == b"second-evidence"
+    assert [item["path"] for item in run(home, "offload")["offloaded"]] == ["z.bin"]
+
+# Collect the independent review regressions so a broken directory copy cannot
+# hide the single-file, retry, or partial-report result on the reviewed head.
+regressions = [("fake directory placement", lambda: check_placement("directory")),
+               ("fake single-file placement", lambda: check_placement("file"))]
+for kind in ("directory", "file"):
+    for fault in ("copy-partial", "copy-wrong"):
+        regressions.append((kind + " retries " + fault, lambda kind=kind, fault=fault: check_retry(kind, fault)))
+regressions.extend([("verified existing payload is reused", check_verified_reuse),
+                    ("partial round reports completed moves", check_partial_report)])
+if sys.platform == "darwin":
+    regressions.extend([("real /usr/bin/rsync directory placement", lambda: check_placement("directory", True)),
+                        ("real /usr/bin/rsync single-file placement", lambda: check_placement("file", True))])
+failures = []
+for name, check in regressions:
+    try:
+        check()
+        print("PASS: " + name, flush=True)
+    except (AssertionError, ValueError, OSError, StopIteration) as error:
+        failures.append(name)
+        print("FAIL: " + name + ": " + str(error), flush=True)
+assert not failures, failures
+
+home = fixture("closed")
+before = tree(home)
+plan = run(home, "offload-plan")
+assert len(plan["moves"]) == 1 and plan["moves"][0]["path"] == "build", plan
+assert plan["total_bytes"] == len(b"original-evidence" * 256)
+assert tree(home) == before and not (home / "calls").exists(), "plan wrote or used a remote tool"
+result = run(home, "offload")
+pointer = json.loads((home / "data/task-one/build").read_text())
+assert pointer["format"] == "firstmate-task-evidence-v1" and pointer["location"].startswith("mini-ts:/Volumes/MINI-DATA/")
+assert pointer["size"] == plan["total_bytes"] and len(pointer["checksum"]) == 64
+assert (home / "Trash/build/evidence.bin").read_bytes() == b"original-evidence" * 256
+assert (home / "data/task-one/report.md").is_file()
+assert len(result["offloaded"]) == 1
+calls = (home / "calls").read_text()
+assert run(home, "offload")["offloaded"] == []
+assert (home / "calls").read_text() == calls, "no-op rerun contacted remote or Trash"
+print("PASS: closed-over-seven-days offloads, checksums both copies, keeps Trash and leaves an exact-path pointer; rerun is a no-op", flush=True)
+
+(home / "data/task-one/report.md").write_text("The report no longer names its old evidence path.\n")
+(home / "data/task-one/record/data-cleanup.json").write_text(json.dumps({
+    "version": 1, "task": "task-one", "complete": False, "sources": [{
+        "project": str(home), "pr": "", "beads": [], "backlog": {"data": str(home / "data"), "task": None}}]}))
+run(home, "expire")
+assert json.loads((home / "data/task-one/build").read_text()) == pointer
+assert json.loads((home / "data/task-one/record/data-cleanup.json").read_text())["expired"] is True
+print("PASS: normal scratch expiry preserves the pointer after its report reference is removed", flush=True)
+
+for name, status, days in (("open", "open", 10), ("in-progress", "in-progress", 10), ("recent", "closed", 6), ("boundary", "closed", 7)):
+    home = fixture(name, status=status, days=days)
+    original = tree(home)
+    assert run(home, "offload-plan")["moves"] == []
+    run(home, "offload", ok=False)
+    assert tree(home) == original and not (home / "calls").exists()
+print("PASS: open, in-progress, recent and date-only seven-day boundary tasks stay untouched", flush=True)
+
+home = fixture("reopened", status="open")
+(home / "data/done-archive.md").write_text("- [x] task-one - fixture (repo: example) (closed 2020-01-01)\n")
+assert not run(home, "offload-plan")["moves"]
+run(home, "offload", ok=False)
+print("PASS: current open row wins over an old archived completion without live metadata", flush=True)
+
+home = fixture("unverified")
+(home / "data/task-one/build/.git").mkdir()
+(home / "data/task-one/build/.git/HEAD").write_text("unverified work\n")
+original = tree(home)
+assert not run(home, "offload-plan")["moves"]
+run(home, "offload", ok=False)
+assert tree(home) == original and not (home / "calls").exists()
+print("PASS: repositories with unverified work stay untouched", flush=True)
+
+home = fixture("held-repository")
+(home / "data/task-one/.cleanup-hold/clone/.git").mkdir(parents=True)
+assert not run(home, "offload-plan")["moves"]
+run(home, "offload", ok=False)
+assert (home / "data/task-one/build/evidence.bin").is_file()
+print("PASS: repository work in the scratch recovery hold blocks offload too", flush=True)
+
+home = fixture("no-backup", configured=False)
+original = tree(home)
+assert run(home, "offload-plan")["moves"]
+run(home, "offload", ok=False)
+assert tree(home) == original and not (home / "calls").exists()
+print("PASS: missing independent backup verifier refuses before remote calls or local writes", flush=True)
+
+for fault in ("remote-failed", "copy-failed", "remote-mismatch", "backup-failed", "backup-mismatch", "dcg-deny"):
+    home = fixture(fault)
+    original = (home / "data/task-one/build/evidence.bin").read_bytes()
+    run(home, "offload", fault=fault, ok=False)
+    assert (home / "data/task-one/build/evidence.bin").read_bytes() == original
+    assert not (home / "Trash").exists()
+print("PASS: failed or mismatched remote/backup copies and denied Trash preserve original bytes", flush=True)
+
+home = fixture("changed")
+run(home, "offload", fault="source-changed", ok=False)
+assert (home / "data/task-one/build/evidence.bin").read_bytes() == b"changed after copy"
+assert not (home / "Trash").exists()
+print("PASS: source changes after copying refuse Trash", flush=True)
+
+home = fixture("interrupted")
+run(home, "offload", fault="trash-interrupted", ok=False)
+assert not (home / "data/task-one/build").exists()
+assert (home / "Trash/build/evidence.bin").is_file()
+run(home, "offload")
+assert json.loads((home / "data/task-one/build").read_text())["backup"].startswith("backup-host:")
+assert (home / "calls").read_text().splitlines().count("trash") == 1
+print("PASS: interruption after Trash recovers pointer only after reverifying both copies", flush=True)
+
+home = fixture("incidental-only")
+(home / "data/task-one/report.md").write_text("Completed without linked evidence.\n")
+(home / "data/task-one/brief.md").write_text("Inspect [build](build/) while working.\n")
+(home / "data/task-one/build.log").write_text("Output directory: build/\n")
+with (home / "data/backlog.md").open("a") as stream:
+    stream.write("  A work note mentions [build](build/).\n")
+plan = run(home, "offload-plan")
+assert plan["moves"] == [], "incidental brief, log or backlog path mentions must not authorize offload"
+original = tree(home)
+assert run(home, "offload")["offloaded"] == []
+assert tree(home) == original, "a no-candidate offload must not create task directories"
+assert (home / "data/task-one/build/evidence.bin").read_bytes() == b"original-evidence" * 256
+assert not (home / "calls").exists()
+print("PASS: brief-only, log-only and backlog-prose-only path mentions do not authorize offload", flush=True)
+
+for locator in ("report", "row", "saved"):
+    home = fixture("bead-only-" + locator)
+    (home / "data/task-one/report.md").write_text("Completed.\n")
+    if locator == "report":
+        (home / "data/task-one/report.md").write_text("Bead: .agent-config-fixture\n")
+    elif locator == "row":
+        with (home / "data/backlog.md").open("a") as stream:
+            stream.write("  Bead: .agent-config-fixture\n")
+    else:
+        (home / "data/task-one/record").mkdir()
+        (home / "data/task-one/record/data-cleanup.json").write_text(json.dumps({
+            "version": 1, "task": "task-one", "sources": [{"beads": [".agent-config-fixture"],
+            "backlog": {"text": "Do not migrate [unrelated](unrelated/) from this saved prose."}}]}))
+        (home / "data/task-one/unrelated").mkdir()
+        (home / "data/task-one/unrelated/keep.bin").write_bytes(b"must stay")
+    database = home / "user/.agent-config-beads/.beads/beads.db"
+    database.parent.mkdir(parents=True)
+    with sqlite3.connect(database) as db:
+        db.execute("CREATE TABLE issues(id TEXT, description TEXT)")
+        db.execute("CREATE TABLE comments(issue_id TEXT, text TEXT)")
+        db.execute("INSERT INTO issues VALUES (?, ?)", (".agent-config-fixture", "Report archived."))
+        db.execute("INSERT INTO comments VALUES (?, ?)", (".agent-config-fixture", "Evidence: [build](build/)."))
+    assert [item["path"] for item in run(home, "offload-plan")["moves"]] == ["build"]
+    run(home, "offload")
+    assert (home / "Trash/build/evidence.bin").is_file()
+    if locator == "saved":
+        assert (home / "data/task-one/unrelated/keep.bin").read_bytes() == b"must stay"
+print("PASS: report/row/saved-source bead IDs resolve local bead comments, while saved-source prose is not move authority", flush=True)
+
+for bead in (".agent-config-unread", "unknown-prefix"):
+    home = fixture("unresolved-" + bead)
+    (home / "data/task-one/report.md").write_text(f"Evidence: [build](build/). Bead: {bead}\n")
+    plan = run(home, "offload-plan")
+    assert plan["moves"] == [] and plan["retained"]
+    run(home, "offload", ok=False)
+    assert (home / "data/task-one/build/evidence.bin").is_file()
+    assert not (home / "calls").exists()
+print("PASS: unread or unknown named bead sources retain the original without remote calls", flush=True)
+PY
+test_pid=$!
+wait "$test_pid"
+test_pid=''

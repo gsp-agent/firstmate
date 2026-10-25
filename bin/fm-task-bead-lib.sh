@@ -29,8 +29,9 @@
 # fm_task_merge_handoff_pending <status-file> <task-id>
 #   0 when the task's last status line is the merge handoff that
 #   bin/fm-merge-outcome-lib.sh writes for a live PM, which leaves activation
-#   and live verification pending with the existing owner. Any later status
-#   line from the task supersedes it.
+#   and live verification pending: the note handing them to the existing
+#   owner, or the blocked line telling the PM no live owner is confirmed. Any
+#   later status line from the task supersedes it.
 #
 # Callers source fm-task-data-lib.sh and fm-timeout-lib.sh first. Sourcing this
 # file has no side effects.
@@ -110,6 +111,9 @@ fm_task_merge_handoff_pending() {  # <status-file> <task-id>
   last=$(awk 'NF { line = $0 } END { print line }' "$file" 2>/dev/null) || return 1
   case "$last" in
     "note [key=merged-$id]"*": merged $id "*"; activation and live verification pending with the existing owner"*)
+      return 0
+      ;;
+    "blocked [key=merged-owner-$id]"*": merged $id "*"; activation and live verification have no confirmed live owner"*)
       return 0
       ;;
   esac

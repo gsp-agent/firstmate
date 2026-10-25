@@ -29,6 +29,8 @@ set -u
 . "$ROOT/bin/fm-trace-context-lib.sh"
 # shellcheck source=/dev/null
 . "$ROOT/bin/fm-tasks-axi-lib.sh"
+# shellcheck source=/dev/null
+. "$ROOT/bin/fm-pr-lib.sh"
 
 CONTROL="$ROOT/bin/fm-control.sh"
 SPAWN="$ROOT/bin/fm-spawn.sh"
@@ -510,23 +512,52 @@ test_relaunch_preserves_durable_task_metadata() {
   dir=$(new_case durable-meta rl19)
   add_ship_task "$dir" rl19 claude
   {
-    printf '%s\n' 'pr=https://github.com/example/repo/pull/19'
-    printf '%s\n' 'pr_head=feature/relaunch'
-    printf '%s\n' 'x_request=request-19'
     printf '%s\n' 'decisions_reviewed=1'
+    printf '%s\n' 'pr=https://github.com/example/repo/pull/19'
+    printf '%s\n' 'pr_head=0123456789abcdef0123456789abcdef01234567'
+    printf '%s\n' 'x_request=request-19'
   } >> "$dir/home/state/rl19.meta"
+
+  fm_pr_metadata_identity_parse "$dir/home/state/rl19.meta" \
+    || fail "the registered PR identity must be readable before relaunch"
 
   out=$(run_control "$dir" rl19 relaunch --note "continuing review work"); rc=$?
   expect_code 0 "$rc" "relaunch should preserve durable metadata"$'\n'"$out"
   [ "$(meta_field "$dir" rl19 pr)" = "https://github.com/example/repo/pull/19" ] \
     || fail "the task PR must survive relaunch"
-  [ "$(meta_field "$dir" rl19 pr_head)" = "feature/relaunch" ] \
+  [ "$(meta_field "$dir" rl19 pr_head)" = "0123456789abcdef0123456789abcdef01234567" ] \
     || fail "the task PR head must survive relaunch"
   [ "$(meta_field "$dir" rl19 x_request)" = "request-19" ] \
     || fail "the task X request must survive relaunch"
   [ "$(meta_field "$dir" rl19 decisions_reviewed)" = 1 ] \
     || fail "the task decision state must survive relaunch"
+  fm_pr_metadata_identity_parse "$dir/home/state/rl19.meta" \
+    || fail "the registered PR identity must remain readable after relaunch"
+  [ "$FM_PR_META_URL" = "https://github.com/example/repo/pull/19" ] \
+    || fail "the parsed PR identity must survive relaunch"
   pass "fm-control relaunch: durable task metadata survives replacement launch publication"
+}
+
+test_traced_relaunch_keeps_the_registered_pr_identity_readable() {
+  local dir out rc
+  dir=$(new_case traced-pr rl86)
+  add_ship_task "$dir" rl86 claude
+  {
+    printf '%s\n' 'pr=https://github.com/example/repo/pull/86'
+    printf '%s\n' 'pr_head=0123456789abcdef0123456789abcdef01234567'
+  } >> "$dir/home/state/rl86.meta"
+  printf '%s\n' "$$" > "$dir/home/state/.lock"
+  printf '%s on\n' "$$" > "$dir/home/state/.trace-context-effective"
+
+  out=$(run_control "$dir" rl86 relaunch --note "continuing traced review work"); rc=$?
+  expect_code 0 "$rc" "traced relaunch should succeed"$'\n'"$out"
+  fm_trace_context_valid "$(meta_field "$dir" rl86 traceparent)" \
+    || fail "traced relaunch must record the replacement's trace carrier"
+  fm_pr_metadata_identity_parse "$dir/home/state/rl86.meta" \
+    || fail "the registered PR identity must remain readable after a traced relaunch"
+  [ "$FM_PR_META_URL" = "https://github.com/example/repo/pull/86" ] \
+    || fail "the parsed PR identity must survive a traced relaunch"
+  pass "fm-control relaunch: a traced relaunch keeps the registered PR identity readable"
 }
 
 test_relaunch_serializes_concurrent_durable_metadata_publication() {
@@ -3559,6 +3590,7 @@ test_relaunch_refuses_before_exit_when_the_composer_holds_pending_text
 test_relaunch_refuses_before_exit_when_the_composer_state_is_unproven
 test_relaunch_from_linked_home_preserves_recorded_worktree
 test_relaunch_preserves_durable_task_metadata
+test_traced_relaunch_keeps_the_registered_pr_identity_readable
 test_relaunch_serializes_concurrent_durable_metadata_publication
 test_disabled_relaunch_clears_prior_trace_context
 test_relaunch_appends_the_progress_note_to_the_instructions
