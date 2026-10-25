@@ -1,0 +1,19 @@
+ok - the body names the worker and each no-mistakes agent whose commit the pull request carries
+ok - a rerun leaves a complete body alone
+ok - only the latest ok committing call before each commit names its agent, the worker's own agent adds nothing, and an unattributed commit exits 1 naming it
+ok - a fixing run on the task's branch counts before it records the pull request
+ok - a task record's symlinked project matches the resolved path no-mistakes records
+ok - a fixing run on the pull request's head branch counts when the task record names another branch
+ok - an empty body gets the worker line, and a default model is left out
+ok - a CRLF body that already names every engine is left alone
+ok - an absent or unreadable database exits 1 after naming the worker and each commit it could not attribute
+ok - a URL that is not a GitHub pull request needs nothing
+ok - a failed edit, a missing task record, and a bad URL exit nonzero
+not ok - registration omitted the verified bead or changed the original body (expected 'Description.
+<!-- no-mistakes attestation fixture -->
+Made-with: codex', got 'Description.
+<!-- no-mistakes attestation fixture -->
+Made-with: codex
+
+
+Bead: obs-example')

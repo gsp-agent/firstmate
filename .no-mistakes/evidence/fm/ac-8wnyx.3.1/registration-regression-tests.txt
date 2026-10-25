@@ -1,0 +1,58 @@
+FM_TEST_BEGIN 2026-10-25T06:50:26Z tests/fm-pr-check-security.test.sh family=pr-forge expected_gate_skip=none
+FM_TEST_BEGIN 2026-10-25T06:50:26Z tests/fm-pr-made-with.test.sh family=pr-forge expected_gate_skip=none
+ok - the body names the worker and each no-mistakes agent whose commit the pull request carries
+ok - a rerun leaves a complete body alone
+ok - only the latest ok committing call before each commit names its agent, the worker's own agent adds nothing, and an unattributed commit exits 1 naming it
+ok - a fixing run on the task's branch counts before it records the pull request
+ok - a task record's symlinked project matches the resolved path no-mistakes records
+ok - a fixing run on the pull request's head branch counts when the task record names another branch
+ok - an empty body gets the worker line, and a default model is left out
+ok - a CRLF body that already names every engine is left alone
+ok - an absent or unreadable database exits 1 after naming the worker and each commit it could not attribute
+ok - a URL that is not a GitHub pull request needs nothing
+ok - a failed edit, a missing task record, and a bad URL exit nonzero
+ok - registration and merge-time re-registration carry one verified bead before exposure and preserve body and attestation
+ok - conflicting lines, ambiguous lookup and failed edits refuse before registration or ready callback
+ok - no bead preserves generic registration while an unavailable owner refuses
+FM_TEST_END 2026-10-25T06:51:16Z tests/fm-pr-made-with.test.sh exit=0 duration_ms=49465 gate_skip=false
+ok - raw-byte parser accepts canonical URLs and rejects the complete adversarial matrix
+ok - GitLab merge requests are followed on any instance and never wake falsely
+ok - Forgejo poll reads one pull request by number through tea api and wakes only on merged true
+ok - Forgejo login match parses tea's JSON in every line shape, in the helper and the static poll
+ok - the Gerrit watch wakes only on an explicit merged status and never on submittability
+ok - Gerrit arming records no patch set revision and the merge path refuses to submit
+ok - Gerrit arming accepts a published HEAD only by the change's current patch set tree
+ok - a no-mistakes Gerrit ready report requires the pipeline's fixes recovered into the published copy
+ok - validated merged polls notify once and retire before the next watcher cycle
+ok - a repeat identical merged poll for an already-notified task is absorbed, never queued as a main-blocking row
+ok - a failed upward merge report keeps its poll armed for repair and retry
+not ok - merge-outcome-committed: merge entrypoint failed: error: refusing to merge https://github.com/o/r/pull/1
+  - no approval by carmanchip23-dev at head 0123456789abcdef0123456789abcdef01234567
+FM_TEST_END 2026-10-25T06:54:13Z tests/fm-pr-check-security.test.sh exit=1 duration_ms=227132 gate_skip=false
+FM_TEST_BEGIN 2026-10-25T06:54:13Z tests/fm-pr-ready-callback.test.sh family=unclassified expected_gate_skip=none
+ok - native registration emits one exact event after its canonical record and static poll exist
+ok - empty leaves explicit pending delivery and preserves registration
+ok - multiple leaves explicit pending delivery and preserves registration
+ok - wrong-repo leaves explicit pending delivery and preserves registration
+ok - wrong-pr leaves explicit pending delivery and preserves registration
+ok - wrong-head leaves explicit pending delivery and preserves registration
+ok - wrong-schema leaves explicit pending delivery and preserves registration
+ok - string-pr leaves explicit pending delivery and preserves registration
+ok - false-accepted leaves explicit pending delivery and preserves registration
+ok - unknown-disposition leaves explicit pending delivery and preserves registration
+ok - fail leaves explicit pending delivery and preserves registration
+ok - only the final receipt is read and callback output stays out of registration stdout
+ok - an absent callback is inert
+ok - merge-time re-record sends no publication callback
+ok - refused publication sends no callback
+ok - a hanging callback is stopped and leaves registration pending
+ok - lost-ack preserves the native target and replay causes one consumer action with no publication
+tests/fm-pr-ready-callback.test.sh: line 78: 56741 Killed: 9                  PATH="$TMP_ROOT/bin:$PATH" FM_HOME="$CASE_DIR/home" FM_STATE_OVERRIDE="$CASE_DIR/home/state" FM_TEST_POLL="$ROOT/bin/fm-pr-poll.sh" bash "$TMP_ROOT/run.sh" "$ROOT/bin/fm-pr-check.sh" ship-one "$URL" > "$CASE_DIR/out" 2> "$CASE_DIR/err"
+ok - kill-after-accept preserves the native target and replay causes one consumer action with no publication
+FM_TEST_END 2026-10-25T06:55:15Z tests/fm-pr-ready-callback.test.sh exit=0 duration_ms=61921 gate_skip=false
+FM_TEST_SUMMARY total=3 failed=1 skipped_gate=0 duration_ms=301137
+FM_TEST_SUMMARY_FAMILY family=pr-forge count=2 duration_ms=276597 failed=1
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=61921 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-pr-check-security.test.sh duration_ms=227132
+FM_TEST_SLOWEST rank=2 script=tests/fm-pr-ready-callback.test.sh duration_ms=61921
+FM_TEST_SLOWEST rank=3 script=tests/fm-pr-made-with.test.sh duration_ms=49465

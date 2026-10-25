@@ -1,0 +1,255 @@
+
+==================== S1 Observer task: fresh no-mistakes PR body gains its verified bead at registration ====================
+scenario=s1-observer task=obs-nd4 pr=https://github.com/example-org/observer/pull/41 lab FM_HOME=<lab>/<run>/s-s1-observer/fmhome
+--- PR body (143 bytes, shown with cat -v; $ marks line ends) ---
+## Summary$
+$
+Synthetic observer change for the lab.$
+$
+## Testing$
+$
+- lab only$
+$
+<!-- no-mistakes:attestation run=LAB01 head=aaaa sig=synthetic -->$
+
+--- end body ---
+$  bin/fm-pr-check.sh obs-nd4 https://github.com/example-org/observer/pull/41  -> exit 0
+  | armed: state/obs-nd4.check.sh
+recorded pr= : https://github.com/example-org/observer/pull/41
+recorded pr_head= : a000000000000000000000000000000000000001
+merge poll armed (state/obs-nd4.check.sh): yes
+ready callback ran: yes
+forge body edits this run: bead helper 1, made-with stamp 1
+Bead: lines in forge body: 1
+original body (incl. attestation) is a byte-for-byte prefix of the new body: yes
+--- PR body (176 bytes, shown with cat -v; $ marks line ends) ---
+## Summary$
+$
+Synthetic observer change for the lab.$
+$
+## Testing$
+$
+- lab only$
+$
+<!-- no-mistakes:attestation run=LAB01 head=aaaa sig=synthetic -->$
+$
+$
+Bead: obs-nd4$
+$
+Made-with: codex$
+--- end body ---
+body the ready callback read from the forge:
+  callback saw: Bead: obs-nd4
+guard bead-binding: PASS bead=obs-nd4
+forge calls:
+  gh pr view https://github.com/example-org/observer/pull/41 --json isDraft
+  gh pr view https://github.com/example-org/observer/pull/41 --json headRefOid -q .headRefOid
+  gh pr view https://github.com/example-org/observer/pull/41 --json body
+  gh pr edit https://github.com/example-org/observer/pull/41 --body-file <tmp>/fm-pr-bead.bCQsr8/body
+  gh pr view https://github.com/example-org/observer/pull/41 --json body -q .body
+  gh pr view https://github.com/example-org/observer/pull/41 --json body,commits,headRefName
+  gh pr edit https://github.com/example-org/observer/pull/41 --body-file <tmp>/fm-pr-made-with.eIkb1Z/body
+
+==================== S2 Repeat registration of S1 is a no-op on the body ====================
+$  bin/fm-pr-check.sh obs-nd4 https://github.com/example-org/observer/pull/41  -> exit 0
+  | armed: state/obs-nd4.check.sh
+recorded pr= : https://github.com/example-org/observer/pull/41
+recorded pr_head= : a000000000000000000000000000000000000001
+merge poll armed (state/obs-nd4.check.sh): yes
+ready callback ran: yes
+forge body edits this run: bead helper 0, made-with stamp 0
+Bead: lines in forge body: 1
+body sha256 unchanged by repeat: yes
+
+==================== S3 Later no-mistakes rewrite drops the line; merge-time re-record (fm-pr-merge.sh's record step) restores it ====================
+pipeline rewrote the body (Bead: lines now: 0)
+guard bead-binding: REFUSE (observer go-live https://github.com/example-org/observer/pull/41: bead-binding failed: no unique verified owning bead in its canonical tracker; deployment remains pending)
+$ FM_PR_CHECK_MERGE=1 bin/fm-pr-check.sh obs-nd4 https://github.com/example-org/observer/pull/41  -> exit 0
+  | armed: state/obs-nd4.check.sh
+recorded pr= : https://github.com/example-org/observer/pull/41
+recorded pr_head= : b000000000000000000000000000000000000002
+merge poll armed (state/obs-nd4.check.sh): yes
+ready callback ran: no
+forge body edits this run: bead helper 1, made-with stamp 0
+Bead: lines in forge body: 1
+original body (incl. attestation) is a byte-for-byte prefix of the new body: yes
+--- PR body (144 bytes, shown with cat -v; $ marks line ends) ---
+## Summary$
+$
+Synthetic observer change, revised after review.$
+$
+<!-- no-mistakes:attestation run=LAB02 head=bbbb sig=synthetic -->$
+$
+$
+Bead: obs-nd4$
+--- end body ---
+guard bead-binding: PASS bead=obs-nd4
+
+==================== S4 Agent-config child task ac-<x> carries its dotted .agent-config bead ====================
+scenario=s4-agent-config task=ac-wch.1 pr=https://github.com/example-org/observer/pull/42 lab FM_HOME=<lab>/<run>/s-s4-agent-config/fmhome
+$  bin/fm-pr-check.sh ac-wch.1 https://github.com/example-org/observer/pull/42  -> exit 0
+  | armed: state/ac-wch.1.check.sh
+recorded pr= : https://github.com/example-org/observer/pull/42
+recorded pr_head= : a000000000000000000000000000000000000001
+merge poll armed (state/ac-wch.1.check.sh): yes
+ready callback ran: yes
+forge body edits this run: bead helper 1, made-with stamp 1
+Bead: lines in forge body: 1
+original body (incl. attestation) is a byte-for-byte prefix of the new body: yes
+  body line: Bead: .agent-config-wch.1
+guard bead-binding: PASS bead=.agent-config-wch.1
+
+==================== S5 Adversarial: body already names a different bead -> registration refuses ====================
+scenario=s5-conflict task=obs-nd4 pr=https://github.com/example-org/observer/pull/43 lab FM_HOME=<lab>/<run>/s-s5-conflict/fmhome
+$  bin/fm-pr-check.sh obs-nd4 https://github.com/example-org/observer/pull/43  -> exit 1
+  | jq: error (at <tmp>/fm-pr-bead.LaZifK/pr.json:1): conflicting or duplicate Bead: lines
+recorded pr= : 
+recorded pr_head= : 
+merge poll armed (state/obs-nd4.check.sh): no
+ready callback ran: no
+forge body edits this run: bead helper 0, made-with stamp 0
+Bead: lines in forge body: 1
+body unchanged: yes
+
+==================== S6 Adversarial: duplicate matching Bead: lines -> registration refuses ====================
+scenario=s6-duplicate task=obs-nd4 pr=https://github.com/example-org/observer/pull/44 lab FM_HOME=<lab>/<run>/s-s6-duplicate/fmhome
+$  bin/fm-pr-check.sh obs-nd4 https://github.com/example-org/observer/pull/44  -> exit 1
+  | jq: error (at <tmp>/fm-pr-bead.VzHgbm/pr.json:1): conflicting or duplicate Bead: lines
+recorded pr= : 
+recorded pr_head= : 
+merge poll armed (state/obs-nd4.check.sh): no
+ready callback ran: no
+forge body edits this run: bead helper 0, made-with stamp 0
+Bead: lines in forge body: 2
+body unchanged: yes
+
+==================== S7 Adversarial: empty 'Bead: ' line -> registration refuses ====================
+scenario=s7-empty task=obs-nd4 pr=https://github.com/example-org/observer/pull/45 lab FM_HOME=<lab>/<run>/s-s7-empty/fmhome
+$  bin/fm-pr-check.sh obs-nd4 https://github.com/example-org/observer/pull/45  -> exit 1
+  | jq: error (at <tmp>/fm-pr-bead.91LzxW/pr.json:1): conflicting or duplicate Bead: lines
+recorded pr= : 
+recorded pr_head= : 
+merge poll armed (state/obs-nd4.check.sh): no
+ready callback ran: no
+forge body edits this run: bead helper 0, made-with stamp 0
+Bead: lines in forge body: 1
+body unchanged: yes
+
+==================== S8 Existing matching CRLF line is accepted unchanged ====================
+scenario=s8-crlf task=obs-nd4 pr=https://github.com/example-org/observer/pull/46 lab FM_HOME=<lab>/<run>/s-s8-crlf/fmhome
+$  bin/fm-pr-check.sh obs-nd4 https://github.com/example-org/observer/pull/46  -> exit 0
+  | armed: state/obs-nd4.check.sh
+recorded pr= : https://github.com/example-org/observer/pull/46
+recorded pr_head= : a000000000000000000000000000000000000001
+merge poll armed (state/obs-nd4.check.sh): yes
+ready callback ran: yes
+forge body edits this run: bead helper 0, made-with stamp 1
+Bead: lines in forge body: 1
+original body (incl. attestation) is a byte-for-byte prefix of the new body: yes
+--- PR body (44 bytes, shown with cat -v; $ marks line ends) ---
+Summary^M$
+^M$
+Bead: obs-nd4^M$
+$
+$
+Made-with: codex$
+--- end body ---
+guard bead-binding: PASS bead=obs-nd4
+
+==================== S9 Prose mention of another bead is not a Bead: line (no inference from prose) ====================
+scenario=s9-prose task=obs-nd4 pr=https://github.com/example-org/observer/pull/47 lab FM_HOME=<lab>/<run>/s-s9-prose/fmhome
+$  bin/fm-pr-check.sh obs-nd4 https://github.com/example-org/observer/pull/47  -> exit 0
+  | armed: state/obs-nd4.check.sh
+recorded pr= : https://github.com/example-org/observer/pull/47
+recorded pr_head= : a000000000000000000000000000000000000001
+merge poll armed (state/obs-nd4.check.sh): yes
+ready callback ran: yes
+forge body edits this run: bead helper 1, made-with stamp 1
+Bead: lines in forge body: 1
+  body line 5:Bead: obs-nd4
+guard bead-binding: PASS bead=obs-nd4
+
+==================== S10 Task with no bead (no owning tracker) keeps generic registration ====================
+scenario=s10-nobead task=lab-fix-1 pr=https://github.com/example-org/observer/pull/48 lab FM_HOME=<lab>/<run>/s-s10-nobead/fmhome
+$  bin/fm-pr-check.sh lab-fix-1 https://github.com/example-org/observer/pull/48  -> exit 0
+  | armed: state/lab-fix-1.check.sh
+recorded pr= : https://github.com/example-org/observer/pull/48
+recorded pr_head= : a000000000000000000000000000000000000001
+merge poll armed (state/lab-fix-1.check.sh): yes
+ready callback ran: yes
+forge body edits this run: bead helper 0, made-with stamp 1
+Bead: lines in forge body: 0
+original body (incl. attestation) is a byte-for-byte prefix of the new body: yes
+forge calls by the bead helper: 0 body reads
+
+==================== S11 Observer-prefixed task whose bead the real tracker reports not found keeps generic registration ====================
+scenario=s11-notfound task=obs-zzzz9 pr=https://github.com/example-org/observer/pull/49 lab FM_HOME=<lab>/<run>/s-s11-notfound/fmhome
+$  bin/fm-pr-check.sh obs-zzzz9 https://github.com/example-org/observer/pull/49  -> exit 0
+  | armed: state/obs-zzzz9.check.sh
+recorded pr= : https://github.com/example-org/observer/pull/49
+recorded pr_head= : a000000000000000000000000000000000000001
+merge poll armed (state/obs-zzzz9.check.sh): yes
+ready callback ran: yes
+forge body edits this run: bead helper 0, made-with stamp 1
+Bead: lines in forge body: 0
+original body (incl. attestation) is a byte-for-byte prefix of the new body: yes
+  Bead: lines manufactured: 0
+
+==================== S12 Owning database exists but is unreadable -> registration refuses ====================
+scenario=s12-unreadable task=obs-nd4 pr=https://github.com/example-org/observer/pull/50 lab FM_HOME=<lab>/<run>/s-s12-unreadable/fmhome
+$  bin/fm-pr-check.sh obs-nd4 https://github.com/example-org/observer/pull/50  -> exit 1
+  | fm-pr-bead: br show obs-nd4 against <lab>/<run>/user-corrupt/dev/agent-observer/.beads/beads.db exited 2 (DATABASE_ERROR)
+recorded pr= : 
+recorded pr_head= : 
+merge poll armed (state/obs-nd4.check.sh): no
+ready callback ran: no
+forge body edits this run: bead helper 0, made-with stamp 0
+Bead: lines in forge body: 0
+body unchanged: yes
+
+==================== S13 Forge body edit fails -> registration refuses ====================
+scenario=s13-editfail task=obs-nd4 pr=https://github.com/example-org/observer/pull/51 lab FM_HOME=<lab>/<run>/s-s13-editfail/fmhome
+$  bin/fm-pr-check.sh obs-nd4 https://github.com/example-org/observer/pull/51  -> exit 1
+  | HTTP 502: forge unavailable
+recorded pr= : 
+recorded pr_head= : 
+merge poll armed (state/obs-nd4.check.sh): no
+ready callback ran: no
+forge body edits this run: bead helper 1, made-with stamp 0
+Bead: lines in forge body: 0
+body unchanged: yes
+
+==================== S14 Adversarial: a lowercase 'bead:' owning line the deploy guard counts ====================
+scenario=s14-lowercase task=obs-nd4 pr=https://github.com/example-org/observer/pull/52 lab FM_HOME=<lab>/<run>/s-s14-lowercase/fmhome
+$  bin/fm-pr-check.sh obs-nd4 https://github.com/example-org/observer/pull/52  -> exit 0
+  | armed: state/obs-nd4.check.sh
+recorded pr= : https://github.com/example-org/observer/pull/52
+recorded pr_head= : a000000000000000000000000000000000000001
+merge poll armed (state/obs-nd4.check.sh): yes
+ready callback ran: yes
+forge body edits this run: bead helper 1, made-with stamp 1
+Bead: lines in forge body: 1
+  body line 11:bead: obs-2d0
+  body line 14:Bead: obs-nd4
+guard bead-binding: REFUSE (observer go-live https://github.com/example-org/observer/pull/52: bead-binding failed: no unique verified owning bead in its canonical tracker; deployment remains pending)
+merge-time re-record of the same PR:
+$ FM_PR_CHECK_MERGE=1 bin/fm-pr-check.sh obs-nd4 https://github.com/example-org/observer/pull/52  -> exit 0
+  | armed: state/obs-nd4.check.sh
+guard bead-binding: REFUSE (observer go-live https://github.com/example-org/observer/pull/52: bead-binding failed: no unique verified owning bead in its canonical tracker; deployment remains pending)
+
+==================== S14b Adversarial: a colon-less 'Bead <other>' line the deploy guard also counts ====================
+scenario=s14b-nocolon task=obs-nd4 pr=https://github.com/example-org/observer/pull/53 lab FM_HOME=<lab>/<run>/s-s14b-nocolon/fmhome
+$  bin/fm-pr-check.sh obs-nd4 https://github.com/example-org/observer/pull/53  -> exit 0
+  | armed: state/obs-nd4.check.sh
+recorded pr= : https://github.com/example-org/observer/pull/53
+recorded pr_head= : a000000000000000000000000000000000000001
+merge poll armed (state/obs-nd4.check.sh): yes
+ready callback ran: yes
+forge body edits this run: bead helper 1, made-with stamp 1
+Bead: lines in forge body: 1
+  body line 11:Bead obs-2d0 tracks the follow-up.
+  body line 14:Bead: obs-nd4
+guard bead-binding: REFUSE (observer go-live https://github.com/example-org/observer/pull/53: bead-binding failed: no unique verified owning bead in its canonical tracker; deployment remains pending)
+
+==================== S15 Non-GitHub change needs nothing from the helper ====================
+$ bin/fm-pr-bead.sh obs-nd4 https://gitlab.example/group/project/-/merge_requests/3 -> exit 0; forge calls: 0

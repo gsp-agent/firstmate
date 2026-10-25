@@ -1,0 +1,19 @@
+FM_TEST_BEGIN 2026-10-25T07:17:20Z tests/fm-pr-made-with.test.sh family=pr-forge expected_gate_skip=none
+ok - the body names the worker and each no-mistakes agent whose commit the pull request carries
+ok - a rerun leaves a complete body alone
+ok - only the latest ok committing call before each commit names its agent, the worker's own agent adds nothing, and an unattributed commit exits 1 naming it
+ok - a fixing run on the task's branch counts before it records the pull request
+ok - a task record's symlinked project matches the resolved path no-mistakes records
+ok - a fixing run on the pull request's head branch counts when the task record names another branch
+ok - an empty body gets the worker line, and a default model is left out
+ok - a CRLF body that already names every engine is left alone
+ok - an absent or unreadable database exits 1 after naming the worker and each commit it could not attribute
+ok - a URL that is not a GitHub pull request needs nothing
+ok - a failed edit, a missing task record, and a bad URL exit nonzero
+ok - registration and merge-time re-registration carry one verified bead before exposure and preserve body and attestation
+ok - conflicting lines, ambiguous lookup and failed edits refuse before registration or ready callback
+ok - no bead preserves generic registration while an unavailable owner refuses
+FM_TEST_END 2026-10-25T07:18:20Z tests/fm-pr-made-with.test.sh exit=0 duration_ms=60427 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=70398
+FM_TEST_SUMMARY_FAMILY family=pr-forge count=1 duration_ms=60427 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-pr-made-with.test.sh duration_ms=60427
