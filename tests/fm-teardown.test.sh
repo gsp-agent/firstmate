@@ -5639,7 +5639,58 @@ test_task_with_no_bead_is_cleaned_up_as_before_and_archived() {
   pass "fm-teardown: a task with no bead is cleaned up as before, and its record is archived for a restore"
 }
 
+test_task_bead_resolves_canonical_id() (
+  local case_dir variant rc expected
+  case_dir="$TMP_ROOT/bead-resolution"
+  mkdir -p "$case_dir/fakebin" "$case_dir/home/fixture/.beads"
+  touch "$case_dir/home/fixture/.beads/beads.db"
+  cat > "$case_dir/fakebin/br" <<'SH'
+#!/usr/bin/env bash
+[ "$PWD" = / ] && [ "$*" = "--db $HOME/fixture/.beads/beads.db show sample-demo --json" ] || exit 1
+printf '%s\n' "$BEAD_RESPONSE"
+SH
+  chmod +x "$case_dir/fakebin/br"
+  export HOME="$case_dir/home" PATH="$case_dir/fakebin:$PATH" BEAD_RESPONSE
+  . "$ROOT/bin/fm-timeout-lib.sh"
+  . "$ROOT/bin/fm-task-data-lib.sh"
+  . "$ROOT/bin/fm-task-bead-lib.sh"
+  fm_task_data_bead_locations() { printf 'fixture sample\nother sample-other\n'; }
+  for variant in exact expanded unrelated suffix prefix owner multiple; do
+    expected=sample-demo
+    case "$variant" in
+      exact) BEAD_RESPONSE='[{"id":"sample-demo","status":"open"}]' ;;
+      expanded) expected=sample-long-demo; BEAD_RESPONSE='[{"id":"sample-long-demo","status":"closed"}]' ;;
+      unrelated) BEAD_RESPONSE='[{"id":"sample-unrelated","status":"closed"}]' ;;
+      suffix) BEAD_RESPONSE='[{"id":"sample-long-other","status":"closed"}]' ;;
+      prefix) BEAD_RESPONSE='[{"id":"different-long-demo","status":"closed"}]' ;;
+      owner) BEAD_RESPONSE='[{"id":"sample-other-demo","status":"closed"}]' ;;
+      multiple) BEAD_RESPONSE='[{"id":"sample-demo","status":"closed"},{"id":"sample-long-demo","status":"closed"}]' ;;
+    esac
+    rc=0
+    fm_task_bead_read sample-demo || rc=$?
+    case "$variant" in
+      exact|expanded)
+        expect_code 0 "$rc" "bead-resolution $variant: ${FM_TASK_BEAD_ERROR:-}"
+        [ "$FM_TASK_BEAD_ID" = "$expected" ] || fail "bead-resolution $variant: canonical ID missing"
+        if [ "$variant" = exact ]; then expected=open; else expected=closed; fi
+        [ "$FM_TASK_BEAD_STATUS" = "$expected" ] || fail "bead-resolution $variant: status missing"
+        ;;
+      *)
+        expect_code 1 "$rc" "bead-resolution $variant must refuse"
+        [ -z "$FM_TASK_BEAD_ID$FM_TASK_BEAD_STATUS" ] || fail "bead-resolution $variant leaked results"
+        ;;
+    esac
+    pass "bead-resolution $variant"
+  done
+)
+
+if [ "${FM_TEARDOWN_TEST_GROUP:-}" = bead-resolution ]; then
+  test_task_bead_resolves_canonical_id || exit 1
+  exit 0
+fi
+
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = bead-gate ]; then
+  test_task_bead_resolves_canonical_id || exit 1
   test_merged_task_with_an_open_bead_is_not_cleaned_up
   test_green_unmerged_task_with_an_open_bead_is_not_cleaned_up
   test_agent_config_task_answers_to_its_dotted_bead
@@ -10108,6 +10159,7 @@ test_held_meta_lock_teardown_gives_up_within_bound() {
 test_held_meta_lock_teardown_gives_up_within_bound
 test_local_only_fork_remote_allows
 test_teardown_closes_the_backlog_item_itself
+test_task_bead_resolves_canonical_id || exit 1
 test_merged_task_with_an_open_bead_is_not_cleaned_up
 test_green_unmerged_task_with_an_open_bead_is_not_cleaned_up
 test_agent_config_task_answers_to_its_dotted_bead
