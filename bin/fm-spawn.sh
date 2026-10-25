@@ -6518,6 +6518,8 @@ preserve_relaunch_meta() {
   if [ "$SPAWN_CONTROL_PARENT" = 1 ] && [ -n "${FM_CONTROL_RELAUNCH_TX:-}" ]; then
     echo "control_relaunch_tx=$FM_CONTROL_RELAUNCH_TX"
   fi
+  # Preserved keys go last: they can carry a registered pr=/pr_head= block, and
+  # fm_pr_metadata_identity_parse accepts only x_* keys after pr=.
   if [ "$RELAUNCH" -eq 1 ]; then
     preserve_relaunch_meta
   fi
@@ -6836,6 +6838,8 @@ spawn_record_traceparent() {
     acquired=1
   fi
   trace_tmp="$STATE/.$ID.meta.trace.${BASHPID:-$$}"
+  # traceparent= lands ahead of any pr= a relaunch preserved, keeping the PR
+  # identity readable by fm_pr_metadata_identity_parse.
   if [ ! -f "$meta" ] || [ ! -w "$meta" ] ||
     ! SPAWN_TRACE_LINE="traceparent=$SPAWN_TRACEPARENT" awk -F= '
         $1 == "traceparent" { next }
