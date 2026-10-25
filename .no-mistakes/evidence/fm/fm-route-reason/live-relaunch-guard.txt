@@ -1,0 +1,61 @@
+
+## setup: codex ship worker whose brief makes the mock provider answer with a usage-limit stop
+$ <worktree>/bin/fm-spawn.sh rr-limit1 <lab>/home/projects/notes --mode local-only --yolo on --harness codex --route-reason codex\ by\ rule
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+spawned rr-limit1 harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rr-limit1 worktree=<lab>/treehouse/.treehouse/notes-1fa25d/6/notes
+exit=0
+
+--- rr-limit1 record (state) ---
+window=firstmate:fm-rr-limit1
+worktree=<lab>/treehouse/.treehouse/notes-1fa25d/6/notes
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=codex by rule
+spawn_gen=s1792946147.62031.12264
+route_reason lines: 1
+
+worker pane before relaunch shows the real codex usage-limit stop:
+
+--- live pane firstmate:fm-rr-limit1 (last non-blank lines) ---
+fm-rr-limit1 cmd=node dead=0
+■ You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 26th, 2026 11:36 AM.
+› Ask Codex to do anything
+  gpt-5 default · <lab>/treehouse/.treehouse/notes-1fa25d/6/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+
+state/rr-limit1.codex-limit before relaunch: absent
+
+## S9 relaunch asking for codex with a supplied reason; the relaunch guard reads the usage-limit stop and moves the task to claude
+$ <worktree>/bin/fm-control.sh rr-limit1 relaunch --note resume --harness codex --route-reason codex\ by\ rule
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+codex fallback: relaunching rr-limit1 on the claude harness (default model, effort xhigh): codex run for rr-limit1 hit its usage limit: You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 26th, 2026 11:36 AM.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+relaunched rr-limit1 harness=claude from=codex model=default effort=xhigh backend=tmux endpoint=firstmate:fm-rr-limit1 worktree=<lab>/treehouse/.treehouse/notes-1fa25d/6/notes
+exit=0
+
+--- rr-limit1 record (state) ---
+window=firstmate:fm-rr-limit1
+worktree=<lab>/treehouse/.treehouse/notes-1fa25d/6/notes
+harness=claude
+kind=ship
+model=default
+effort=xhigh
+route_reason=codex run for rr-limit1 hit its usage limit: You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 26th, 2026 11:36 AM.
+route_fallback=1
+spawn_gen=s1792946295.94966.31124
+route_reason lines: 1
+
+state/rr-limit1.codex-limit after: codex run for rr-limit1 hit its usage limit: You’ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Oct 26th, 2026 11:36 AM.
+
+--- live pane firstmate:fm-rr-limit1 (last non-blank lines) ---
+fm-rr-limit1 cmd=2.1.310 dead=0
+  1  function greet() {
+  2 -  console.log("Hello, World!");
+  2 +  console.log("Hello, Claude!");
+  3  }
+ ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+  Syntax theme: Monokai Extended (ctrl+t to disable)

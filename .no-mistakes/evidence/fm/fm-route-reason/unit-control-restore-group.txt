@@ -1,0 +1,16 @@
+ok - relaunch preserves, clears, or replaces the route reason with its runtime
+ok - fm-control relaunch: the background picker refuses without --stop-background, names the flag, and restores the brief
+ok - fm-control relaunch: a picker already on screen refuses at once with no key, naming the flag
+ok - fm-control relaunch: --stop-background confirms Exit and stop tasks and the relaunch continues
+ok - fm-control relaunch: --stop-background confirms a picker that was already open
+ok - fm-control relaunch: --stop-background presses nothing when the selected row is not Exit and stop tasks
+ok - fm-control relaunch: --stop-background adds no key when the agent exits without a picker
+ok - fm-control relaunch: a routed fallback pair survives the next relaunch and only that pair is exempt
+ok - fm-control removes the dialog file after exit and after relaunch
+ok - fm-control exit removes the dialog file before it releases the control lock
+ok - fm-control relaunch: a task closed before its done names its archive, and --restore brings it back
+ok - fm-control relaunch --restore: an empty branch prefix survives the real dispatch and brief check
+ok - fm-control relaunch --restore: a closed row already archived away is added back, then dispatched
+ok - fm-control relaunch --restore: a dispatch refusal or a missing archive changes no instructions
+ok - fm-control relaunch --restore: an unchanged runtime keeps its archived route reason, and a supplied one replaces it
+exit=0

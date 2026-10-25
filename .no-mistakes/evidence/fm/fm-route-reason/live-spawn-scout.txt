@@ -1,0 +1,24 @@
+
+## S2 scout spawn with a multi-line route reason
+$ <worktree>/bin/fm-spawn.sh rr-scout1 <lab>/home/projects/notes --scout --harness codex --route-reason $'scout rule\npicks codex'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+spawned rr-scout1 harness=codex kind=scout window=firstmate:fm-rr-scout1 worktree=<lab>/treehouse/.treehouse/notes-1fa25d/2/notes
+exit=0
+
+--- rr-scout1 record (state) ---
+window=firstmate:fm-rr-scout1
+worktree=<lab>/treehouse/.treehouse/notes-1fa25d/2/notes
+harness=codex
+kind=scout
+model=default
+effort=default
+route_reason=scout rule picks codex
+spawn_gen=s1792945733.48431.27574
+route_reason lines: 1
+
+--- live pane firstmate:fm-rr-scout1 (last non-blank lines) ---
+fm-rr-scout1 cmd=node dead=0
+› Ask Codex to do anything
+  gpt-5 default · <lab>/treehouse/.treehouse/notes-1fa25d/2/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view

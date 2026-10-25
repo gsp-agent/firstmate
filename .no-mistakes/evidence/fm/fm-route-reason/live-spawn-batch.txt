@@ -1,0 +1,42 @@
+
+## S3 two-pair batch spawn with a shared dash-leading route reason
+$ <worktree>/bin/fm-spawn.sh rr-batch-a=<lab>/home/projects/notes rr-batch-b=<lab>/home/projects/notes --mode local-only --yolo on --harness codex --route-reason=--claude-out-of-quota
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+spawned rr-batch-a harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rr-batch-a worktree=<lab>/treehouse/.treehouse/notes-1fa25d/3/notes
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+spawned rr-batch-b harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rr-batch-b worktree=<lab>/treehouse/.treehouse/notes-1fa25d/4/notes
+exit=0
+
+--- rr-batch-a record (state) ---
+window=firstmate:fm-rr-batch-a
+worktree=<lab>/treehouse/.treehouse/notes-1fa25d/3/notes
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=--claude-out-of-quota
+spawn_gen=s1792945869.69120.16492
+route_reason lines: 1
+
+--- live pane firstmate:fm-rr-batch-a (last non-blank lines) ---
+fm-rr-batch-a cmd=node dead=0
+  gpt-5 default · <lab>/treehouse/.treehouse/notes-1fa25d/3/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+
+--- rr-batch-b record (state) ---
+window=firstmate:fm-rr-batch-b
+worktree=<lab>/treehouse/.treehouse/notes-1fa25d/4/notes
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=--claude-out-of-quota
+spawn_gen=s1792945958.37965.2060
+route_reason lines: 1
+
+--- live pane firstmate:fm-rr-batch-b (last non-blank lines) ---
+fm-rr-batch-b cmd=node dead=0
+  gpt-5 default · <lab>/treehouse/.treehouse/notes-1fa25d/4/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view

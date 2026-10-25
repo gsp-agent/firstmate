@@ -1,0 +1,28 @@
+
+## S4 Cursor spawn the launch guard moves to Codex (Cursor pool at 99%); the supplied reason must be replaced by the guard's
+$ <worktree>/bin/fm-spawn.sh rr-cursor1 <lab>/home/projects/notes --mode local-only --yolo on --harness cursor --route-reason frontend\ rule\ picks\ cursor
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+cursor fallback: launching rr-cursor1 on the codex harness (default model, effort medium): Cursor Models at 99% (limit 85%) and no prepaid/on-demand credit room in 20261025-spending.txt
+spawned rr-cursor1 harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rr-cursor1 worktree=<lab>/treehouse/.treehouse/notes-1fa25d/5/notes
+exit=0
+
+--- rr-cursor1 record (state) ---
+window=firstmate:fm-rr-cursor1
+worktree=<lab>/treehouse/.treehouse/notes-1fa25d/5/notes
+harness=codex
+kind=ship
+model=default
+effort=medium
+route_reason=Cursor Models at 99% (limit 85%) and no prepaid/on-demand credit room in 20261025-spending.txt
+route_fallback=1
+spawn_gen=s1792946046.6235.774
+route_reason lines: 1
+
+state/rr-cursor1.cursor-fallback: Cursor Models at 99% (limit 85%) and no prepaid/on-demand credit room in 20261025-spending.txt
+
+--- live pane firstmate:fm-rr-cursor1 (last non-blank lines) ---
+fm-rr-cursor1 cmd=node dead=0
+› Ask Codex to do anything
+  gpt-5 medium · <lab>/treehouse/.treehouse/notes-1fa25d/5/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view

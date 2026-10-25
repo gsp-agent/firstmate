@@ -1,0 +1,64 @@
+
+# Live relaunches of rr-ship1 (real bin/fm-control.sh relaunch, real codex worker stopped and replaced)
+
+--- rr-ship1 record (state) ---
+window=firstmate:fm-rr-ship1
+worktree=<lab>/treehouse/.treehouse/notes-1fa25d/1/notes
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=claude out of quota using codex for now
+spawn_gen=s1792945440.54218.8376
+route_reason lines: 1
+
+## S6 relaunch with no reason and the same harness, model, and effort
+$ <worktree>/bin/fm-control.sh rr-ship1 relaunch --note resume\ after\ a\ lab\ restart
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+relaunched rr-ship1 harness=codex from=codex model=default effort=default backend=tmux endpoint=firstmate:fm-rr-ship1 worktree=<lab>/treehouse/.treehouse/notes-1fa25d/1/notes
+exit=0
+
+--- rr-ship1 record (state) ---
+window=firstmate:fm-rr-ship1
+worktree=<lab>/treehouse/.treehouse/notes-1fa25d/1/notes
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=claude out of quota using codex for now
+spawn_gen=s1792945940.43828.17801
+route_reason lines: 1
+
+--- live pane firstmate:fm-rr-ship1 (last non-blank lines) ---
+fm-rr-ship1 cmd=node dead=0
+› Ask Codex to do anything
+  gpt-5 default · <lab>/treehouse/.treehouse/notes-1fa25d/1/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+
+## S5 relaunch that supplies a new reason carrying a newline, a fake harness= line, and shell substitutions
+$ <worktree>/bin/fm-control.sh rr-ship1 relaunch --note resume --route-reason $'moved for quota\nharness=claude $(touch <lab>/pwned) `touch <lab>/pwned2`\rend'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+relaunched rr-ship1 harness=codex from=codex model=default effort=default backend=tmux endpoint=firstmate:fm-rr-ship1 worktree=<lab>/treehouse/.treehouse/notes-1fa25d/1/notes
+exit=0
+
+--- rr-ship1 record (state) ---
+window=firstmate:fm-rr-ship1
+worktree=<lab>/treehouse/.treehouse/notes-1fa25d/1/notes
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=moved for quota harness=claude $(touch <lab>/pwned) `touch <lab>/pwned2` end
+spawn_gen=s1792946050.20001.10777
+route_reason lines: 1
+
+harness= lines in record: 1; substitution side effects: pwned=absent pwned2=absent
+
+--- live pane firstmate:fm-rr-ship1 (last non-blank lines) ---
+fm-rr-ship1 cmd=node dead=0
+  gpt-5 default · <lab>/treehouse/.treehouse/notes-1fa25d/1/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view

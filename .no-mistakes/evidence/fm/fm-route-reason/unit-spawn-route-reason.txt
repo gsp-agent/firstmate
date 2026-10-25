@@ -1,0 +1,3 @@
+ok - spawn records a single-line route reason for ships and scouts
+ok - a spawn the launch route moves to another harness records the route's reason
+ok - batch dispatch forwards a shared route reason to every pair

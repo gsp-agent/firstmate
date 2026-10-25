@@ -1,0 +1,110 @@
+
+## setup: codex ship worker rr-restore1 with a route reason
+$ <worktree>/bin/fm-spawn.sh rr-restore1 <lab>/home/projects/notes --mode local-only --yolo on --harness codex --route-reason claude\ quota
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+spawned rr-restore1 harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rr-restore1 worktree=<lab>/treehouse/.treehouse/notes-1fa25d/9/notes
+exit=0
+
+--- rr-restore1 record (state) ---
+window=firstmate:fm-rr-restore1
+worktree=<lab>/treehouse/.treehouse/notes-1fa25d/9/notes
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=claude quota
+spawn_gen=s1792946479.69740.25086
+route_reason lines: 1
+
+## close the task with real teardown (archives its record)
+$ <worktree>/bin/fm-teardown.sh rr-restore1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+teardown: reaping leaked worktree process(es) for rr-restore1: 16438 41178 45160
+teardown: force-killing leaked worktree process(es) for rr-restore1: 16438
+A new version of treehouse is available: v2.3.0 → v3.1.6
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+warning: task data rr-restore1 retained whole for retry: reference matching passed its 10s stage limit
+teardown rr-restore1 complete (window firstmate:fm-rr-restore1, worktree <lab>/treehouse/.treehouse/notes-1fa25d/9/notes)
+Backlog: rr-restore1 is closed in <lab>/home/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+exit=0
+
+--- rr-restore1 record (archive) ---
+window=firstmate:fm-rr-restore1
+worktree=<lab>/treehouse/.treehouse/notes-1fa25d/9/notes
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=claude quota
+spawn_gen=s1792946479.69740.25086
+route_reason lines: 1
+
+live record present after teardown: no; backlog row: - [x] rr-restore1 - route reason lab rr-restore1 (repo: notes) (kind: ship) (done 2026-10-25)
+
+## S10 relaunch --restore with --harness, --model, and --effort all omitted; the archived reason must carry over
+$ <worktree>/bin/fm-control.sh rr-restore1 relaunch --restore --note finish\ it
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+spawned rr-restore1 harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rr-restore1 worktree=<lab>/treehouse/.treehouse/notes-1fa25d/9/notes
+restored rr-restore1 from <lab>/home/data/rr-restore1/record/closed-task.meta harness=codex kind=ship project=<lab>/home/projects/notes
+exit=0
+
+--- rr-restore1 record (state) ---
+window=firstmate:fm-rr-restore1
+worktree=<lab>/treehouse/.treehouse/notes-1fa25d/9/notes
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=claude quota
+spawn_gen=s1792947476.20351.23356
+route_reason lines: 1
+
+--- live pane firstmate:fm-rr-restore1 (last non-blank lines) ---
+fm-rr-restore1 cmd=node dead=0
+  gpt-5 default · <lab>/treehouse/.treehouse/notes-1fa25d/9/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+
+## close the restored task again
+$ <worktree>/bin/fm-teardown.sh rr-restore1
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+teardown: reaping leaked worktree process(es) for rr-restore1: 54221 78243 80010
+teardown: force-killing leaked worktree process(es) for rr-restore1: 54221
+A new version of treehouse is available: v2.3.0 → v3.1.6
+Run "treehouse update" to update
+
+🌳 Worktree returned to pool.
+teardown rr-restore1 complete (window firstmate:fm-rr-restore1, worktree <lab>/treehouse/.treehouse/notes-1fa25d/9/notes)
+Backlog: rr-restore1 is closed in <lab>/home/data/backlog.md. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due.
+exit=0
+
+## S10b relaunch --restore with a supplied dash-leading reason in equals form; it must replace the archived one
+$ <worktree>/bin/fm-control.sh rr-restore1 relaunch --restore --note finish\ it --route-reason=--quota-out
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+spawned rr-restore1 harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rr-restore1 worktree=<lab>/treehouse/.treehouse/notes-1fa25d/9/notes
+restored rr-restore1 from <lab>/home/data/rr-restore1/record/closed-task.meta harness=codex kind=ship project=<lab>/home/projects/notes
+exit=0
+
+--- rr-restore1 record (state) ---
+window=firstmate:fm-rr-restore1
+worktree=<lab>/treehouse/.treehouse/notes-1fa25d/9/notes
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=--quota-out
+spawn_gen=s1792947691.28406.9733
+route_reason lines: 1
+
+--- live pane firstmate:fm-rr-restore1 (last non-blank lines) ---
+fm-rr-restore1 cmd=node dead=0
+  gpt-5 default · <lab>/treehouse/.treehouse/notes-1fa25d/9/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view

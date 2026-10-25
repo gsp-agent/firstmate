@@ -1,0 +1,41 @@
+
+# Adversarial argument checks against the live rr-ship1 codex worker (real bin/fm-control.sh and bin/fm-spawn.sh)
+
+## A1 a route reason on a non-relaunch verb is refused
+$ <worktree>/bin/fm-control.sh rr-ship1 exit --route-reason x
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+error: --harness, --model, --effort, --route-reason, --note, --stop-background, and --restore apply to 'relaunch' only
+exit=1
+
+## A2 a relaunch with --route-reason and no value is refused
+$ <worktree>/bin/fm-control.sh rr-ship1 relaunch --note resume --route-reason
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+error: --route-reason requires a value
+exit=1
+
+## A3 a two-token dash-leading value is refused as a missing value (the equals form is the way to pass one)
+$ <worktree>/bin/fm-control.sh rr-ship1 relaunch --note resume --route-reason --quota-out
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+error: --route-reason requires a value
+exit=1
+
+## A4 a spawn with --route-reason and no value is refused before any task is created
+$ <worktree>/bin/fm-spawn.sh rr-noval <lab>/home/projects/notes --mode local-only --yolo on --harness codex --route-reason
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+error: --route-reason requires a value
+exit=1
+
+## A5 a spawn whose two-token reason starts with -- is refused
+$ <worktree>/bin/fm-spawn.sh rr-noval <lab>/home/projects/notes --mode local-only --yolo on --harness codex --route-reason --quota-out
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+error: --route-reason requires a value
+exit=1
+
+rr-ship1 record unchanged by A1-A3: yes; rr-noval record exists: no
+
+--- live pane firstmate:fm-rr-ship1 (last non-blank lines) ---
+fm-rr-ship1 cmd=node dead=0
+  gpt-5 default · <lab>/treehouse/.treehouse/notes-1fa25d/1/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view

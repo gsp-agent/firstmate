@@ -1,0 +1,199 @@
+
+## setup: codex ship worker rr-relaunch1 with a route reason
+$ <worktree>/bin/fm-spawn.sh rr-relaunch1 <lab>/home/projects/notes --mode local-only --yolo on --harness codex --route-reason picked\ codex\ at\ intake
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+spawned rr-relaunch1 harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rr-relaunch1 worktree=<lab>/treehouse/.treehouse/notes-1fa25d/7/notes
+exit=0
+
+## setup: codex ship worker rr-relaunch2 with a route reason
+$ <worktree>/bin/fm-spawn.sh rr-relaunch2 <lab>/home/projects/notes --mode local-only --yolo on --harness codex --route-reason picked\ codex\ at\ intake
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+spawned rr-relaunch2 harness=codex kind=ship mode=local-only yolo=on window=firstmate:fm-rr-relaunch2 worktree=<lab>/treehouse/.treehouse/notes-1fa25d/8/notes
+exit=0
+
+--- rr-relaunch1 record (state) ---
+window=firstmate:fm-rr-relaunch1
+worktree=<lab>/treehouse/.treehouse/notes-1fa25d/7/notes
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=picked codex at intake
+spawn_gen=s1792946280.67955.6254
+route_reason lines: 1
+
+## S7 relaunch that changes effort and supplies no reason; the old reason must be cleared
+$ <worktree>/bin/fm-control.sh rr-relaunch1 relaunch --note resume --effort high
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+error: codex-cli 0.164.0 showed neither its folder-access prompt nor a started turn on the brief in window firstmate:fm-rr-relaunch1; inspect window firstmate:fm-rr-relaunch1
+spawn: reaping leaked worktree process(es) for rr-relaunch1: 63055 65175 96322
+spawn: force-killing leaked worktree process(es) for rr-relaunch1: 96322
+error: the replacement agent for rr-relaunch1 could not be launched on codex
+error: rr-relaunch1 was relaunched on codex but no running agent could be confirmed; its work is preserved at <lab>/treehouse/.treehouse/notes-1fa25d/7/notes
+exit=1
+
+--- rr-relaunch1 record (state) ---
+window=firstmate:fm-rr-relaunch1
+worktree=<lab>/treehouse/.treehouse/notes-1fa25d/7/notes
+harness=codex
+kind=ship
+model=default
+effort=high
+spawn_gen=s1792946501.17384.11810
+route_reason lines: 0
+0
+
+--- live pane firstmate:fm-rr-relaunch1 (last non-blank lines) ---
+(no window)
+
+--- rr-relaunch2 record (state) ---
+window=firstmate:fm-rr-relaunch2
+worktree=<lab>/treehouse/.treehouse/notes-1fa25d/8/notes
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=picked codex at intake
+spawn_gen=s1792946380.52527.18343
+route_reason lines: 1
+
+## S8 relaunch whose reason starts with -- in the equals form; it must reach the record and leave a live replacement
+$ <worktree>/bin/fm-control.sh rr-relaunch2 relaunch --note resume --route-reason=--quota-out
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+relaunched rr-relaunch2 harness=codex from=codex model=default effort=default backend=tmux endpoint=firstmate:fm-rr-relaunch2 worktree=<lab>/treehouse/.treehouse/notes-1fa25d/8/notes
+exit=0
+
+--- rr-relaunch2 record (state) ---
+window=firstmate:fm-rr-relaunch2
+worktree=<lab>/treehouse/.treehouse/notes-1fa25d/8/notes
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=--quota-out
+spawn_gen=s1792946731.49607.9772
+route_reason lines: 1
+
+--- live pane firstmate:fm-rr-relaunch2 (last non-blank lines) ---
+fm-rr-relaunch2 cmd=node dead=0
+  gpt-5 default · <lab>/treehouse/.treehouse/notes-1fa25d/8/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+
+Note on the first S7 attempt above: the reason was cleared as expected, but spawn's codex launch-readiness poll missed the working status because the lab mock provider answered in milliseconds on a heavily loaded host. The mock was restarted with an 8 s answer delay and S7 was re-driven below.
+
+## S7 re-drive, step 1: relaunch with a reason on the recorded runtime (re-creates the endpoint)
+$ <worktree>/bin/fm-control.sh rr-relaunch1 relaunch --note resume --route-reason picked\ codex\ at\ intake
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+error: task rr-relaunch1's endpoint firstmate:fm-rr-relaunch1 reads 'missing', but tmux absence cannot be proven from a task record: the record does not carry the endpoint's socket identity, and a server-wide window inventory only describes the tmux server this process addresses, so a window absent from it may still be alive on another; exit will not claim an agent stopped at an address it cannot trust, nor send lifecycle input to one
+error: relaunch of rr-relaunch1 failed while stopping the old agent and its state is 'missing', so it was not proven stopped; its original instructions were restored and the durable record was retained for recovery
+exit=1
+
+--- rr-relaunch1 record (state) ---
+window=firstmate:fm-rr-relaunch1
+worktree=<lab>/treehouse/.treehouse/notes-1fa25d/7/notes
+harness=codex
+kind=ship
+model=default
+effort=high
+spawn_gen=s1792946501.17384.11810
+route_reason lines: 0
+0
+
+## S7 re-drive, step 2: relaunch that changes effort and supplies no reason; the reason must be cleared
+$ <worktree>/bin/fm-control.sh rr-relaunch1 relaunch --note resume --effort medium
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+error: task rr-relaunch1's endpoint firstmate:fm-rr-relaunch1 reads 'missing', but tmux absence cannot be proven from a task record: the record does not carry the endpoint's socket identity, and a server-wide window inventory only describes the tmux server this process addresses, so a window absent from it may still be alive on another; exit will not claim an agent stopped at an address it cannot trust, nor send lifecycle input to one
+error: relaunch of rr-relaunch1 failed while stopping the old agent and its state is 'missing', so it was not proven stopped; its original instructions were restored and the durable record was retained for recovery
+exit=1
+
+--- rr-relaunch1 record (state) ---
+window=firstmate:fm-rr-relaunch1
+worktree=<lab>/treehouse/.treehouse/notes-1fa25d/7/notes
+harness=codex
+kind=ship
+model=default
+effort=high
+spawn_gen=s1792946501.17384.11810
+route_reason lines: 0
+0
+
+--- live pane firstmate:fm-rr-relaunch1 (last non-blank lines) ---
+(no window)
+
+rr-relaunch1 was left without a window by that failed launch and existing relaunch safety then refuses it (absence of a tmux window cannot be proven), so the runtime-change cases were re-driven on the healthy rr-relaunch2 and rr-batch-a workers.
+
+--- rr-relaunch2 record (state) ---
+window=firstmate:fm-rr-relaunch2
+worktree=<lab>/treehouse/.treehouse/notes-1fa25d/8/notes
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=--quota-out
+spawn_gen=s1792946731.49607.9772
+route_reason lines: 1
+
+## S7 relaunch of rr-relaunch2 that changes effort (default -> medium) and supplies no reason; the reason must be cleared
+$ <worktree>/bin/fm-control.sh rr-relaunch2 relaunch --note resume --effort medium
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+relaunched rr-relaunch2 harness=codex from=codex model=default effort=medium backend=tmux endpoint=firstmate:fm-rr-relaunch2 worktree=<lab>/treehouse/.treehouse/notes-1fa25d/8/notes
+exit=0
+
+--- rr-relaunch2 record (state) ---
+window=firstmate:fm-rr-relaunch2
+worktree=<lab>/treehouse/.treehouse/notes-1fa25d/8/notes
+harness=codex
+kind=ship
+model=default
+effort=medium
+spawn_gen=s1792946895.84835.29167
+route_reason lines: 0
+0
+
+--- live pane firstmate:fm-rr-relaunch2 (last non-blank lines) ---
+fm-rr-relaunch2 cmd=node dead=0
+  gpt-5 medium · <lab>/treehouse/.treehouse/notes-1fa25d/8/notes
+  ? for shortcuts                                                                                                                                                                                 ⚠ 2 warnings · f2 to view
+
+--- rr-batch-a record (state) ---
+window=firstmate:fm-rr-batch-a
+worktree=<lab>/treehouse/.treehouse/notes-1fa25d/3/notes
+harness=codex
+kind=ship
+model=default
+effort=default
+route_reason=--claude-out-of-quota
+spawn_gen=s1792945869.69120.16492
+route_reason lines: 1
+
+## S7b relaunch of rr-batch-a that changes harness (codex -> claude) and supplies no reason; the reason must be cleared
+$ <worktree>/bin/fm-control.sh rr-batch-a relaunch --note resume --harness claude
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+relaunched rr-batch-a harness=claude from=codex model=default effort=default backend=tmux endpoint=firstmate:fm-rr-batch-a worktree=<lab>/treehouse/.treehouse/notes-1fa25d/3/notes
+exit=0
+
+--- rr-batch-a record (state) ---
+window=firstmate:fm-rr-batch-a
+worktree=<lab>/treehouse/.treehouse/notes-1fa25d/3/notes
+harness=claude
+kind=ship
+model=default
+effort=default
+spawn_gen=s1792946999.30771.23915
+route_reason lines: 0
+0
+
+--- live pane firstmate:fm-rr-batch-a (last non-blank lines) ---
+fm-rr-batch-a cmd=2.1.310 dead=0
+ ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+  Syntax theme: Monokai Extended (ctrl+t to disable)
