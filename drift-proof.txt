@@ -126,3 +126,5 @@ pr: 140
 # Failing-first on d6b8de4d: tests/fm-watch-arm.test.sh's harness-less covering arm survives caller death, and tests/fm-claude-stop-autoarm.test.sh's non-home hook creates state before checking scope; both regressions pass after the fix.
 # Full serial runs pass 46 watch-arm and 61 autoarm cases, preserving coverage under a live harness; post-file pgrep plus cwd audits find zero worktree/test-folder arms and no unresolved cwd.
 pr: 143
+# Failing-first route-reason regressions in tests/fm-spawn-dispatch-profile.test.sh and tests/fm-control-relaunch.test.sh.
+pr: 144
