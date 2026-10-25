@@ -1,0 +1,33 @@
+# Claude transcript extract for the branch plain-home lab (7526f111-4fce-426b-a798-6578dcef9353.jsonl)
+## Stop-hook rewakes enqueued to the idle primary
+--- 2026-10-25T19:14:58.801Z
+<task-notification>
+<summary>Stop hook feedback</summary>
+</task-notification>
+<system-reminder>
+Stop hook blocking error from command "Stop": firstmate watcher wake - one supervision event needs a handling turn now.
+check: captain inbox note 1792955691-rpWUsp - lab note n1 - queued mid-turn
+Run bin/fm-wake-drain.sh first, handle the wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. Until that post-handling acknowledgement, interruption leaves the wake durable for idempotent re-handling. This Stop hook owns watcher continuity: when the handling turn ends, the next needed cycle arms automatically - do NOT run bin/fm-watch-arm.sh after an ordinary wake.
+
+</system-reminder>
+--- 2026-10-25T19:16:51.400Z
+<task-notification>
+<summary>Stop hook feedback</summary>
+</task-notification>
+<system-reminder>
+Stop hook blocking error from command "Stop": firstmate watcher wake - one supervision event needs a handling turn now.
+check: captain inbox note 1792955765-oFomjT - lab note n2 - queued while away
+heartbeat: lab routine row with no park to run
+Run bin/fm-wake-drain.sh first, handle the wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. Until that post-handling acknowledgement, interruption leaves the wake durable for idempotent re-handling. This Stop hook owns watcher continuity: when the handling turn ends, the next needed cycle arms automatically - do NOT run bin/fm-watch-arm.sh after an ordinary wake.
+
+</system-reminder>
+## Bash commands the primary ran
+2026-10-25T19:14:48.230Z bin/fm-inbox.sh note 'lab note n1 - queued mid-turn'
+2026-10-25T19:15:00.823Z bin/fm-wake-drain.sh
+2026-10-25T19:15:12.476Z bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 43507.1792955692.Zcp8wE
+2026-10-25T19:16:05.426Z bin/fm-inbox.sh note 'lab note n2 - queued while away'
+2026-10-25T19:16:42.723Z bin/lab-heartbeat.sh
+2026-10-25T19:16:53.625Z bin/fm-wake-drain.sh
+2026-10-25T19:17:02.902Z bin/fm-wake-drain.sh --ack-through 3 --recovery-generation 6329.1792955765.7XHugB
+## Guard continuations (TURN WOULD END BLIND / fm-turnend-guard blocking) in the session
+TURN WOULD END BLIND occurrences: 0

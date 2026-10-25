@@ -1,0 +1,31 @@
+=== test_released_probe_row_is_delivered_with_no_need
+ok - auto-arm: a released probe row is delivered once need is gone, and a presented row stays quiet
+=== test_released_probe_row_is_delivered_with_no_need rc=0 seconds=9
+=== test_released_probe_row_is_delivered_when_need_vanishes_mid_cycle
+ok - auto-arm: a probe released during the cycle delivers its queued row
+=== test_released_probe_row_is_delivered_when_need_vanishes_mid_cycle rc=0 seconds=8
+=== test_drain_handling_marker_close_is_a_rewake
+ok - auto-arm: a close passed through while the marker is handling is a rewake
+=== test_drain_handling_marker_close_is_a_rewake rc=0 seconds=2
+=== test_alarm_delivers_the_close_and_the_queued_row
+ok - auto-arm: an alarm suppresses a new failure notice and still delivers the close and the queued row
+=== test_alarm_delivers_the_close_and_the_queued_row rc=0 seconds=1
+=== test_healthy_foreign_watcher_delivers_a_queued_row
+ok - auto-arm: a healthy foreign watcher leaves a queued main row delivered
+=== test_healthy_foreign_watcher_delivers_a_queued_row rc=0 seconds=1
+=== test_host_passes_successor_note_through
+ok - auto-arm: a note passed through from a handling successor is a rewake
+=== test_host_passes_successor_note_through rc=0 seconds=1
+=== test_rewake_with_handling_marker_allows_the_stop
+ok - auto-arm: a rewake committed while the marker is handling lets the stop end
+=== test_rewake_with_handling_marker_allows_the_stop rc=0 seconds=2
+=== test_plain_home_delivers_unread_rows_and_away_delivers_none
+ok - auto-arm: a plain or idle host home delivers every unread row, the park keeps routine rows, and the away record delivers none
+=== test_plain_home_delivers_unread_rows_and_away_delivers_none rc=0 seconds=4
+=== test_idle_home_admitted_for_a_shown_row_arms_nothing
+ok - auto-arm: an idle home admitted for a row main was already shown arms nothing
+=== test_idle_home_admitted_for_a_shown_row_arms_nothing rc=0 seconds=3
+=== test_host_away_record_delivers_no_unread_row
+ok - auto-arm: the away record on a host home delivers no queued row to main and parks the host
+=== test_host_away_record_delivers_no_unread_row rc=0 seconds=2
+FAILED_COUNT=0

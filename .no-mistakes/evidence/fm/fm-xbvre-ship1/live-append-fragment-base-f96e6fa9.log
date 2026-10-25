@@ -1,0 +1,16 @@
+# source: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-basecheckout.yDgqej
+# queue holds only a row cut off mid-write: [1792950000|7|check|inbox:cut], last byte not a newline
+  inbox: queued 1792955714-MgwEMk
+  inbox:   second note after the fragment
+  inbox:   firstmate will pick this up at its next check.
+  inbox: fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+--- queue lines (tab shown as |)
+1: 1792950000|7|check|inbox:cut1792955714|1|check|inbox:1792955714-MgwEMk|check: captain inbox note 1792955714-MgwEMk - second note after the fragment
+# queue lines: 1; the note is a whole five-field record on a line of its own: no
+--- drain rc=0 stderr
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 7 --recovery-generation 63516.1792955715.4kBQJx
+--- drain lines naming the note
+1792950000	7	check	inbox:cut1792955714	1	check	inbox:1792955714-MgwEMk	check: captain inbox note 1792955714-MgwEMk - second note after the fragment
+--- queue after drain (tab shown as |)
+1: 1792950000|7|check|inbox:cut1792955714|1|check|inbox:1792955714-MgwEMk|check: captain inbox note 1792955714-MgwEMk - second note after the fragment
+# RESULT=1

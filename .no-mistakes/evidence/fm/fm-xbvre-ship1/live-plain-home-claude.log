@@ -1,0 +1,112 @@
+# 19:02:12Z lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.JHdHVl (marked: yes); project copy /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-labproj.Z0YeTF at f990c6b3; config/supervision-host-off present; no in-flight task
+# 19:02:12Z claude: 2.1.310 (Claude Code); model haiku
+# 19:02:16Z answering the workspace trust dialog
+# 19:03:49Z primary idle; session lock pid 44339; session start complete: yes
+# 19:03:49Z tracked asyncRewake Stop hook registered in the lab project
+# 19:04:25Z step 1: turns ended=1; rewakes since setup: 0
+# 19:04:25Z step 1: ledger: (no ledger)
+# 19:04:25Z step 1: queue: 0 row(s); unread(any): 0
+--- pane (after setup turn)
+ ▐▛███▛█   Claude Code v2.1.310
+▝▜██████▀  Haiku 5.5 with low effort · Claude Max
+ ▝▝   ▝▝   /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-labproj.Z0YeTF
+you    This is an isolated Firstmate test lab, not a real fleet. Reply with exactly READY now and use no tools. Later, whenever a "Stop hook feedback" message wakes you, do exactly this and      14:03
+       nothing else: run `bin/fm-wake-drain.sh` once with the Bash tool, then run the exact `bin/fm-wake-drain.sh --ack-through ...` command that its WAKE_ACK_REQUIRED line prints, then reply
+       with exactly ACKED. When I ask you to run one command, run exactly that command once with Bash and reply with exactly DONE. Never run bin/fm-watch-arm.sh, never run any other command,
+       and never use any other tool.
+claude READY                                                                                                                                                                                       14:03
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ╭─fm-labproj.Z0YeTF 🌱 main │ Haiku 5.5 │ ⚡ george 100% │ ✉ fm-labproj-z0yetf-54 │ 95%                                                                                 feed clean · /feed to switch
+  ╰─ /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-labproj.Z0YeTF
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 3 agents
+--- end pane
+  inbox: queued 1792955072-xz42KR
+  inbox:   lab note n1 - hello from the captain mid-turn
+  inbox:   firstmate will pick this up at its next check.
+  inbox: fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+# 19:04:34Z step 2: note queued while the turn runs; unread(any) now: 1
+  unread: check: captain inbox note 1792955072-xz42KR - lab note n1 - hello from the captain mid-turn
+# 19:11:20Z step 2 PASS: the Stop hook rewoke the idle primary with the queued note
+  rewake: <task-notification>
+  rewake: <summary>Stop hook feedback</summary>
+  rewake: </task-notification>
+# 19:11:20Z step 2: ledger: epoch=1 owner_pid=67165 outcome=rewake updated_at=1792955075 session_pid=44339
+  model ran: sleep 25
+  model ran: bin/fm-wake-drain.sh
+  model ran: bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 67525.1792955073.T3Zr7r
+# 19:11:31Z step 2: the handling turn drained and acknowledged the note
+--- pane (after the note was delivered and handled)
+ ▐▛███▛█   Claude Code v2.1.310
+▝▜██████▀  Haiku 5.5 with low effort · Claude Max
+ ▝▝   ▝▝   /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-labproj.Z0YeTF
+you    This is an isolated Firstmate test lab, not a real fleet. Reply with exactly READY now and use no tools. Later, whenever a "Stop hook feedback" message wakes you, do exactly this and      14:03
+       nothing else: run `bin/fm-wake-drain.sh` once with the Bash tool, then run the exact `bin/fm-wake-drain.sh --ack-through ...` command that its WAKE_ACK_REQUIRED line prints, then reply
+       with exactly ACKED. When I ask you to run one command, run exactly that command once with Bash and reply with exactly DONE. Never run bin/fm-watch-arm.sh, never run any other command,
+       and never use any other tool.
+claude READY                                                                                                                                                                                       14:03
+you    Run exactly `sleep 25` once with the Bash tool, then reply with exactly DONE.                                                                                                               14:04
+claude The sleep 25 command was blocked by the harness: it refuses standalone sleeps and suggests Monitor or a background command instead. I didn't run it, so I'm not replying DONE. Tell me if   14:04
+       you want me to try a different wait mechanism, or if you'd rather skip the sleep.
+       ○ 1 step this turn ›
+       ⇄ helper · Stop hook feedback
+claude ACKED                                                                                                                                                                                       14:04
+       ○ 2 steps this turn ›
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ╭─fm-labproj.Z0YeTF 🌱 main │ Haiku 5.5 │ ⚡ george 100% │ ✉ fm-labproj-z0yetf-54 │ 95%                                                                                 feed clean · /feed to switch
+  ╰─ /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-labproj.Z0YeTF
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 3 agents
+--- end pane
+# 19:12:16Z step 3: unread(any) after handling: 0; rewakes in the 45 s after handling: 0
+# 19:12:16Z step 3: ledger: epoch=1 owner_pid=67165 outcome=rewake updated_at=1792955075 session_pid=44339
+  inbox: queued 1792955546-UUcenc
+  inbox:   lab note n2 - queued while away
+  inbox:   firstmate will pick this up at its next check.
+  inbox: fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+# 19:12:51Z step 4: state/.afk present; rewakes since the away turn: 0; note n2 still queued: 1
+# 19:12:51Z step 4: ledger: epoch=1 owner_pid=67165 outcome=rewake updated_at=1792955075 session_pid=44339
+# 19:13:03Z step 5: away flag removed, host opt-out removed (idle host home); routine heartbeat queued mid-turn; unread(any)=2 unread(main-only)=1
+  rewake: <task-notification>
+  rewake: <summary>Stop hook feedback</summary>
+# 19:19:50Z step 5 PASS: the idle host home delivered the routine heartbeat and the note kept from the away turn
+# 19:19:50Z step 5: no supervision host was started on the idle home
+  model ran: sleep 20
+  model ran: bin/fm-wake-drain.sh
+  model ran: bin/fm-wake-drain.sh --ack-through 3 --recovery-generation 38269.1792955546.qw1NUk
+# 19:20:13Z step 5: unread(any) after handling: 0; ledger: epoch=2 owner_pid=72636 outcome=rewake updated_at=1792955605 session_pid=44339
+--- pane (final)
+ ▐▛███▛█   Claude Code v2.1.310
+▝▜██████▀  Haiku 5.5 with low effort · Claude Max
+ ▝▝   ▝▝   /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-labproj.Z0YeTF
+you    This is an isolated Firstmate test lab, not a real fleet. Reply with exactly READY now and use no tools. Later, whenever a "Stop hook feedback" message wakes you, do exactly this and      14:03
+       nothing else: run `bin/fm-wake-drain.sh` once with the Bash tool, then run the exact `bin/fm-wake-drain.sh --ack-through ...` command that its WAKE_ACK_REQUIRED line prints, then reply
+       with exactly ACKED. When I ask you to run one command, run exactly that command once with Bash and reply with exactly DONE. Never run bin/fm-watch-arm.sh, never run any other command,
+       and never use any other tool.
+claude READY                                                                                                                                                                                       14:03
+you    Run exactly `sleep 25` once with the Bash tool, then reply with exactly DONE.                                                                                                               14:04
+claude The sleep 25 command was blocked by the harness: it refuses standalone sleeps and suggests Monitor or a background command instead. I didn't run it, so I'm not replying DONE. Tell me if   14:04
+       you want me to try a different wait mechanism, or if you'd rather skip the sleep.
+       ○ 1 step this turn ›
+       ⇄ helper · Stop hook feedback
+claude ACKED                                                                                                                                                                                       14:04
+       ○ 2 steps this turn ›
+you    Run exactly `sleep 20` once with the Bash tool, then reply with exactly DONE.                                                                                                               14:12
+claude DONE                                                                                                                                                                                        14:12
+       ○ 1 step this turn ›
+you    Run exactly `sleep 20` once with the Bash tool, then reply with exactly DONE.                                                                                                               14:12
+claude DONE                                                                                                                                                                                        14:13
+       ○ 1 step this turn ›
+       ⇄ helper · Stop hook feedback
+claude ACKED                                                                                                                                                                                       14:13
+       ○ 2 steps this turn ›
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ╭─fm-labproj.Z0YeTF 🌱 main │ Haiku 5.5 │ ⚡ george 100% │ ✉ fm-labproj-z0yetf-54 │ 95%                                                                                 feed clean · /feed to switch
+  ╰─ /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-labproj.Z0YeTF
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 3 agents
+--- end pane
+# 19:20:13Z RESULT=0

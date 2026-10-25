@@ -1,0 +1,40 @@
+base tree at f96e6fa9
+=== hook:test_released_probe_row_is_delivered_with_no_need
+not ok - a released probe's queued row must be delivered when nothing else needs supervision: expected exit 2, got 0
+=== hook:test_released_probe_row_is_delivered_with_no_need rc=1
+=== hook:test_released_probe_row_is_delivered_when_need_vanishes_mid_cycle
+not ok - a probe released during the cycle must still deliver its queued row: expected exit 2, got 0
+=== hook:test_released_probe_row_is_delivered_when_need_vanishes_mid_cycle rc=1
+=== hook:test_drain_handling_marker_close_is_a_rewake
+firstmate watcher wake - one supervision event needs a handling turn now.
+signal: fixture.status
+Run bin/fm-wake-drain.sh first, handle the wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. Until that post-handling acknowledgement, interruption leaves the wake durable for idempotent re-handling. This Stop hook owns watcher continuity: when the handling turn ends, the next needed cycle arms automatically - do NOT run bin/fm-watch-arm.sh after an ordinary wake.
+firstmate watcher auto-arm FAILED - the supervision host returned an actionable wake, but its rewake could not be committed.
+=== hook:test_drain_handling_marker_close_is_a_rewake rc=1
+=== hook:test_alarm_delivers_the_close_and_the_queued_row
+not ok - an alarm must not swallow an actionable close: expected exit 2, got 0
+=== hook:test_alarm_delivers_the_close_and_the_queued_row rc=1
+=== hook:test_healthy_foreign_watcher_delivers_a_queued_row
+not ok - a healthy foreign watcher must not swallow a queued main row: expected exit 2, got 0
+=== hook:test_healthy_foreign_watcher_delivers_a_queued_row rc=1
+=== hook:test_host_passes_successor_note_through
+firstmate watcher wake - one supervision event needs a handling turn now.
+check: captain inbox note n1 - hello
+Run bin/fm-wake-drain.sh first, handle the wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. Until that post-handling acknowledgement, interruption leaves the wake durable for idempotent re-handling. This Stop hook owns watcher continuity: when the handling turn ends, the next needed cycle arms automatically - do NOT run bin/fm-watch-arm.sh after an ordinary wake.
+firstmate watcher auto-arm FAILED - the supervision host returned an actionable wake, but its rewake could not be committed.
+=== hook:test_host_passes_successor_note_through rc=1
+=== hook:test_rewake_with_handling_marker_allows_the_stop
+firstmate watcher wake - one supervision event needs a handling turn now.
+signal: fixture.status
+Run bin/fm-wake-drain.sh first, handle the wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. Until that post-handling acknowledgement, interruption leaves the wake durable for idempotent re-handling. This Stop hook owns watcher continuity: when the handling turn ends, the next needed cycle arms automatically - do NOT run bin/fm-watch-arm.sh after an ordinary wake.
+firstmate watcher auto-arm FAILED - the supervision host returned an actionable wake, but its rewake could not be committed.
+=== hook:test_rewake_with_handling_marker_allows_the_stop rc=1
+=== hook:test_plain_home_delivers_unread_rows_and_away_delivers_none
+not ok - a plain home must deliver a queued heartbeat when nothing else needs supervision: expected exit 2, got 0
+=== hook:test_plain_home_delivers_unread_rows_and_away_delivers_none rc=1
+=== watch:test_handling_successor_closes_on_a_row_newer_than_its_start
+not ok - a note newer than the successor start did not close it: 
+=== watch:test_handling_successor_closes_on_a_row_newer_than_its_start rc=1
+=== queue:test_partial_append_leaves_the_next_row_whole
+not ok - the next row joined the fragment: partial-row-without-newline1792955326	1	check	inbox:n1	check: captain inbox note n1 - hello
+=== queue:test_partial_append_leaves_the_next_row_whole rc=1

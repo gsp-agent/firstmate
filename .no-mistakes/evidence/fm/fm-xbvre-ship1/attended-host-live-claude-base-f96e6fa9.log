@@ -1,0 +1,13 @@
+=== attended-live from base f96e6fa9
+skip: control: set FM_SUPERVISION_HOST_ATTENDED_LIVE_CONTROL_REF to a pre-fix ref to run the negative control
+# 14:05:36 positive step 1: primary idle (claude pid 72014, 2.1.310 (Claude Code), model haiku); tracked Stop hook registered; config/supervision-host present; host pid 414 parked on watcher 2331; listener runner 4845; captain prompts so far: 1
+# 14:05:36 positive transcript: /Users/dalecarman/.claude-accounts/george/projects/-private-var-folders-2j-3tf17x5d7pj10gdjbp1ydpf40000gn-T-fm-sh-attended-live-m9SOBM-positive-fm/0de11690-598e-477a-ac45-826a7cb220f6.jsonl
+# 14:05:37 positive step 2: event 1 appended at 1792955137 (demo.status needs-decision)
+# 14:05:55 positive step 2: host log: 1792955154	pass-through	attended	main-only
+# 14:05:59 positive step 2: successor watcher pid 30267 alive; ledger: epoch=1 owner_pid=98110 outcome=arming updated_at=1792955124; marker: pending:downtime:2331.1792955142.uoZS1C
+# 14:06:50 positive step 2: rewake delivered at 1792955166 (Stop hook exited 2 with the banner); ledger: epoch=1 owner_pid=98110 outcome=rewake updated_at=1792955166 session_pid=72014 recovery_generation=2331.1792955142.uoZS1C
+# 14:06:50 positive step 2: primary turn ran: bin/fm-wake-drain.sh;bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 2331.1792955142.uoZS1C;
+# 14:06:58 positive step 3: turn end re-armed: 1792955218	start	gen=host-3984-1792955216; still following successor 30267
+# 14:07:01 positive step 3: event 2 appended at 1792955221
+not ok - positive: the arm following successor 30267 did not deliver its close on event 2: arm_pid=5857	watcher_pid=30267	origin=attached	started_at=1792955218	ended_at=1792955220	exit_code=unknown	signal=unknown	reason=taken-over	beacon_age=4	lock_before=pid:30267|identity:Sun Oct 25 14:05:57 2026     bash /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-sh-attended-live.m9SOBM/positive/fm/bin/fm-watch.sh	lock_after=pid:none|identity:none	successor=started:8518
+=== attended-live (base f96e6fa9) rc=1 seconds=196

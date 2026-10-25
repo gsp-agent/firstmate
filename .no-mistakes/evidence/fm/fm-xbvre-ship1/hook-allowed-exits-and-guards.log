@@ -1,0 +1,58 @@
+=== test_inert_when_fleet_idle
+ok - auto-arm: inert with nothing in flight and no X-mode need
+=== test_inert_when_fleet_idle rc=0 seconds=1
+=== test_inert_when_afk
+ok - auto-arm: inert while AFK owns supervision
+=== test_inert_when_afk rc=0 seconds=0
+=== test_stale_lock_recovery_preserves_afk_and_need_gates
+ok - auto-arm: stale-owner recovery leaves the AFK and supervision-need gates unchanged
+=== test_stale_lock_recovery_preserves_afk_and_need_gates rc=0 seconds=2
+=== test_need_vanished_mid_cycle_closes_quietly
+ok - auto-arm: need vanishing mid-cycle closes without a rewake
+=== test_need_vanished_mid_cycle_closes_quietly rc=0 seconds=1
+=== test_afk_mid_cycle_suppresses_rewake
+ok - auto-arm: mid-cycle AFK hands triage to the daemon with no rewake
+=== test_afk_mid_cycle_suppresses_rewake rc=0 seconds=1
+=== test_benign_cycle_end_with_live_watcher_is_silent
+ok - auto-arm: benign cycle end with a live watcher and fresh beacon stays silent across the next cycle
+=== test_benign_cycle_end_with_live_watcher_is_silent rc=0 seconds=2
+=== test_failed_cycles_notify_once_and_keep_retrying
+ok - auto-arm: consecutive failures keep Stop-owned retry without repeating notice
+=== test_failed_cycles_notify_once_and_keep_retrying rc=0 seconds=2
+=== test_failure_notice_marker_write_refuses_delivery_and_retries
+ok - auto-arm: marker-write refusal defers delivery until one successor commits the notice
+=== test_failure_notice_marker_write_refuses_delivery_and_retries rc=0 seconds=2
+=== test_refused_failure_notice_is_not_carried_by_a_row_delivery
+ok - auto-arm: a refused failure notice is not delivered with the unread row that follows it
+=== test_refused_failure_notice_is_not_carried_by_a_row_delivery rc=0 seconds=1
+=== test_post_alarm_actionable_close_is_delivered
+ok - auto-arm: the attended alarm suppresses a new failure notice and still delivers the close
+=== test_post_alarm_actionable_close_is_delivered rc=0 seconds=2
+=== test_banner_shows_a_queued_close_reason_once_within_the_cap
+ok - auto-arm: a queued close reason is shown once, and the banner keeps eight wake lines
+=== test_banner_shows_a_queued_close_reason_once_within_the_cap rc=0 seconds=3
+=== test_plain_arm_banner_keeps_its_wake_line_cap
+ok - auto-arm: without the host the rewake banner is unchanged, eight wake lines at most
+=== test_plain_arm_banner_keeps_its_wake_line_cap rc=0 seconds=2
+=== test_host_stand_down_is_silent
+ok - auto-arm: a host that stood down closes silently without a retry
+=== test_host_stand_down_is_silent rc=0 seconds=1
+=== test_host_handling_marker_close_is_a_rewake
+ok - auto-arm: a host close while the marker is handling is a rewake
+=== test_host_handling_marker_close_is_a_rewake rc=0 seconds=1
+=== test_actionable_close_rewakes_with_reason
+ok - auto-arm: actionable close translates to exactly one exit-2 rewake with reason
+=== test_actionable_close_rewakes_with_reason rc=0 seconds=2
+=== test_attached_cycle_end_starts_handling_successor
+ok - auto-arm: an attached cycle's end starts a handling successor named after the closed arm before the rewake
+=== test_attached_cycle_end_starts_handling_successor rc=0 seconds=2
+=== test_single_flight_admits_exactly_one_owner
+ok - auto-arm: concurrent firings admit one owner and one rewake translation
+=== test_single_flight_admits_exactly_one_owner rc=0 seconds=3
+=== test_superseded_owner_goes_silent_and_never_double_translates
+ok - auto-arm: a superseded owner goes silent - one supersession episode, one translation, no held mutex
+=== test_superseded_owner_goes_silent_and_never_double_translates rc=0 seconds=9
+=== test_long_poll_grace_reaches_arm_wrapper
+ok - auto-arm: a long FM_POLL with FM_GUARD_GRACE unset reaches fm-watch-arm.sh with the derived grace
+=== test_long_poll_grace_reaches_arm_wrapper rc=0 seconds=1
+FAILED_COUNT=0

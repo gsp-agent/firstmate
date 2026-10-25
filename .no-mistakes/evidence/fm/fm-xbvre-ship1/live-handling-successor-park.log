@@ -1,0 +1,15 @@
+# 19:13:24Z source: /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5SSRZ5A6R53FAQF1KNKY3XG; lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.2TyOw2; queue holds one main row (seq 4) before the watcher starts
+# 19:13:25Z handling successor watcher pid 76222 holds the lock: yes
+# 19:13:29Z after 4 s the watcher is still parked (the older row did not close it)
+  inbox: queued 1792955610-agKt1A
+  inbox:   live successor note n1 - hello
+  inbox:   firstmate will pick this up at its next check.
+  inbox: fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+# 19:13:31Z captain note appended: seq 5
+# 19:13:34Z watcher exited rc=0 after the newer note
+--- watcher stdout
+check: captain inbox note 1792955610-agKt1A - live successor note n1 - hello
+--- end
+# 19:13:34Z the close carries the newer note
+# 19:13:34Z the older row was not re-announced
+# 19:13:34Z RESULT=0

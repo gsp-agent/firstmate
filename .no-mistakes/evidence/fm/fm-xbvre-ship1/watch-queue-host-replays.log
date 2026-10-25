@@ -1,0 +1,28 @@
+=== watch:test_handling_successor_closes_on_a_row_newer_than_its_start
+ok - a handling successor closes on a main row newer than its start and leaves the older row
+=== watch:test_handling_successor_closes_on_a_row_newer_than_its_start rc=0 seconds=4
+=== watch:test_handling_successor_does_not_go_blind
+ok - a resurfacing handling successor stays alive and supervises instead of going blind
+=== watch:test_handling_successor_does_not_go_blind rc=0 seconds=2
+=== watch:test_unacknowledged_recovery_is_announced_once_per_generation
+ok - unacknowledged recovery is announced at most once per generation and the successor stays alive
+=== watch:test_unacknowledged_recovery_is_announced_once_per_generation rc=0 seconds=62
+=== watch:test_host_recovery_closes_on_its_oldest_branch_row
+ok - a host recovery over branch-owned rows closes on the oldest row as itself
+=== watch:test_host_recovery_closes_on_its_oldest_branch_row rc=0 seconds=3
+=== watch:test_plain_recovery_over_live_pm_rows_stays_quiet
+ok - a plain-home recovery over live-PM-owned rows stays in its poll loop
+=== watch:test_plain_recovery_over_live_pm_rows_stays_quiet rc=0 seconds=8
+=== queue:test_partial_append_leaves_the_next_row_whole
+ok - a partial row stays on its own line, and the drain retires only that fragment
+=== queue:test_partial_append_leaves_the_next_row_whole rc=0 seconds=3
+=== queue:test_complete_append_does_not_insert_a_blank_row
+ok - complete appends do not insert blank queue rows
+=== queue:test_complete_append_does_not_insert_a_blank_row rc=0 seconds=1
+=== host:test_attended_note_queued_while_the_successor_starts_reaches_main
+ok - host: a main-only note queued while the successor starts reaches main after the handled turn
+=== host:test_attended_note_queued_while_the_successor_starts_reaches_main rc=0 seconds=19
+=== host:test_claude_stop_hook_notifies_when_closed_successor_downtime_restore_fails
+ok - host+hook: a close is delivered when downtime restoration fails
+=== host:test_claude_stop_hook_notifies_when_closed_successor_downtime_restore_fails rc=0 seconds=19
+FAILED_COUNT=0

@@ -1,0 +1,7 @@
+=== test_main_only_pass_through_leaves_the_successor_watcher_running
+not ok - successor: the watcher exited after the pass-through (pid 51214)
+=== test_main_only_pass_through_leaves_the_successor_watcher_running rc=1 seconds=14
+=== test_main_only_pass_through_leaves_the_successor_watcher_running
+not ok - successor: the watcher exited after the pass-through (pid 64350)
+=== test_main_only_pass_through_leaves_the_successor_watcher_running rc=1 seconds=9
+FAILED_COUNT=2

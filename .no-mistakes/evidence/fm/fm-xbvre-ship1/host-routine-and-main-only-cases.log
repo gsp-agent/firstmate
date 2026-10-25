@@ -1,0 +1,10 @@
+=== test_attended_routine_wake_is_handled_on_the_engine_and_stays_off_main
+ok - host: an attended wake the branch may take is handled on the engine, and its routine outcome never wakes main
+=== test_attended_routine_wake_is_handled_on_the_engine_and_stays_off_main rc=0 seconds=20
+=== test_attended_main_only_close_passes_straight_to_main
+ok - host: an attended decision close stays main's exactly as the plain arm delivers it
+=== test_attended_main_only_close_passes_straight_to_main rc=0 seconds=6
+=== test_main_only_pass_through_leaves_the_successor_watcher_running
+not ok - successor: the watcher exited after the pass-through (pid 17390)
+=== test_main_only_pass_through_leaves_the_successor_watcher_running rc=1 seconds=13
+FAILED_COUNT=1

@@ -1,0 +1,6 @@
+hook exit=2 (ambient FM_ARM_CONFIRM_TIMEOUT=5 in the hook process)
+arm launches recorded by the wrapper:
+  81769 predecessor=none budget=5
+  81847 predecessor=81769 budget=30
+  82296 predecessor=none budget=5
+ok - the detached handling-successor arm launched by the hook received FM_ARM_CONFIRM_TIMEOUT=30

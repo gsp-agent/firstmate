@@ -1,0 +1,6 @@
+ambient budget lines set to 5: 1
+ok - host: a main-only note queued while the successor starts reaches main after the handled turn
+host arm launches recorded:
+  4760 args= predecessor=none budget=30
+  10400 args= predecessor=4760 budget=30
+  11780 args=--handling-delivered 4971.1792955499.AKLsxv --watcher-pid 10594 predecessor=none budget=5
