@@ -53,6 +53,19 @@
 # so the failure is loud. A live cycle already present means re-arm attaches - do
 # not start a second watcher.
 #
+# A plain arm reports to the caller it started under: its parent pid at start
+# (the harness task or the hook that waits on it), plus the harness pid recorded
+# in state/.lock at launch, when present. Once either pid is gone, nobody
+# reads its close, so each startup, successor, and attached poll ends the arm
+# with an arm-caller-gone cycle row instead of following successors for nobody;
+# an owned watcher is polled at the same interval before being waited on. The
+# liveness checks use `kill -0`, so they start no process. A covering arm
+# (FM_WATCH_COVER below) outlives its parent by design, but not its harness.
+# A parent of pid 1 at launch is already lost. A launcher with TERM ignored would
+# leave its TERM trap a silent no-op, since bash cannot trap a signal ignored at
+# entry, so the arm first re-execs itself once, under the same pid, with TERM
+# restored to its default.
+#
 # Every observed watcher cycle appends one tab-separated lifecycle record to
 # state/.watch-cycle-exits.log. The arm layer owns that bounded ledger; it records
 # arm/watcher identities, timestamps, exit/signal classification, beacon age,
@@ -118,6 +131,25 @@
 # exported by tests/lib.sh.
 set -u
 
+# TERM ignored at entry (header): a self-signal against a probe trap tells, with
+# no process started, because bash keeps an entry-ignored signal ignored. Perl
+# resets it, and exec keeps the pid every launcher recorded. One attempt only.
+_fm_arm_term_trapped=0
+trap '_fm_arm_term_trapped=1' TERM
+kill -TERM "$$" 2>/dev/null
+trap - TERM
+if [ "$_fm_arm_term_trapped" -eq 0 ]; then
+  if [ -z "${FM_ARM_TERM_RESTORED:-}" ] \
+    && _fm_arm_perl=$(command -v perl 2>/dev/null) && [ -x "$_fm_arm_perl" ]; then
+    # shellcheck disable=SC2016 # Perl, not this shell, expands the program text.
+    FM_ARM_TERM_RESTORED=1 exec "$_fm_arm_perl" -e \
+      '$SIG{TERM} = "DEFAULT"; exec { $ARGV[0] } @ARGV; exit 127' -- "$BASH" "$0" "$@"
+  fi
+  echo "watcher: FAILED - cannot restore inherited ignored TERM" >&2
+  exit 1
+fi
+unset FM_ARM_TERM_RESTORED _fm_arm_term_trapped _fm_arm_perl
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=bin/fm-gate-refuse-lib.sh
 . "$SCRIPT_DIR/fm-gate-refuse-lib.sh"
@@ -171,6 +203,13 @@ COVER_LOCK="$COVER_RECORD.lock"
 COVER=0
 [ "${FM_WATCH_COVER:-0}" != 1 ] || COVER=1
 unset FM_WATCH_COVER
+# Snapshot the original caller and session, never a later session's lock.
+ARM_CALLER_PID=$PPID
+ARM_HARNESS_PID=
+if [ -f "$STATE/.lock" ]; then
+  IFS= read -r ARM_HARNESS_PID < "$STATE/.lock" || true
+fi
+case "$ARM_HARNESS_PID" in ''|*[!0-9]*|0|1) ARM_HARNESS_PID= ;; esac
 case "$CYCLE_LOG_MAX_BYTES" in ''|*[!0-9]*|0) CYCLE_LOG_MAX_BYTES=262144 ;; esac
 case "$CYCLE_LOG_KEEP_LINES" in ''|*[!0-9]*|0) CYCLE_LOG_KEEP_LINES=1000 ;; esac
 
@@ -357,6 +396,7 @@ wait_for_healthy_successor() {
   # second cannot collapse to a few milliseconds when called near a boundary.
   deadline=$(( $(date +%s) + CONFIRM_TIMEOUT + 1 ))
   while :; do
+    exit_if_caller_gone
     healthy_watcher && return 0
     [ "$(date +%s)" -ge "$deadline" ] && return 1
     sleep 0.2
@@ -426,6 +466,7 @@ attached_holder_live() {
 attach_and_wait() {
   local attached_pid=$1 age
   while :; do
+    exit_if_caller_gone
     if healthy_watcher; then
       if [ "$HEALTHY_PID" != "$attached_pid" ] || [ "$HEALTHY_IDENTITY" != "$cycle_watcher_identity" ]; then
         cycle_log_append unknown unknown lock-replaced "attached:$HEALTHY_PID"
@@ -753,8 +794,8 @@ cleanup_child() {
 }
 
 # shellcheck disable=SC2329 # Invoked indirectly by the signal traps below.
-handle_arm_signal() {
-  local signal=$1 rc=$2
+handle_arm_signal() {  # <signal|none> <rc> [reason]
+  local signal=$1 rc=$2 reason=${3:-arm-interrupted}
   trap - HUP TERM INT
   if [ -n "$child" ] && fm_pid_alive "$child"; then
     # The watcher installs its own cleanup traps only after acquiring and
@@ -772,9 +813,26 @@ handle_arm_signal() {
     done
     wait "$child" 2>/dev/null || true
   fi
-  cycle_log_append "$rc" "$signal" arm-interrupted none
+  cycle_log_append "$rc" "$signal" "$reason" none
   cleanup_child
   exit "$rc"
+}
+
+# Close this arm the way a signal does once its caller is gone (header).
+exit_if_caller_gone() {
+  if { [ "$COVER" -eq 0 ] && { [ "$ARM_CALLER_PID" -le 1 ] \
+      || ! kill -0 "$ARM_CALLER_PID" 2>/dev/null; }; } \
+    || { [ -n "$ARM_HARNESS_PID" ] && ! kill -0 "$ARM_HARNESS_PID" 2>/dev/null; }; then
+    handle_arm_signal none 1 arm-caller-gone
+  fi
+}
+
+wait_for_owned_child() {
+  while fm_pid_alive "$child"; do
+    exit_if_caller_gone
+    sleep "$ATTACH_POLL"
+  done
+  wait "$child"
 }
 
 trap 'handle_arm_signal HUP 129' HUP
@@ -934,6 +992,7 @@ run_owned_cycle() {
   # until some other watcher legitimately holds the singleton (a startup race), or
   # until the child gives up. Only then print the honest line.
   while :; do
+    exit_if_caller_gone
     [ "$(date +%s)" -ge "$deadline" ] && break
     if healthy_watcher; then
       if [ "$HEALTHY_PID" = "$child" ]; then
@@ -967,13 +1026,13 @@ run_owned_cycle() {
         else
           echo "watcher: started pid=$child (beacon fresh)"
         fi
-        wait "$child"
+        wait_for_owned_child
         rc=$?
         owned_child_finished "$rc"
         return $?
       fi
       # Another watcher won the singleton; our child stood down.
-      wait "$child"
+      wait_for_owned_child
       rc=$?
       owned_child_finished "$rc"
       return $?

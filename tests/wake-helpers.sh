@@ -336,7 +336,7 @@ wait_for_exit() {
     i=$((i + 1))
   done
   printf 'wait_for_exit: owned pid %s exceeded %s polls; sending TERM\n' "$pid" "$limit" >&2
-  ps -p "$pid" -o pid= -o ppid= -o stat= -o command= >&2 2>/dev/null || true
+  ps -o pid=,ppid=,ucomm=,etime= -p "$pid" >&2 2>/dev/null || true
   kill -TERM "$pid" 2>/dev/null || true
   i=0
   while [ "$i" -lt 20 ] && is_live_non_zombie "$pid"; do
@@ -375,4 +375,74 @@ dead_pid() {
     p=$((p + 1))
   done
   printf '%s\n' "$p"
+}
+
+# Long-lived fixture processes need a PID registry independent of watcher locks:
+# an attachment owns no lock, and a failed test may never reach its final wait.
+# Birth times remain stable across exec and exclude reused pids during cleanup.
+fm_test_trap_process_cleanup() {  # <suite-temp-root>
+  FM_TEST_PIDS="$1/pids"
+  : > "$FM_TEST_PIDS"
+  export FM_TEST_PIDS
+  trap fm_test_cleanup_processes EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+  trap 'exit 129' HUP
+  trap 'exit 131' QUIT
+}
+
+fm_test_track_pid() {
+  local started
+  started=$(LC_ALL=C ps -o lstart= -p "$1" 2>/dev/null) || started=
+  printf '%s\t%s\n' "$1" "$started" >> "$FM_TEST_PIDS"
+}
+
+fm_test_tracked_pid_alive() {
+  kill -0 "$1" 2>/dev/null && [ "$(LC_ALL=C ps -o lstart= -p "$1" 2>/dev/null)" = "$2" ]
+}
+
+fm_test_track_descendants() {
+  local child_pid
+  for child_pid in $(pgrep -P "$1" 2>/dev/null); do
+    fm_test_track_pid "$child_pid"
+    fm_test_track_descendants "$child_pid"
+  done
+}
+
+fm_test_stop_processes() {
+  local pid started i
+  [ -f "$FM_TEST_PIDS" ] || return 0
+  # Snapshot descendants before stopping parents, including owned watchers and
+  # their in-flight helpers. Only these recorded fixture pids are signalled.
+  cp "$FM_TEST_PIDS" "$FM_TEST_PIDS.parents"
+  while IFS=$'\t' read -r pid started; do
+    fm_test_tracked_pid_alive "$pid" "$started" && fm_test_track_descendants "$pid"
+  done < "$FM_TEST_PIDS.parents"
+  while IFS=$'\t' read -r pid started; do
+    fm_test_tracked_pid_alive "$pid" "$started" && kill -TERM "$pid" 2>/dev/null || true
+  done < "$FM_TEST_PIDS"
+  i=0
+  while [ "$i" -lt 20 ]; do
+    local alive=0
+    while IFS=$'\t' read -r pid started; do
+      fm_test_tracked_pid_alive "$pid" "$started" && is_live_non_zombie "$pid" && alive=1
+    done < "$FM_TEST_PIDS"
+    [ "$alive" -eq 1 ] || break
+    sleep 0.1
+    i=$((i + 1))
+  done
+  while IFS=$'\t' read -r pid started; do
+    # A reused pid may be another live child recorded later in this file. Do
+    # not wait for it under a stale row before its own KILL fallback is reached.
+    if fm_test_tracked_pid_alive "$pid" "$started"; then
+      kill -KILL "$pid" 2>/dev/null || true
+      wait "$pid" 2>/dev/null || true
+    fi
+  done < "$FM_TEST_PIDS"
+  : > "$FM_TEST_PIDS"
+}
+
+fm_test_cleanup_processes() {
+  fm_test_stop_processes
+  fm_test_cleanup
 }

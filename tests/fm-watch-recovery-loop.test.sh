@@ -8,7 +8,13 @@ set -u
 
 WATCH="$ROOT/bin/fm-watch.sh"
 TMP_ROOT=$(fm_test_tmproot fm-watch-recovery-loop)
+fm_test_trap_process_cleanup "$TMP_ROOT"
 export NODE_NO_WARNINGS=1
+
+run_case() {
+  "$@"
+  fm_test_stop_processes
+}
 
 install_pi_watch_extension_fixture() {
   local repo=$1
@@ -65,11 +71,12 @@ JS
 # RPC forced to fail. After the first recovery follow-up, wait past the old
 # ~52s loop period so a regression would emit a second follow-up.
 test_unacknowledged_recovery_is_announced_once_per_generation() {
-  local repo home plugin fakebin out status lock_pid messages
+  local repo home plugin fakebin out status lock_pid messages node_pid
   repo="$TMP_ROOT/t1-root"
   home="$TMP_ROOT/t1-home"
   fakebin="$TMP_ROOT/t1-fakebin"
   mkdir -p "$repo/bin" "$home/state" "$home/config" "$fakebin"
+  fm_test_track_watcher_state "$home/state"
   install_pi_watch_extension_fixture "$repo"
   plugin="$repo/.pi/extensions/fm-primary-pi-watch.ts"
   cat > "$fakebin/tmux" <<'SH'
@@ -82,6 +89,7 @@ SH
 if [ "\${1:-}" = --handling-delivered ]; then
   exit 1
 fi
+printf '%s\t%s\n' "\$\$" "\$(LC_ALL=C ps -o lstart= -p "\$\$")" >> "\$FM_TEST_PIDS"
 export FM_ROOT_OVERRIDE="$ROOT"
 export PATH="$fakebin:\$PATH"
 exec "$ROOT/bin/fm-watch-arm.sh" "\$@"
@@ -91,11 +99,14 @@ SH
   printf 'pending:downtime:seed.1.aaa\n' > "$home/state/.watcher-down"
   chmod 600 "$home/state/.watcher-down"
   printf '%s\t1\tcheck\tseed\tcheck: seed recovery\n' "$(date +%s)" > "$home/state/.wake-queue"
-  out=$(
-    PLUGIN="$plugin" FM_HOME="$home" FM_ROOT_OVERRIDE="$repo" \
+  # This exercises recovery delivery, not the startup deadline. Keep the Pi
+  # readiness bound above the arm's while loaded hosts schedule startup helpers.
+  PLUGIN="$plugin" FM_HOME="$home" FM_ROOT_OVERRIDE="$repo" \
       FM_STATE_OVERRIDE="$home/state" PATH="$fakebin:$PATH" \
       FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 \
-      node --input-type=module 2>&1 <<'EOF'
+      FM_ARM_CONFIRM_TIMEOUT=60 FM_PI_ARM_READY_TIMEOUT_MS=65000 \
+      FM_WATCH_EXTENSION_LOG_KEEP_LINES=100 \
+      node --input-type=module > "$home/node.out" 2>&1 <<'EOF' &
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
@@ -115,10 +126,11 @@ writeFileSync(`${process.env.FM_HOME}/state/.lock`, `${process.pid}\n`);
 const mod = await import(pathToFileURL(process.env.PLUGIN).href);
 mod.default(pi);
 if (!tool) throw new Error("Pi watch tool was not registered");
-await tool.execute("tool-call-t1", {}, undefined, undefined, {});
-const deadline = Date.now() + 75000;
+const armed = await tool.execute("tool-call-t1", {}, undefined, undefined, {});
+if (!armed.details.ok) throw new Error(`Pi did not arm: ${armed.details.message}`);
+const deadline = Date.now() + 150000;
 let firstAt = 0;
-while (Date.now() < deadline) {
+while (firstAt ? Date.now() - firstAt < 55000 : Date.now() < deadline) {
   const rearm = prompts.filter((message) => message.includes("check: rearm-resurface"));
   if (rearm.length > 1) {
     throw new Error(`unbounded recovery loop: ${rearm.length} rearm-resurface follow-ups`);
@@ -129,7 +141,10 @@ while (Date.now() < deadline) {
 }
 const rearm = prompts.filter((message) => message.includes("check: rearm-resurface"));
 if (rearm.length !== 1) {
-  throw new Error(`expected exactly one recovery follow-up, got ${rearm.length}: ${prompts.join(" || ")}`);
+  const evidence = [".watch-extension.log", ".watch-cycle-exits.log", ".watcher-down", ".wake-queue"]
+    .map((name) => `${name}: ${existsSync(`${process.env.FM_HOME}/state/${name}`) ? readFileSync(`${process.env.FM_HOME}/state/${name}`, "utf8") : "absent"}`)
+    .join("\n");
+  throw new Error(`expected exactly one recovery follow-up, got ${rearm.length}: ${prompts.join(" || ")}\n${evidence}`);
 }
 const lockPid = existsSync(`${process.env.FM_HOME}/state/.watch.lock/pid`)
   ? readFileSync(`${process.env.FM_HOME}/state/.watch.lock/pid`, "utf8").trim()
@@ -149,8 +164,11 @@ console.log(`T1_LOCK_PID=${lockPid}`);
 console.log(`T1_MARKER=${marker}`);
 process.exit(0);
 EOF
-  )
-  status=$?
+  node_pid=$!
+  fm_test_track_pid "$node_pid"
+  status=0
+  wait "$node_pid" || status=$?
+  out=$(cat "$home/node.out")
   if [ "${FM_TEST_EVIDENCE:-0}" = 1 ]; then
     printf '%s\n' "$out"
   fi
@@ -183,6 +201,7 @@ test_handling_successor_does_not_go_blind() {
     FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=600 \
     FM_WATCH_HANDLING_SUCCESSOR=1 "$WATCH" > "$out" 2>&1 &
   child=$!
+  fm_test_track_pid "$!"
   now=0
   while [ "$now" -lt 40 ]; do
     [ "$(cat "$state/.watch.lock/pid" 2>/dev/null || true)" = "$child" ] && break
@@ -195,7 +214,9 @@ test_handling_successor_does_not_go_blind() {
   printf 'done: crew finished its task\n' >> "$state/crew.status"
   event_start=$(date +%s)
   now=0
-  while [ "$now" -lt 20 ]; do
+  # The assertion is a real crew wake, never the old synthetic recovery exit.
+  # Allow startup's short-lived helpers headroom on a contended host.
+  while [ "$now" -lt 120 ]; do
     if grep -q '^signal:' "$out" 2>/dev/null; then
       break
     fi
@@ -214,6 +235,7 @@ test_handling_successor_does_not_go_blind() {
   ! grep -F 'check: rearm-resurface' "$out" >/dev/null \
     || { kill -TERM "$child" 2>/dev/null || true; fail "handling successor emitted synthetic recovery instead of supervising: $(cat "$out")"; }
   if [ "${FM_TEST_EVIDENCE:-0}" = 1 ]; then
+    printf 'T2_ELAPSED_SECONDS=%s\n' "$(( $(date +%s) - event_start ))"
     printf 'T2_WATCH_OUTPUT=%s\n' "$(tr '\n' ' ' < "$out")"
     printf 'T2_QUEUE_ROW=%s\n' "$(grep "$(printf '\tsignal\tcrew.status\t')" "$state/.wake-queue" | tail -1)"
   fi
@@ -247,6 +269,7 @@ test_host_recovery_closes_on_its_oldest_branch_row() {
     FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=600 \
     FM_DAEMON_OWNS_SUPERVISION='' "$WATCH" > "$out" 2>&1 &
   child=$!
+  fm_test_track_pid "$!"
   now=0
   while [ "$now" -lt 40 ] && kill -0 "$child" 2>/dev/null; do
     sleep 0.5
@@ -288,6 +311,7 @@ test_plain_recovery_over_live_pm_rows_stays_quiet() {
     FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=600 \
     FM_DAEMON_OWNS_SUPERVISION='' "$WATCH" > "$out" 2>&1 &
   child=$!
+  fm_test_track_pid "$!"
   now=0
   while [ "$now" -lt 10 ] && kill -0 "$child" 2>/dev/null; do
     sleep 0.5
@@ -326,6 +350,7 @@ test_host_recovery_with_failed_output_retries_the_close() {
       FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=600 \
       FM_DAEMON_OWNS_SUPERVISION='' exec "$WATCH" ) > "$dir/watch.fifo" 2> "$dir/watch.err" &
   child=$!
+  fm_test_track_pid "$!"
   # Unblock the writer's open, then leave it no reader: its wake write fails.
   exec 9< "$dir/watch.fifo"
   exec 9<&-
@@ -351,6 +376,7 @@ test_host_recovery_with_failed_output_retries_the_close() {
     FM_WATCH_FOREGROUND_CHECKPOINT=1 \
     FM_DAEMON_OWNS_SUPERVISION='' "$WATCH" > "$out" 2>&1 &
   child=$!
+  fm_test_track_pid "$!"
   now=0
   while [ "$now" -lt 40 ] && kill -0 "$child" 2>/dev/null; do
     sleep 0.5
@@ -369,8 +395,8 @@ test_host_recovery_with_failed_output_retries_the_close() {
   pass "a host recovery whose wake could not be written retries the close"
 }
 
-test_handling_successor_does_not_go_blind
-test_unacknowledged_recovery_is_announced_once_per_generation
-test_host_recovery_closes_on_its_oldest_branch_row
-test_plain_recovery_over_live_pm_rows_stays_quiet
-test_host_recovery_with_failed_output_retries_the_close
+run_case test_handling_successor_does_not_go_blind
+run_case test_unacknowledged_recovery_is_announced_once_per_generation
+run_case test_host_recovery_closes_on_its_oldest_branch_row
+run_case test_plain_recovery_over_live_pm_rows_stays_quiet
+run_case test_host_recovery_with_failed_output_retries_the_close
