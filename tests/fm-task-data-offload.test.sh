@@ -151,8 +151,10 @@ def run(home, action, *, fault="", ok=True):
     return (stdout if action == "expire" else json.loads(stdout)) if rc == 0 else stderr
 
 def tree(home):
-    return sorted((str(path.relative_to(home)), path.stat().st_size, path.stat().st_mtime_ns)
-                  for directory in (home / "data", home / "state") for path in directory.rglob("*") if path.is_file())
+    return sorted((str(path.relative_to(home)), "directory" if path.is_dir() else "file",
+                   None if path.is_dir() else path.stat().st_size,
+                   None if path.is_dir() else path.stat().st_mtime_ns)
+                  for directory in (home / "data", home / "state") for path in directory.rglob("*"))
 
 home = fixture("closed")
 before = tree(home)
@@ -249,7 +251,9 @@ with (home / "data/backlog.md").open("a") as stream:
     stream.write("  A work note mentions [build](build/).\n")
 plan = run(home, "offload-plan")
 assert plan["moves"] == [], "incidental brief, log or backlog path mentions must not authorize offload"
+original = tree(home)
 assert run(home, "offload")["offloaded"] == []
+assert tree(home) == original, "a no-candidate offload must not create task directories"
 assert (home / "data/task-one/build/evidence.bin").read_bytes() == b"original-evidence" * 256
 assert not (home / "calls").exists()
 print("PASS: brief-only, log-only and backlog-prose-only path mentions do not authorize offload", flush=True)

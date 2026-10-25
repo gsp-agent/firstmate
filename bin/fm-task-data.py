@@ -1359,8 +1359,9 @@ def offload(data, state, task_id):
     data, state, rows, locations, cache = offload_context(data, state)
     offload_closed(data, state, task_id, rows)
     root = real_directory(data / task_id)
-    safe_directory(root, Path("record"))
     record_path = root / OFFLOAD_RECORD
+    if record_path.parent.is_symlink() or (record_path.parent.exists() and not record_path.parent.is_dir()):
+        raise ValueError("unsafe offload record directory")
     if record_path.exists() or record_path.is_symlink():
         if record_path.is_symlink() or record_path.stat().st_size > LIMIT or record_path.stat().st_nlink != 1:
             raise ValueError("unsafe offload record")
@@ -1411,6 +1412,7 @@ def offload(data, state, task_id):
             if offload_manifest(source) != expected:
                 raise ValueError("local evidence changed after copy; original retained")
             record["entries"][relative] = pointer
+            safe_directory(root, Path("record"))
             offload_write(record_path, record)
             guard_command(["trash", "-s", str(source)])
             if source.exists() or source.is_symlink():
