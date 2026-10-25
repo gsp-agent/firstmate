@@ -128,3 +128,5 @@ pr: 141
 # Failing-first on d6b8de4d: tests/fm-watch-arm.test.sh's harness-less covering arm survives caller death, and tests/fm-claude-stop-autoarm.test.sh's non-home hook creates state before checking scope; both regressions pass after the fix.
 # Full serial runs pass 46 watch-arm and 61 autoarm cases, preserving coverage under a live harness; post-file pgrep plus cwd audits find zero worktree/test-folder arms and no unresolved cwd.
 pr: 143
+# Failing-first short-ID status resolution in tests/fm-teardown.test.sh (bead-resolution): expanded IDs fail before the fix; exact and expanded IDs pass afterward while unrelated, wrong-prefix, wrong-suffix, wrong-owner and multiple rows refuse.
+pr: 142
