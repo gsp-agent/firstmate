@@ -37,9 +37,12 @@
 # and COMMENTED reviews at that head, the last must be APPROVED, and any
 # CHANGES_REQUESTED in that set vetoes the head even if an approval follows.
 # An APPROVED review whose commit_id equals the head but which was submitted
-# earlier than that is refused by name: the review id, submitted_at, and the
-# head commit's committer time. An unreadable review read or an unreadable
-# head commit time refuses the merge.
+# earlier than that is a moved approval. Moved approvals are refused by name,
+# each with its review id, submitted_at, and the head commit's committer time,
+# only when a moved approval is that reviewer's latest review at the head:
+# none of their APPROVED, CHANGES_REQUESTED or COMMENTED reviews counts at
+# the head. Otherwise the generic "no approval ... at head" refusal prints.
+# An unreadable review read or an unreadable head commit time refuses the merge.
 # The check rollup is a second read, and only after the cheap fields show the
 # pull request is open, not a draft, and otherwise mergeable. A closed, draft,
 # conflicting, or still-UNKNOWN pull request never requests that rollup.
