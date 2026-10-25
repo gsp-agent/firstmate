@@ -102,3 +102,6 @@ pr: 124
 pr: 125
 # Failing-first parsed YAML regression in tests/fm-nm-test-contract.test.sh: test_nm_pins_gate_to_claude_then_codex fails on e0288d6e's [codex] pin and passes once the trusted list is [claude, codex] with disable_project_settings still true.
 pr: 128
+
+pending-pr: ac-81byo.2
+# tests/fm-pm-live.test.sh fails first on 41a0d972: a dead worker was acknowledged as owning live verification.

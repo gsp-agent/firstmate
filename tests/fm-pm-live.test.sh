@@ -306,6 +306,13 @@ test_merge_without_live_owner_blocks_the_pm() {
     FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$url" poll \
       || fail "replacement owner could not receive the handoff"
     assert_pm_handoff "$state" "$url" replacement
+    printf '%s\n' "$verdict" > "$state/demo.agent-state"
+    if FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$url" poll 2>/dev/null; then
+      fail "an existing marker hid the replacement owner's lost liveness"
+    fi
+    line=$(tail -n 1 "$state/demo.status")
+    [ "$(status_line_verb "$line")" = blocked ] || fail "existing marker suppressed the owner block"
+    assert_contains "$line" "spawn_gen=replacement" "owner block used a stale generation"
   done
   pass "a gone or unproven worker blocks its live PM with a recovery command and remains retryable"
 }

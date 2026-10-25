@@ -35,6 +35,9 @@ _FM_MERGE_OUTCOME_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=bin/fm-parent-channel-lib.sh
 . "$_FM_MERGE_OUTCOME_LIB_DIR/fm-parent-channel-lib.sh"
 
+# shellcheck source=bin/fm-backend.sh
+. "$_FM_MERGE_OUTCOME_LIB_DIR/fm-backend.sh"
+
 # shellcheck disable=SC2034 # Public result consumed by sourcing callers.
 FM_MERGE_OUTCOME_ALREADY_RECORDED=false
 
@@ -51,6 +54,7 @@ FM_MERGE_OUTCOME_ALREADY_RECORDED=false
 # event, because nothing binds the merge to this task.
 fm_merge_outcome_pm_handoff() {  # <state> <task-id> <canonical-pr-url> [data-dir]
   local state=$1 id=$2 url=$3 data=${4-} meta lock generation line archive rc=0
+  local backend target owner_state
   meta="$state/$id.meta"
   lock=$(fm_meta_lock_path "$meta") || return 1
   fm_lock_acquire_wait "$lock" || return 1
@@ -73,7 +77,21 @@ fm_merge_outcome_pm_handoff() {  # <state> <task-id> <canonical-pr-url> [data-di
     rc=1
   else
     generation=${FM_BACKLOG_META_SPAWN_GEN:-legacy}
-    line="note [key=merged-$id]: merged $id $url spawn_gen=$generation; activation and live verification pending with the existing owner"
+    backend=$(fm_backend_of_meta "$meta")
+    target=$(fm_backend_target_of_meta "$meta") || target=
+    owner_state=unreadable
+    if [ -n "$target" ]; then
+      owner_state=$(fm_backend_agent_state "$backend" "$target") || owner_state=unreadable
+    fi
+    if [ "$owner_state" = alive ]; then
+      line="note [key=merged-$id]: merged $id $url spawn_gen=$generation; activation and live verification pending with the existing owner"
+    else
+      # Relaunch takes the metadata lock itself and cannot bind an expected
+      # generation. Keep the identity lock and let the live PM drive recovery.
+      line="blocked [key=merged-owner-$id]: merged $id $url spawn_gen=$generation; worker liveness is $owner_state, so activation and live verification have no confirmed live owner; inspect the worker and recover with bin/fm-control.sh $id relaunch --note 'Merged $url; activation and live verification remain pending'"
+      printf 'error: merge handoff for %s refused: worker liveness is %s; its live PM was told on %s\n' "$id" "$owner_state" "$state/$id.status" >&2
+      rc=1
+    fi
     fm_parent_channel_append_once "$state/$id.status" "$(status_stamp_line "$line")" || rc=1
   fi
   fm_lock_release "$lock" || rc=1
