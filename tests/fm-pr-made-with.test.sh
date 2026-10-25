@@ -341,6 +341,10 @@ test_registration_without_bead_keeps_generic_behavior() {
   FM_TEST_BEAD_RC=3 register_pr > "$CASE/out" 2>&1 || fail 'a task without a bead could not register'
   cmp -s "$CASE/body" "$CASE/original" || fail 'a missing bead was inferred from the task id'
   [ -e "$CASE/home/state/obs-example.check.sh" ] || fail 'a task without a bead did not arm its poll'
+  new_registration absent-database
+  mv "$CASE/user/dev/agent-observer/.beads/beads.db" "$CASE/user/dev/agent-observer/.beads/unavailable.db"
+  register_pr > "$CASE/out" 2>&1 || fail 'an absent database changed generic registration'
+  cmp -s "$CASE/body" "$CASE/original" || fail 'an absent database manufactured a bead line'
   new_registration unavailable-bead
   if FM_TEST_BEAD_RC=1 register_pr > "$CASE/out" 2>&1; then fail 'an unavailable owning database allowed registration'; fi
   assert_not_registered
