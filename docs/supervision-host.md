@@ -237,7 +237,9 @@ The same handover covers captain outcomes, engine failures, returns and the park
 Whenever a successor generation was recorded (confirmed or not), the host explicitly republishes downtime for that generation.
 That publication is required even when the successor already exited, because no watcher cleanup remains to make the close deliverable to the arm owner.
 If that publication fails, the hand-back adds a `supervision-host: watcher downtime could not be restored` line and the host exits nonzero.
-On Claude, a Stop hook whose rewake is refused while the recovery marker is still `pending:handling` or `announced:handling` commits the auto-arm failure notice once per failure episode (`failed-suppressed` after that) and still exits 2, so the hand-back reaches main even when its successor is healthy; every other refused rewake stays silent as before.
+On Claude, the Stop hook commits a hand-back's rewake on the session and generation, whatever the recovery marker reads, so the hand-back reaches main with exit 2 even when its successor is healthy.
+When that commit is refused while the marker reads `pending:handling` or `announced:handling`, the hook commits the auto-arm failure notice once per failure episode (`failed-suppressed` after that) and still exits 2.
+A refused commit prints nothing; the hook then delivers an unread wake-queue row with exit 2 when one remains, and otherwise exits 0.
 The wake stays durable in the queue while the successor covers main's turn.
 
 ### Paths that hand the wake back

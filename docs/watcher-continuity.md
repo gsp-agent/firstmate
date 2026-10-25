@@ -105,7 +105,7 @@ That verdict accepts either of two cases:
 
 With that verdict, a background session keeps arming after its transient helper chain is recycled.
 [`turnend-guard.md`](turnend-guard.md#guard-predicates) owns the Claude guard's behavior when that live owner is genuinely another session.
-The stale-owner claim occurs only after the existing AFK and supervision-need gates pass.
+The stale-owner claim occurs only after the existing AFK gate and the admission above (supervision need or an unread row) pass.
 
 ### Claude arm failures
 
@@ -115,7 +115,7 @@ The hook reads the [watcher beacon](turnend-guard.md#guard-grace-and-the-poll-ca
 - A cycle-end failure is benign when that live-watcher predicate is true.
   In that case the hook suppresses the arm output and continues silently.
 - Only an exhausted failure with no verified watcher commits one last-resort notice for the continuous failure episode.
-- A refused notice commit stays silent for a later retry.
+- A refused notice commit prints nothing and is retried later; an unread wake-queue row is still delivered with exit 2.
 - After a successful notice, later Stop cycles exit 2 without repeating it until the turn-end guard consumes the attended fail-open.
 
 The Claude turn-end guard owns that notice commit contract, the monotonic failure progression, one-time attended fail-open, post-alarm continuation suppression, and positive recovery reset described in [`turnend-guard.md`](turnend-guard.md#harness-integrations).

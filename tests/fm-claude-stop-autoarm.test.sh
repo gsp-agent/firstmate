@@ -2130,9 +2130,10 @@ test_plain_home_delivers_unread_rows_and_away_delivers_none() {
   pass "auto-arm: a plain home delivers every unread row, and the away record delivers none"
 }
 
-# The queue lock is held past the admission probe's wait, so the probe admits
-# this idle home. The only row was already shown to main, so nothing is
-# delivered and nothing is armed.
+# The queue lock is held until the hook's own generation claim reads arming,
+# so the admission probe cannot read the queue and admits this idle home. The
+# only row was already shown to main, so after the claim nothing is delivered
+# and nothing is armed.
 test_idle_home_admitted_for_a_shown_row_arms_nothing() {
   local dir out status holder seq i
   dir=$(make_primary_dir "$TMP_ROOT/idle-shown-row")
@@ -2145,21 +2146,37 @@ test_idle_home_admitted_for_a_shown_row_arms_nothing() {
     . "$1"
     fm_lock_acquire_wait "$2" || exit 1
     : > "$3"
-    sleep 3
+    i=0
+    while [ "$i" -lt 600 ]; do
+      case "$(sed -n 1p "$4" 2>/dev/null)" in
+        *" outcome=arming "*) : > "$5"; break ;;
+      esac
+      sleep 0.05
+      i=$((i + 1))
+    done
     fm_lock_release "$2"
-  ' _ "$dir/bin/fm-wake-lib.sh" "$dir/state/.wake-queue.lock" "$dir/lock-held" &
+  ' _ "$dir/bin/fm-wake-lib.sh" "$dir/state/.wake-queue.lock" "$dir/lock-held" \
+    "$dir/state/.claude-autoarm-epoch" "$dir/claim-seen" &
   holder=$!
   i=0
   while [ ! -e "$dir/lock-held" ] && [ "$i" -lt 100 ]; do
     sleep 0.05
     i=$((i + 1))
   done
-  [ -e "$dir/lock-held" ] || fail "fixture: the queue lock was never held"
+  if [ ! -e "$dir/lock-held" ]; then
+    kill "$holder" 2>/dev/null || true
+    wait "$holder" 2>/dev/null || true
+    fail "fixture: the queue lock was never held"
+  fi
   out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+  kill "$holder" 2>/dev/null || true
   wait "$holder" 2>/dev/null || true
+  assert_present "$dir/claim-seen" "the hook did not claim a generation while the queue lock was held"
   expect_code 0 "$status" "an idle home whose only row was already shown must close quietly"
   [ -z "$out" ] || fail "an idle home with only a shown row woke main: $out"
   assert_absent "$dir/state/arm-ran" "an idle home admitted for a shown row armed the watcher"
+  [ "$(epoch_outcome "$dir")" = clean ] \
+    || fail "the claimed generation must close as clean, got: $(epoch_outcome "$dir")"
   pass "auto-arm: an idle home admitted for a row main was already shown arms nothing"
 }
 

@@ -365,7 +365,8 @@ An owned terminal commit therefore decides the exit:
 - Markerless outcomes commit with the ledger write.
 - The once-per-episode failure notice commits only when its marker is created after the winning failed write in the same critical section.
 
-A generation whose required marker cannot be created is refused and exits 0 silently even after printing.
+A generation whose required marker cannot be created is refused and prints nothing, because a banner or notice is printed only after its own commit wins.
+It still delivers an unread wake-queue row with exit 2 when one remains, and otherwise exits 0.
 Its terminal ledger entry is superseded by a later firing, which retries the notice.
 
 #### Why the claim boundaries exist
@@ -577,7 +578,7 @@ It proves that a live foreign owner still prevents arming while repeated non-own
 `tests/fm-guard-stale-banner.test.sh` covers the pull-guard predicate for each supervision model:
 
 - The persistent model's fresh-leftover-beacon negative control.
-- The auto-arm model's healthy fresh-beacon-without-a-watcher case, session-and-recovery-bound long-turn rewake tolerance, independently broken tolerance signals, open-claim negative control, stale-beacon alarm, and isolation from other models.
+- The auto-arm model's healthy fresh-beacon-without-a-watcher case, session-and-generation-bound long-turn rewake tolerance, independently broken tolerance signals, open-claim negative control, stale-beacon alarm, and isolation from other models.
 - The extension model's live-watcher path, ownership-qualified fresh hand-off, held-lock failures, independently broken ownership signals, stale-beacon alarm, queued-wake warning, and Pi and pi-signed harness routing.
 
 It also covers true-reason banner wording and reason-keyed episode dedup surviving a beacon mtime change.
