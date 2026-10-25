@@ -1,0 +1,12 @@
+bash 3.2.57(1)-release, load { 97.04 82.18 85.47 }
+wait: sleep 3 under 1s CPU bound finishes                  rc=0   want=0    4s  out=  PASS
+burn: busy loop under 1s CPU bound reports 124             rc=124 want=124 32s  out=  PASS
+burn ignoring SIGXCPU, probe wall 30s (124 = probe, not CPU bound, stopped it) rc=124 want=124 30s  out=  PASS
+own exit status 7 and output preserved                     rc=7   want=7    0s  out=kept  PASS
+bound 0 refused, nothing runs                              rc=125 want=125  0s  out=fm_run_cpu_timed: seconds must be a positive integer  PASS
+bound "1.5" refused                                        rc=125 want=125  0s  out=fm_run_cpu_timed: seconds must be a positive integer  PASS
+bound "-1" refused                                         rc=125 want=125  1s  out=fm_run_cpu_timed: seconds must be a positive integer  PASS
+missing command refused                                    rc=125 want=125  0s  out=fm_run_cpu_timed: missing command  PASS
+child burn passed up by the command (exit $?) reports 124  rc=124 want=124 18s  out=/bin/bash: line 1: 75317 Cputime limit exceeded: 24  /bin/ba  PASS
+/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5SW87YP0RGKBE86WKN1RSHF/bin/fm-timeout-lib.sh: line 304: 90925 Cputime limit exceeded: 24  bash -c 'ulimit -t "$1" >/dev/null || exit 125; shift; exec "$@"' fm-cpu-timed "$seconds" "$@"
+fm_timed_out recognises rc=124 from the CPU bound: PASS

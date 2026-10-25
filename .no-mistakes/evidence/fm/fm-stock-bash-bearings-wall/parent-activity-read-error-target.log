@@ -1,0 +1,10 @@
+bash=3.2.57(1)-release resolved=/bin/bash tree=/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5SW87YP0RGKBE86WKN1RSHF
+load at start: { 120.58 98.94 91.68 }
+{
+  "available": false,
+  "reasons": [
+    "read_failed"
+  ]
+}
+  -> scenario_parent_activity_read_error_stays_read_failed rc=0 14s (load { 124.86 101.29 92.69 })
+failed=0 of 1

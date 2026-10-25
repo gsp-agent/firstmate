@@ -1,0 +1,11 @@
+bash=3.2.57(1)-release load={ 132.48 147.47 153.56 }
+wait 3s under 1s CPU bound                   rc=0 wall=3.4s out=inner_rc=0
+burn under 1s CPU bound                      rc=0 wall=8.3s out=/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5SW87YP0RGKBE86WKN1RSHF/bin/fm-timeout-lib.sh: line 309:  7283 Cputime limit exceeded: 24  perl -e '$SIG{XCPU} = "DEFAULT"; exec @ARGV; exit 127' bash -c 'ulimit -t "$1" >/dev/null || exit 125; shift; exec "$@"' fm-cpu-timed "$seconds" "$@" inner_rc=124
+burn, launcher ignores SIGXCPU               rc=0 wall=6.9s out=/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5SW87YP0RGKBE86WKN1RSHF/bin/fm-timeout-lib.sh: line 309: 35493 Cputime limit exceeded: 24  perl -e '$SIG{XCPU} = "DEFAULT"; exec @ARGV; exit 127' bash -c 'ulimit -t "$1" >/dev/null || exit 125; shift; exec "$@"' fm-cpu-timed "$seconds" "$@" inner_rc=124
+child sees SIGXCPU disposition (ignored launcher) rc=0 wall=0.6s out=DEFAULTinner_rc=0
+real status 7 and output pass through        rc=0 wall=0.4s out=kept inner_rc=7
+bound 0 refused                              rc=0 wall=0.3s out=fm_run_cpu_timed: seconds must be a positive integer inner_rc=125
+bound abc refused                            rc=0 wall=0.5s out=fm_run_cpu_timed: seconds must be a positive integer inner_rc=125
+missing command refused                      rc=0 wall=0.4s out=fm_run_cpu_timed: missing command inner_rc=125
+no perl on PATH: runs nothing                rc=0 wall=0.4s out=/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5SW87YP0RGKBE86WKN1RSHF/bin/fm-timeout-lib.sh: line 322: perl: command not found inner_rc=127
+fm_timed_out accepts 124                     rc=0 wall=0.2s out=yes

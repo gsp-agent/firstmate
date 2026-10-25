@@ -1,0 +1,761 @@
+bash=3.2.57(1)-release resolved=/bin/bash tree=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-base-tree.si7hvf
+load at start: { 190.60 125.83 103.91 }
+not ok - a waiting parent-activity read exhausted a 1s budget: {
+  "schema": "fm-fleet-snapshot.v1",
+  "generated": "2026-07-11T18:00:00Z",
+  "fm_home": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/activity-cpu-budget",
+  "roots": {
+    "fm_root": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/fixture-root",
+    "state": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/activity-cpu-budget/state",
+    "data": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/activity-cpu-budget/data",
+    "config": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/activity-cpu-budget/config",
+    "projects": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/activity-cpu-budget/projects"
+  },
+  "backlog": {
+    "path": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/activity-cpu-budget/data/backlog.md",
+    "present": false,
+    "records": []
+  },
+  "tasks": [
+    {
+      "id": "domain-alpha",
+      "kind": "secondmate",
+      "harness": "echo",
+      "mode": "secondmate",
+      "yolo": "off",
+      "branch": null,
+      "project": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/activity-cpu-budget-home",
+      "spawn_gen": null,
+      "backend": "tmux",
+      "remote": null,
+      "paths": {
+        "meta": {
+          "path": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/activity-cpu-budget/state/domain-alpha.meta",
+          "present": true
+        },
+        "status_log": {
+          "path": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/activity-cpu-budget/state/domain-alpha.status",
+          "present": true,
+          "kind": "event_history",
+          "last_event": {
+            "state": "working",
+            "note": "Phase 7 started",
+            "raw": "working [key=phase7]: Phase 7 started",
+            "age_seconds": null
+          }
+        },
+        "worktree": {
+          "path": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/activity-cpu-budget-home",
+          "present": true
+        },
+        "home": {
+          "path": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/activity-cpu-budget-home",
+          "present": true
+        },
+        "report": {
+          "path": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/activity-cpu-budget/data/domain-alpha/report.md",
+          "present": false
+        }
+      },
+      "secondmate_projects": [
+        "sample"
+      ],
+      "current_state": {
+        "state": "working",
+        "source": "status-log",
+        "detail": "Phase 7 started",
+        "raw": "state: working · source: status-log · Phase 7 started",
+        "observed_at": "2026-07-11T18:00:00Z",
+        "freshness": "fresh"
+      },
+      "endpoint": {
+        "target": "firstmate:fm-domain-alpha",
+        "exists": true,
+        "agent_alive": "dead",
+        "status": "dead",
+        "observed_at": "2026-07-11T18:00:00Z",
+        "freshness": "fresh"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent",
+        "head": null
+      },
+      "hints": {
+        "pending_decision": false,
+        "blocked_event": false,
+        "open_decisions": [],
+        "scout_report_present": false,
+        "last_event_text": "working [key=phase7]: Phase 7 started"
+      },
+      "actions": {
+        "send": "bin/fm-send.sh fm-domain-alpha '<request>'",
+        "watch": "read status/doc return channel; do not routinely fm-peek a secondmate for answers",
+        "return_channel_note": "Secondmate answers come back through status/doc paths after a marked fm-send request."
+      },
+      "backlog": null
+    }
+  ],
+  "main_inventory": {
+    "valid": true,
+    "reason": null,
+    "orphan_in_flight": [],
+    "unstructured_current_count": 0
+  },
+  "contributions": {
+    "known": 0,
+    "checked": 0,
+    "counts": {
+      "captain": 0,
+      "fleet": 0,
+      "maintainer": 0,
+      "nobody": 0
+    },
+    "unmeasured": 0,
+    "complete": false,
+    "proven_clear": false,
+    "stale_verdicts": 0,
+    "missing_verdicts": 0,
+    "unreadable_records": 1,
+    "valid_until": 900,
+    "captain": [],
+    "captain_omitted": 0
+  },
+  "scout_reports": [],
+  "secondmate_current": {
+    "registry": {
+      "present": true,
+      "available": true,
+      "reason": null,
+      "provenance": "registered-table",
+      "path": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/activity-cpu-budget/data/secondmates.md",
+      "freshness": {
+        "status": "fresh",
+        "observed_at": "2026-07-11T18:00:00Z"
+      },
+      "records": [
+        {
+          "id": "domain-alpha",
+          "home": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/activity-cpu-budget-home",
+          "host": null,
+          "root": null,
+          "remote": false,
+          "registered": true,
+          "registry_error": null
+        }
+      ],
+      "input_truncated": false,
+      "records_truncated": false,
+      "complete": true,
+      "reasons": [],
+      "lines_in_window": 1,
+      "records_in_window": 1
+    },
+    "records": [
+      {
+        "id": "domain-alpha",
+        "home": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/activity-cpu-budget-home",
+        "host": null,
+        "remote": false,
+        "registered": true,
+        "spawn_gen": null,
+        "current": {
+          "state": "externally_held",
+          "reason": null
+        },
+        "invalidity": {
+          "kind": null,
+          "ids": []
+        },
+        "reconcile_inventory": {
+          "kind": null,
+          "ids": []
+        },
+        "provenance": {
+          "selected": "structured-home",
+          "structured_home": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/activity-cpu-budget-home",
+          "summary_source": "local-ledger",
+          "summary_valid": true,
+          "trust": "complete",
+          "parent_event_role": "historical-only"
+        },
+        "freshness": {
+          "status": "fresh",
+          "observed_at": "2026-07-11T18:00:00Z",
+          "age_seconds": 0
+        },
+        "active_children": [],
+        "decisions_open": [],
+        "holds": [
+          {
+            "id": "legal-release",
+            "title": "Release approval",
+            "blocked_by": "external-legal",
+            "blocked_by_ids": [
+              "external-legal"
+            ],
+            "unresolved_blocker_ids": [
+              "external-legal"
+            ],
+            "reason": "external legal dependency",
+            "source": "backlog"
+          }
+        ],
+        "queued": [
+          {
+            "id": "legal-release",
+            "title": "Release approval",
+            "blocked_by": "external-legal",
+            "blocked_by_ids": [
+              "external-legal"
+            ],
+            "unresolved_blocker_ids": [
+              "external-legal"
+            ],
+            "blocked_reason": "external legal dependency",
+            "hold_reason": null,
+            "hold_kind": null,
+            "hold_until": null,
+            "hold_bucket": null,
+            "hold_age_days": null,
+            "captain_actionable": false,
+            "repo": "sample",
+            "kind": "ship",
+            "since": null
+          }
+        ],
+        "contributions": {
+          "known": 0,
+          "checked": 0,
+          "counts": {
+            "captain": 0,
+            "fleet": 0,
+            "maintainer": 0,
+            "nobody": 0
+          },
+          "unmeasured": 0,
+          "complete": true,
+          "proven_clear": true,
+          "stale_verdicts": 0,
+          "missing_verdicts": 0,
+          "unreadable_records": 0,
+          "valid_until": 900,
+          "captain": [],
+          "captain_omitted": 0
+        },
+        "landed": [
+          {
+            "id": "phase7",
+            "title": "Sample rollout Phase 7",
+            "kind": "ship",
+            "hold_kind": null,
+            "pr_url": null,
+            "report_path": null,
+            "local_note": null,
+            "completion": {
+              "date": "2026-07-07",
+              "verb": "done"
+            }
+          },
+          {
+            "id": "phase6",
+            "title": "Sample rollout Phase 6",
+            "kind": "ship",
+            "hold_kind": null,
+            "pr_url": null,
+            "report_path": null,
+            "local_note": null,
+            "completion": {
+              "date": "2026-07-06",
+              "verb": "done"
+            }
+          },
+          {
+            "id": "phase5",
+            "title": "Sample rollout Phase 5",
+            "kind": "ship",
+            "hold_kind": null,
+            "pr_url": null,
+            "report_path": null,
+            "local_note": null,
+            "completion": {
+              "date": "2026-07-05",
+              "verb": "done"
+            }
+          },
+          {
+            "id": "phase4",
+            "title": "Sample rollout Phase 4",
+            "kind": "ship",
+            "hold_kind": null,
+            "pr_url": null,
+            "report_path": null,
+            "local_note": null,
+            "completion": {
+              "date": "2026-07-04",
+              "verb": "done"
+            }
+          },
+          {
+            "id": "phase3",
+            "title": "Sample rollout Phase 3",
+            "kind": "ship",
+            "hold_kind": null,
+            "pr_url": null,
+            "report_path": null,
+            "local_note": null,
+            "completion": {
+              "verb": "done",
+              "date": "2026-07-03"
+            }
+          },
+          {
+            "id": "phase2",
+            "title": "Sample rollout Phase 2",
+            "kind": "ship",
+            "hold_kind": null,
+            "pr_url": null,
+            "report_path": null,
+            "local_note": null,
+            "completion": {
+              "verb": "done",
+              "date": "2026-07-02"
+            }
+          },
+          {
+            "id": "phase1",
+            "title": "Sample rollout Phase 1",
+            "kind": "ship",
+            "hold_kind": null,
+            "pr_url": null,
+            "report_path": null,
+            "local_note": null,
+            "completion": {
+              "verb": "done",
+              "date": "2026-07-01"
+            }
+          }
+        ],
+        "endpoints": [],
+        "counts": {
+          "active_children": 0,
+          "decisions_open": 0,
+          "holds": 1,
+          "queued": 1,
+          "landed": 7,
+          "endpoints": 0
+        },
+        "omitted": [],
+        "parent_event": {
+          "raw": "working [key=phase7]: Phase 7 started",
+          "note": "Phase 7 started",
+          "age_seconds": null,
+          "open_activities": [],
+          "open_decisions": [],
+          "activity_scan": {
+            "records": [],
+            "available": false,
+            "input_truncated": false,
+            "retained_truncated": false,
+            "reasons": [
+              "timeout"
+            ],
+            "lines_in_window": 0,
+            "records_in_window": 0
+          },
+          "reconciliation": {
+            "provenance": "parent-status-keyed-fold",
+            "trust": "untrusted-supplement",
+            "activities": [],
+            "decisions": [],
+            "contradiction": false,
+            "inconclusive": false
+          }
+        },
+        "terminal_evidence": {
+          "provenance": "parent-direct-report-terminal",
+          "trust": "untrusted-supplement",
+          "captured": false,
+          "observed_at": "2026-07-11T18:00:00Z",
+          "freshness": "not-collected",
+          "reason": "no useful contradiction check",
+          "lines": 0,
+          "bytes": 0,
+          "event_note_seen": false,
+          "contradiction": false
+        },
+        "contradiction": false
+      }
+    ],
+    "total_registered": 1,
+    "total": 1,
+    "shown": 1,
+    "truncated": 0
+  },
+  "secondmate_landed": {
+    "records": [
+      {
+        "id": "phase7",
+        "title": "Sample rollout Phase 7",
+        "kind": "ship",
+        "hold_kind": null,
+        "pr_url": null,
+        "report_path": null,
+        "local_note": null,
+        "completion": {
+          "date": "2026-07-07",
+          "verb": "done"
+        },
+        "home": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/activity-cpu-budget-home",
+        "home_id": "domain-alpha"
+      },
+      {
+        "id": "phase6",
+        "title": "Sample rollout Phase 6",
+        "kind": "ship",
+        "hold_kind": null,
+        "pr_url": null,
+        "report_path": null,
+        "local_note": null,
+        "completion": {
+          "date": "2026-07-06",
+          "verb": "done"
+        },
+        "home": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/activity-cpu-budget-home",
+        "home_id": "domain-alpha"
+      },
+      {
+        "id": "phase5",
+        "title": "Sample rollout Phase 5",
+        "kind": "ship",
+        "hold_kind": null,
+        "pr_url": null,
+        "report_path": null,
+        "local_note": null,
+        "completion": {
+          "date": "2026-07-05",
+          "verb": "done"
+        },
+        "home": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/activity-cpu-budget-home",
+        "home_id": "domain-alpha"
+      },
+      {
+        "id": "phase4",
+        "title": "Sample rollout Phase 4",
+        "kind": "ship",
+        "hold_kind": null,
+        "pr_url": null,
+        "report_path": null,
+        "local_note": null,
+        "completion": {
+          "date": "2026-07-04",
+          "verb": "done"
+        },
+        "home": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/activity-cpu-budget-home",
+        "home_id": "domain-alpha"
+      },
+      {
+        "id": "phase3",
+        "title": "Sample rollout Phase 3",
+        "kind": "ship",
+        "hold_kind": null,
+        "pr_url": null,
+        "report_path": null,
+        "local_note": null,
+        "completion": {
+          "verb": "done",
+          "date": "2026-07-03"
+        },
+        "home": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/activity-cpu-budget-home",
+        "home_id": "domain-alpha"
+      },
+      {
+        "id": "phase2",
+        "title": "Sample rollout Phase 2",
+        "kind": "ship",
+        "hold_kind": null,
+        "pr_url": null,
+        "report_path": null,
+        "local_note": null,
+        "completion": {
+          "verb": "done",
+          "date": "2026-07-02"
+        },
+        "home": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/activity-cpu-budget-home",
+        "home_id": "domain-alpha"
+      },
+      {
+        "id": "phase1",
+        "title": "Sample rollout Phase 1",
+        "kind": "ship",
+        "hold_kind": null,
+        "pr_url": null,
+        "report_path": null,
+        "local_note": null,
+        "completion": {
+          "verb": "done",
+          "date": "2026-07-01"
+        },
+        "home": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/activity-cpu-budget-home",
+        "home_id": "domain-alpha"
+      }
+    ],
+    "truncated": [],
+    "unreadable": [],
+    "partial": []
+  },
+  "secondmate_guidance": {
+    "note": "For kind=secondmate, bearings selects validated structured state from that registered home; parent events and bounded terminal evidence are fallback-only supplements and never current-state authority."
+  }
+}
+  -> test_parent_activity_budget_counts_cpu_time_not_waiting rc=1 9s (load { 171.87 125.86 104.44 })
+not ok - a waiting registry read exhausted a 1s budget: {
+  "schema": "fm-fleet-snapshot.v1",
+  "generated": "2026-07-11T18:00:00Z",
+  "fm_home": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/registry-cpu-budget",
+  "roots": {
+    "fm_root": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/fixture-root",
+    "state": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/registry-cpu-budget/state",
+    "data": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/registry-cpu-budget/data",
+    "config": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/registry-cpu-budget/config",
+    "projects": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/registry-cpu-budget/projects"
+  },
+  "backlog": {
+    "path": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/registry-cpu-budget/data/backlog.md",
+    "present": false,
+    "records": []
+  },
+  "tasks": [
+    {
+      "id": "domain-alpha",
+      "kind": "secondmate",
+      "harness": "echo",
+      "mode": "secondmate",
+      "yolo": "off",
+      "branch": null,
+      "project": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/registry-cpu-budget-home",
+      "spawn_gen": null,
+      "backend": "tmux",
+      "remote": null,
+      "paths": {
+        "meta": {
+          "path": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/registry-cpu-budget/state/domain-alpha.meta",
+          "present": true
+        },
+        "status_log": {
+          "path": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/registry-cpu-budget/state/domain-alpha.status",
+          "present": true,
+          "kind": "event_history",
+          "last_event": {
+            "state": "working",
+            "note": "Phase 7 started",
+            "raw": "working [key=phase7]: Phase 7 started",
+            "age_seconds": null
+          }
+        },
+        "worktree": {
+          "path": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/registry-cpu-budget-home",
+          "present": true
+        },
+        "home": {
+          "path": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/registry-cpu-budget-home",
+          "present": true
+        },
+        "report": {
+          "path": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/registry-cpu-budget/data/domain-alpha/report.md",
+          "present": false
+        }
+      },
+      "secondmate_projects": [
+        "sample"
+      ],
+      "current_state": {
+        "state": "working",
+        "source": "status-log",
+        "detail": "Phase 7 started",
+        "raw": "state: working · source: status-log · Phase 7 started",
+        "observed_at": "2026-07-11T18:00:00Z",
+        "freshness": "fresh"
+      },
+      "endpoint": {
+        "target": "firstmate:fm-domain-alpha",
+        "exists": true,
+        "agent_alive": "dead",
+        "status": "dead",
+        "observed_at": "2026-07-11T18:00:00Z",
+        "freshness": "fresh"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent",
+        "head": null
+      },
+      "hints": {
+        "pending_decision": false,
+        "blocked_event": false,
+        "open_decisions": [],
+        "scout_report_present": false,
+        "last_event_text": "working [key=phase7]: Phase 7 started"
+      },
+      "actions": {
+        "send": "bin/fm-send.sh fm-domain-alpha '<request>'",
+        "watch": "read status/doc return channel; do not routinely fm-peek a secondmate for answers",
+        "return_channel_note": "Secondmate answers come back through status/doc paths after a marked fm-send request."
+      },
+      "backlog": null
+    }
+  ],
+  "main_inventory": {
+    "valid": true,
+    "reason": null,
+    "orphan_in_flight": [],
+    "unstructured_current_count": 0
+  },
+  "contributions": {
+    "known": 0,
+    "checked": 0,
+    "counts": {
+      "captain": 0,
+      "fleet": 0,
+      "maintainer": 0,
+      "nobody": 0
+    },
+    "unmeasured": 0,
+    "complete": false,
+    "proven_clear": false,
+    "stale_verdicts": 0,
+    "missing_verdicts": 0,
+    "unreadable_records": 1,
+    "valid_until": 900,
+    "captain": [],
+    "captain_omitted": 0
+  },
+  "scout_reports": [],
+  "secondmate_current": {
+    "registry": {
+      "present": true,
+      "available": false,
+      "complete": false,
+      "reason": "registered secondmate table read timed out",
+      "provenance": "registered-table",
+      "path": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/registry-cpu-budget/data/secondmates.md",
+      "freshness": {
+        "status": "unavailable",
+        "observed_at": "2026-07-11T18:00:00Z"
+      },
+      "records": [],
+      "input_truncated": false,
+      "records_truncated": false,
+      "reasons": [
+        "registered secondmate table read timed out"
+      ],
+      "lines_in_window": 0,
+      "records_in_window": 0
+    },
+    "records": [
+      {
+        "id": "domain-alpha",
+        "home": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/registry-cpu-budget-home",
+        "host": null,
+        "remote": false,
+        "registered": null,
+        "spawn_gen": null,
+        "current": {
+          "state": "unknown",
+          "reason": "secondmate registration is unknown because the registry read is incomplete or unavailable"
+        },
+        "invalidity": null,
+        "reconcile_inventory": null,
+        "provenance": {
+          "selected": "parent-event-fallback",
+          "structured_home": "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/registry-cpu-budget-home",
+          "parent_event_role": "fallback-only-not-current"
+        },
+        "freshness": {
+          "status": "historical-event",
+          "observed_at": "2026-07-11T18:00:00Z",
+          "age_seconds": 0
+        },
+        "active_children": [],
+        "decisions_open": [],
+        "holds": [],
+        "queued": [],
+        "landed": [],
+        "endpoints": [],
+        "counts": {
+          "active_children": 0,
+          "decisions_open": 0,
+          "holds": 0,
+          "queued": 0,
+          "landed": 0,
+          "endpoints": 0
+        },
+        "omitted": [],
+        "parent_event": {
+          "raw": "working [key=phase7]: Phase 7 started",
+          "note": "Phase 7 started",
+          "age_seconds": null,
+          "open_activities": [
+            {
+              "key": "phase7",
+              "verb": "working",
+              "summary": "Phase 7 started"
+            }
+          ],
+          "open_decisions": [],
+          "activity_scan": {
+            "records": [
+              {
+                "key": "phase7",
+                "verb": "working",
+                "summary": "Phase 7 started"
+              }
+            ],
+            "available": true,
+            "input_truncated": false,
+            "retained_truncated": false,
+            "reasons": [],
+            "lines_in_window": 1,
+            "records_in_window": 1
+          }
+        },
+        "terminal_evidence": {
+          "provenance": "parent-direct-report-terminal",
+          "trust": "untrusted-supplement",
+          "captured": true,
+          "observed_at": "2026-07-11T18:00:00Z",
+          "freshness": "fresh",
+          "reason": null,
+          "lines": 2,
+          "bytes": 42,
+          "event_note_seen": true,
+          "contradiction": false
+        },
+        "contradiction": false
+      }
+    ],
+    "total_registered": 0,
+    "total": 1,
+    "shown": 1,
+    "truncated": 0
+  },
+  "secondmate_landed": {
+    "records": [],
+    "truncated": [],
+    "unreadable": [
+      "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-bearings.poBPrv/registry-cpu-budget-home"
+    ],
+    "partial": []
+  },
+  "secondmate_guidance": {
+    "note": "For kind=secondmate, bearings selects validated structured state from that registered home; parent events and bounded terminal evidence are fallback-only supplements and never current-state authority."
+  }
+}
+  -> test_registry_budget_counts_cpu_time_not_waiting rc=1 10s (load { 162.99 125.48 104.55 })
+ok - GNU stat file reads select -c without BSD filesystem-report pollution
+  -> test_gnu_stat_uses_file_formats_without_bsd_fallback_pollution rc=0 9s (load { 153.37 124.67 104.51 })
+ok - parent evidence reconciliation distinguishes matching holds, blocks, and decisions
+  -> test_parent_evidence_reconciles_by_verb_and_key rc=0 17s (load { 143.72 123.94 104.60 })
+ok - Domain Alpha structured state overrides a stale parent Phase 7 event
+  -> test_domain_alpha_stale_parent_event_does_not_become_current_work rc=0 21s (load { 143.83 125.16 105.48 })
+failed=2 of 5

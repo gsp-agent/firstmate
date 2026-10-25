@@ -1,0 +1,6 @@
+bash=3.2.57(1)-release resolved=/bin/bash tree=/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5SW87YP0RGKBE86WKN1RSHF
+load at start: { 72.77 76.18 85.88 }
+== snapshot launched with SIGXCPU ignored: rc=124 after 91s (probe wall bound 90s; 124 = probe had to stop it)
+== no snapshot output: the burning scan was never stopped by its own budget
+  -> scenario_burning_scan_with_inherited_sigxcpu_ignore rc=0 95s (load { 72.19 75.41 84.43 })
+failed=0 of 1

@@ -1,0 +1,80 @@
+bash=3.2.57(1)-release resolved=/bin/bash tree=/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5SW87YP0RGKBE86WKN1RSHF
+load at start: { 111.15 94.38 89.79 }
+ok - landed accepts only kind-owned delivery artifacts while answered questions stay out
+  -> test_landed_accepts_only_kind_owned_delivery_artifacts rc=0 367s (load { 180.04 129.15 106.86 })
+ok - kind fallback matches tasks-axi word boundaries and preserves scout deliveries
+  -> test_kind_fallback_matches_tasks_axi_word_boundaries rc=0 75s (load { 237.17 157.64 119.53 })
+ok - kindless v1 summaries retain report artifacts from fresh and cached ledgers
+  -> test_landed_preserves_kindless_v1_summary_reports rc=0 30s (load { 260.42 170.80 125.62 })
+ok - default landed selection balances one dominant home with sparse homes
+  -> test_landed_default_balances_dominant_and_sparse_homes rc=0 55s (load { 295.35 195.74 137.73 })
+ok - landed selection refills capacity after sparse homes exhaust
+  -> test_landed_default_refills_capacity_after_sparse_homes_exhaust rc=0 15s (load { 291.29 199.81 140.20 })
+ok - landed selection uses deterministic home order when homes exceed the cap
+  -> test_landed_default_uses_deterministic_home_order_when_homes_exceed_cap rc=0 51s (load { 271.71 209.16 147.10 })
+ok - landed selection preserves deterministic home and internal tie ordering
+  -> test_landed_default_preserves_internal_order_for_ties rc=0 16s (load { 261.52 210.01 148.48 })
+ok - landed selection handles no landed items
+  -> test_landed_default_handles_no_landed_items rc=0 2s (load { 257.48 210.03 148.85 })
+ok - --all-landed keeps the complete global landed output
+  -> test_all_landed_keeps_complete_global_order rc=0 17s (load { 244.36 209.45 149.71 })
+ok - landed stays bounded with per-home + overall caps and omitted[] disclosure
+  -> test_landed_bounded_and_disclosed rc=0 41s (load { 205.42 203.72 150.35 })
+ok - Bearings keeps a live blocker in structured live state and never converts it to Charted Next queue work
+  -> test_live_blocker_is_not_charted_queue_work rc=0 24s (load { 193.28 200.81 150.83 })
+ok - action-free items (working/done/queued/landed) do not leak into Captain's Call
+  -> test_captains_call_anti_leak rc=0 31s (load { 176.72 196.02 150.82 })
+ok - main orphan in-flight stays out of Underway and is disclosed in omitted/gates
+  -> test_main_orphan_in_flight_is_disclosed_not_invented rc=0 7s (load { 170.41 194.04 150.65 })
+ok - main unstructured current is disclosed while structured siblings still project
+  -> test_main_unstructured_current_is_disclosed_with_structured_sibling rc=0 12s (load { 165.57 192.21 150.51 })
+ok - counterfactual meta clears main inventory warning and projects the live task
+  -> test_main_orphan_counterfactual_meta_clears_inventory_warning rc=0 17s (load { 163.28 189.82 150.61 })
+ok - working captain holds retain main and secondmate bucket surfaces
+  -> test_working_captain_holds_keep_their_bucket_surfaces rc=0 48s (load { 159.12 185.05 150.87 })
+ok - active children reach Underway independently of a home captain hold
+  -> test_active_children_project_independent_of_home_captain_hold rc=0 35s (load { 156.31 181.52 150.97 })
+ok - blank legacy summary names use their durable identifier
+  -> test_nameless_legacy_summary_uses_its_durable_identifier rc=0 6s (load { 156.61 181.17 151.02 })
+ok - newest filed gates are selected before snapshot bounds
+  -> test_newest_filed_gates_are_selected_before_snapshot_bounds rc=0 11s (load { 156.03 179.87 151.09 })
+ok - Underway rows carry the durable task name and gates carry their filed date
+  -> test_underway_and_gate_rows_carry_the_durable_name_and_filed_date rc=0 13s (load { 157.35 179.34 151.23 })
+ok - mixed secondmate roles, partial state, and captain readiness project independently
+  -> test_mixed_secondmate_roles_partial_state_and_captain_readiness rc=0 264s (load { 147.16 164.81 152.40 })
+ok - main and secondmate captain actionability use the same blocker readiness
+  -> test_main_captain_readiness_matches_secondmate_projection rc=0 6s (load { 143.94 163.85 152.13 })
+ok - a completed scout with decision-like report prose is a pointer, not pending
+  -> test_completed_scout_report_not_pending rc=0 10s (load { 140.68 162.48 151.78 })
+ok - an authoritative captain hold surfaces end-to-end
+  -> test_open_decision_surfaces_end_to_end rc=0 7s (load { 136.87 160.96 151.37 })
+ok - current report pointers surface
+  -> test_report_pointers_surface rc=0 10s (load { 134.48 159.65 151.01 })
+ok - queued body prose never hides an item from the board
+  -> test_queued_item_prose_never_hides_it rc=0 24s (load { 133.81 157.38 150.44 })
+ok - --include-prs is the only path that fetches, and it enriches correctly
+  -> test_include_prs_is_the_only_fetch_path rc=0 20s (load { 153.20 159.79 151.44 })
+ok - --include-prs maps a custom branch-prefix PR back to its recorded task
+  -> test_include_prs_maps_custom_branch_prefix_to_task rc=0 21s (load { 156.99 160.23 151.79 })
+ok - a partial GitHub failure degrades gracefully
+  -> test_partial_github_failure_degrades rc=0 36s (load { 153.56 159.02 151.69 })
+ok - Perl fallback bounds stalled GitHub calls without coreutils timeout
+  -> test_perl_fallback_bounds_github_call rc=0 18s (load { 154.46 158.97 151.84 })
+ok - all fleet-sized sections are capped with counted opt-in expansion
+  -> test_section_caps_and_expansion_flags rc=0 18s (load { 152.81 158.41 151.77 })
+ok - captain-held tasks of any kind reach Captain's Call, deferral is honored, and landed excludes answered calls
+  -> test_collapsed_captain_call_deferral_and_landed rc=0 11s (load { 158.20 159.22 152.17 })
+ok - structured hold buckets decide Captain's Call, Charted Next, and the reveal
+  -> test_undated_hold_phrasing_and_aging_projection rc=0 43s (load { 168.06 162.06 153.56 })
+ok - a blocked deferred hold stays gated when its date arrives and is revealed by --all-decisions
+  -> test_blocked_deferred_hold_has_concrete_disclosure rc=0 11s (load { 168.88 162.43 153.79 })
+ok - revealed deferred holds display their deferral reason while live calls stay unannotated
+  -> test_revealed_deferred_holds_show_their_deferral_reason rc=0 13s (load { 167.36 162.41 153.93 })
+ok - live PR enrichment caps repositories with counted expansion
+  -> test_pr_repository_cap_and_expansion rc=0 49s (load { 159.49 161.01 153.89 })
+ok - per-repository open-PR caps are disclosed with an expansion knob
+  -> test_per_repository_pr_cap_is_disclosed rc=0 84s (load { 164.18 161.40 154.63 })
+ok - projection and TOON rendering failures exit nonzero with diagnostics
+  -> test_projection_and_toon_fail_closed rc=0 114s (load { 176.40 166.07 157.27 })
+failed=0 of 38
+driver exit 0, 1648s wall

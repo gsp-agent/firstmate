@@ -1,0 +1,84 @@
+bash=3.2.57(1)-release resolved=/bin/bash tree=/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5SW87YP0RGKBE86WKN1RSHF
+load at start: { 91.42 114.86 103.25 }
+== default budgets: registry=default activity=default
+== fm-fleet-snapshot.sh --json took 12s; Domain Alpha fields:
+{
+  "registry": {
+    "available": true,
+    "complete": true,
+    "reason": null
+  },
+  "domain_alpha": {
+    "registered": true,
+    "current": {
+      "state": "externally_held",
+      "reason": null
+    },
+    "provenance_selected": "structured-home",
+    "activity_scan": {
+      "available": true,
+      "reasons": []
+    }
+  }
+}
+== fm-bearings-snapshot.sh (default view) took 16s:
+schema: fm-bearings.v1
+home: fm-bearings.vWUpZQ/view-waiting
+generated: "2026-07-11T18:00:00Z"
+prs: "not_requested (run: /bearings include PRs)"
+contributions: 
+  scope: owned contributions per home
+  known: 0
+  checked: 0
+  counts: 
+    captain: 0
+    fleet: 0
+    maintainer: 0
+    nobody: 0
+  complete: false
+  proven_clear: false
+  unmeasured_homes: 0
+  unreadable_records: 1
+  unmeasured: 0
+  stale_verdicts: 0
+  missing_verdicts: 0
+  captain_omitted: 0
+  captain: []
+in_flight: []
+secondmates[1]{id,state,doing,provenance,freshness,age_seconds,contradiction,reason}:
+  domain-alpha,externally_held,"legal-release: external legal dependency",structured-home,fresh,0,true,"-"
+secondmate_reconcile[1]{id,spawn_gen,host,kind,ids}:
+  domain-alpha,null,null,null,"[]"
+decisions_open: []
+landed[6]{id,what,artifact,owner}:
+  phase7,Sample rollout Phase 7,"-",domain-alpha
+  phase6,Sample rollout Phase 6,"-",domain-alpha
+  phase5,Sample rollout Phase 5,"-",domain-alpha
+  phase4,Sample rollout Phase 4,"-",domain-alpha
+  phase3,Sample rollout Phase 3,"-",domain-alpha
+  phase2,Sample rollout Phase 2,"-",domain-alpha
+gates[1]{id,title,blocked_by,reason,owner,filed}:
+  legal-release,Release approval,external-legal,external legal dependency,domain-alpha,null
+reports: []
+recorded_prs: []
+unhealthy_endpoints[1]{id,backend,target,exists,agent}:
+  domain-alpha,tmux,"firstmate:fm-domain-alpha",true,dead
+omitted[7]{surface,reveal}:
+  backlog item bodies,"--fields bodies"
+  task paths,"--fields paths"
+  watch/steer actions,"--fields actions"
+  healthy endpoint detail,"--fields endpoints"
+  full scout-report inventory,"--all-reports"
+  landed per-home capped at 6 for 1 home(s),"--all-landed"
+  live PR discovery + checks,"--include-prs"
+== fm-bearings-snapshot.sh --json, Domain Alpha row:
+[
+  {
+    "id": "domain-alpha",
+    "state": "externally_held",
+    "provenance": "structured-home",
+    "freshness": "fresh"
+  }
+]
+  -> scenario_bearings_view_with_waiting_reads rc=0 48s (load { 65.18 103.46 99.73 })
+failed=0 of 1

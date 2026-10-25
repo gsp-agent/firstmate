@@ -1,0 +1,11 @@
+bash=3.2.57(1)-release resolved=/bin/bash tree=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-base-tree.si7hvf
+load at start: { 72.19 75.41 84.43 }
+== snapshot launched with SIGXCPU ignored: rc=0 after 17s (probe wall bound 90s; 124 = probe had to stop it)
+{
+  "available": false,
+  "reasons": [
+    "timeout"
+  ]
+}
+  -> scenario_burning_scan_with_inherited_sigxcpu_ignore rc=0 28s (load { 73.40 75.37 84.01 })
+failed=0 of 1

@@ -1,0 +1,66 @@
+[target-7af4de10] tree=/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5SW87YP0RGKBE86WKN1RSHF bash=3.2.57(1)-release resolved=/bin/bash load={ 130.10 148.41 154.06 }
+[target-7af4de10] pa-wait-3s-budget-1s       launcher=plain        rc=0 wall=10.5s
+      parent_activity_scan={"available":true,"reasons":[]}
+      registry={"available":true,"complete":true,"reason":null}
+      xcpu_disposition=head:DEFAULT(x1),snapshot:DEFAULT(x6),stat:DEFAULT(x1)
+[target-7af4de10] pa-burn-budget-1s          launcher=plain        rc=0 wall=12.2s
+      parent_activity_scan={"available":false,"reasons":["timeout"]}
+      registry={"available":true,"complete":true,"reason":null}
+      xcpu_disposition=head:DEFAULT(x1),snapshot:DEFAULT(x6),stat:DEFAULT(x1)
+[target-7af4de10] pa-error-budget-1s         launcher=plain        rc=0 wall=6.6s
+      parent_activity_scan={"available":false,"reasons":["read_failed"]}
+      registry={"available":true,"complete":true,"reason":null}
+      xcpu_disposition=head:DEFAULT(x1),snapshot:DEFAULT(x6),stat:DEFAULT(x1)
+[target-7af4de10] reg-wait-3s-budget-1s      launcher=plain        rc=0 wall=12.8s
+      parent_activity_scan={"available":true,"reasons":[]}
+      registry={"available":true,"complete":true,"reason":null}
+      xcpu_disposition=head:DEFAULT(x1),snapshot:DEFAULT(x6),stat:DEFAULT(x1)
+[target-7af4de10] reg-burn-budget-1s         launcher=plain        rc=0 wall=13.9s
+      parent_activity_scan={"available":true,"reasons":[]}
+      registry={"available":false,"complete":false,"reason":"registered secondmate table read timed out"}
+      xcpu_disposition=head:DEFAULT(x1),snapshot:DEFAULT(x6),stat:DEFAULT(x1)
+[target-7af4de10] reg-error-budget-1s        launcher=plain        rc=0 wall=5.4s
+      parent_activity_scan={"available":true,"reasons":[]}
+      registry={"available":false,"complete":false,"reason":"registered secondmate table is unreadable"}
+      xcpu_disposition=head:DEFAULT(x1),snapshot:DEFAULT(x6),stat:DEFAULT(x1)
+[target-7af4de10] pa-burn-xcpu-ignored       launcher=xcpu-ignored rc=0 wall=8.7s
+      parent_activity_scan={"available":false,"reasons":["timeout"]}
+      registry={"available":true,"complete":true,"reason":null}
+      xcpu_disposition=head:DEFAULT(x1),snapshot:DEFAULT(x1),snapshot:IGNORE(x5),stat:DEFAULT(x1)
+[target-7af4de10] reg-burn-xcpu-ignored      launcher=xcpu-ignored rc=0 wall=7.7s
+      parent_activity_scan={"available":true,"reasons":[]}
+      registry={"available":false,"complete":false,"reason":"registered secondmate table read timed out"}
+      xcpu_disposition=head:DEFAULT(x1),snapshot:DEFAULT(x1),snapshot:IGNORE(x5),stat:DEFAULT(x1)
+[target-7af4de10] both-wait-default-budgets  launcher=plain        rc=0 wall=11.1s
+      parent_activity_scan={"available":true,"reasons":[]}
+      registry={"available":true,"complete":true,"reason":null}
+      xcpu_disposition=head:DEFAULT(x1),snapshot:DEFAULT(x6),stat:DEFAULT(x1)
+[target-7af4de10] bearings-wait rc=0 wall=11.7s xcpu_disposition=head:DEFAULT(x1),snapshot:DEFAULT(x7),stat:DEFAULT(x1)
+--- bearings output (secondmate and disclosure lines) ---
+2:home: fm-bearings.3M2EwS/r2-domain-alpha
+24:secondmates[1]{id,state,doing,provenance,freshness,age_seconds,contradiction,reason}:
+25:  domain-alpha,externally_held,"legal-release: external legal dependency",structured-home,fresh,0,true,"-"
+26:secondmate_reconcile[1]{id,spawn_gen,host,kind,ids}:
+27:  domain-alpha,null,null,null,"[]"
+30:  phase7,Sample rollout Phase 7,"-",domain-alpha
+31:  phase6,Sample rollout Phase 6,"-",domain-alpha
+32:  phase5,Sample rollout Phase 5,"-",domain-alpha
+33:  phase4,Sample rollout Phase 4,"-",domain-alpha
+34:  phase3,Sample rollout Phase 3,"-",domain-alpha
+35:  phase2,Sample rollout Phase 2,"-",domain-alpha
+37:  legal-release,Release approval,external-legal,external legal dependency,domain-alpha,null
+41:  domain-alpha,tmux,"firstmate:fm-domain-alpha",true,dead
+--- end ---
+[target-7af4de10] bearings-burn-xcpu-ignored rc=0 wall=30.8s xcpu_disposition=head:DEFAULT(x1),snapshot:DEFAULT(x1),snapshot:IGNORE(x6),stat:DEFAULT(x1)
+--- bearings output (secondmate and disclosure lines) ---
+2:home: fm-bearings.3M2EwS/r2-domain-alpha
+24:secondmates[2]{id,state,doing,provenance,freshness,age_seconds,contradiction,reason}:
+25:  (registry),unknown,registered secondmate table read timed out,registered-table,unavailable,null,false,registered secondmate table read timed out
+26:  domain-alpha,unknown,secondmate registration is unknown because the registry read is incomplete or unavailable,parent-event-fallback,historical-event,0,false,secondmate registration is unknown because the registry read is incomplete or unavailable
+27:secondmate_reconcile: []
+34:  domain-alpha,tmux,"firstmate:fm-domain-alpha",true,dead
+41:  "secondmate home(s) with unreadable structured state: 1",inspect the listed secondmate home ledgers
+42:  "secondmate registry unavailable: registered secondmate table read timed out",inspect data/secondmates.md
+43:  secondmate parent activity evidence unavailable for 1 record(s),inspect the parent status logs
+--- end ---
+[target-7af4de10] done load={ 126.33 141.02 150.32 }

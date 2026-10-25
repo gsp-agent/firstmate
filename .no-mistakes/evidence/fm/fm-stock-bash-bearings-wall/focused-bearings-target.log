@@ -1,0 +1,15 @@
+bash=3.2.57(1)-release resolved=/bin/bash tree=/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5SW87YP0RGKBE86WKN1RSHF
+load at start: { 98.56 75.02 84.85 }
+ok - parent activity budget counts CPU time, so waiting does not exhaust it and a burn still times out
+  -> test_parent_activity_budget_counts_cpu_time_not_waiting rc=0 23s (load { 115.48 81.43 86.77 })
+ok - registry budget excludes waiting and still bounds CPU-burning reads
+  -> test_registry_budget_counts_cpu_time_not_waiting rc=0 36s (load { 139.96 91.40 90.19 })
+ok - GNU stat file reads select -c without BSD filesystem-report pollution
+  -> test_gnu_stat_uses_file_formats_without_bsd_fallback_pollution rc=0 10s (load { 151.91 95.54 91.67 })
+ok - parent evidence reconciliation distinguishes matching holds, blocks, and decisions
+  -> test_parent_evidence_reconciles_by_verb_and_key rc=0 34s (load { 187.02 110.06 97.09 })
+ok - Domain Alpha structured state overrides a stale parent Phase 7 event
+  -> test_domain_alpha_stale_parent_event_does_not_become_current_work rc=0 20s (load { 192.04 116.12 99.56 })
+ok - parent activity evidence is bounded and disclosed
+  -> test_parent_activity_evidence_is_bounded_and_disclosed rc=0 17s (load { 197.75 121.09 101.62 })
+failed=0 of 6

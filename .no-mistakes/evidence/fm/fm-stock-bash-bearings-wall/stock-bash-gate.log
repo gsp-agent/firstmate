@@ -1,0 +1,80 @@
+start: 2026-10-25T16:02:58Z  load: { 45.92 63.57 82.36 }
+fm-stock-bash-check.sh: /bin/bash (Bash 3.2.57(1)-release); per step: 900s wall, 2097152 KiB tree RSS
+parse-sweep: 7s, peak tree RSS 15648 KiB
+ok - parse-sweep: 509 files parse under stock Bash 3.2.57(1)-release
+snapshot-view: 217s, peak tree RSS 175744 KiB
+ok - empty fleet snapshot and view use explicit absence markers
+ok - fixture snapshot covers task rows, backlog rows, pointers, stable ordering, and emission-time event age
+ok - home-summary excludes kind=secondmate from unowned_current and terminal_in_flight
+ok - undated captain holds age after a configurable threshold, decided only from structured fields
+ok - captain-hold buckets are total, mutually exclusive, and never decided by prose
+ok - main_inventory discloses orphan/unstructured and clears when inventory is consistent
+ok - backlog normalization preserves strict roles and resolves every blocker compatibly
+ok - a blocker archived to done-archive.md resolves; queued and in-flight blockers stay unresolved
+ok - snapshot event hints follow reconciled current state
+ok - durable fold keeps an open decision past a later unrelated event
+ok - a live secondmate endpoint preserves unrelated open decisions
+ok - durable captain-held transfer closes the duplicate live status decision
+ok - durable fold clears a decision only on a keyed resolution
+ok - a completed scout's stale decision surfaces as a report pointer, not pending
+ok - a scout still parked at a decision stays pending (terminal clear does not over-fire)
+ok - snapshot includes durable scout reports after teardown
+ok - snapshot parses tasks-axi rows and respects operational overrides
+ok - fleet view renders the snapshot without secondmate peek guidance
+ok - fleet view renders secondmate agent liveness
+bearings: 905s, peak tree RSS 210640 KiB
+ok - task teardown during metadata capture is omitted without aborting the snapshot
+ok - current state and decision hints share one captured status observation
+ok - reused live state is discarded when task generation changes
+ok - large local snapshot overlaps local reads with byte-identical serial and concurrent projections
+ok - remote ledgers collect concurrently under one budget, reuse aged cache, and cancel wedged collectors
+ok - a missing remote ledger stays explicitly unreadable without remote summary computation
+ok - Domain Alpha structured state overrides a stale parent Phase 7 event
+ok - GNU stat file reads select -c without BSD filesystem-report pollution
+ok - parent activity budget counts CPU time, so waiting does not exhaust it and a burn still times out
+ok - registry budget excludes waiting and still bounds CPU-burning reads
+ok - parent activity evidence is bounded and disclosed
+ok - Bearings excludes a status-only child decision
+ok - a structured child captain hold reaches Captain's Call
+ok - missing, invalid, unreadable, malformed, and unavailable-child homes stay explicit unknowns
+ok - oversized ledgers stay strict unknown
+ok - secondmate and per-home child counts are bounded, disclosed, and explicitly expandable
+ok - parent decisions remain untrusted contradiction evidence
+ok - parent evidence reconciliation distinguishes matching holds, blocks, and decisions
+ok - nonprogressing child states are explicit and inconsistent terminal rows invalidate
+ok - registry unavailability and bounded truncation remain explicit
+ok - repeated snapshots keep the same current landed baseline and ignore prior reports
+ok - default output is bounded, local-only, and marks omitted surfaces
+ok - TOON and JSON are parity representations of the same model
+ok - landed includes secondmate-managed merges alongside main-home merges
+Terminated: 15
+FAIL bearings: stopped at the 900s wall bound
+public-followup-empty-lock: 43s, peak tree RSS 61408 KiB
+ok - first register succeeds with an empty lock list under /bin/bash
+watch-churn-deferral: 59s, peak tree RSS 56480 KiB
+ok - a churning turn-end inside an already-open deferral window is absorbed without re-marking
+fork-free-helpers: 150s, peak tree RSS 36992 KiB
+ok - fm_dirname_to and fm_basename_to match dirname and basename on every edge case
+ok - fm_epoch_seconds_to reads the clock like date +%s and forks date at most as often
+ok - signal seen paths and absolute lock paths are byte-identical to the dirname/basename/tr forms
+ok - recovery marker reads accept exactly the one-line records wc -l accepted
+ok - window_to_task resolves every recorded window exactly as the grep/tail/cut pipeline did
+ok - classify stat helpers resolve the kernel name once per process
+ok - fm_read_text_to reads every file exactly as $(cat file 2>/dev/null || true) does
+ok - fm_sleep waits the requested time, returns at once for 0, and starts no process where the sleep builtin exists
+ok - TERM completes cleanup even beyond the interrupted wait, with builtin and external sleep
+ok - fm_touch_empty moves an empty marker's mtime and leaves content and symlink targets alone
+ok - one stat of every scanned file yields the signatures, turn-ended stamps, and mtimes the per-file reads print
+ok - fm_backend_target_of_meta_to reads every meta's target as the printing form does
+ok - watch reads preserve metadata, visit order, inbox bookkeeping and changed status/pane results
+ok - status reads notice same-size rewrites even when the recorded timestamp is unchanged
+ok - only a known idle main-home scan is skipped; due scans, secondmates and uncertain state keep the existing path
+ok - pending directory reads and the conservative process-event precheck preserve results
+backend-adapter-file: 28s, peak tree RSS 24448 KiB
+ok - fm_backend_source: missing adapter fails before lifecycle continuation
+ok - fm_backend_source: unreadable adapter fails before lifecycle continuation
+
+fm-stock-bash-check.sh: stock Bash 3.2.57(1)-release check FAILED:
+bearings: stopped at the 900s wall bound
+
+exit: 1  elapsed: 1410s  end: 2026-10-25T16:26:28Z  load: { 90.84 85.42 86.44 }

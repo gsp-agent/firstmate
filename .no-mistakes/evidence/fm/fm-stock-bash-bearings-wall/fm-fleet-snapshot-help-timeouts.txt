@@ -1,0 +1,19 @@
+32-that home.
+33:Each local per-task current-state read is bounded by FM_SNAPSHOT_CREW_STATE_TIMEOUT
+34-(default 10 seconds); a read that hits the bound reports state unknown. Local task
+35-observations run concurrently, up to FM_SNAPSHOT_LOCAL_READ_CONCURRENCY (default 8).
+36-Remote secondmate endpoint liveness is not probed by this command.
+--
+38-FM_SNAPSHOT_TERMINAL_LINES, FM_SNAPSHOT_TERMINAL_BYTES, and
+39:FM_SNAPSHOT_TERMINAL_TIMEOUT and never becomes canonical current state.
+40-Parent activity evidence uses FM_SNAPSHOT_PARENT_ACTIVITY_LINES,
+41-FM_SNAPSHOT_PARENT_ACTIVITY_BYTES, FM_SNAPSHOT_PARENT_ACTIVITIES, and
+42:FM_SNAPSHOT_PARENT_ACTIVITY_TIMEOUT. That timeout is CPU time, via
+43-fm_run_cpu_timed, so a wait does not exhaust it. Truncation is disclosed
+44-in the result.
+45-The registered secondmate table uses FM_SNAPSHOT_REGISTRY_LINES,
+46-FM_SNAPSHOT_REGISTRY_BYTES, FM_SNAPSHOT_REGISTRY_RECORDS, and
+47:FM_SNAPSHOT_REGISTRY_TIMEOUT. The timeout counts per-process CPU time with
+48-fm_run_cpu_timed, as the parent activity scan does. Unavailability and
+49-truncation are disclosed.
+50-Every captain hold carries hold_bucket, decided only from structured fields and

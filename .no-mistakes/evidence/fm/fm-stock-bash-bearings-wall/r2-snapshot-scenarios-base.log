@@ -1,0 +1,62 @@
+[base-d6b8de4d] tree=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-r2-base.SeoE2A bash=3.2.57(1)-release resolved=/bin/bash load={ 130.10 148.41 154.06 }
+[base-d6b8de4d] pa-wait-3s-budget-1s       launcher=plain        rc=0 wall=7.5s
+      parent_activity_scan={"available":false,"reasons":["timeout"]}
+      registry={"available":true,"complete":true,"reason":null}
+      xcpu_disposition=head:DEFAULT(x1),snapshot:DEFAULT(x6),stat:DEFAULT(x1)
+[base-d6b8de4d] pa-burn-budget-1s          launcher=plain        rc=0 wall=7.7s
+      parent_activity_scan={"available":false,"reasons":["timeout"]}
+      registry={"available":true,"complete":true,"reason":null}
+      xcpu_disposition=head:DEFAULT(x1),snapshot:DEFAULT(x6),stat:DEFAULT(x1)
+[base-d6b8de4d] pa-error-budget-1s         launcher=plain        rc=0 wall=6.6s
+      parent_activity_scan={"available":false,"reasons":["read_failed"]}
+      registry={"available":true,"complete":true,"reason":null}
+      xcpu_disposition=head:DEFAULT(x1),snapshot:DEFAULT(x6),stat:DEFAULT(x1)
+[base-d6b8de4d] reg-wait-3s-budget-1s      launcher=plain        rc=0 wall=9.0s
+      parent_activity_scan={"available":true,"reasons":[]}
+      registry={"available":false,"complete":false,"reason":"registered secondmate table read timed out"}
+      xcpu_disposition=head:DEFAULT(x1),snapshot:DEFAULT(x6),stat:DEFAULT(x1)
+[base-d6b8de4d] reg-burn-budget-1s         launcher=plain        rc=0 wall=8.6s
+      parent_activity_scan={"available":true,"reasons":[]}
+      registry={"available":false,"complete":false,"reason":"registered secondmate table read timed out"}
+      xcpu_disposition=head:DEFAULT(x1),snapshot:DEFAULT(x6),stat:DEFAULT(x1)
+[base-d6b8de4d] reg-error-budget-1s        launcher=plain        rc=0 wall=8.4s
+      parent_activity_scan={"available":true,"reasons":[]}
+      registry={"available":false,"complete":false,"reason":"registered secondmate table is unreadable"}
+      xcpu_disposition=head:DEFAULT(x1),snapshot:DEFAULT(x6),stat:DEFAULT(x1)
+[base-d6b8de4d] pa-burn-xcpu-ignored       launcher=xcpu-ignored rc=0 wall=8.7s
+      parent_activity_scan={"available":false,"reasons":["timeout"]}
+      registry={"available":true,"complete":true,"reason":null}
+      xcpu_disposition=head:IGNORE(x1),snapshot:IGNORE(x6),stat:IGNORE(x1)
+[base-d6b8de4d] reg-burn-xcpu-ignored      launcher=xcpu-ignored rc=0 wall=6.4s
+      parent_activity_scan={"available":true,"reasons":[]}
+      registry={"available":false,"complete":false,"reason":"registered secondmate table read timed out"}
+      xcpu_disposition=head:IGNORE(x1),snapshot:IGNORE(x6),stat:IGNORE(x1)
+[base-d6b8de4d] both-wait-default-budgets  launcher=plain        rc=0 wall=10.0s
+      parent_activity_scan={"available":false,"reasons":["timeout"]}
+      registry={"available":false,"complete":false,"reason":"registered secondmate table read timed out"}
+      xcpu_disposition=head:DEFAULT(x1),snapshot:DEFAULT(x6),stat:DEFAULT(x1)
+[base-d6b8de4d] bearings-wait rc=0 wall=8.8s xcpu_disposition=head:DEFAULT(x1),snapshot:DEFAULT(x7),stat:DEFAULT(x1)
+--- bearings output (secondmate and disclosure lines) ---
+2:home: fm-bearings.ZgMLZS/r2-domain-alpha
+24:secondmates[2]{id,state,doing,provenance,freshness,age_seconds,contradiction,reason}:
+25:  (registry),unknown,registered secondmate table read timed out,registered-table,unavailable,null,false,registered secondmate table read timed out
+26:  domain-alpha,unknown,secondmate registration is unknown because the registry read is incomplete or unavailable,parent-event-fallback,historical-event,0,false,secondmate registration is unknown because the registry read is incomplete or unavailable
+27:secondmate_reconcile: []
+34:  domain-alpha,tmux,"firstmate:fm-domain-alpha",true,dead
+41:  "secondmate home(s) with unreadable structured state: 1",inspect the listed secondmate home ledgers
+42:  "secondmate registry unavailable: registered secondmate table read timed out",inspect data/secondmates.md
+43:  secondmate parent activity evidence unavailable for 1 record(s),inspect the parent status logs
+--- end ---
+[base-d6b8de4d] bearings-burn-xcpu-ignored rc=0 wall=9.4s xcpu_disposition=head:IGNORE(x1),snapshot:IGNORE(x7),stat:IGNORE(x1)
+--- bearings output (secondmate and disclosure lines) ---
+2:home: fm-bearings.ZgMLZS/r2-domain-alpha
+24:secondmates[2]{id,state,doing,provenance,freshness,age_seconds,contradiction,reason}:
+25:  (registry),unknown,registered secondmate table read timed out,registered-table,unavailable,null,false,registered secondmate table read timed out
+26:  domain-alpha,unknown,secondmate registration is unknown because the registry read is incomplete or unavailable,parent-event-fallback,historical-event,0,false,secondmate registration is unknown because the registry read is incomplete or unavailable
+27:secondmate_reconcile: []
+34:  domain-alpha,tmux,"firstmate:fm-domain-alpha",true,dead
+41:  "secondmate home(s) with unreadable structured state: 1",inspect the listed secondmate home ledgers
+42:  "secondmate registry unavailable: registered secondmate table read timed out",inspect data/secondmates.md
+43:  secondmate parent activity evidence unavailable for 1 record(s),inspect the parent status logs
+--- end ---
+[base-d6b8de4d] done load={ 131.13 144.10 151.78 }

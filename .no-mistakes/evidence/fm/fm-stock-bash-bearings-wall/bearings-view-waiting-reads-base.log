@@ -1,0 +1,81 @@
+bash=3.2.57(1)-release resolved=/bin/bash tree=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-base-tree.si7hvf
+load at start: { 65.18 103.46 99.73 }
+== default budgets: registry=default activity=default
+== fm-fleet-snapshot.sh --json took 10s; Domain Alpha fields:
+{
+  "registry": {
+    "available": false,
+    "complete": false,
+    "reason": "registered secondmate table read timed out"
+  },
+  "domain_alpha": {
+    "registered": null,
+    "current": {
+      "state": "unknown",
+      "reason": "secondmate registration is unknown because the registry read is incomplete or unavailable"
+    },
+    "provenance_selected": "parent-event-fallback",
+    "activity_scan": {
+      "available": false,
+      "reasons": [
+        "timeout"
+      ]
+    }
+  }
+}
+== fm-bearings-snapshot.sh (default view) took 15s:
+schema: fm-bearings.v1
+home: fm-bearings.wHJGTD/view-waiting
+generated: "2026-07-11T18:00:00Z"
+prs: "not_requested (run: /bearings include PRs)"
+contributions: 
+  scope: owned contributions per home
+  known: 0
+  checked: 0
+  counts: 
+    captain: 0
+    fleet: 0
+    maintainer: 0
+    nobody: 0
+  complete: false
+  proven_clear: false
+  unmeasured_homes: 1
+  unreadable_records: 1
+  unmeasured: 0
+  stale_verdicts: 0
+  missing_verdicts: 0
+  captain_omitted: 0
+  captain: []
+in_flight: []
+secondmates[2]{id,state,doing,provenance,freshness,age_seconds,contradiction,reason}:
+  (registry),unknown,registered secondmate table read timed out,registered-table,unavailable,null,false,registered secondmate table read timed out
+  domain-alpha,unknown,secondmate registration is unknown because the registry read is incomplete or unavailable,parent-event-fallback,historical-event,0,false,secondmate registration is unknown because the registry read is incomplete or unavailable
+secondmate_reconcile: []
+decisions_open: []
+landed: []
+gates: []
+reports: []
+recorded_prs: []
+unhealthy_endpoints[1]{id,backend,target,exists,agent}:
+  domain-alpha,tmux,"firstmate:fm-domain-alpha",true,dead
+omitted[9]{surface,reveal}:
+  backlog item bodies,"--fields bodies"
+  task paths,"--fields paths"
+  watch/steer actions,"--fields actions"
+  healthy endpoint detail,"--fields endpoints"
+  full scout-report inventory,"--all-reports"
+  "secondmate home(s) with unreadable structured state: 1",inspect the listed secondmate home ledgers
+  "secondmate registry unavailable: registered secondmate table read timed out",inspect data/secondmates.md
+  secondmate parent activity evidence unavailable for 1 record(s),inspect the parent status logs
+  live PR discovery + checks,"--include-prs"
+== fm-bearings-snapshot.sh --json, Domain Alpha row:
+[
+  {
+    "id": "domain-alpha",
+    "state": "unknown",
+    "provenance": "parent-event-fallback",
+    "freshness": "historical-event"
+  }
+]
+  -> scenario_bearings_view_with_waiting_reads rc=0 40s (load { 68.70 98.19 97.97 })
+failed=0 of 1
