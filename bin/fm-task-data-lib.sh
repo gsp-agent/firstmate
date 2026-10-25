@@ -247,7 +247,8 @@ fm_task_data_bead_database() { # <bead>
 fm_task_data_bead_id_matches() { # <asked-id> <canonical-id> <database>
   local bead=$1 canonical=$2 db=$3
   [ "$canonical" != "$bead" ] || return 0
-  # br expands unique short IDs while preserving prefix, suffix and owner.
+  # br expands unique short IDs while preserving prefix, suffix and owner; any
+  # other answer is not this bead, even though br returned success.
   case "$canonical" in "${bead%-*}"-*-"${bead##*-}") ;; *) return 1 ;; esac
   [ "$(fm_task_data_bead_database "$canonical")" = "$db" ]
 }

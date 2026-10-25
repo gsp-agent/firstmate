@@ -17,10 +17,12 @@
 # its old behavior.
 # The read is the native `br --db <db> show <bead> --json`, run from / with
 # BEADS_DIR, BEADS_DB and BR_DB cleared, bounded by FM_TASK_BEAD_TIMEOUT_SECS
-# (default 10).
+# (default 10). A unique short id that br expands to its canonical id is that
+# bead when fm-task-data-lib.sh's fm_task_data_bead_id_matches accepts it.
 #
 # fm_task_bead_read <task-id>
-#   0  the task has a bead: FM_TASK_BEAD_ID and FM_TASK_BEAD_STATUS are set.
+#   0  the task has a bead: FM_TASK_BEAD_ID (the id asked for, never the
+#      expanded canonical id) and FM_TASK_BEAD_STATUS are set.
 #   3  the task has no bead.
 #   1  the owning database exists but did not answer; FM_TASK_BEAD_ERROR says
 #      why. A caller deciding to close must refuse rather than guess.
