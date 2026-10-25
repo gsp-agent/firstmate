@@ -313,6 +313,18 @@ test_registration_carries_verified_bead() {
   pass 'registration and merge-time re-registration carry one verified bead before exposure and preserve body and attestation'
 }
 
+test_registration_carries_expanded_short_bead() {
+  new_registration expanded
+  printf '[{"id":"obs-long-form-example","status":"open"}]\n' > "$CASE/bead.json"
+  register_pr > "$CASE/out" 2>&1 || fail "expanded registration failed: $(cat "$CASE/out")"
+  { cat "$CASE/original"; printf '\n\nBead: obs-example'; } | cmp -s - "$CASE/body" \
+    || fail 'registration did not carry the asked bead for an expanded short id'
+  cmp -s "$CASE/body" "$CASE/callback-body" || fail 'ready callback saw a body without the expanded bead'
+  register_pr > "$CASE/out" 2>&1 || fail 'repeat expanded registration failed'
+  assert_equals "$(edits)" 1 'repeat expanded registration edited the body again'
+  pass 'a short id br expands within its owner registers with one asked Bead line and repeats without editing'
+}
+
 assert_registered_unchanged() {  # <case description>
   assert_contains "$(cat "$CASE/home/state/obs-example.meta")" "pr=$URL" "$1 did not register"
   [ -e "$CASE/home/state/obs-example.check.sh" ] || fail "$1 did not arm its poll"
@@ -380,7 +392,7 @@ test_registration_reads_lines_as_the_deploy_guard_does() {
 
 test_registration_with_unverified_lookup_warns_without_a_line() {
   local body
-  for body in '[]' '[{"id":"obs-other","status":"open"}]' '[{"id":"obs-long-form-example","status":"open"}]' \
+  for body in '[]' '[{"id":"obs-other","status":"open"}]' \
     '[{"id":"obs-example","status":"open"},{"id":"obs-example","status":"open"}]'; do
     new_registration "unverified-${RANDOM}"
     printf '%s\n' "$body" > "$CASE/bead.json"
@@ -413,6 +425,7 @@ test_registration_without_bead_keeps_generic_behavior() {
 }
 
 test_registration_carries_verified_bead
+test_registration_carries_expanded_short_bead
 test_registration_refuses_conflicting_identity
 test_registration_reads_lines_as_the_deploy_guard_does
 test_registration_with_unverified_lookup_warns_without_a_line

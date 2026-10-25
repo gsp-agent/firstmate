@@ -128,6 +128,8 @@ pr: 141
 # Failing-first on d6b8de4d: tests/fm-watch-arm.test.sh's harness-less covering arm survives caller death, and tests/fm-claude-stop-autoarm.test.sh's non-home hook creates state before checking scope; both regressions pass after the fix.
 # Full serial runs pass 46 watch-arm and 61 autoarm cases, preserving coverage under a live harness; post-file pgrep plus cwd audits find zero worktree/test-folder arms and no unresolved cwd.
 pr: 143
+# Failing-first short-ID status resolution in tests/fm-teardown.test.sh (bead-resolution): expanded IDs fail before the fix; exact and expanded IDs pass afterward while unrelated, wrong-prefix, wrong-suffix, wrong-owner and multiple rows refuse.
+pr: 142
 # Failing-first parent-activity budget in tests/fm-bearings-snapshot.test.sh: on 13b4a94e test_parent_activity_budget_counts_cpu_time_not_waiting fails because a 3s stat wait under a 1s budget reports activity_scan.available false with reasons ["timeout"]; a CPU burn still reports timeout, and the wait stays available after the budget counts CPU time.
 # Failing-first registry budget in tests/fm-bearings-snapshot.test.sh: on 4e3a4e01 test_registry_budget_counts_cpu_time_not_waiting fails after a delayed read; it passes with the CPU-time budget and still discloses a CPU-burning read as timeout.
 # Failing-first inherited SIGXCPU ignore in tests/fm-timeout-lib.test.sh: on 6f414dca test_cpu_bound_lets_a_wait_finish_and_stops_a_burn fails because a CPU burn launched with SIGXCPU ignored is never stopped (macOS sends no follow-up SIGKILL) and only the 60s test wall ends it; it passes once fm_run_cpu_timed resets SIGXCPU to its default action.
