@@ -225,6 +225,89 @@ SH
   pass "classify stat helpers resolve the kernel name once per process"
 }
 
+test_read_text_helper_matches_cat() {
+  local script="$TMP_ROOT/read-text.sh" cases="$TMP_ROOT/read-text-cases"
+  mkdir -p "$cases/a-dir"
+  printf 'one line\n' > "$cases/line"
+  printf 'no newline' > "$cases/bare"
+  printf 'two\nlines\n\n\n' > "$cases/trailing"
+  printf '\n\n' > "$cases/newlines"
+  : > "$cases/empty"
+  printf ' padded \t\n' > "$cases/spaces"
+  printf 'caf\303\251\n' > "$cases/utf8"
+  printf 'a\0b\n' > "$cases/nul"
+  cat > "$script" <<'SH'
+. "$1/bin/fm-wake-lib.sh"
+for f in "$2"/* "$2/missing"; do
+  { want=$(cat "$f" 2>/dev/null || true); } 2>/dev/null
+  { fm_read_text_to got "$f"; } 2>/dev/null
+  [ "$got" = "$want" ] || printf 'read %s: helper %q, cat %q\n' "${f##*/}" "$got" "$want"
+done
+fm_read_text_to got "$2/missing" && printf 'a missing file read as present\n'
+:
+SH
+  run_everywhere "read text helper" "$script" "$cases"
+  pass "fm_read_text_to reads every file exactly as \$(cat file 2>/dev/null || true) does"
+}
+
+test_one_stat_snapshot_matches_the_per_file_signatures() {
+  local script="$TMP_ROOT/snapshot.sh" dir="$TMP_ROOT/snapshot-state"
+  mkdir -p "$dir"
+  printf 'working: a\nneeds-decision: b\n' > "$dir/a.status"
+  : > "$dir/empty.status"
+  awk 'BEGIN { for (i = 0; i < 4000; i++) printf "line %d of a long status log\n", i }' > "$dir/long.status"
+  printf 'caf\303\251: utf8\n' > "$dir/utf8.status"
+  printf 'x\n' > "$dir/unread.status"
+  chmod 000 "$dir/unread.status"
+  ln -s a.status "$dir/link.status"
+  mkfifo "$dir/fifo.status" 2>/dev/null || true
+  printf 'turn\n' > "$dir/a.turn-ended"
+  cat > "$script" <<'SH'
+. "$1/bin/fm-wake-lib.sh"
+. "$1/bin/fm-classify-lib.sh"
+d=$2
+files=("$d"/*.status "$d"/*.turn-ended "$d/missing.status")
+fm_stat_snapshot "${files[@]}"
+i=0
+fast=0
+for f in "${files[@]}"; do
+  { want=$(fm_wake_signal_sig "$f"); } 2>/dev/null || want=
+  case "$f" in
+    *.turn-ended)
+      [ "${FM_STAT_SNAPSHOT_TESIG[$i]}" = "$want" ] \
+        || printf 'turn-ended %s: snapshot %q, per file %q\n' "${f##*/}" "${FM_STAT_SNAPSHOT_TESIG[$i]}" "$want"
+      ;;
+    *)
+      if [ "${FM_STAT_SNAPSHOT_OK[$i]}" = 1 ] && status_observed_signature_from_fields_to got "$f" \
+        "${FM_STAT_SNAPSHOT_STATE[$i]}" "${FM_STAT_SNAPSHOT_SIZE[$i]}" "${FM_STAT_SNAPSHOT_IDENT[$i]}"; then
+        fast=$((fast + 1))
+        [ "$got" = "$want" ] || printf 'status %s: snapshot %q, per file %q\n' "${f##*/}" "$got" "$want"
+        # A second read is answered from the per-process encoding memo.
+        status_observed_signature_from_fields_to again "$f" \
+          "${FM_STAT_SNAPSHOT_STATE[$i]}" "${FM_STAT_SNAPSHOT_SIZE[$i]}" "${FM_STAT_SNAPSHOT_IDENT[$i]}"
+        [ "$again" = "$want" ] || printf 'status %s: second read %q\n' "${f##*/}" "$again"
+      else
+        case "${f##*/}" in
+          link.status|fifo.status|missing.status) ;;
+          *) printf 'regular status %s took the per-file path\n' "${f##*/}" ;;
+        esac
+      fi
+      ;;
+  esac
+  if [ "${FM_STAT_SNAPSHOT_OK[$i]}" = 1 ]; then
+    m=$(fm_path_mtime "$f")
+    [ "${FM_STAT_SNAPSHOT_MTIME[$i]}" = "$m" ] || printf 'mtime %s: snapshot %q, per file %q\n' "${f##*/}" "${FM_STAT_SNAPSHOT_MTIME[$i]}" "$m"
+  fi
+  i=$((i + 1))
+done
+[ "$fast" -ge 4 ] || printf 'only %s regular status logs took the one-stat path\n' "$fast"
+:
+SH
+  run_everywhere "one-stat snapshot" "$script" "$dir"
+  chmod 600 "$dir/unread.status"
+  pass "one stat of every scanned file yields the signatures, turn-ended stamps, and mtimes the per-file reads print"
+}
+
 if [ -n "${FM_TEST_ONLY:-}" ]; then
   "$FM_TEST_ONLY"
 else
@@ -234,4 +317,6 @@ else
   test_recovery_marker_read_accepts_exactly_one_newline
   test_window_to_task_matches_the_meta_pipeline
   test_classify_stat_helpers_read_the_kernel_name_once
+  test_read_text_helper_matches_cat
+  test_one_stat_snapshot_matches_the_per_file_signatures
 fi

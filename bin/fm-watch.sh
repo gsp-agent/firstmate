@@ -2103,26 +2103,77 @@ age_of() {  # seconds since file mtime; "due immediately" if missing
 # Pure read: prints one "<seen-file>\t<sig>\t<file>" line per changed file.
 # The caller records reported state only after surfacing or intentional absorption,
 # and commits a status classification position only after a successful span read.
+# The poll loop calls scan_signals_to, which starts at most one process: one
+# stat(1) of every scanned file (fm_stat_snapshot in bin/fm-wake-lib.sh). A
+# file whose fields that read cannot carry, and a change the reported
+# signature alone cannot settle, take the per-file path below.
 scan_signals() {
-  local f sig sf exclude
+  local fm_scan
+  scan_signals_to fm_scan
+  [ -z "$fm_scan" ] || printf '%s\n' "$fm_scan"
+}
+
+scan_signals_to() {  # <out-var>
+  local _ss_out='' _ss_f _ss_sig _ss_sf _ss_exclude _ss_home _ss_seen _ss_i=0 _ss_fast=1
+  local -a _ss_files=()
+  # Without the classifier every status log takes the per-file path, as before.
+  _fm_wake_require_classify || _ss_fast=0
   # A remote mate's own parent channel is not a self-home task status log; the
   # home-shape-aware exclusion and its precedent live in
-  # status_scan_parent_channel_exclude (fm-classify-lib.sh).
-  exclude=$(status_scan_parent_channel_exclude "$STATE")
-  for f in "$STATE"/*.status "$STATE"/*.turn-ended; do
-    [ "$f" = "$exclude" ] && continue
-    if [ ! -e "$f" ]; then
-      case "$f" in *.status) [ -L "$f" ] || continue ;; *) continue ;; esac
+  # status_scan_parent_channel_exclude (fm-classify-lib.sh). A main home, which
+  # that owner reads from the same marker, has nothing to exclude.
+  fm_dirname_to _ss_home "$STATE"
+  if [ -e "$_ss_home/.fm-secondmate-home" ] || [ -L "$_ss_home/.fm-secondmate-home" ]; then
+    _ss_exclude=$(status_scan_parent_channel_exclude "$STATE")
+  else
+    _ss_exclude=
+  fi
+  for _ss_f in "$STATE"/*.status "$STATE"/*.turn-ended; do
+    [ "$_ss_f" = "$_ss_exclude" ] && continue
+    if [ ! -e "$_ss_f" ]; then
+      case "$_ss_f" in *.status) [ -L "$_ss_f" ] || continue ;; *) continue ;; esac
     fi
-    sig=$(fm_wake_signal_sig "$f") || continue
-    [ -n "$sig" ] || continue
-    sf=$(fm_wake_signal_seen_path "$STATE" "$f")
-    case "$f" in
-      *.status) fm_wake_signal_seen_current "$STATE" "$f" && continue ;;
-      *) [ "$sig" = "$(cat "$sf" 2>/dev/null)" ] && continue ;;
-    esac
-    printf '%s\t%s\t%s\n' "$sf" "$sig" "$f"
+    _ss_files[${#_ss_files[@]}]=$_ss_f
   done
+  fm_stat_snapshot ${_ss_files[@]+"${_ss_files[@]}"}
+  while [ "$_ss_i" -lt "${#_ss_files[@]}" ]; do
+    _ss_f=${_ss_files[$_ss_i]}
+    _ss_sig=
+    fm_wake_signal_seen_path_to _ss_sf "$STATE" "$_ss_f"
+    case "$_ss_f" in
+      *.status)
+        if [ "$_ss_fast" = 1 ] && [ "${FM_STAT_SNAPSHOT_OK[$_ss_i]}" = 1 ] \
+          && status_observed_signature_from_fields_to _ss_sig "$_ss_f" "${FM_STAT_SNAPSHOT_STATE[$_ss_i]}" \
+            "${FM_STAT_SNAPSHOT_SIZE[$_ss_i]}" "${FM_STAT_SNAPSHOT_IDENT[$_ss_i]}"; then
+          if status_presentation_marker_reported_matches_read "$_ss_sf" "$_ss_sig"; then
+            _ss_i=$((_ss_i + 1))
+            continue
+          fi
+        else
+          _ss_sig=$(fm_wake_signal_sig "$_ss_f") || _ss_sig=
+        fi
+        if [ -z "$_ss_sig" ] || fm_wake_signal_seen_current "$STATE" "$_ss_f"; then
+          _ss_i=$((_ss_i + 1))
+          continue
+        fi
+        ;;
+      *)
+        if [ "${FM_STAT_SNAPSHOT_OK[$_ss_i]}" = 1 ]; then
+          _ss_sig=${FM_STAT_SNAPSHOT_TESIG[$_ss_i]}
+        else
+          _ss_sig=$(fm_wake_signal_sig "$_ss_f") || _ss_sig=
+        fi
+        fm_read_text_to _ss_seen "$_ss_sf" || _ss_seen=
+        if [ -z "$_ss_sig" ] || [ "$_ss_sig" = "$_ss_seen" ]; then
+          _ss_i=$((_ss_i + 1))
+          continue
+        fi
+        ;;
+    esac
+    _ss_out="${_ss_out}${_ss_sf}"$'\t'"${_ss_sig}"$'\t'"${_ss_f}"$'\n'
+    _ss_i=$((_ss_i + 1))
+  done
+  printf -v "$1" '%s' "${_ss_out%$'\n'}"
   return 0
 }
 
@@ -3479,7 +3530,7 @@ EOF
   # hook land seconds apart, and reporting them as separate actionable wakes
   # costs a full firstmate turn each. The re-scan also picks up a newer
   # signature for an already-pending file (last write wins below).
-  pending=$(scan_signals)
+  scan_signals_to pending
   if [ -n "$pending" ]; then
     sleep "$SIGNAL_GRACE"
     pending=$(printf '%s\n%s' "$pending" "$(scan_signals)")

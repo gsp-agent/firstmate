@@ -1741,6 +1741,85 @@ status_observed_signature() {
   printf 'r1:%s' "$encoded"
 }
 
+# The bytes of an ASCII <text> in the lowercase hex od -An -v -tx1 prints,
+# without starting a process. Callers pass only text their allowlist proved
+# ASCII, where one character is one byte in every locale.
+_status_hex_ascii_to() {  # <out-var> <text>
+  # Prefixed locals: printf -v below writes the caller's variable by name.
+  local _shx_text=$2 _shx_hex='' _shx_byte _shx_i=0 _shx_n=${#2}
+  while [ "$_shx_i" -lt "$_shx_n" ]; do
+    printf -v _shx_byte '%02x' "'${_shx_text:_shx_i:1}"
+    _shx_hex=$_shx_hex$_shx_byte
+    _shx_i=$((_shx_i + 1))
+  done
+  printf -v "$1" '%s' "$_shx_hex"
+}
+
+# Fork-free form of status_observed_signature for the watcher's per-poll scan
+# (bin/fm-watch.sh scan_signals), from the three fields it would read with
+# stat(1) itself, which the scan reads for every file at once
+# (fm_stat_snapshot in bin/fm-wake-lib.sh): <path-state>, <size>, and the
+# <ident> _fm_open_decisions_file_ident prints. <out-var> gets the same value
+# status_observed_signature prints. Only a regular file that is not a symlink,
+# with fields in the plain ASCII stat prints for one, takes this path; for
+# anything else, or under a test size or identity reader, it fails and the
+# caller runs status_observed_signature. Bash 4.2 and later keep each encoding
+# for the life of the process, so an unchanged file costs no encoding either.
+_STATUS_SIG_ASCII='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ :.+-'
+_STATUS_SIG_CACHE_COUNT=-1
+if [ "${BASH_VERSINFO[0]}" -gt 4 ] || { [ "${BASH_VERSINFO[0]}" -eq 4 ] && [ "${BASH_VERSINFO[1]}" -ge 2 ]; }; then
+  declare -gA _STATUS_SIG_CACHE=()
+  _STATUS_SIG_CACHE_COUNT=0
+fi
+status_observed_signature_from_fields_to() {  # <out-var> <file> <path-state> <size> <ident>
+  local _sof_f=$2 _sof_state=$3 _sof_size=$4 _sof_ident=$5 _sof_access _sof_key _sof_hex _sof_sig=''
+  [ -z "${FM_STATUS_IDENTITY_READER:-}" ] && [ -z "${FM_STATUS_SIZE_READER:-}" ] || return 1
+  if [ "$_FM_CLASSIFY_UNAME_S" = Darwin ]; then
+    case "$_sof_state" in 'Regular File:'*) ;; *) return 1 ;; esac
+  else
+    case "$_sof_state" in 'regular file:'*|'regular empty file:'*) ;; *) return 1 ;; esac
+  fi
+  [ ! -L "$_sof_f" ] && [ -f "$_sof_f" ] || return 1
+  case "$_sof_size" in ''|*[!0-9]*) return 1 ;; esac
+  case "$_sof_ident$_sof_state" in ''|*[!"$_STATUS_SIG_ASCII"]*) return 1 ;; esac
+  [ -n "$_sof_ident" ] || return 1
+  if [ -r "$_sof_f" ]; then _sof_access=readable; else _sof_access=unreadable; fi
+  # For such a file the kind status_observed_signature records equals access.
+  _sof_key="$_sof_size/$_sof_ident/$_sof_state/$_sof_access"
+  if [ "$_STATUS_SIG_CACHE_COUNT" -ge 0 ]; then
+    _sof_sig=${_STATUS_SIG_CACHE[$_sof_key]-}
+  fi
+  if [ -z "$_sof_sig" ]; then
+    _sof_sig='r1:'
+    _status_hex_ascii_to _sof_hex "$_sof_size"; _sof_sig="${_sof_sig}${_sof_hex}00"
+    _status_hex_ascii_to _sof_hex "$_sof_ident"; _sof_sig="${_sof_sig}${_sof_hex}00"
+    _status_hex_ascii_to _sof_hex "$_sof_state"; _sof_sig="${_sof_sig}${_sof_hex}002d00"
+    _status_hex_ascii_to _sof_hex "$_sof_access"; _sof_sig="${_sof_sig}${_sof_hex}00${_sof_hex}"
+    if [ "$_STATUS_SIG_CACHE_COUNT" -ge 0 ]; then
+      if [ "$_STATUS_SIG_CACHE_COUNT" -ge 4096 ]; then
+        _STATUS_SIG_CACHE=()
+        _STATUS_SIG_CACHE_COUNT=0
+      fi
+      _STATUS_SIG_CACHE[$_sof_key]=$_sof_sig
+      _STATUS_SIG_CACHE_COUNT=$((_STATUS_SIG_CACHE_COUNT + 1))
+    fi
+  fi
+  printf -v "$1" '%s' "$_sof_sig"
+}
+
+# Fork-free status_presentation_marker_reported_matches for that same scan,
+# through bin/fm-wake-lib.sh's reader when it is loaded.
+status_presentation_marker_reported_matches_read() {  # <marker> <signature>
+  local _smr_raw
+  if ! command -v fm_read_text_to >/dev/null 2>&1; then
+    status_presentation_marker_reported_matches "$1" "$2"
+    return
+  fi
+  fm_read_text_to _smr_raw "$1" || return 1
+  status_presentation_marker_parse "$_smr_raw" || return 1
+  [ "$STATUS_PRESENTATION_REPORTED" = "$2" ]
+}
+
 status_presentation_marker_reported_matches() {
   local raw
   raw=$(cat "$1" 2>/dev/null) || return 1
