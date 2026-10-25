@@ -3402,6 +3402,35 @@ test_relaunch_stop_background_does_nothing_when_there_is_no_picker() {
 }
 
 
+test_route_reason_follows_runtime() {
+  local scenario dir out rc expected
+  local args=()
+  for scenario in replace keep same model effort harness; do
+    dir=$(new_case "route-$scenario" route1)
+    add_ship_task "$dir" route1 claude
+    printf 'route_reason=original choice\n' >> "$dir/home/state/route1.meta"
+    args=()
+    expected='original choice'
+    case "$scenario" in
+      same) args=(--harness claude --model default --effort default) ;;
+      model) args=(--model sonnet); expected= ;;
+      effort) args=(--effort high); expected= ;;
+      harness) args=(--harness codex); printf codex > "$dir/fake/becomes"; expected= ;;
+      replace) args=(--route-reason $'new choice\nquota\rchanged'); expected='new choice quota changed' ;;
+    esac
+    out=$(run_control "$dir" route1 relaunch --note resume "${args[@]}"); rc=$?
+    expect_code 0 "$rc" "route reason relaunch $scenario should succeed"$'\n'"$out"
+    [ "$(meta_field "$dir" route1 route_reason)" = "$expected" ] || fail "wrong route reason after $scenario"
+    if [ -n "$expected" ]; then
+      [ "$(grep -c '^route_reason=' "$dir/home/state/route1.meta")" = 1 ] || fail "reason must appear once"
+    else
+      ! grep -q '^route_reason=' "$dir/home/state/route1.meta" || fail "changed runtime must clear reason"
+    fi
+  done
+  pass "relaunch preserves, clears, or replaces the route reason with its runtime"
+}
+
+test_route_reason_follows_runtime
 test_relaunch_without_stop_background_refuses_the_picker_the_exit_opens
 test_relaunch_without_stop_background_refuses_a_picker_that_is_already_open
 test_relaunch_stop_background_confirms_exit_and_stop_tasks

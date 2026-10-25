@@ -5,11 +5,11 @@
 # Usage: fm-control.sh <task-id> interrupt
 #        fm-control.sh <task-id> exit
 #        fm-control.sh <task-id> relaunch [--harness <name>] [--model <name>]
-#                                         [--effort <level>]
+#                                         [--effort <level>] [--route-reason <text>]
 #                                         (--note <text> | --note-file <path>)
 #                                         [--stop-background]
 #        fm-control.sh <task-id> relaunch --restore [--harness <name>]
-#                                         [--model <name>] [--effort <level>]
+#                                         [--model <name>] [--effort <level>] [--route-reason <text>]
 #                                         (--note <text> | --note-file <path>)
 #
 # Why this exists, and how it differs from fm-send.sh. bin/fm-send.sh is the
@@ -291,6 +291,8 @@ if ! fm_control_verb_allowed "$VERB"; then
   exit 2
 fi
 
+ROUTE_REASON=
+ROUTE_REASON_SET=0
 NEW_HARNESS=
 NEW_MODEL=
 NEW_EFFORT=
@@ -311,6 +313,7 @@ for control_arg in "$@"; do
       harness) NEW_HARNESS=$control_arg; HARNESS_SET=1 ;;
       model) NEW_MODEL=$control_arg; MODEL_SET=1 ;;
       effort) NEW_EFFORT=$control_arg; EFFORT_SET=1 ;;
+      route-reason) ROUTE_REASON=$control_arg; ROUTE_REASON_SET=1 ;;
       note) NOTE=$control_arg; NOTE_SET=1 ;;
       note_file)
         [ -f "$control_arg" ] || die "--note-file '$control_arg' is not a readable file"
@@ -328,6 +331,8 @@ for control_arg in "$@"; do
     --model=*) NEW_MODEL=${control_arg#--model=}; MODEL_SET=1 ;;
     --effort) control_want_value=effort ;;
     --effort=*) NEW_EFFORT=${control_arg#--effort=}; EFFORT_SET=1 ;;
+    --route-reason) control_want_value='route-reason' ;;
+    --route-reason=*) ROUTE_REASON=${control_arg#--route-reason=}; ROUTE_REASON_SET=1 ;;
     --note) control_want_value=note ;;
     --note=*) NOTE=${control_arg#--note=}; NOTE_SET=1 ;;
     --note-file) control_want_value=note_file ;;
@@ -348,8 +353,8 @@ fi
 
 if [ "$VERB" != relaunch ]; then
   [ "$HARNESS_SET" = 0 ] && [ "$MODEL_SET" = 0 ] && [ "$EFFORT_SET" = 0 ] && [ "$NOTE_SET" = 0 ] \
-    && [ "$STOP_BACKGROUND" = 0 ] && [ "$RESTORE" = 0 ] \
-    || die "--harness, --model, --effort, --note, --stop-background, and --restore apply to 'relaunch' only"
+    && [ "$STOP_BACKGROUND" = 0 ] && [ "$RESTORE" = 0 ] && [ "$ROUTE_REASON_SET" = 0 ] \
+    || die "--harness, --model, --effort, --route-reason, --note, --stop-background, and --restore apply to 'relaunch' only"
 fi
 [ "$HARNESS_SET" = 0 ] || [ -n "$NEW_HARNESS" ] || die "--harness requires a non-empty value"
 [ "$MODEL_SET" = 0 ] || [ -n "$NEW_MODEL" ] || die "--model requires a non-empty value"
@@ -450,6 +455,7 @@ do_restore() {
   backend=$(fm_meta_get "$archive" backend)
 
   spawn_args=("$ID" "$project" "$harness")
+  [ "$ROUTE_REASON_SET" = 0 ] || spawn_args+=(--route-reason "$ROUTE_REASON")
   case "$model" in ''|default) ;; *) spawn_args+=(--model "$model") ;; esac
   case "$effort" in ''|default) ;; *) spawn_args+=(--effort "$effort") ;; esac
   [ -z "$backend" ] || spawn_args+=(--backend "$backend")
@@ -1746,6 +1752,7 @@ do_relaunch() {
   journal_write launching "${CHECKPOINT_LINES[@]}" "$note_line" "relaunch_tx=$RELAUNCH_TX"
   spawn_args=("$ID" --relaunch --harness "$TARGET_HARNESS"
     --model "$TARGET_MODEL" --effort "$TARGET_EFFORT")
+  [ "$ROUTE_REASON_SET" = 0 ] || spawn_args+=(--route-reason "$ROUTE_REASON")
   if FM_CONTROL_RELAUNCH_TX="$RELAUNCH_TX" \
       FM_CONTROL_ROUTE_FALLBACK="$TARGET_ROUTE_FALLBACK" \
       "$SCRIPT_DIR/fm-spawn.sh" "${spawn_args[@]}" >/dev/null; then

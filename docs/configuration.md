@@ -469,6 +469,9 @@ A backend spawn refusal from a missing dependency, version gate, or unauthentica
 
 ### Task metadata
 
+An optional `route_reason=` records why the runtime was chosen, with carriage returns and newlines flattened to spaces.
+A relaunch replaces it when supplied, preserves it when omitted and the resolved harness, model, and effort are unchanged, and otherwise removes it.
+
 Task meta records `backend=` only for a non-default backend; an absent `backend=` means `tmux`, preserving existing default-path meta files.
 
 - Every new task records `endpoint_task_id=` as the cleanup binding between the metadata filename and its opaque runtime endpoint.

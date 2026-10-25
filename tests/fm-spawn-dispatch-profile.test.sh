@@ -2299,6 +2299,25 @@ SH
   done
 }
 
+test_route_reason_is_single_line_for_ship_and_scout() {
+  local kind id rec out rc
+  for kind in ship scout; do
+    id="reason-$kind"
+    rec=$(make_spawn_case "$id" codex "$id")
+    read_case_record "$rec"
+    if [ "$kind" = ship ]; then
+      out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --route-reason $'quota exhausted\nuse fallback\rnow'); rc=$?
+    else
+      out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --scout --route-reason $'quota exhausted\nuse fallback\rnow'); rc=$?
+    fi
+    expect_code 0 "$rc" "route reason spawn should succeed"$'\n'"$out"
+    grep -qx 'route_reason=quota exhausted use fallback now' "$HOME_DIR/state/$id.meta" || fail "reason must flatten newlines"
+    [ "$(grep -c '^route_reason=' "$HOME_DIR/state/$id.meta")" = 1 ] || fail "reason must appear once"
+  done
+  pass "spawn records a single-line route reason for ships and scouts"
+}
+
+test_route_reason_is_single_line_for_ship_and_scout
 test_launch_environment_allowlist
 test_launch_environment_invalid_config_refuses
 test_launch_environment_inaccessible_config_refuses
