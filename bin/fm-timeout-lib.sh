@@ -24,6 +24,17 @@
 #       also collapses into 124: there it means the bound fired, not that the
 #       command chose to die.
 #
+#   fm_run_cpu_timed <seconds> <command> [args...]
+#       Runs the command with a per-process CPU-time bound of <seconds>
+#       (RLIMIT_CPU). Waiting does not count: scheduler delay, sleep, and a
+#       blocked read leave the bound intact. Exit status is the command's own,
+#       except 124 when the command dies by SIGXCPU (152) or by the kernel's
+#       follow-up SIGKILL (137). A descendant that hits the same limit is the
+#       command's to surface; this runner only sees the command's exit status.
+#       A non-positive or non-integer bound returns 125 and runs nothing. The
+#       command stays in the caller's process group, so a wait that never ends
+#       is the caller's wall bound, not this one.
+#
 #   fm_exec_timed <seconds> <grace-seconds> <command> [args...]
 #       Replaces the calling shell with the bounded command, so it must be the
 #       last command of a subshell: the bound kills the command, not the
@@ -78,7 +89,8 @@
 #       The variable is removed from the command's environment.
 #
 #   fm_timed_out <status>
-#       0 iff <status> is how fm_run_timed or fm_exec_timed reports the bound.
+#       0 iff <status> is how fm_run_timed, fm_run_cpu_timed, or fm_exec_timed
+#       reports the bound.
 #
 # A non-positive bound is not a bound: `timeout 0` and the perl fallback's
 # `alarm 0` both disable the deadline, so callers must reject 0 before calling.
@@ -287,6 +299,27 @@ fm_run_timed() {  # <seconds> <command...>
     return "$fm_timed_signal"
   fi
   return "$fm_timed_rc"
+}
+
+fm_run_cpu_timed() {  # <seconds> <command...>
+  local seconds=$1 rc=0
+  shift
+  case "$seconds" in
+    ''|*[!0-9]*|0)
+      printf 'fm_run_cpu_timed: seconds must be a positive integer\n' >&2
+      return 125
+      ;;
+  esac
+  if [ "$#" -eq 0 ]; then
+    printf 'fm_run_cpu_timed: missing command\n' >&2
+    return 125
+  fi
+  bash -c 'ulimit -t "$1" >/dev/null || exit 125; shift; exec "$@"' fm-cpu-timed "$seconds" "$@"
+  rc=$?
+  case "$rc" in
+    137|152) return 124 ;;
+  esac
+  return "$rc"
 }
 
 fm_timed_out() {  # <status>

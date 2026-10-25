@@ -532,6 +532,32 @@ test_run_timed_passes_a_natural_exit_through_a_fired_bound() {
   pass 'fm_run_timed passes a natural exit through when the bound fired after completion'
 }
 
+test_cpu_bound_lets_a_wait_finish_and_stops_a_burn() {
+  local rc=0 started elapsed out
+  . "$ROOT/bin/fm-timeout-lib.sh"
+  started=$SECONDS
+  out=$(fm_run_cpu_timed 1 sleep 2) || rc=$?
+  elapsed=$((SECONDS - started))
+  [ "$rc" -eq 0 ] || fail "a 2s wait under a 1s CPU bound was stopped (rc=$rc)"
+  [ "$elapsed" -ge 2 ] || fail "the wait returned before it had waited (${elapsed}s)"
+  [ "$elapsed" -lt 10 ] || fail "the wait did not finish promptly (${elapsed}s)"
+  rc=0
+  started=$SECONDS
+  fm_run_cpu_timed 1 bash -c 'while :; do :; done' || rc=$?
+  elapsed=$((SECONDS - started))
+  [ "$rc" -eq 124 ] || fail "a CPU burn under a 1s CPU bound did not report 124 (rc=$rc)"
+  fm_timed_out "$rc" || fail "124 from a CPU bound was not a timed-out status"
+  [ "$elapsed" -lt 20 ] || fail "a CPU burn was not stopped (${elapsed}s)"
+  rc=0
+  out=$(fm_run_cpu_timed 1 bash -c 'echo kept; exit 7') || rc=$?
+  [ "$rc" -eq 7 ] || fail "a real status was replaced (rc=$rc)"
+  [ "$out" = kept ] || fail "a finished command lost its output: $out"
+  rc=0
+  out=$(fm_run_cpu_timed 0 true) || rc=$?
+  [ "$rc" -eq 125 ] || fail "a non-positive CPU bound ran (rc=$rc out=$out)"
+  pass "fm_run_cpu_timed counts CPU time, so a wait finishes and a burn reports 124"
+}
+
 test_passes_the_command_status_and_output_through
 test_system_bash_preserves_completion_and_signal_statuses
 test_run_timed_reports_the_bound_when_the_wrapper_records_a_signal_death
@@ -553,3 +579,4 @@ test_a_memory_cap_kills_the_group_past_its_cap
 test_an_unmeasurable_memory_cap_kills_rather_than_runs_uncapped
 test_gnu_timeout_kills_a_term_ignoring_command_after_the_grace
 test_timed_out_names_exactly_the_bound_statuses
+test_cpu_bound_lets_a_wait_finish_and_stops_a_burn
