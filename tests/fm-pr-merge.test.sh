@@ -283,7 +283,28 @@ case "${1:-} ${2:-}" in
       *" repos/"*"/pulls/"*"/reviews"*)
         # The approval at the head this mock reports, which every merge without
         # --attended-override requires (bin/fm-pr-merge.sh's reviewer rule).
-        printf '[{"user":{"login":"carmanchip23-dev"},"state":"APPROVED","commit_id":"%s"}]\n' \
+        # github-reviews/<n>.json is one page. Without --paginate only page 1
+        # is returned. With --paginate every page is concatenated, and each
+        # page number is logged, so a test can prove a later page was read.
+        review_dir=$(dirname "$FM_TEST_GH_HEAD")
+        if [ -d "$review_dir/github-reviews" ]; then
+          case " $* " in
+            *--paginate*)
+              combined='[]'
+              page=1
+              while [ -f "$review_dir/github-reviews/$page.json" ]; do
+                printf 'reviews-page %s\n' "$page" >> "$FM_TEST_GH_LOG"
+                combined=$(jq -s '.[0] + .[1]' <(printf '%s' "$combined") "$review_dir/github-reviews/$page.json")
+                page=$((page + 1))
+              done
+              printf '%s\n' "$combined"
+              exit 0
+              ;;
+          esac
+          cat "$review_dir/github-reviews/1.json"
+          exit 0
+        fi
+        printf '[{"id":1,"user":{"login":"carmanchip23-dev"},"state":"APPROVED","commit_id":"%s","submitted_at":"2020-01-01T00:00:30Z"}]\n' \
           "$(cat "$FM_TEST_GH_HEAD")"
         exit 0
         ;;
@@ -294,6 +315,16 @@ case "${1:-} ${2:-}" in
         esac
         cat "$FM_TEST_GH_RUNS"
         exit $?
+        ;;
+      *" repos/"*"/commits/"*)
+        review_dir=$(dirname "$FM_TEST_GH_HEAD")
+        if [ -f "$review_dir/github-commit.json" ]; then
+          cat "$review_dir/github-commit.json"
+          exit 0
+        fi
+        printf '{"sha":"%s","commit":{"committer":{"date":"2020-01-01T00:00:00Z"}}}\n' \
+          "$(cat "$FM_TEST_GH_HEAD")"
+        exit 0
         ;;
       *" repos/"*"/rules/branches/"*merge_queue*) ;;
       *" repos/"*"/rules/branches/"*)
@@ -327,6 +358,28 @@ esac
 exit 0
 SH
   chmod +x "$case_dir/fakebin/gh-axi" "$case_dir/fakebin/gh"
+}
+
+# One GitHub review object. The caller wraps these in a JSON array per page.
+github_review() {
+  local id=$1 login=$2 state=$3 commit=$4 submitted=$5
+  printf '{"id":%s,"user":{"login":"%s"},"state":"%s","commit_id":"%s","submitted_at":"%s"}' \
+    "$id" "$login" "$state" "$commit" "$submitted"
+}
+
+install_commit_time() {
+  local case_dir=$1 when=$2
+  printf '{"commit":{"committer":{"date":"%s"}}}\n' "$when" > "$case_dir/github-commit.json"
+}
+
+install_review_pages() {
+  local case_dir=$1 page=1 body
+  shift
+  mkdir -p "$case_dir/github-reviews"
+  for body in "$@"; do
+    printf '%s\n' "$body" > "$case_dir/github-reviews/$page.json"
+    page=$((page + 1))
+  done
 }
 
 # gh mock that fails the merge call but succeeds live verify, so a real merge
@@ -4723,3 +4776,143 @@ test_app_bound_required_status_context_matches_by_name
 test_required_partial_reads_report_all_failures
 test_allow_red_refused_on_forgejo
 test_allow_missing_refused_on_forgejo
+
+# Head commit the moved-approval cases share. An approval submitted days
+# earlier is not approval of it even when commit_id names it.
+APPROVAL_HEAD=1111111111111111111111111111111111111111
+APPROVAL_BORN=2026-01-15T12:00:00Z
+
+prepare_approval_case() {
+  local name=$1
+  local case_dir
+  case_dir=$(make_case "$name")
+  mkdir -p "$case_dir/wt"
+  add_gh_mocks "$case_dir" "$APPROVAL_HEAD"
+  install_commit_time "$case_dir" "$APPROVAL_BORN"
+  printf '%s\n' "$case_dir"
+}
+
+run_approval_case() {
+  local case_dir=$1 number=$2
+  shift 2
+  set +e
+  run_pr_merge "$case_dir" task-x1 "https://github.com/example/repo/pull/$number" "$@" \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  APPROVAL_RC=$?
+  set -e
+}
+
+# An APPROVED review whose commit_id equals the head, submitted before that
+# commit existed, is not approval of the head.
+test_approval_submitted_before_the_head_existed_refuses() {
+  local case_dir born=$APPROVAL_BORN head=$APPROVAL_HEAD
+  case_dir=$(prepare_approval_case moved-approval)
+  install_review_pages "$case_dir" \
+    "[$(github_review 101 carmanchip23-dev APPROVED "$head" 2026-01-01T12:00:00Z)]"
+  run_approval_case "$case_dir" 501
+  expect_code 1 "$APPROVAL_RC" \
+    "moved-approval: a review submitted before the head commit existed must refuse: $(cat "$case_dir/stderr")"
+  assert_grep "  - approval 101 by carmanchip23-dev submitted at 2026-01-01T12:00:00Z, before head $head existed at $born" \
+    "$case_dir/stderr" "moved-approval: the refusal did not name the review, its submitted time, and the head committer time"
+  assert_no_grep 'pr merge' "$case_dir/gh.log" "moved-approval: gh pr merge ran"
+
+  # Six seconds is outside the five-second skew. Four seconds is covered by
+  # the passing test. Together they pin the skew.
+  case_dir=$(prepare_approval_case skew-outside)
+  install_review_pages "$case_dir" \
+    "[$(github_review 102 carmanchip23-dev APPROVED "$head" 2026-01-15T11:59:54Z)]"
+  run_approval_case "$case_dir" 502
+  expect_code 1 "$APPROVAL_RC" \
+    "skew-outside: a review submitted six seconds before the head commit must refuse: $(cat "$case_dir/stderr")"
+  assert_grep "approval 102 by carmanchip23-dev submitted at 2026-01-15T11:59:54Z, before head $head existed at $born" \
+    "$case_dir/stderr" "skew-outside: the refusal did not name the review"
+  assert_no_grep 'pr merge' "$case_dir/gh.log" "skew-outside: gh pr merge ran"
+  pass "fm-pr-merge refuses an approval submitted before the head commit existed"
+}
+
+# A review submitted after the head commit existed still approves it. An older
+# change request whose commit_id now names that same head does not veto it.
+test_approval_submitted_after_the_head_existed_merges() {
+  local case_dir head=$APPROVAL_HEAD
+  case_dir=$(prepare_approval_case timely-despite-moved-request)
+  install_review_pages "$case_dir" \
+    "[$(github_review 201 carmanchip23-dev CHANGES_REQUESTED "$head" 2026-01-01T18:00:00Z),$(github_review 202 carmanchip23-dev APPROVED "$head" 2026-01-15T12:05:00Z)]"
+  run_approval_case "$case_dir" 503
+  expect_code 0 "$APPROVAL_RC" \
+    "timely-despite-moved-request: an approval submitted after the head commit existed must merge: $(cat "$case_dir/stderr")"
+  assert_logged_gh_merge "$case_dir" 503 example/repo --squash
+  grep -qxF "api repos/example/repo/commits/$head" "$case_dir/gh.log" \
+    || fail "timely-despite-moved-request: the head commit time was not read"
+
+  case_dir=$(prepare_approval_case timely-approval)
+  install_review_pages "$case_dir" \
+    "[$(github_review 203 carmanchip23-dev APPROVED "$head" 2026-01-15T12:05:00Z)]"
+  run_approval_case "$case_dir" 504
+  expect_code 0 "$APPROVAL_RC" \
+    "timely-approval: a review submitted after the head commit existed must merge: $(cat "$case_dir/stderr")"
+  assert_logged_gh_merge "$case_dir" 504 example/repo --squash
+
+  # Four seconds before the committer time is inside the five-second skew.
+  case_dir=$(prepare_approval_case skew-inside)
+  install_review_pages "$case_dir" \
+    "[$(github_review 204 carmanchip23-dev APPROVED "$head" 2026-01-15T11:59:56Z)]"
+  run_approval_case "$case_dir" 505
+  expect_code 0 "$APPROVAL_RC" \
+    "skew-inside: a review submitted four seconds before the head commit must merge: $(cat "$case_dir/stderr")"
+  assert_logged_gh_merge "$case_dir" 505 example/repo --squash
+  pass "fm-pr-merge accepts an approval submitted once the head commit existed"
+}
+
+# Page 1 is a full page of other people's comments. The reviewer's review is
+# only on page 2. An approval there merges. A change request there vetoes.
+test_reviewer_review_on_a_second_page_is_read() {
+  local case_dir head=$APPROVAL_HEAD filler
+  filler=$(jq -nc '[range(100) | {id: (1000 + .), user: {login: "other"}, state: "COMMENTED", commit_id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", submitted_at: "2020-01-01T00:00:00Z"}]')
+
+  case_dir=$(prepare_approval_case second-page-approval)
+  install_review_pages "$case_dir" \
+    "$filler" \
+    "[$(github_review 301 carmanchip23-dev APPROVED "$head" 2026-01-15T12:05:00Z)]"
+  run_approval_case "$case_dir" 506
+  expect_code 0 "$APPROVAL_RC" \
+    "second-page-approval: a reviewer approval on page 2 must merge: $(cat "$case_dir/stderr")"
+  assert_grep 'reviews-page 2' "$case_dir/gh.log" \
+    "second-page-approval: page 2 was not read"
+  assert_grep "api --paginate repos/example/repo/pulls/506/reviews?per_page=100" \
+    "$case_dir/gh.log" "second-page-approval: reviews were not read with pagination"
+  assert_logged_gh_merge "$case_dir" 506 example/repo --squash
+
+  case_dir=$(prepare_approval_case second-page-veto)
+  install_review_pages "$case_dir" \
+    "[$(github_review 302 carmanchip23-dev APPROVED "$head" 2026-01-15T12:05:00Z)]" \
+    "[$(github_review 303 carmanchip23-dev CHANGES_REQUESTED "$head" 2026-01-15T13:00:00Z)]"
+  run_approval_case "$case_dir" 507
+  expect_code 1 "$APPROVAL_RC" \
+    "second-page-veto: a change request on page 2 must refuse: $(cat "$case_dir/stderr")"
+  assert_grep 'reviews-page 2' "$case_dir/gh.log" \
+    "second-page-veto: page 2 was not read"
+  assert_no_grep 'pr merge' "$case_dir/gh.log" \
+    "second-page-veto: gh pr merge ran"
+  pass "fm-pr-merge reads a reviewer review on the second page"
+}
+
+# --attended-override still merges when the only approval was submitted
+# before the head commit existed. The override does not become a review.
+test_attended_override_still_merges_a_moved_approval() {
+  local case_dir head=$APPROVAL_HEAD
+  case_dir=$(prepare_approval_case attended-moved-approval)
+  install_review_pages "$case_dir" \
+    "[$(github_review 101 carmanchip23-dev APPROVED "$head" 2026-01-01T12:00:00Z)]"
+  run_approval_case "$case_dir" 508 --attended-override
+  expect_code 0 "$APPROVAL_RC" \
+    "attended-moved-approval: --attended-override must still merge: $(cat "$case_dir/stderr")"
+  assert_logged_gh_merge "$case_dir" 508 example/repo --squash
+  assert_no_grep 'approval 101' "$case_dir/stderr" \
+    "attended-moved-approval: the override took the review-refusal path"
+  pass "fm-pr-merge still merges under --attended-override when the approval predates the head"
+}
+
+test_approval_submitted_before_the_head_existed_refuses
+test_approval_submitted_after_the_head_existed_merges
+test_reviewer_review_on_a_second_page_is_read
+test_attended_override_still_merges_a_moved_approval
