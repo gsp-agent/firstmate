@@ -109,7 +109,12 @@ wait_markers() {  # <log> <count> <seconds>
   local limit=$(( $3 * 10 )) i=0
   while [ "$i" -lt "$limit" ]; do
     [ "$(markers_in "$1")" -ge "$2" ] && return 0
-    budget_watcher_live || return 1
+    if ! budget_watcher_live; then
+      # A successful watcher can publish its final marker and exit after
+      # the first read. Once it is gone, read its completed log before failing.
+      [ "$(markers_in "$1")" -ge "$2" ] && return 0
+      return 1
+    fi
     sleep 0.1
     i=$((i + 1))
   done

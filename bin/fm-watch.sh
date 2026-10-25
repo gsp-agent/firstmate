@@ -2326,7 +2326,9 @@ procevent_surface_after_output() {
 # True when some queue row could carry a process-event key, read without the
 # queue lock or a process: a row without the text "procevent:" cannot, so a
 # poll whose queue holds none skips the locked read below. A row appended
-# after this read is seen by the next poll.
+# after this read is seen by the next poll. Queue rows come from fm_wake_append,
+# whose Bash variables cannot carry NUL bytes; a hand-inserted NUL can hide a
+# later key from read in stock Bash 3.2 and is outside this precheck's contract.
 procevent_queue_may_hold_key() {
   local line
   while IFS= read -r line || [ -n "$line" ]; do
