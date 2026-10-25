@@ -102,3 +102,6 @@ pr: 124
 pr: 125
 # Failing-first parsed YAML regression in tests/fm-nm-test-contract.test.sh: test_nm_pins_gate_to_claude_then_codex fails on e0288d6e's [codex] pin and passes once the trusted list is [claude, codex] with disable_project_settings still true.
 pr: 128
+
+# tests/fm-pr-made-with.test.sh: registration omitted the verified bead before the fix; repeat, merge-time restore and ambiguous-line refusals now pass.
+pr: 132
