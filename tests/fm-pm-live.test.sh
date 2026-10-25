@@ -9,6 +9,8 @@ set -u
 . "$ROOT/bin/fm-wake-lib.sh"
 # shellcheck source=/dev/null
 . "$ROOT/bin/fm-merge-outcome-lib.sh"
+# shellcheck source=/dev/null
+. "$ROOT/bin/fm-task-bead-lib.sh"
 
 # Stub only the recovery classifier; task identity, locks, and publication are real.
 fm_backend_agent_state() { cat "$2.agent-state"; }
@@ -22,9 +24,13 @@ make_state() {
   printf '%s\n' "$dir"
 }
 
-write_pm_task() {  # <state> <url> [spawn-generation]
-  local state=$1 url=$2 generation=${3:-first}
-  printf 'project=example\nwindow=%s/demo\nspawn_gen=%s\npr=%s\n' "$state" "$generation" "$url" > "$state/demo.meta"
+write_pm_task() {  # <state> <url> [spawn-generation] [backend]
+  local state=$1 url=$2 generation=${3:-first} backend=${4-}
+  {
+    printf 'project=example\n'
+    [ -z "$backend" ] || printf 'backend=%s\n' "$backend"
+    printf 'window=%s/demo\nspawn_gen=%s\npr=%s\n' "$state" "$generation" "$url"
+  } > "$state/demo.meta"
   printf 'alive\n' > "$state/demo.agent-state"
   printf 'bead=example-acceptance\npid=%s\ntask=demo\n' "$$" > "$state/.pm-live-demo"
   [ -e "$state/demo.status" ] || printf 'done: PR ready for merge\n' > "$state/demo.status"
@@ -280,41 +286,77 @@ test_merge_after_close_tells_the_pm_instead_of_handing_off_into_nothing() {
   pass "a merge that reaches a closed task tells its live PM, never hands off into nothing, and binds only the archived PR"
 }
 
+# A worker that is not confirmed alive cannot own activation and live
+# verification. Its live PM gets one blocked line naming the backend, endpoint
+# and verdict; it names the relaunch only where relaunch can recover the
+# worker. That delivered line is the handoff, so the outcome commits its
+# marker, and a replay never re-reads liveness or lands after a later result.
 test_merge_without_live_owner_blocks_the_pm() {
-  local dir state url verdict line snapshot
+  local dir state url owner verdict backend replay line snapshot
   url=https://github.com/example/repo/pull/79
-  for verdict in dead missing unreadable ambiguous unverified; do
-    dir=$(make_state "owner-$verdict")
+  for owner in dead:tmux missing:herdr missing:tmux unreadable:tmux ambiguous:herdr unverified:cmux; do
+    verdict=${owner%%:*}
+    backend=${owner#*:}
+    dir=$(make_state "owner-$verdict-$backend")
     state="$dir/home/state"
-    write_pm_task "$state" "$url"
+    write_pm_task "$state" "$url" first "$backend"
     printf '%s\n' "$verdict" > "$state/demo.agent-state"
-    if FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$url" poll 2>"$dir/err"; then
-      fail "a $verdict worker was acknowledged as owning live verification"
-    fi
+    FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$url" poll 2>"$dir/err" \
+      || fail "$owner: a delivered blocked handoff was not recorded: $(cat "$dir/err")"
     line=$(tail -n 1 "$state/demo.status")
-    [ "$(status_line_verb "$line")" = blocked ] || fail "PM did not receive an actionable block: $line; $(cat "$dir/err")"
-    assert_contains "$line" "$url spawn_gen=first" "blocked handoff lost PR or generation"
-    assert_contains "$line" "bin/fm-control.sh demo relaunch --note" "blocked handoff omitted recovery command"
-    assert_contains "$line" "activation and live verification" "blocked handoff omitted remaining work"
-    [ ! -e "$state/demo.pr-poll-merge-notified" ] || fail "unowned handoff committed its marker"
-    [ ! -s "$state/.wake-queue" ] || fail "unowned handoff created a second owner on main"
+    [ "$(status_line_verb "$line")" = blocked ] || fail "$owner: a worker that is not alive was handed live verification: $line"
+    assert_contains "$line" "$url spawn_gen=first" "$owner: blocked handoff lost PR or generation"
+    assert_contains "$line" "no confirmed live owner: $backend endpoint $state/demo reads $verdict" \
+      "$owner: blocked handoff did not name the backend, endpoint and verdict"
+    case "$owner" in
+      dead:*|missing:herdr)
+        assert_contains "$line" "relaunch it with bin/fm-control.sh demo relaunch --note" \
+          "$owner: blocked handoff omitted the relaunch that recovers it"
+        ;;
+      *)
+        case "$line" in *"fm-control.sh demo relaunch"*) fail "$owner: blocked handoff named a relaunch that refuses: $line" ;; esac
+        assert_contains "$line" "relaunch would refuse" "$owner: blocked handoff did not say why relaunch cannot recover it"
+        ;;
+    esac
+    [ "$FM_MERGE_OUTCOME_ALREADY_RECORDED" = false ] || fail "$owner: the first blocked handoff read as already recorded"
+    [ -e "$state/demo.pr-poll-merge-notified" ] || fail "$owner: the delivered blocked handoff did not commit its marker"
+    [ ! -s "$state/.wake-queue" ] || fail "$owner: the blocked handoff created a second owner on main"
+    fm_task_merge_handoff_pending "$state/demo.status" demo \
+      || fail "$owner: teardown would not see the unowned verification as pending"
     snapshot=$(cat "$state/demo.status")
-    FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$url" poll 2>/dev/null \
-      && fail "replayed unowned handoff was acknowledged"
-    [ "$(cat "$state/demo.status")" = "$snapshot" ] || fail "replay duplicated the blocked handoff"
-    write_pm_task "$state" "$url" replacement
+    for replay in alive dead unreadable; do
+      printf '%s\n' "$replay" > "$state/demo.agent-state"
+      FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$url" poll 2>/dev/null \
+        || fail "$owner: replaying the delivered handoff failed while the worker read $replay"
+      [ "$FM_MERGE_OUTCOME_ALREADY_RECORDED" = true ] || fail "$owner: the replay was not deduplicated by its marker"
+      [ "$(cat "$state/demo.status")" = "$snapshot" ] \
+        || fail "$owner: the replay re-read liveness ($replay) and appended: $(tail -n 1 "$state/demo.status")"
+    done
+    write_pm_task "$state" "$url" replacement "$backend"
     FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$url" poll \
-      || fail "replacement owner could not receive the handoff"
+      || fail "$owner: replacement owner could not receive the handoff"
     assert_pm_handoff "$state" "$url" replacement
-    printf '%s\n' "$verdict" > "$state/demo.agent-state"
-    if FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$url" poll 2>/dev/null; then
-      fail "an existing marker hid the replacement owner's lost liveness"
-    fi
-    line=$(tail -n 1 "$state/demo.status")
-    [ "$(status_line_verb "$line")" = blocked ] || fail "existing marker suppressed the owner block"
-    assert_contains "$line" "spawn_gen=replacement" "owner block used a stale generation"
+    printf 'done: live check passed\n' >> "$state/demo.status"
+    printf 'dead\n' > "$state/demo.agent-state"
+    FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$url" poll 2>/dev/null \
+      || fail "$owner: replay after the worker's own result failed"
+    [ "$(tail -n 1 "$state/demo.status")" = 'done: live check passed' ] \
+      || fail "$owner: the replay landed after the worker's own result: $(tail -n 1 "$state/demo.status")"
   done
-  pass "a gone or unproven worker blocks its live PM with a recovery command and remains retryable"
+
+  dir=$(make_state owner-old-marker)
+  state="$dir/home/state"
+  write_pm_task "$state" "$url"
+  printf 'dead\n' > "$state/demo.agent-state"
+  fm_pr_poll_merge_mark_notified "$state" demo github github.com example/repo 79 \
+    || fail "could not seed a legacy suppressed notification"
+  FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$url" poll 2>/dev/null \
+    || fail "an existing marker hid the missing blocked handoff"
+  line=$(tail -n 1 "$state/demo.status")
+  [ "$(status_line_verb "$line")" = blocked ] || fail "an existing marker did not repair the missing event with a block: $line"
+  assert_contains "$line" "relaunch it with bin/fm-control.sh demo relaunch --note" "the repaired block omitted the relaunch"
+  [ "$FM_MERGE_OUTCOME_ALREADY_RECORDED" = true ] || fail "the repaired block lost its existing marker identity"
+  pass "a worker that is not alive gets one blocked PM handoff that names only a relaunch that can work, commits its marker, and is never re-judged on replay"
 }
 
 test_merge_without_live_owner_blocks_the_pm
