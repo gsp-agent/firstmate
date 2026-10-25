@@ -11,11 +11,19 @@
 # shellcheck disable=SC2016 # single quotes are deliberate: $FM_HOME expands inside the fake harness child, and grep needles are literal strings
 set -u
 
-# shellcheck source=tests/lib.sh
-. "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+# shellcheck source=tests/wake-helpers.sh
+. "$(dirname "${BASH_SOURCE[0]}")/wake-helpers.sh"
+# Scope tests use real fixture checkouts, not wake-helpers' non-git root seam.
+unset FM_ROOT_OVERRIDE
 
 TMP_ROOT=$(fm_test_tmproot fm-claude-stop-autoarm)
+fm_test_trap_process_cleanup "$TMP_ROOT"
 fm_git_identity fmtest fmtest@example.invalid
+
+run_case() {
+  "$@"
+  fm_test_stop_processes
+}
 
 FAKEBIN=$(fm_fakebin "$TMP_ROOT/fakebin")
 ln -s /bin/bash "$FAKEBIN/claude"
@@ -88,6 +96,7 @@ run_autoarm() {
   local dir=$1 payload=${2:-'{"session_id":"sess-autoarm","stop_hook_active":false}'} rc=0
   printf '%s\n' "$payload" \
     | FM_HOME="$dir" "$FAKE_CLAUDE" -c '
+        printf "%s\t%s\n" "$$" "$(LC_ALL=C ps -o lstart= -p "$$")" >> "$FM_TEST_PIDS"
         printf "%s\n" "$$" > "$FM_HOME/state/.lock"
         "$FM_HOME/bin/fm-claude-stop-autoarm.sh"
       ' 2>&1 || rc=$?
@@ -106,6 +115,7 @@ write_arm_fixture() {
   cat > "$dir/bin/fm-watch-arm.sh" <<'SH'
 #!/usr/bin/env bash
 [ "${1:-}" != --cover-handoff ] || exit 0
+printf '%s\t%s\n' "$$" "$(LC_ALL=C ps -o lstart= -p "$$")" >> "$FM_TEST_PIDS"
 if [ -n "${FM_WATCH_PREDECESSOR_ARM_PID:-}" ]; then
   printf 'arm=%s predecessor=%s\n' "$$" "$FM_WATCH_PREDECESSOR_ARM_PID" >> "$FM_HOME/state/successor-ran"
   if [ -e "$FM_HOME/state/successor-fail" ]; then
@@ -257,10 +267,12 @@ run_autoarm_bg() {
   local dir=$1 out=$2
   printf '%s\n' '{"session_id":"sess-autoarm","stop_hook_active":false}' \
     | FM_HOME="$dir" "$FAKE_CLAUDE" -c '
+        printf "%s\t%s\n" "$$" "$(LC_ALL=C ps -o lstart= -p "$$")" >> "$FM_TEST_PIDS"
         printf "%s\n" "$$" > "$FM_HOME/state/.lock"
         "$FM_HOME/bin/fm-claude-stop-autoarm.sh"
       ' > "$out" 2>&1 &
   RUN_AUTOARM_BG_PID=$!
+  fm_test_track_pid "$RUN_AUTOARM_BG_PID"
 }
 
 watcher_identity() {
@@ -282,6 +294,32 @@ record_watcher_lock() {
 # --- registration contract ----------------------------------------------------
 
 # --- scope and gates ----------------------------------------------------------
+
+test_inert_in_checkout_without_home_state() {
+  local dir kind out status
+  for kind in plain linked; do
+    dir="$TMP_ROOT/no-home-$kind"
+    if [ "$kind" = linked ]; then
+      fm_git_worktree "$TMP_ROOT/no-home-base" "$dir" fm/no-home
+    else
+      mkdir -p "$dir"
+      git init -q "$dir"
+    fi
+    : > "$dir/AGENTS.md"
+    install_autoarm_scripts "$dir"
+    write_arm_fixture "$dir" actionable
+    write_host_fixture "$dir" boundary
+    [ ! -e "$dir/state" ] || fail "fixture must not be a home with runtime state"
+    out=$(printf '%s\n' '{"session_id":"non-home"}' \
+      | FM_HOME="$dir" bash "$dir/bin/fm-claude-stop-autoarm.sh" 2>&1); status=$?
+    expect_code 0 "$status" "a non-home checkout's Stop hook must stand down"
+    [ -z "$out" ] || fail "a non-home checkout's Stop hook must be silent: $out"
+    assert_absent "$dir/state/arm-ran" "a non-home checkout started an arm"
+    assert_absent "$dir/state/host-ran" "a non-home checkout started a supervision host"
+    assert_absent "$dir/state" "the Stop hook created its own home-scope prerequisite"
+  done
+  pass "auto-arm: a plain or linked non-home checkout starts nothing and creates no state"
+}
 
 test_inert_in_child_worktree() {
   local base dir out status
@@ -338,9 +376,11 @@ test_inert_when_lock_held_by_other_harness() {
   # bash to exec the final sleep into a non-harness process.
   "$FAKE_CLAUDE" -c 'sleep 60; :' &
   other=$!
+  fm_test_track_pid "$other"
   printf '%s\n' "$other" > "$dir/state/.lock"
   out=$(printf '%s\n' '{"session_id":"s"}' | FM_HOME="$dir" "$FAKE_CLAUDE" -c '"$FM_HOME/bin/fm-claude-stop-autoarm.sh"' 2>&1); status=$?
   owner_after=$(cat "$dir/state/.lock")
+  fm_test_track_descendants "$other"
   kill "$other" 2>/dev/null || true
   wait "$other" 2>/dev/null || true
   expect_code 0 "$status" "hook must stay inert when another live harness holds the session lock"
@@ -403,6 +443,7 @@ test_resolves_outermost_claude_pid_in_nested_bgspare_chain() {
   # collapse the two-hop chain this test depends on down to one hop.
   out=$(printf '%s\n' '{"session_id":"nested"}' \
     | FM_HOME="$dir" "$FAKE_CLAUDE" -c '
+        printf "%s\t%s\n" "$$" "$(LC_ALL=C ps -o lstart= -p "$$")" >> "$FM_TEST_PIDS"
         printf "%s\n" "$$" > "$FM_HOME/state/.lock"
         "$FAKE_CLAUDE" -c "
           printf \"%s\n\" \"\$\$\" > \"\$FM_HOME/state/inner-pid\"
@@ -570,6 +611,7 @@ test_actionable_close_with_live_successor_rewakes_once() {
   write_arm_fixture "$dir" actionable
   sleep 60 &
   pid=$!
+  fm_test_track_pid "$pid"
   identity=$(watcher_identity "$dir" "$pid") || fail "could not identify live successor for actionable close"
   record_watcher_lock "$dir" "$pid" "$identity"
   touch "$dir/state/.last-watcher-beat"
@@ -741,6 +783,7 @@ test_benign_cycle_end_with_live_watcher_is_silent() {
   write_arm_fixture "$dir" benign-live
   sleep 60 &
   pid=$!
+  fm_test_track_pid "$pid"
   identity=$(watcher_identity "$dir" "$pid") || fail "could not identify live watcher holder for benign close"
   record_watcher_lock "$dir" "$pid" "$identity"
   touch "$dir/state/.last-watcher-beat"
@@ -770,6 +813,7 @@ test_positive_recovery_budget_contention_preserves_episode() {
   write_arm_fixture "$dir" benign-live
   sleep 60 &
   pid=$!
+  fm_test_track_pid "$pid"
   identity=$(watcher_identity "$dir" "$pid") || fail "could not identify live watcher holder for recovery contention"
   record_watcher_lock "$dir" "$pid" "$identity"
   touch "$dir/state/.last-watcher-beat"
@@ -777,6 +821,7 @@ test_positive_recovery_budget_contention_preserves_episode() {
   : > "$dir/state/.claude-autoarm-failure-notified"
   sleep 60 &
   holder=$!
+  fm_test_track_pid "$holder"
   mkdir -p "$dir/state/.turnend-claude-blocks.lock"
   printf '%s\n' "$holder" > "$dir/state/.turnend-claude-blocks.lock/pid"
   out=$(run_autoarm "$dir" 2>/dev/null); status=$?
@@ -806,6 +851,7 @@ test_owner_mutex_contention_preserves_failure_episode_reset() {
   write_arm_fixture "$dir" reset-boundary
   sleep 60 &
   watcher=$!
+  fm_test_track_pid "$watcher"
   watcher_id=$(watcher_identity "$dir" "$watcher") || fail "could not identify reset-contention watcher"
   record_watcher_lock "$dir" "$watcher" "$watcher_id"
   touch "$dir/state/.last-watcher-beat"
@@ -820,6 +866,7 @@ test_owner_mutex_contention_preserves_failure_episode_reset() {
   done
   sleep 60 &
   holder=$!
+  fm_test_track_pid "$holder"
   mkdir -p "$dir/state/.claude-autoarm.lock"
   printf '%s\n' "$holder" > "$dir/state/.claude-autoarm.lock/pid"
   : > "$dir/state/arm-release"
@@ -870,8 +917,10 @@ test_single_flight_admits_exactly_one_owner() {
     printf "%s\n" "$$" > "$FM_HOME/state/.lock"
     printf "%s\n" "{\"session_id\":\"s\"}" | "$FM_HOME/bin/fm-claude-stop-autoarm.sh" >/dev/null 2>"$FM_HOME/state/err1" &
     p1=$!
+    printf "%s\t%s\n" "$p1" "$(LC_ALL=C ps -o lstart= -p "$p1")" >> "$FM_TEST_PIDS"
     printf "%s\n" "{\"session_id\":\"s\"}" | "$FM_HOME/bin/fm-claude-stop-autoarm.sh" >/dev/null 2>"$FM_HOME/state/err2" &
     p2=$!
+    printf "%s\t%s\n" "$p2" "$(LC_ALL=C ps -o lstart= -p "$p2")" >> "$FM_TEST_PIDS"
     wait "$p1"; echo $? > "$FM_HOME/state/rc1"
     wait "$p2"; echo $? > "$FM_HOME/state/rc2"
   '
@@ -907,6 +956,7 @@ test_term_mid_arm_commits_failure_and_rewakes() {
   [ -n "$hook_pid" ] || fail "auto-arm did not publish its generation owner before TERM"
   [ -e "$dir/state/arm-ran" ] || fail "auto-arm did not enter the foreground arm before TERM"
 
+  fm_test_track_descendants "$hook_pid"
   kill -TERM "$hook_pid" 2>/dev/null || fail "could not TERM the foreground auto-arm owner"
   wait "$RUN_AUTOARM_BG_PID" || status=$?
 
@@ -978,6 +1028,7 @@ test_abandoned_owner_claim_is_reclaimed_and_rearms() {
   write_arm_fixture "$dir" actionable
   sleep 60 &
   pid=$!
+  fm_test_track_pid "$pid"
   record_autoarm_owner "$dir" "$pid"
   record_autoarm_epoch "$dir" 464 "$pid" rewake
   out=$(run_autoarm "$dir" 2>/dev/null); status=$?
@@ -1005,6 +1056,7 @@ test_abandoned_claim_reclaim_reaps_dead_steal_without_nesting() {
   write_arm_fixture "$dir" actionable
   sleep 60 &
   pid=$!
+  fm_test_track_pid "$pid"
   record_autoarm_owner "$dir" "$pid"
   record_autoarm_epoch "$dir" 464 "$pid" rewake
   FM_STATE_OVERRIDE="$dir/state" bash -c '
@@ -1013,6 +1065,7 @@ test_abandoned_claim_reclaim_reaps_dead_steal_without_nesting() {
     exec sleep 30
   ' _ "$dir/bin/fm-wake-lib.sh" "$dir/state/.claude-autoarm.lock.steal" >/dev/null 2>&1 &
   holder=$!
+  fm_test_track_pid "$holder"
   i=0
   while [ "$i" -lt 50 ] && [ ! -s "$dir/state/.claude-autoarm.lock.steal/pid" ]; do
     sleep 0.02
@@ -1051,6 +1104,7 @@ test_arming_claim_with_fresh_beacon_is_never_reclaimed() {
   write_arm_fixture "$dir" actionable
   sleep 60 &
   pid=$!
+  fm_test_track_pid "$pid"
   record_autoarm_owner "$dir" "$pid"
   # An owner foregrounds the arm for the whole watcher cycle, so an old "arming"
   # entry is still in progress while its watcher keeps beating the beacon.
@@ -1077,6 +1131,7 @@ test_fresh_arming_claim_with_stale_beacon_is_never_reclaimed() {
   write_arm_fixture "$dir" actionable
   sleep 60 &
   pid=$!
+  fm_test_track_pid "$pid"
   record_autoarm_owner "$dir" "$pid"
   record_autoarm_owner_identity "$dir" "$pid" || fail "could not record a claim pid-identity"
   printf 'epoch=464 owner_pid=%s outcome=arming updated_at=%s\n' "$pid" "$(date +%s)" \
@@ -1099,6 +1154,7 @@ test_claim_not_named_by_the_ledger_is_never_reclaimed() {
   write_arm_fixture "$dir" actionable
   sleep 60 &
   pid=$!
+  fm_test_track_pid "$pid"
   record_autoarm_owner "$dir" "$pid"
   # A fresh claimant holds the lock before it writes "arming", so until it does
   # the ledger still names the PREVIOUS owner. Requiring the two pids to match is
@@ -1129,6 +1185,7 @@ test_pid_reused_arming_claim_is_reclaimed_and_rearms() {
   write_arm_fixture "$dir" actionable
   sleep 60 &
   pid=$!
+  fm_test_track_pid "$pid"
   record_autoarm_owner "$dir" "$pid"
   record_autoarm_owner_identity "$dir" "$$" || fail "could not record a claim pid-identity"
   record_autoarm_epoch "$dir" 464 "$pid" arming
@@ -1156,6 +1213,7 @@ test_pid_reused_claim_with_no_ledger_is_reclaimed_and_rearms() {
   write_arm_fixture "$dir" actionable
   sleep 60 &
   pid=$!
+  fm_test_track_pid "$pid"
   record_autoarm_owner "$dir" "$pid"
   record_autoarm_owner_identity "$dir" "$$" || fail "could not record a claim pid-identity"
   assert_absent "$dir/state/.claude-autoarm-epoch" "this case must start with no ledger at all"
@@ -1181,6 +1239,7 @@ test_identity_matched_arming_claim_is_never_reclaimed() {
   write_arm_fixture "$dir" actionable
   sleep 60 &
   pid=$!
+  fm_test_track_pid "$pid"
   record_autoarm_owner "$dir" "$pid"
   record_autoarm_owner_identity "$dir" "$pid" || fail "could not record a claim pid-identity"
   record_autoarm_epoch "$dir" 464 "$pid" arming
@@ -1203,6 +1262,7 @@ test_terminal_check_claim_is_never_reclaimed() {
   write_arm_fixture "$dir" actionable
   sleep 60 &
   pid=$!
+  fm_test_track_pid "$pid"
   # The synchronous guard takes the same lock under its own role while it decides
   # the attended fail-open. Reclaiming that would race the guard's own decision.
   record_autoarm_owner "$dir" "$pid" terminal-check
@@ -1227,6 +1287,7 @@ test_stuck_live_legacy_owner_is_retired_and_reclaimed() {
   write_arm_fixture "$dir" actionable
   sleep 60 &
   pid=$!
+  fm_test_track_pid "$pid"
   record_autoarm_owner "$dir" "$pid"
   record_autoarm_owner_identity "$dir" "$pid" || fail "could not record a claim pid-identity"
   record_autoarm_epoch "$dir" 464 "$pid" arming
@@ -1252,6 +1313,7 @@ test_stopped_legacy_owner_is_reclaimed_with_term_pending() {
   write_arm_fixture "$dir" actionable
   sleep 60 &
   pid=$!
+  fm_test_track_pid "$pid"
   record_autoarm_owner "$dir" "$pid"
   record_autoarm_owner_identity "$dir" "$pid" || fail "could not record a claim pid-identity"
   record_autoarm_epoch "$dir" 464 "$pid" arming
@@ -1300,6 +1362,7 @@ test_open_generation_claim_defers_without_any_lock() {
   write_arm_fixture "$dir" actionable
   sleep 60 &
   pid=$!
+  fm_test_track_pid "$pid"
   record_autoarm_v2_claim "$dir" 464 "$pid" arming "$pid" || fail "could not record a v2 claim"
   touch -t 202001010000 "$dir/state/.claude-autoarm-epoch"
   : > "$dir/state/.last-watcher-beat"
@@ -1325,6 +1388,7 @@ test_stuck_generation_claim_is_superseded_and_rearms() {
   write_arm_fixture "$dir" actionable
   sleep 60 &
   pid=$!
+  fm_test_track_pid "$pid"
   record_autoarm_v2_claim "$dir" 464 "$pid" arming "$pid" || fail "could not record a v2 claim"
   touch -t 202001010000 "$dir/state/.claude-autoarm-epoch"
   touch -t 202001010000 "$dir/state/.last-watcher-beat"
@@ -1350,6 +1414,7 @@ test_identityless_ledger_never_defers() {
   write_arm_fixture "$dir" actionable
   sleep 60 &
   pid=$!
+  fm_test_track_pid "$pid"
   printf 'epoch=464 owner_pid=%s outcome=arming updated_at=1\n' "$pid" \
     > "$dir/state/.claude-autoarm-epoch"
   touch -t 202001010000 "$dir/state/.claude-autoarm-epoch"
@@ -1485,6 +1550,7 @@ write_host_fixture() {
   local dir=$1 kind=$2
   {
     printf '#!/usr/bin/env bash\n'
+    printf 'printf "%%s\\t%%s\\n" "$$" "$(LC_ALL=C ps -o lstart= -p "$$")" >> "$FM_TEST_PIDS"\n'
     printf 'echo "$$" >> "$FM_HOME/state/host-ran"\n'
     printf 'printf "gen=%%s owner=%%s primary=%%s mode=%%s\\n" "${FM_SUPERVISION_HOST_AUTOARM_GEN:-}" "${FM_SUPERVISION_HOST_OWNER_PID:-}" "${FM_SUPERVISION_HOST_PRIMARY:-}" "${1:-}" > "$FM_HOME/state/host-env"\n'
     case "$kind" in
@@ -1766,6 +1832,7 @@ test_arguments_never_arm() {
     before_contents=$(find "$dir/state" -type f ! -name .lock -exec cksum {} + | sort)
     rc=0
     out=$(FM_HOME="$dir" "$FAKE_CLAUDE" -c '
+        printf "%s\t%s\n" "$$" "$(LC_ALL=C ps -o lstart= -p "$$")" >> "$FM_TEST_PIDS"
         printf "%s\n" "$$" > "$FM_HOME/state/.lock"
         "$FM_HOME/bin/fm-claude-stop-autoarm.sh" "$1" </dev/null 2>"$FM_HOME/help-stderr"
       ' _ "$arg") || rc=$?
@@ -1800,69 +1867,70 @@ test_fm_lock_status_still_works_with_shared_lib() {
 }
 
 if [ -n "${FM_TEST_ONLY:-}" ]; then
-  "$FM_TEST_ONLY"
+  run_case "$FM_TEST_ONLY"
   exit
 fi
 
 [ "${BASH_SOURCE[0]}" = "$0" ] || return 0
 
-test_inert_in_child_worktree
-test_inert_without_session_lock
-test_reclaims_stale_session_lock_before_arming
-test_inert_when_lock_held_by_other_harness
-test_inert_when_afk
-test_stale_lock_recovery_preserves_afk_and_need_gates
-test_resolves_outermost_claude_pid_in_nested_bgspare_chain
-test_inert_when_fleet_idle
-test_arms_for_captain_probe_hold_without_inflight
-test_actionable_close_rewakes_with_reason
-test_actionable_close_with_live_successor_rewakes_once
-test_attached_cycle_end_starts_handling_successor
-test_unconfirmed_handling_successor_still_rewakes
-test_failed_close_rewakes_with_failure_banner
-test_failed_cycles_notify_once_and_keep_retrying
-test_failure_notice_marker_write_refuses_delivery_and_retries
-test_unverified_clean_close_exhausts_retries
-test_post_alarm_actionable_close_is_suppressed
-test_benign_cycle_end_with_live_watcher_is_silent
-test_positive_recovery_budget_contention_preserves_episode
-test_owner_mutex_contention_preserves_failure_episode_reset
-test_arms_for_x_mode_poll_need_without_inflight
-test_arms_for_registered_custom_check_without_inflight
-test_single_flight_admits_exactly_one_owner
-test_term_mid_arm_commits_failure_and_rewakes
-test_abandoned_owner_claim_is_reclaimed_and_rearms
-test_abandoned_claim_reclaim_reaps_dead_steal_without_nesting
-test_arming_claim_with_fresh_beacon_is_never_reclaimed
-test_fresh_arming_claim_with_stale_beacon_is_never_reclaimed
-test_claim_not_named_by_the_ledger_is_never_reclaimed
-test_pid_reused_arming_claim_is_reclaimed_and_rearms
-test_pid_reused_claim_with_no_ledger_is_reclaimed_and_rearms
-test_identity_matched_arming_claim_is_never_reclaimed
-test_terminal_check_claim_is_never_reclaimed
-test_stuck_live_legacy_owner_is_retired_and_reclaimed
-test_stopped_legacy_owner_is_reclaimed_with_term_pending
-test_open_generation_claim_defers_without_any_lock
-test_stuck_generation_claim_is_superseded_and_rearms
-test_identityless_ledger_never_defers
-test_superseded_owner_never_reinvokes_the_arm
-test_superseded_owner_goes_silent_and_never_double_translates
-test_need_vanished_mid_cycle_closes_quietly
-test_afk_mid_cycle_suppresses_rewake
-test_active_in_marked_secondmate_home
-test_long_poll_grace_reaches_arm_wrapper
-test_host_off_flag_keeps_the_arm
-test_host_absent_flag_runs_the_host
-test_host_boundary_rewakes_with_the_host_line
-test_host_handback_under_away_record_is_not_a_return
-test_host_handback_beside_a_quiet_record_carries_no_away_note
-test_plain_arm_banner_keeps_its_wake_line_cap
-test_host_handback_carries_every_host_line
-test_host_stand_down_is_silent
-test_host_benign_rewake_refusal_opens_no_failure_episode
-test_host_lost_handback_notifies_once_per_episode
-test_host_lost_announced_handback_notifies_once_per_episode
-test_host_crash_is_retried_then_reported
-test_arguments_never_arm
-test_fm_lock_status_still_works_with_shared_lib
-test_stands_down_only_on_pi_code_transcript_path
+run_case test_inert_in_checkout_without_home_state
+run_case test_inert_in_child_worktree
+run_case test_inert_without_session_lock
+run_case test_reclaims_stale_session_lock_before_arming
+run_case test_inert_when_lock_held_by_other_harness
+run_case test_inert_when_afk
+run_case test_stale_lock_recovery_preserves_afk_and_need_gates
+run_case test_resolves_outermost_claude_pid_in_nested_bgspare_chain
+run_case test_inert_when_fleet_idle
+run_case test_arms_for_captain_probe_hold_without_inflight
+run_case test_actionable_close_rewakes_with_reason
+run_case test_actionable_close_with_live_successor_rewakes_once
+run_case test_attached_cycle_end_starts_handling_successor
+run_case test_unconfirmed_handling_successor_still_rewakes
+run_case test_failed_close_rewakes_with_failure_banner
+run_case test_failed_cycles_notify_once_and_keep_retrying
+run_case test_failure_notice_marker_write_refuses_delivery_and_retries
+run_case test_unverified_clean_close_exhausts_retries
+run_case test_post_alarm_actionable_close_is_suppressed
+run_case test_benign_cycle_end_with_live_watcher_is_silent
+run_case test_positive_recovery_budget_contention_preserves_episode
+run_case test_owner_mutex_contention_preserves_failure_episode_reset
+run_case test_arms_for_x_mode_poll_need_without_inflight
+run_case test_arms_for_registered_custom_check_without_inflight
+run_case test_single_flight_admits_exactly_one_owner
+run_case test_term_mid_arm_commits_failure_and_rewakes
+run_case test_abandoned_owner_claim_is_reclaimed_and_rearms
+run_case test_abandoned_claim_reclaim_reaps_dead_steal_without_nesting
+run_case test_arming_claim_with_fresh_beacon_is_never_reclaimed
+run_case test_fresh_arming_claim_with_stale_beacon_is_never_reclaimed
+run_case test_claim_not_named_by_the_ledger_is_never_reclaimed
+run_case test_pid_reused_arming_claim_is_reclaimed_and_rearms
+run_case test_pid_reused_claim_with_no_ledger_is_reclaimed_and_rearms
+run_case test_identity_matched_arming_claim_is_never_reclaimed
+run_case test_terminal_check_claim_is_never_reclaimed
+run_case test_stuck_live_legacy_owner_is_retired_and_reclaimed
+run_case test_stopped_legacy_owner_is_reclaimed_with_term_pending
+run_case test_open_generation_claim_defers_without_any_lock
+run_case test_stuck_generation_claim_is_superseded_and_rearms
+run_case test_identityless_ledger_never_defers
+run_case test_superseded_owner_never_reinvokes_the_arm
+run_case test_superseded_owner_goes_silent_and_never_double_translates
+run_case test_need_vanished_mid_cycle_closes_quietly
+run_case test_afk_mid_cycle_suppresses_rewake
+run_case test_active_in_marked_secondmate_home
+run_case test_long_poll_grace_reaches_arm_wrapper
+run_case test_host_off_flag_keeps_the_arm
+run_case test_host_absent_flag_runs_the_host
+run_case test_host_boundary_rewakes_with_the_host_line
+run_case test_host_handback_under_away_record_is_not_a_return
+run_case test_host_handback_beside_a_quiet_record_carries_no_away_note
+run_case test_plain_arm_banner_keeps_its_wake_line_cap
+run_case test_host_handback_carries_every_host_line
+run_case test_host_stand_down_is_silent
+run_case test_host_benign_rewake_refusal_opens_no_failure_episode
+run_case test_host_lost_handback_notifies_once_per_episode
+run_case test_host_lost_announced_handback_notifies_once_per_episode
+run_case test_host_crash_is_retried_then_reported
+run_case test_arguments_never_arm
+run_case test_fm_lock_status_still_works_with_shared_lib
+run_case test_stands_down_only_on_pi_code_transcript_path
