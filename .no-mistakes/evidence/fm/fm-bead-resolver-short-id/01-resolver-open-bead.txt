@@ -1,0 +1,22 @@
+# Real br 0.5.10 against disposable beads databases under a throwaway HOME.
+# obs db (HOME/dev/agent-observer, owns prefix obs) beads:
+#   obs-long-form-uhj  status=open
+# gj db (HOME/dev/gj-tool, owns prefix gj) beads; the prefix map gives gj-gitlab-config-* to dev/gj-gitlab-config:
+#   gj-gitlab-config-pyn  status=open
+# br show obs-uhj --json answers: [{"id":"obs-long-form-uhj","status":"open"}]
+# br show obs-uh --json answers: [{"id":"obs-long-form-uhj","status":"open"}]
+# br show gj-pyn --json answers: [{"id":"gj-gitlab-config-pyn","status":"open"}]
+
+## BEFORE (base f96e6fa9)
+[base] fm_task_bead_read obs-uhj                rc=1 id=<none> status=<none> error=br show obs-uhj returned no readable status
+[base] fm_task_bead_read obs-long-form-uhj      rc=0 id=obs-long-form-uhj status=open error=<none>
+[base] fm_task_bead_read obs-uh                 rc=1 id=<none> status=<none> error=br show obs-uh returned no readable status
+[base] fm_task_bead_read gj-pyn                 rc=1 id=<none> status=<none> error=br show gj-pyn returned no readable status
+[base] fm_task_bead_read obs-zzz                rc=3 id=<none> status=<none> error=<none>
+
+## AFTER (change 1b1c46c1)
+[change] fm_task_bead_read obs-uhj                rc=0 id=obs-uhj status=open error=<none>
+[change] fm_task_bead_read obs-long-form-uhj      rc=0 id=obs-long-form-uhj status=open error=<none>
+[change] fm_task_bead_read obs-uh                 rc=1 id=<none> status=<none> error=br show obs-uh returned no readable status
+[change] fm_task_bead_read gj-pyn                 rc=1 id=<none> status=<none> error=br show gj-pyn returned no readable status
+[change] fm_task_bead_read obs-zzz                rc=3 id=<none> status=<none> error=<none>

@@ -1,0 +1,5 @@
+# Red check: this change's tests/fm-teardown.test.sh run against the base commit f96e6fa9 tree
+$ FM_TEARDOWN_TEST_GROUP=bead-resolution bash tests/fm-teardown.test.sh
+ok - bead-resolution exact
+not ok - bead-resolution expanded: br show sample-demo returned no readable status: expected exit 0, got 1
+exit 1

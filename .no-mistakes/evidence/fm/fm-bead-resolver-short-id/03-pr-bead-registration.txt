@@ -1,0 +1,21 @@
+# Real br 0.5.10; br show obs-uhj answers [{"id":"obs-long-form-uhj","status":"closed"}]
+## BEFORE (base f96e6fa9)
+[base] task obs-uhj, PR body before: "Summary of the change."
+[base] run 1: fm-pr-bead.sh obs-uhj https://github.com/example/repo/pull/7 -> exit 0; stderr: fm-pr-bead: warning: https://github.com/example/repo/pull/7 task obs-uhj: bead lookup returned 1 (br show obs-uhj returned no readable status); no Bead: line added
+[base] run 1: PR body after: "Summary of the change."; body edits so far: 0
+
+## AFTER (change 1b1c46c1)
+[change] task obs-uhj, PR body before: "Summary of the change."
+[change] run 1: fm-pr-bead.sh obs-uhj https://github.com/example/repo/pull/7 -> exit 0
+[change] run 1: PR body after: "Summary of the change.\n\nBead: obs-uhj"; body edits so far: 1
+[change] run 2: fm-pr-bead.sh obs-uhj https://github.com/example/repo/pull/7 -> exit 0
+[change] run 2: PR body after: "Summary of the change.\n\nBead: obs-uhj"; body edits so far: 1
+
+[change] task obs-uhj, PR body before: "Summary of the change.\n\nBead: obs-uhj"
+[change] run 1: fm-pr-bead.sh obs-uhj https://github.com/example/repo/pull/7 -> exit 0
+[change] run 1: PR body after: "Summary of the change.\n\nBead: obs-uhj"; body edits so far: 0
+
+## Partial id obs-uh (br still answers obs-long-form-uhj) stays unverified
+[change] task obs-uh, PR body before: "Summary of the change."
+[change] run 1: fm-pr-bead.sh obs-uh https://github.com/example/repo/pull/7 -> exit 0; stderr: fm-pr-bead: warning: https://github.com/example/repo/pull/7 task obs-uh: bead lookup returned 1 (br show obs-uh returned no readable status); no Bead: line added
+[change] run 1: PR body after: "Summary of the change."; body edits so far: 0

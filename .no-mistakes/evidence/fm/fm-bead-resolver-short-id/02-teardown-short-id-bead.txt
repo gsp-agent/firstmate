@@ -1,0 +1,52 @@
+# Real br 0.5.10; task obs-uhj; br show obs-uhj answers [{"id":"obs-long-form-uhj","status":"closed"}]
+## Bead open: br show obs-uhj answers [{"id":"obs-long-form-uhj","status":"open"}]
+[base] lab tmux windows before: fm-obs-uhj keepalive 
+[base] fm-teardown.sh obs-uhj  -> exit 1
+    fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+    REFUSED: task obs-uhj's bead could not be read (br show obs-uhj returned no readable status). Its done decides cleanup, so nothing was changed; retry once the bead database answers.
+[base] lab tmux windows after: fm-obs-uhj keepalive 
+[base] lab home files unchanged: yes; task record state/obs-uhj.meta present: yes
+
+[change] lab tmux windows before: fm-obs-uhj keepalive 
+[change] fm-teardown.sh obs-uhj  -> exit 1
+    fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+    REFUSED: task obs-uhj answers to bead obs-uhj, which is open. A merge or a measurement is a milestone; the bead's done decides when the task is done. Its worker, pane, local copy, and backlog item stay with their owner; nothing was changed. Tear it down after the bead closes.
+[change] lab tmux windows after: fm-obs-uhj keepalive 
+[change] lab home files unchanged: yes; task record state/obs-uhj.meta present: yes
+
+[change] lab tmux windows before: fm-obs-uhj keepalive 
+[change] fm-teardown.sh obs-uhj --force -> exit 1
+    fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+    REFUSED: task obs-uhj answers to bead obs-uhj, which is open. A merge or a measurement is a milestone; the bead's done decides when the task is done. Its worker, pane, local copy, and backlog item stay with their owner; nothing was changed. Tear it down after the bead closes.
+[change] lab tmux windows after: fm-obs-uhj keepalive 
+[change] lab home files unchanged: yes; task record state/obs-uhj.meta present: yes
+
+## Bead closed: br show obs-uhj answers [{"id":"obs-long-form-uhj","status":"closed"}]
+[base] lab tmux windows before: fm-obs-uhj keepalive 
+[base] fm-teardown.sh obs-uhj  -> exit 1
+    fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+    REFUSED: task obs-uhj's bead could not be read (br show obs-uhj returned no readable status). Its done decides cleanup, so nothing was changed; retry once the bead database answers.
+[base] lab tmux windows after: fm-obs-uhj keepalive 
+[base] lab home files unchanged: yes; task record state/obs-uhj.meta present: yes
+
+[change] lab tmux windows before: fm-obs-uhj keepalive 
+[change] fm-teardown.sh obs-uhj  -> exit 0
+    fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+    ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    ●  WATCHER DOWN - SUPERVISION IS OFF
+    ●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+    ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+    ●  This is a supervision warning only; the guarded operation WILL still run.
+    ●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+    ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    sample: skipped: not a directory
+    teardown obs-uhj complete (window firstmate:fm-obs-uhj, worktree <lab>/wt-obs-uhj)
+    Backlog: obs-uhj just finished (this home keeps no markdown backlog at /private<lab>/data/backlog.md). Update /private<lab>/data/backlog.md - move obs-uhj to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due.
+[change] lab tmux windows after: keepalive 
+[change] lab home files changed; task record state/obs-uhj.meta present: no; files now:
+      ./.fm-lab-home
+      ./data/obs-uhj/record/closed-task.meta
+      ./data/obs-uhj/record/data-cleanup.json
+      ./state/.task-data-sweep.lock.owner.gyZEJ9/pid
+      ./state/.task-data-sweep.rerun
+      ./state/.task-data-sweep.snapshot.jEvird

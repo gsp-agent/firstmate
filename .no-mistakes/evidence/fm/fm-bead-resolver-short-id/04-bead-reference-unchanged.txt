@@ -1,0 +1,10 @@
+[base] fm_task_data_bead_reference obs-uhj            rc=0 answered=[{"id":"obs-long-form-uhj","status":"closed"}]
+[base] fm_task_data_bead_reference obs-long-form-uhj  rc=0 answered=[{"id":"obs-long-form-uhj","status":"closed"}]
+[base] fm_task_data_bead_reference obs-uh             rc=1 answered=
+[base] fm_task_data_bead_reference gj-pyn             rc=1 answered=
+[base] fm_task_data_bead_reference obs-zzz            rc=3 answered=
+[change] fm_task_data_bead_reference obs-uhj            rc=0 answered=[{"id":"obs-long-form-uhj","status":"closed"}]
+[change] fm_task_data_bead_reference obs-long-form-uhj  rc=0 answered=[{"id":"obs-long-form-uhj","status":"closed"}]
+[change] fm_task_data_bead_reference obs-uh             rc=1 answered=
+[change] fm_task_data_bead_reference gj-pyn             rc=1 answered=
+[change] fm_task_data_bead_reference obs-zzz            rc=3 answered=

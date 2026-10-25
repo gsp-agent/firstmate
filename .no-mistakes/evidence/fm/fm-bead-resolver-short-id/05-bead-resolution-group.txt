@@ -1,0 +1,9 @@
+$ FM_TEARDOWN_TEST_GROUP=bead-resolution bash tests/fm-teardown.test.sh
+ok - bead-resolution exact
+ok - bead-resolution expanded
+ok - bead-resolution unrelated
+ok - bead-resolution suffix
+ok - bead-resolution prefix
+ok - bead-resolution owner
+ok - bead-resolution multiple
+exit 0

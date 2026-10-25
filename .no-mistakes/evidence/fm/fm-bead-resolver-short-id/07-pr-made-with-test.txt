@@ -1,0 +1,6 @@
+# tests/fm-pr-made-with.test.sh at 1b1c46c1, limited to the two registration cases this change adds or edits
+# (the full file was stopped at a 20-minute limit under machine load average ~88; CI owns the full run)
+$ bash tests/fm-pr-made-with.test.sh   # copy calling only test_registration_carries_expanded_short_bead and test_registration_with_unverified_lookup_warns_without_a_line
+ok - a short id br expands within its owner registers with one asked Bead line and repeats without editing
+ok - an unverified or unavailable bead lookup registers with one warning and no Bead line
+exit 0
