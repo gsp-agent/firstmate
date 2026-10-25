@@ -29,6 +29,8 @@ set -u
 . "$ROOT/bin/fm-trace-context-lib.sh"
 # shellcheck source=/dev/null
 . "$ROOT/bin/fm-tasks-axi-lib.sh"
+# shellcheck source=/dev/null
+. "$ROOT/bin/fm-pr-lib.sh"
 
 CONTROL="$ROOT/bin/fm-control.sh"
 SPAWN="$ROOT/bin/fm-spawn.sh"
@@ -510,22 +512,29 @@ test_relaunch_preserves_durable_task_metadata() {
   dir=$(new_case durable-meta rl19)
   add_ship_task "$dir" rl19 claude
   {
-    printf '%s\n' 'pr=https://github.com/example/repo/pull/19'
-    printf '%s\n' 'pr_head=feature/relaunch'
-    printf '%s\n' 'x_request=request-19'
     printf '%s\n' 'decisions_reviewed=1'
+    printf '%s\n' 'pr=https://github.com/example/repo/pull/19'
+    printf '%s\n' 'pr_head=0123456789abcdef0123456789abcdef01234567'
+    printf '%s\n' 'x_request=request-19'
   } >> "$dir/home/state/rl19.meta"
+
+  fm_pr_metadata_identity_parse "$dir/home/state/rl19.meta" \
+    || fail "the registered PR identity must be readable before relaunch"
 
   out=$(run_control "$dir" rl19 relaunch --note "continuing review work"); rc=$?
   expect_code 0 "$rc" "relaunch should preserve durable metadata"$'\n'"$out"
   [ "$(meta_field "$dir" rl19 pr)" = "https://github.com/example/repo/pull/19" ] \
     || fail "the task PR must survive relaunch"
-  [ "$(meta_field "$dir" rl19 pr_head)" = "feature/relaunch" ] \
+  [ "$(meta_field "$dir" rl19 pr_head)" = "0123456789abcdef0123456789abcdef01234567" ] \
     || fail "the task PR head must survive relaunch"
   [ "$(meta_field "$dir" rl19 x_request)" = "request-19" ] \
     || fail "the task X request must survive relaunch"
   [ "$(meta_field "$dir" rl19 decisions_reviewed)" = 1 ] \
     || fail "the task decision state must survive relaunch"
+  fm_pr_metadata_identity_parse "$dir/home/state/rl19.meta" \
+    || fail "the registered PR identity must remain readable after relaunch"
+  [ "$FM_PR_META_URL" = "https://github.com/example/repo/pull/19" ] \
+    || fail "the parsed PR identity must survive relaunch"
   pass "fm-control relaunch: durable task metadata survives replacement launch publication"
 }
 
@@ -3370,6 +3379,11 @@ test_relaunch_stop_background_does_nothing_when_there_is_no_picker() {
   pass "fm-control relaunch: --stop-background adds no key when the agent exits without a picker"
 }
 
+
+if [ "${FM_CONTROL_RELAUNCH_TEST_GROUP:-}" = pr-identity ]; then
+  test_relaunch_preserves_durable_task_metadata
+  exit 0
+fi
 
 test_relaunch_without_stop_background_refuses_the_picker_the_exit_opens
 test_relaunch_without_stop_background_refuses_a_picker_that_is_already_open
