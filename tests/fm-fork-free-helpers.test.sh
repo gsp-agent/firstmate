@@ -429,6 +429,60 @@ SH
   pass "status reads notice same-size rewrites even when the recorded timestamp is unchanged"
 }
 
+test_inactive_cadence_skips_only_a_known_idle_main_home() {
+  local script="$TMP_ROOT/inactive-cadence.sh" home="$TMP_ROOT/inactive-home"
+  mkdir -p "$home"
+  cat > "$script" <<'SH'
+case_home=$(mktemp -d "$2/cadence-case.XXXXXX")
+export FM_HOME=$case_home FM_STATE_OVERRIDE=$case_home/state FM_CONFIG_OVERRIDE=$case_home/config
+mkdir -p "$FM_CONFIG_OVERRIDE"
+. "$1/bin/fm-watch.sh"
+marker="$STATE/.inactive-outcome-reconcile"
+mkdir -p "$STATE/terminal-outcomes"
+: > "$marker"
+fm_stat_snapshot "$marker"
+fm_stat_snapshot_find "$marker"
+stamp=${FM_STAT_SNAPSHOT_MTIME[$FM_STAT_SNAPSHOT_AT]}
+FM_INACTIVE_RECONCILE_NOW=$((stamp + 299))
+inactive_reconcile_idle || printf 'a main-home scan ran before the default 300-second cadence\n'
+FM_INACTIVE_RECONCILE_NOW=$((stamp + 300))
+inactive_reconcile_idle && printf 'a due scan was skipped\n'
+FM_INACTIVE_RECONCILE_NOW=$((stamp - 1))
+inactive_reconcile_idle || printf 'future marker did not match the scanner zero-age rule\n'
+FM_INACTIVE_RECONCILE_NOW=$stamp
+for secs in 0 59 1801 invalid; do
+  FM_INACTIVE_RECONCILE_SECS=$secs inactive_reconcile_idle && printf 'invalid interval %s was hidden\n' "$secs"
+done
+for budget in 0 31 invalid; do
+  FM_INACTIVE_RECONCILE_BUDGET_SECS=$budget inactive_reconcile_idle && printf 'invalid budget %s was hidden\n' "$budget"
+done
+: > "$FM_HOME/.fm-secondmate-home"
+inactive_reconcile_idle && printf 'secondmate ledger delivery was skipped\n'
+mv "$FM_HOME/.fm-secondmate-home" "$FM_HOME/secondmate-marker"
+ln -s missing "$FM_HOME/.fm-secondmate-home"
+inactive_reconcile_idle && printf 'broken secondmate marker bypassed diagnostics\n'
+mv "$FM_HOME/.fm-secondmate-home" "$FM_HOME/secondmate-link"
+mv "$STATE/terminal-outcomes" "$STATE/saved-outcomes"
+inactive_reconcile_idle && printf 'missing outcome directory was not created by the scanner\n'
+ln -s saved-outcomes "$STATE/terminal-outcomes"
+inactive_reconcile_idle && printf 'symlink outcome directory bypassed scanner validation\n'
+mv "$STATE/terminal-outcomes" "$STATE/outcomes-link"
+mv "$STATE/saved-outcomes" "$STATE/terminal-outcomes"
+mv "$marker" "$STATE/saved-marker"
+inactive_reconcile_idle && printf 'missing cadence marker was skipped\n'
+ln -s saved-marker "$marker"
+fm_stat_snapshot "$marker"
+inactive_reconcile_idle && printf 'symlink cadence marker was trusted\n'
+mv "$marker" "$STATE/marker-link"
+mv "$STATE/saved-marker" "$marker"
+fm_stat_snapshot "$STATE/not-the-marker"
+inactive_reconcile_idle && printf 'marker outside the snapshot was skipped\n'
+:
+SH
+  run_everywhere "inactive reconciliation cadence" "$script" "$home"
+  pass "only a known idle main-home scan is skipped; due scans, secondmates and uncertain state keep the existing path"
+}
+
 if [ -n "${FM_TEST_ONLY:-}" ]; then
   "$FM_TEST_ONLY"
 else
@@ -443,4 +497,5 @@ else
   test_target_of_meta_to_matches_the_printing_form
   test_watch_read_helpers_preserve_results
   test_status_reads_notice_same_stamp_rewrites
+  test_inactive_cadence_skips_only_a_known_idle_main_home
 fi
