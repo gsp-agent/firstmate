@@ -446,6 +446,61 @@ SH
   pass "GNU stat file reads select -c without BSD filesystem-report pollution"
 }
 
+# A 1s wall bound expires when the machine is busy even though the scan uses
+# a fraction of a second of CPU. Waiting must not do that; a CPU burn must.
+test_parent_activity_budget_counts_cpu_time_not_waiting() {
+  local home mate fakebin canonical stat_log
+  home=$(make_home activity-cpu-budget)
+  mate="$TMP_ROOT/activity-cpu-budget-home"
+  write_domain_alpha_fixture "$home" "$mate"
+  fakebin=$(make_fakebin "$home")
+  stat_log="$home/stat.log"
+  cat > "$fakebin/uname" <<'SH'
+#!/usr/bin/env bash
+printf 'Linux\n'
+SH
+  cat > "$fakebin/stat" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$STAT_LOG"
+case "$1 $2" in
+  '-c %a') printf '600\n' ;;
+  '-c %Y') printf '1783792800\n' ;;
+  '-c %s')
+    if [ "$STAT_MODE" = wait ]; then
+      sleep 3
+      LC_ALL=C wc -c < "$3" | tr -d ' '
+    else
+      while :; do :; done
+    fi
+    ;;
+  *) exit 2 ;;
+esac
+SH
+  chmod +x "$fakebin/uname" "$fakebin/stat"
+  : > "$stat_log"
+  canonical=$(PATH="$fakebin:$PATH" STAT_LOG="$stat_log" STAT_MODE=wait FM_HOME="$home" \
+    FM_SNAPSHOT_NOW=2026-07-11T18:00:00Z FM_SNAPSHOT_NOW_EPOCH=1783792800 \
+    FM_SNAPSHOT_PARENT_ACTIVITY_TIMEOUT=1 \
+    "$ROOT/bin/fm-fleet-snapshot.sh" --json)
+  printf '%s' "$canonical" | jq -e '
+    .secondmate_current.records[] | select(.id == "domain-alpha")
+    | .parent_event.activity_scan.available == true
+      and (.parent_event.activity_scan.reasons | index("timeout") | not)
+  ' >/dev/null || fail "a waiting parent-activity read exhausted a 1s budget: $canonical"
+  assert_contains "$(cat "$stat_log")" '-c %s' "the waiting read must reach GNU stat -c %s"
+  : > "$stat_log"
+  canonical=$(PATH="$fakebin:$PATH" STAT_LOG="$stat_log" STAT_MODE=burn FM_HOME="$home" \
+    FM_SNAPSHOT_NOW=2026-07-11T18:00:00Z FM_SNAPSHOT_NOW_EPOCH=1783792800 \
+    FM_SNAPSHOT_PARENT_ACTIVITY_TIMEOUT=1 \
+    "$ROOT/bin/fm-fleet-snapshot.sh" --json)
+  printf '%s' "$canonical" | jq -e '
+    .secondmate_current.records[] | select(.id == "domain-alpha")
+    | .parent_event.activity_scan.available == false
+      and (.parent_event.activity_scan.reasons | index("timeout"))
+  ' >/dev/null || fail "a CPU-burning parent-activity read was not disclosed as timeout: $canonical"
+  pass "parent activity budget counts CPU time, so waiting does not exhaust it and a burn still times out"
+}
+
 test_parent_activity_evidence_is_bounded_and_disclosed() {
   local home mate fakebin canonical json i
   home=$(make_home bounded-parent-activity)
@@ -3362,6 +3417,7 @@ test_remote_ledgers_share_one_concurrent_budget_and_fall_back_to_cache
 test_a_remote_home_without_any_ledger_is_explicitly_unreadable_without_remote_compute
 test_domain_alpha_stale_parent_event_does_not_become_current_work
 test_gnu_stat_uses_file_formats_without_bsd_fallback_pollution
+test_parent_activity_budget_counts_cpu_time_not_waiting
 test_parent_activity_evidence_is_bounded_and_disclosed
 test_active_child_overrides_old_parent_event
 test_structured_child_decision_reaches_captains_call

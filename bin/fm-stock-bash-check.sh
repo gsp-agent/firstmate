@@ -225,7 +225,7 @@ fm_stock_bash_suite() {  # <step> <count> <tests/script> [NAME=value...]
 # fixture, in the same commit.
 fm_stock_bash_checks() {
   fm_stock_bash_suite snapshot-view 19 tests/fm-fleet-snapshot-view.test.sh
-  fm_stock_bash_suite bearings 60 tests/fm-bearings-snapshot.test.sh
+  fm_stock_bash_suite bearings 61 tests/fm-bearings-snapshot.test.sh
   # The full public-followup and watch-triage suites are not stock-Bash
   # snapshots; FM_TEST_ONLY runs only their Bash 3.2 empty-array regressions.
   fm_stock_bash_suite public-followup-empty-lock 1 tests/fm-public-followup.test.sh \
