@@ -10,6 +10,9 @@ set -u
 # shellcheck source=/dev/null
 . "$ROOT/bin/fm-merge-outcome-lib.sh"
 
+# Stub only the recovery classifier; task identity, locks, and publication are real.
+fm_backend_agent_state() { cat "$2.agent-state"; }
+
 TMP_ROOT=$(fm_test_tmproot fm-pm-live)
 
 make_state() {
@@ -21,7 +24,8 @@ make_state() {
 
 write_pm_task() {  # <state> <url> [spawn-generation]
   local state=$1 url=$2 generation=${3:-first}
-  printf 'project=example\nspawn_gen=%s\npr=%s\n' "$generation" "$url" > "$state/demo.meta"
+  printf 'project=example\nwindow=%s/demo\nspawn_gen=%s\npr=%s\n' "$state" "$generation" "$url" > "$state/demo.meta"
+  printf 'alive\n' > "$state/demo.agent-state"
   printf 'bead=example-acceptance\npid=%s\ntask=demo\n' "$$" > "$state/.pm-live-demo"
   [ -e "$state/demo.status" ] || printf 'done: PR ready for merge\n' > "$state/demo.status"
 }
@@ -200,6 +204,7 @@ test_restart_and_concurrent_delivery() {
 #!/usr/bin/env bash
 set -eu
 . "$1/bin/fm-merge-outcome-lib.sh"
+fm_backend_agent_state() { cat "$2.agent-state"; }
 fm_merge_outcome_report "$FM_HOME" "$FM_STATE_OVERRIDE" demo "$2" self
 SH
   # Independent processes stand in for redelivery after a crash, with no
@@ -275,6 +280,37 @@ test_merge_after_close_tells_the_pm_instead_of_handing_off_into_nothing() {
   pass "a merge that reaches a closed task tells its live PM, never hands off into nothing, and binds only the archived PR"
 }
 
+test_merge_without_live_owner_blocks_the_pm() {
+  local dir state url verdict line snapshot
+  url=https://github.com/example/repo/pull/79
+  for verdict in dead missing unreadable ambiguous unverified; do
+    dir=$(make_state "owner-$verdict")
+    state="$dir/home/state"
+    write_pm_task "$state" "$url"
+    printf '%s\n' "$verdict" > "$state/demo.agent-state"
+    if FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$url" poll 2>"$dir/err"; then
+      fail "a $verdict worker was acknowledged as owning live verification"
+    fi
+    line=$(tail -n 1 "$state/demo.status")
+    [ "$(status_line_verb "$line")" = blocked ] || fail "PM did not receive an actionable block: $line; $(cat "$dir/err")"
+    assert_contains "$line" "$url spawn_gen=first" "blocked handoff lost PR or generation"
+    assert_contains "$line" "bin/fm-control.sh demo relaunch --note" "blocked handoff omitted recovery command"
+    assert_contains "$line" "activation and live verification" "blocked handoff omitted remaining work"
+    [ ! -e "$state/demo.pr-poll-merge-notified" ] || fail "unowned handoff committed its marker"
+    [ ! -s "$state/.wake-queue" ] || fail "unowned handoff created a second owner on main"
+    snapshot=$(cat "$state/demo.status")
+    FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$url" poll 2>/dev/null \
+      && fail "replayed unowned handoff was acknowledged"
+    [ "$(cat "$state/demo.status")" = "$snapshot" ] || fail "replay duplicated the blocked handoff"
+    write_pm_task "$state" "$url" replacement
+    FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$url" poll \
+      || fail "replacement owner could not receive the handoff"
+    assert_pm_handoff "$state" "$url" replacement
+  done
+  pass "a gone or unproven worker blocks its live PM with a recovery command and remains retryable"
+}
+
+test_merge_without_live_owner_blocks_the_pm
 test_pm_live_proof_reading
 test_merged_outcome_skips_main_queue_for_live_pm
 test_merged_outcome_still_queues_for_plain_task
