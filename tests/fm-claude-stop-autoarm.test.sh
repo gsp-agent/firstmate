@@ -2072,6 +2072,39 @@ test_plain_home_delivers_unread_rows_and_away_delivers_none() {
   pass "auto-arm: a plain home delivers every unread row, and the away record delivers none"
 }
 
+# On a host home away mode writes the away record and no state/.afk, and the
+# host takes every close. A queued main row is not delivered to main.
+test_host_away_record_delivers_no_unread_row() {
+  local dir out status
+  dir=$(make_primary_dir "$TMP_ROOT/host-away-idle")
+  enable_supervision_host "$dir"
+  FM_HOME="$dir" "$ROOT/bin/fm-afk-contract.sh" enter --words 'watch the fleet; merge nothing' >/dev/null 2>&1 \
+    || fail "could not record the away posture"
+  assert_absent "$dir/state/.afk" "fixture: a host-home away entry must write no away flag"
+  queue_wake "$dir" check away-row "check: captain inbox note away - for the host" \
+    || fail "the away row was not queued"
+  out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+  expect_code 0 "$status" "the away record must admit no idle home for a queued row"
+  [ -z "$out" ] || fail "the away record delivered a row to main: $out"
+  assert_absent "$dir/state/host-ran" "an idle away home ran the host"
+  assert_grep 'check: captain inbox note away - for the host' "$dir/state/.wake-queue" \
+    "the away exit consumed the queued row"
+
+  dir=$(make_primary_dir "$TMP_ROOT/host-away-park")
+  enable_supervision_host "$dir"
+  : > "$dir/state/task.meta"
+  FM_HOME="$dir" "$ROOT/bin/fm-afk-contract.sh" enter --words 'watch the fleet; merge nothing' >/dev/null 2>&1 \
+    || fail "could not record the away posture"
+  queue_wake "$dir" check away-row "check: captain inbox note away - for the host" \
+    || fail "the away row was not queued"
+  write_host_fixture "$dir" stood-down
+  out=$(run_autoarm "$dir" 2>/dev/null); status=$?
+  assert_present "$dir/state/host-ran" "the away record did not park the host"
+  expect_code 0 "$status" "a host that stood down away must close silently"
+  [ -z "$out" ] || fail "the away record delivered a row to main instead of parking: $out"
+  pass "auto-arm: the away record on a host home delivers no queued row to main and parks the host"
+}
+
 test_fm_lock_status_still_works_with_shared_lib() {
   local out
   out=$(FM_HOME="$TMP_ROOT/lock-status-home" bash "$ROOT/bin/fm-lock.sh" status 2>&1)
@@ -2154,3 +2187,4 @@ test_healthy_foreign_watcher_delivers_a_queued_row
 test_host_passes_successor_note_through
 test_rewake_with_handling_marker_allows_the_stop
 test_plain_home_delivers_unread_rows_and_away_delivers_none
+test_host_away_record_delivers_no_unread_row

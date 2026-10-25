@@ -3249,8 +3249,6 @@ resurface_after_downtime() {
         fi
       done < "$FM_WAKE_QUEUE"
       fm_lock_release "$FM_WAKE_QUEUE_LOCK"
-    else
-      wake "check: wake queue could not be read under its lock"
     fi
     if [ -n "$newer" ]; then
       WATCHER_RESURFACE_REASON=$newer

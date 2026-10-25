@@ -163,6 +163,8 @@ esac
 . "$SCRIPT_DIR/fm-hook-host-lib.sh"
 # shellcheck source=bin/fm-supervision-engine-lib.sh
 . "$SCRIPT_DIR/fm-supervision-engine-lib.sh"
+# shellcheck source=bin/fm-afk-contract.sh
+. "$SCRIPT_DIR/fm-afk-contract.sh"
 
 # Allow a healthy watcher's terminal wait to run without a stale-beacon alarm.
 # docs/turnend-guard.md "Guard grace and the poll cadence" owns refresh cadence;
@@ -224,9 +226,13 @@ need_supervision() {
 }
 
 # main-only while an attended host owns routine rows. Every row on a plain
-# home or with the host off. The away record exits before this runs.
+# home or with the host off. No scope (return 1) while the away daemon's flag
+# or, on a host home, the away record is present: the daemon or the host then
+# takes every close.
 main_unread_scope() {
+  [ -e "$STATE/.afk" ] && return 1
   if fm_supervision_host_enabled "$CONFIG" claude; then
+    fm_afk_contract_away_present "$STATE" && return 1
     printf 'main-only\n'
   else
     printf 'any\n'
@@ -238,11 +244,10 @@ main_unread_scope() {
 # deliver or this generation no longer owns the epoch.
 deliver_unread_instead() {
   local scope rows
-  [ -e "$STATE/.afk" ] && return 1
   if ! fm_autoarm_still_owner "$STATE" "$MY_GEN"; then
     return 1
   fi
-  scope=$(main_unread_scope)
+  scope=$(main_unread_scope) || return 1
   rows=$(fm_wake_main_unread "$STATE" "$scope") || return 1
   [ -n "$rows" ] || return 1
   if ! fm_autoarm_still_owner "$STATE" "$MY_GEN"; then
@@ -264,9 +269,8 @@ deliver_unread_instead() {
 # A home with no supervision need still admits when an unread record is waiting.
 # The probe's own output is discarded. Delivery after the claim prints it.
 if ! need_supervision; then
-  if ! fm_wake_main_unread "$STATE" "$(main_unread_scope)" >/dev/null; then
-    exit 0
-  fi
+  UNREAD_SCOPE=$(main_unread_scope) || exit 0
+  fm_wake_main_unread "$STATE" "$UNREAD_SCOPE" >/dev/null || exit 0
 fi
 
 # --- stale session-lock recovery ---------------------------------------------
@@ -284,37 +288,27 @@ fi
 # a live open claim, and a stuck, dead, identity-mismatched, or finished claim
 # is superseded by taking the next generation (fm_autoarm_claim_open and
 # fm_autoarm_claim_next in bin/fm-wake-lib.sh own the contract). No mutex is
-# held past this point. A micro-mutex contention with a bare hold is another
-# participant's short ledger section and the next Stop firing simply retries,
-# while a role-carrying hold is a legacy lock-holding claim from a
-# pre-generation build (or the guard's own terminal-check), which the legacy
-# shim defers to while genuinely deciding and reclaims once when proven
+# held past this point. A live open claim defers at once: its owner arms and
+# delivers. A micro-mutex contention with a bare hold is another participant's
+# short ledger section, held only for a ledger write, so the claim is retried
+# a few times over about a second before the contention exit: an idle main
+# may fire no next Stop. A role-carrying hold is a legacy lock-holding claim
+# from a pre-generation build (or the guard's own terminal-check), which the
+# legacy shim defers to while genuinely deciding and reclaims once when proven
 # abandoned.
-# A live open claim is only a ledger write. Retry it a few times over about a
-# second before deferring. The owner that holds it delivers. Do not deliver here.
+fm_autoarm_claim_open "$STATE" "$GRACE" && exit 0
 CLAIM_TRIES=0
-CLAIM_RC=1
-while [ "$CLAIM_TRIES" -lt 5 ]; do
-  if fm_autoarm_claim_open "$STATE" "$GRACE"; then
-    CLAIM_TRIES=$((CLAIM_TRIES + 1))
-    [ "$CLAIM_TRIES" -ge 5 ] && exit 0
-    sleep 0.2
-    continue
-  fi
+while :; do
   fm_autoarm_claim_next "$STATE" "$GRACE"
   CLAIM_RC=$?
-  if [ "$CLAIM_RC" -eq 0 ]; then
-    break
-  fi
-  if [ "$CLAIM_RC" -eq 2 ]; then
-    CLAIM_TRIES=$((CLAIM_TRIES + 1))
-    [ "$CLAIM_TRIES" -ge 5 ] && exit 0
-    sleep 0.2
-    continue
-  fi
-  break
+  [ "$CLAIM_RC" -eq 1 ] || break
+  [ -z "$(fm_lock_role "$OWNER_LOCK" 2>/dev/null || true)" ] || break
+  CLAIM_TRIES=$((CLAIM_TRIES + 1))
+  [ "$CLAIM_TRIES" -lt 5 ] || break
+  sleep 0.2
 done
 if [ "$CLAIM_RC" -ne 0 ]; then
+  [ "$CLAIM_RC" -eq 2 ] && exit 0
   ROLE=$(fm_lock_role "$OWNER_LOCK" 2>/dev/null || true)
   [ -n "$ROLE" ] || exit 0
   fm_autoarm_release_abandoned "$STATE" "$GRACE" || exit 0
@@ -602,7 +596,10 @@ if [ "$ACTIONABLE" -eq 1 ]; then
   if [ "$HOST_MODE" -eq 0 ]; then
     start_handling_successor "$CLOSED_ARM_PID" || true
   fi
-  unread_rows=$(fm_wake_main_unread "$STATE" "$(main_unread_scope)" || true)
+  unread_rows=
+  if UNREAD_SCOPE=$(main_unread_scope); then
+    unread_rows=$(fm_wake_main_unread "$STATE" "$UNREAD_SCOPE" || true)
+  fi
   {
     printf 'firstmate watcher wake - one supervision event needs a handling turn now.\n'
     if [ "$HOST_MODE" -eq 1 ]; then

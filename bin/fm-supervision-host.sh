@@ -83,8 +83,11 @@
 # attended wake that recorded a captain outcome exits with one "supervision-host: branch-outcome:"
 # line naming its store rows, without the close it handled; main drains, where
 # the BRANCH OUTCOMES section (bin/fm-wake-drain.sh) presents every
-# unprocessed captain outcome until main acknowledges it. Otherwise the host
-# parks on the successor.
+# unprocessed captain outcome until main acknowledges it. A handled attended
+# wake that leaves a main-only row unread (fm_wake_main_unread) exits the same
+# way with one "supervision-host:" line sending main to its drain: a row
+# queued before the successor's start never closes that successor. Otherwise
+# the host parks on the successor.
 # Every other outcome exits with the close's own reason line plus one
 # "supervision-host:" line saying why main has this wake, leaving a covering
 # successor cycle for main's turn. Whenever the captain returned during an away
@@ -1208,6 +1211,14 @@ while :; do
       exit_to_main "branch-outcome: the supervision session handled this wake and recorded captain outcomes for you (store rows $CAPTAIN_SEQS); run bin/fm-wake-drain.sh, act on its BRANCH OUTCOMES section, and acknowledge them as it prints" \
         "$HEALTH_NOTE"
     fi
+  fi
+  # The successor closes only on rows newer than its own start, so a main-only
+  # row queued before that start is read here. Away, the turn's scope already
+  # claimed it.
+  if ! fm_afk_contract_away_present "$STATE" && fm_wake_main_unread "$STATE" main-only >/dev/null; then
+    ARM_TEXT=
+    exit_to_main "the supervision session handled this wake, and a main-only wake is queued for you; run bin/fm-wake-drain.sh and handle it" \
+      "$HEALTH_NOTE"
   fi
 
   # Handled: park on the successor.
