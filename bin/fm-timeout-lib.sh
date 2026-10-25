@@ -309,8 +309,10 @@ fm_run_timed() {  # <seconds> <command...>
 fm_run_cpu_timed() {  # <seconds> <command...>
   local seconds=$1 rc=0
   shift
-  case "$seconds" in
-    ''|*[!0-9]*|0)
+  # With its zeros removed, a positive integer leaves only digits; 00 leaves
+  # nothing, and ulimit -t 00 would kill the command at once.
+  case "${seconds//0/}" in
+    ''|*[!0-9]*)
       printf 'fm_run_cpu_timed: seconds must be a positive integer\n' >&2
       return 125
       ;;

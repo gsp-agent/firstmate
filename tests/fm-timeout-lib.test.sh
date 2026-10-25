@@ -3,7 +3,8 @@
 # TERM to the command's process group at the bound, KILL once the grace has
 # passed, a forwarded signal, the caller replaced rather than wrapped, and a
 # refusal instead of an unbounded run when nothing on the host can enforce the
-# bound, and fm_exec_timed's memory cap. Most cases pin the perl
+# bound, fm_exec_timed's memory cap, and fm_run_cpu_timed's CPU-time bound,
+# which a wait does not use up. Most cases pin the perl
 # watchdog, the preferred mechanism and the only one a stock macOS host has,
 # under a PATH that holds no timeout variant; the GNU fallback case runs only
 # where a real timeout exists.
@@ -566,6 +567,29 @@ test_cpu_bound_lets_a_wait_finish_and_stops_a_burn() {
   pass "fm_run_cpu_timed counts CPU time, so a wait finishes and a burn reports 124, even with SIGXCPU ignored"
 }
 
+test_system_bash_cpu_bound_refuses_every_zero_bound() {
+  local bound rc out
+  for bound in 0 00 000 '' 1x; do
+    rc=0
+    out=$(/bin/bash -c '
+      . "$1/bin/fm-timeout-lib.sh"
+      fm_run_cpu_timed "$2" bash -c "echo ran"
+    ' _ "$ROOT" "$bound" 2>/dev/null) || rc=$?
+    [ "$rc" -eq 125 ] || fail "system Bash did not refuse CPU bound '$bound' with 125 (rc=$rc out=$out)"
+    [ -z "$out" ] || fail "system Bash ran the command under CPU bound '$bound': $out"
+  done
+  for bound in 1 01 10; do
+    rc=0
+    out=$(/bin/bash -c '
+      . "$1/bin/fm-timeout-lib.sh"
+      fm_run_cpu_timed "$2" bash -c "echo ran"
+    ' _ "$ROOT" "$bound" 2>&1) || rc=$?
+    [ "$rc" -eq 0 ] && [ "$out" = ran ] \
+      || fail "system Bash refused positive CPU bound '$bound' (rc=$rc out=$out)"
+  done
+  pass "system Bash fm_run_cpu_timed refuses 0, 00, and other non-positive bounds without running, and keeps positive ones"
+}
+
 test_passes_the_command_status_and_output_through
 test_system_bash_preserves_completion_and_signal_statuses
 test_run_timed_reports_the_bound_when_the_wrapper_records_a_signal_death
@@ -588,3 +612,4 @@ test_an_unmeasurable_memory_cap_kills_rather_than_runs_uncapped
 test_gnu_timeout_kills_a_term_ignoring_command_after_the_grace
 test_timed_out_names_exactly_the_bound_statuses
 test_cpu_bound_lets_a_wait_finish_and_stops_a_burn
+test_system_bash_cpu_bound_refuses_every_zero_bound
