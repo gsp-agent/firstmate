@@ -1,0 +1,29 @@
+
+=== real herdr classifier verdicts before the merge
+hdead <lab-session>:w1:p2 -> dead
+hmiss <lab-session>:w1:p3 -> missing
+
+=== watcher exit=0
+--- stdout
+signal: <lab>/state/other.status
+--- stderr
+merge handoff for hdead blocked: its worker reads dead, so its live PM was told on <lab>/state/hdead.status
+merge handoff for hmiss blocked: its worker reads missing, so its live PM was told on <lab>/state/hmiss.status
+
+=== hdead.status
+done: PR ready for merge
+blocked [key=merged-owner-hdead] [at=1792916995]: merged hdead https://github.com/example/repo/pull/81 spawn_gen=gen-hdead; activation and live verification have no confirmed live owner: herdr endpoint <lab-session>:w1:p2 reads dead; relaunch it with bin/fm-control.sh hdead relaunch --note 'Merged https://github.com/example/repo/pull/81; activation and live verification remain pending'
+- marker committed: yes
+- poll still armed: no
+
+=== hmiss.status
+done: PR ready for merge
+blocked [key=merged-owner-hmiss] [at=1792917011]: merged hmiss https://github.com/example/repo/pull/82 spawn_gen=gen-hmiss; activation and live verification have no confirmed live owner: herdr endpoint <lab-session>:w1:p3 reads missing; relaunch it with bin/fm-control.sh hmiss relaunch --note 'Merged https://github.com/example/repo/pull/82; activation and live verification remain pending'
+- marker committed: yes
+- poll still armed: no
+
+=== main wake queue
+1792917026	1	signal	other.status	signal: <lab>/state/other.status
+1792917026	2	signal	other.status	signal: <lab>/state/other.status
+
+=== lab teardown

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+WT=<worktree>
+D=$1
+cd "$WT" || exit 1
+echo "### bin/fm-drift-nightly.sh check: fork = base + this branch squashed as (#134), upstream = base 41a0d972, proof = drift-proof.txt in the fork tree"
+out=$(bin/fm-drift-nightly.sh check --repo "$D/repo" --fork HEAD --upstream HEAD~1 --no-fetch 2>&1); rc=$?
+printf '%s\n' "$out" | grep -v '^unmatched: '
+echo "exit=$rc"
+echo "(unmatched lines for older PR entries omitted: $(printf '%s\n' "$out" | grep -c '^unmatched: '); 'unmatched: 134' present: $(printf '%s\n' "$out" | grep -qx 'unmatched: 134' && echo yes || echo no))"
+echo
+echo "### adversarial: the earlier malformed form 'pending-pr: ac-81byo.2' through the same consumer"
+P=$(mktemp "${TMPDIR:-/tmp}/fm-drift-proof.XXXXXX")
+git show HEAD:drift-proof.txt | sed 's/^pr: 134$/pending-pr: ac-81byo.2/' > "$P"
+out=$(bin/fm-drift-nightly.sh check --repo "$D/repo" --fork HEAD --upstream HEAD~1 --no-fetch --proof "$P" 2>&1); rc=$?
+rm -f "$P"
+printf '%s\n' "$out" | grep -v '^unmatched: '
+echo "exit=$rc"

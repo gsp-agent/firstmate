@@ -1,0 +1,105 @@
+
+=== real tmux classifier verdicts before the merge (waiting for claude to start)
+wdead firstmate:fm-wdead -> dead
+wmiss firstmate:fm-wmiss -> missing
+wamb firstmate:fm-wamb -> ambiguous
+walive firstmate:fm-walive -> alive
+  window primary: sleep
+  window fm-wdead: zsh
+  window fm-wamb: sleep
+  window fm-walive: 2.1.310
+
+=== watcher run 'first' exit=0
+--- stdout
+signal: <lab>/state/other.status
+--- stderr
+merge handoff for wamb blocked: its worker reads ambiguous, so its live PM was told on <lab>/state/wamb.status
+merge handoff for wdead blocked: its worker reads dead, so its live PM was told on <lab>/state/wdead.status
+merge handoff for wmiss blocked: its worker reads missing, so its live PM was told on <lab>/state/wmiss.status
+
+=== wdead.status
+done: PR ready for merge
+blocked [key=merged-owner-wdead] [at=1792916556]: merged wdead https://github.com/example/repo/pull/71 spawn_gen=gen-wdead; activation and live verification have no confirmed live owner: tmux endpoint firstmate:fm-wdead reads dead; relaunch it with bin/fm-control.sh wdead relaunch --note 'Merged https://github.com/example/repo/pull/71; activation and live verification remain pending'
+- marker committed: yes
+- poll still armed: no
+
+=== wmiss.status
+done: PR ready for merge
+blocked [key=merged-owner-wmiss] [at=1792916568]: merged wmiss https://github.com/example/repo/pull/72 spawn_gen=gen-wmiss; activation and live verification have no confirmed live owner: tmux endpoint firstmate:fm-wmiss reads missing; relaunch would refuse because tmux cannot prove that endpoint is gone; find it on the tmux server that owns it and confirm whether its worker still runs
+- marker committed: yes
+- poll still armed: no
+
+=== wamb.status
+done: PR ready for merge
+blocked [key=merged-owner-wamb] [at=1792916546]: merged wamb https://github.com/example/repo/pull/73 spawn_gen=gen-wamb; activation and live verification have no confirmed live owner: tmux endpoint firstmate:fm-wamb reads ambiguous; relaunch would refuse on an endpoint that reads ambiguous; confirm by hand whether its worker still runs
+- marker committed: yes
+- poll still armed: no
+
+=== walive.status
+done: PR ready for merge
+note [key=merged-walive] [at=1792916537]: merged walive https://github.com/example/repo/pull/74 spawn_gen=gen-walive; activation and live verification pending with the existing owner
+- marker committed: yes
+- poll still armed: no
+
+=== main wake queue
+1792916606	1	signal	other.status	signal: <lab>/state/other.status
+1792916607	2	signal	other.status	signal: <lab>/state/other.status
+
+=== captain drains and acknowledges the first wake
+ack: bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 3921.1792916606.0RX5c7
+
+=== replay: flip every worker's liveness, re-arm the same merged polls, watch again
+wdead now reads alive
+wmiss now reads dead
+wamb now reads ambiguous
+walive now reads dead
+
+=== watcher run 'replay' exit=0
+--- stdout
+signal: <lab>/state/other2.status
+--- stderr
+wdead: status unchanged by the replay
+- poll still armed after replay: no
+wmiss: status unchanged by the replay
+- poll still armed after replay: no
+wamb: status unchanged by the replay
+- poll still armed after replay: no
+walive: status unchanged by the replay
+- poll still armed after replay: no
+
+=== replay through the shared outcome entry (as fm-pr-merge.sh calls it) after a worker's own result
+wdead now reads dead
+fm_merge_outcome_report rc=0 already_recorded=true
+wdead last line: done [at=1792916789]: live check passed
+
+=== tmux gh stand-in calls
+api graphql --hostname github.com -f query=query FmPollBatch($o0:String!,$r0:String!,$n0:Int!,$o1:String!,$r1:String!,$n
+api graphql --hostname github.com -f query=query($owner:String!,$repo:String!,$cursor:String){repository(owner:$owner,na
+api graphql --hostname github.com -f query=query FmPollBatch($o0:String!,$r0:String!,$n0:Int!,$o1:String!,$r1:String!,$n
+api graphql --hostname github.com -f query=query($owner:String!,$repo:String!,$cursor:String){repository(owner:$owner,na
+
+=== watcher triage log (merge-related lines)
+no matching persisted merge authority for walive; recording an external merge outcome
+absorbed merged check (live PM owns walive): check: <lab>/state/walive.check.sh: merged
+no matching persisted merge authority for wamb; recording an external merge outcome
+absorbed merged check (live PM owns wamb): check: <lab>/state/wamb.check.sh: merged
+no matching persisted merge authority for wdead; recording an external merge outcome
+absorbed merged check (live PM owns wdead): check: <lab>/state/wdead.check.sh: merged
+no matching persisted merge authority for wmiss; recording an external merge outcome
+absorbed merged check (live PM owns wmiss): check: <lab>/state/wmiss.check.sh: merged
+absorbed signal (live PM owns walive): <lab>/state/walive.status
+absorbed signal (live PM owns wamb): <lab>/state/wamb.status
+absorbed signal (live PM owns wdead): <lab>/state/wdead.status
+absorbed signal (live PM owns wmiss): <lab>/state/wmiss.status
+absorbed signal (live PM owns walive): <lab>/state/walive.status
+absorbed signal (live PM owns wamb): <lab>/state/wamb.status
+absorbed signal (live PM owns wdead): <lab>/state/wdead.status
+absorbed signal (live PM owns wmiss): <lab>/state/wmiss.status
+no matching persisted merge authority for walive; recording an external merge outcome
+absorbed duplicate merged PR poll result for walive
+no matching persisted merge authority for wamb; recording an external merge outcome
+absorbed duplicate merged PR poll result for wamb
+no matching persisted merge authority for wdead; recording an external merge outcome
+absorbed duplicate merged PR poll result for wdead
+no matching persisted merge authority for wmiss; recording an external merge outcome
+absorbed duplicate merged PR poll result for wmiss

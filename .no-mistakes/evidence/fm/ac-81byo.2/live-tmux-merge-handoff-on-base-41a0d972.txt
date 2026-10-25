@@ -1,0 +1,43 @@
+
+=== real tmux classifier verdicts before the merge (waiting for claude to start)
+wdead firstmate:fm-wdead -> dead
+wmiss firstmate:fm-wmiss -> missing
+wamb firstmate:fm-wamb -> ambiguous
+walive firstmate:fm-walive -> alive
+  window primary: sleep
+  window fm-wdead: zsh
+  window fm-wamb: sleep
+  window fm-walive: 2.1.310
+
+=== watcher run 'first' exit=0
+--- stdout
+signal: <lab>/state/other.status
+--- stderr
+
+=== wdead.status
+done: PR ready for merge
+note [key=merged-wdead] [at=1792917426]: merged wdead https://github.com/example/repo/pull/71 spawn_gen=gen-wdead; activation and live verification pending with the existing owner
+- marker committed: yes
+- poll still armed: no
+
+=== wmiss.status
+done: PR ready for merge
+note [key=merged-wmiss] [at=1792917443]: merged wmiss https://github.com/example/repo/pull/72 spawn_gen=gen-wmiss; activation and live verification pending with the existing owner
+- marker committed: yes
+- poll still armed: no
+
+=== wamb.status
+done: PR ready for merge
+note [key=merged-wamb] [at=1792917406]: merged wamb https://github.com/example/repo/pull/73 spawn_gen=gen-wamb; activation and live verification pending with the existing owner
+- marker committed: yes
+- poll still armed: no
+
+=== walive.status
+done: PR ready for merge
+note [key=merged-walive] [at=1792917381]: merged walive https://github.com/example/repo/pull/74 spawn_gen=gen-walive; activation and live verification pending with the existing owner
+- marker committed: yes
+- poll still armed: no
+
+=== main wake queue
+1792917474	1	signal	other.status	signal: <lab>/state/other.status
+1792917476	2	signal	other.status	signal: <lab>/state/other.status

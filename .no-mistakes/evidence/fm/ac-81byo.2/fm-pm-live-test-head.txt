@@ -1,0 +1,12 @@
+ok - a worker that is not alive gets one blocked PM handoff that names only a relaunch that can work, commits its marker, and is never re-judged on replay
+ok - the live-PM proof reads live, grace, stale, malformed, and symlinked registrations exactly
+ok - a live PM receives one pending-verification status handoff without a main queue row
+ok - a plain task's merged outcome still queues the merge-landed wake for main
+ok - a failed PM handoff stays unacknowledged and retries on the same task
+ok - a failed acknowledgement preserves the delivered event and retry deduplicates it
+ok - replay repairs the PM event even when a legacy notification marker already exists
+error: merge handoff for demo has missing, changed, or ambiguous task/PR identity
+error: merge handoff for demo has missing, changed, or ambiguous task/PR identity
+ok - stale PRs and missing records are refused; reused tasks receive explicit current incarnation/PR identity
+ok - restart and concurrent delivery keep one event and leave activation failures with the existing owner
+ok - a merge that reaches a closed task tells its live PM, never hands off into nothing, and binds only the archived PR

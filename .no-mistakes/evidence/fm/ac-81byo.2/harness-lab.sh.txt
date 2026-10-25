@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+# Live lab: a merge reaching PM-live tasks whose tmux workers are dead, missing,
+# ambiguous, or alive, driven through the real bin/fm-watch.sh against a real
+# tmux server on a private lab socket. Only GitHub is a disposable stand-in.
+set -u
+WT=${FM_LIVE_WT:-<worktree>}
+HERE=$(cd "$(dirname "$0")" && pwd)
+FAKEBIN="$HERE/fakebin"
+LAB=$(mktemp -d "${TMPDIR:-/tmp}/fm-lab.XXXXXX")
+"$WT/bin/fm-lab-home.sh" create "$LAB" >/dev/null || exit 1
+SOCKDIR=$("$WT/bin/fm-lab-home.sh" tmux-dir "$LAB") || exit 1
+export TMUX_TMPDIR="$SOCKDIR"
+lt() { tmux -L fm-lab "$@"; }
+
+cleanup() {
+  lt kill-server 2>/dev/null
+  "$WT/bin/fm-lab-home.sh" teardown "$LAB" >/dev/null 2>&1
+  rm -rf "${LAB:?}"
+}
+trap cleanup EXIT
+
+say() { printf '\n=== %s\n' "$*"; }
+STATE="$LAB/state"
+mkdir -p "$LAB/wt" "$LAB/claude-cfg"
+git -C "$LAB/wt" init -q && git -C "$LAB/wt" commit -q --allow-empty -m init
+
+# The primary pane stands in for the live PM's waiter process.
+lt new-session -d -s firstmate -n primary -c "$LAB" 'sleep 3600' || exit 1
+SERVER_PID=$(lt display-message -p '#{pid}')
+PM_PID=$(lt display-message -p -t firstmate:primary '#{pane_pid}')
+export TMUX="$SOCKDIR/tmux-$(id -u)/fm-lab,$SERVER_PID,0"
+
+# Workers. fm-wmiss is recorded but never created.
+lt new-window -d -t firstmate -n fm-wdead -c "$LAB/wt" '/bin/zsh -f'
+lt new-window -d -t firstmate -n fm-wamb -c "$LAB/wt" 'sleep 3600'
+lt new-window -d -t firstmate -n fm-walive -c "$LAB/wt" \
+  "env CLAUDE_CONFIG_DIR='$LAB/claude-cfg' claude"
+
+. "$WT/bin/fm-pr-lib.sh"
+. "$WT/bin/fm-backend.sh"
+
+arm() {  # <id> <number>
+  local id=$1 n=$2 url=https://github.com/example/repo/pull/$2
+  printf 'window=firstmate:fm-%s\nworktree=%s/wt\nspawn_gen=gen-%s\npr=%s\n' "$id" "$LAB" "$id" "$url" > "$STATE/$id.meta"
+  printf 'bead=example-%s\npid=%s\ntask=%s\n' "$id" "$PM_PID" "$id" > "$STATE/.pm-live-$id"
+  [ -e "$STATE/$id.status" ] || printf 'done: PR ready for merge\n' > "$STATE/$id.status"
+  fm_pr_poll_prepare "$STATE" "$id" github "$url" github.com example/repo "$n" "$WT/bin/fm-pr-poll.sh" \
+    && fm_pr_poll_publish_prepared || { echo "could not arm $id"; exit 1; }
+}
+
+TASKS="wdead:71 wmiss:72 wamb:73 walive:74"
+for t in $TASKS; do arm "${t%%:*}" "${t#*:}"; done
+
+say "real tmux classifier verdicts before the merge (waiting for claude to start)"
+for i in $(seq 1 120); do
+  [ "$(fm_backend_agent_state tmux firstmate:fm-walive)" = alive ] && break
+  sleep 0.5
+done
+for t in $TASKS; do
+  id=${t%%:*}
+  printf '%s firstmate:fm-%s -> %s\n' "$id" "$id" "$(fm_backend_agent_state tmux "firstmate:fm-$id")"
+done
+lt list-windows -t firstmate -F '  window #{window_name}: #{pane_current_command}'
+
+run_watcher() {  # <label>
+  local label=$1 rc
+  perl -e 'alarm shift; exec @ARGV' 180 \
+    env -u NO_MISTAKES_GATE -u FM_GATE_REFUSE_BYPASS -u FM_ROOT_OVERRIDE -u FM_STATE_OVERRIDE \
+      -u FM_DATA_OVERRIDE -u FM_CONFIG_OVERRIDE -u FM_PROJECTS_OVERRIDE \
+      FM_HOME="$LAB" FM_CHECK_INTERVAL=0 FM_POLL=0.2 FM_HEARTBEAT=999999 FM_SIGNAL_GRACE=0 \
+      FM_LIVE_GH_LOG="$LAB/gh.log" PATH="$FAKEBIN:$PATH" \
+      "$WT/bin/fm-watch.sh" > "$LAB/$label.out" 2> "$LAB/$label.err"
+  rc=$?
+  say "watcher run '$label' exit=$rc"
+  echo "--- stdout"; sed "s|$LAB|<lab>|g" "$LAB/$label.out"
+  echo "--- stderr"; sed "s|$LAB|<lab>|g" "$LAB/$label.err"
+}
+
+report() {
+  local t id
+  for t in $TASKS; do
+    id=${t%%:*}
+    say "$id.status"
+    sed "s|$LAB|<lab>|g" "$STATE/$id.status"
+    printf -- '- marker committed: %s\n' "$([ -e "$STATE/$id.pr-poll-merge-notified" ] && echo yes || echo no)"
+    printf -- '- poll still armed: %s\n' "$([ -e "$STATE/$id.check.sh" ] || [ -e "$STATE/$id.pr-poll" ] && echo yes || echo no)"
+  done
+  say "main wake queue"
+  if [ -s "$STATE/.wake-queue" ]; then sed "s|$LAB|<lab>|g" "$STATE/.wake-queue"; else echo "(empty)"; fi
+}
+
+# A non-PM task's status change gives the watcher a signal to return on.
+printf 'done: other work finished\n' > "$STATE/other.status"
+run_watcher first
+if [ -n "${FM_LIVE_FIRST_ONLY:-}" ]; then report; exit 0; fi
+report
+
+say "captain drains and acknowledges the first wake"
+drain_err=$(env -u NO_MISTAKES_GATE FM_HOME="$LAB" "$WT/bin/fm-wake-drain.sh" 2>&1 >/dev/null)
+ack=$(printf '%s\n' "$drain_err" | sed -n 's/^WAKE_ACK_REQUIRED: after handling completes run //p' | head -n 1)
+echo "ack: ${ack:-<none>}"
+[ -n "$ack" ] && env -u NO_MISTAKES_GATE FM_HOME="$LAB" "$WT/"$ack 2>&1 | sed "s|$LAB|<lab>|g" | tail -n 3
+
+say "replay: flip every worker's liveness, re-arm the same merged polls, watch again"
+lt respawn-pane -k -t firstmate:fm-wdead "env CLAUDE_CONFIG_DIR='$LAB/claude-cfg' claude"
+lt new-window -d -t firstmate -n fm-wmiss -c "$LAB/wt" '/bin/zsh -f'
+lt respawn-pane -k -t firstmate:fm-walive '/bin/zsh -f'
+for i in $(seq 1 120); do
+  [ "$(fm_backend_agent_state tmux firstmate:fm-wdead)" = alive ] && break
+  sleep 0.5
+done
+for t in $TASKS; do
+  id=${t%%:*}
+  printf '%s now reads %s\n' "$id" "$(fm_backend_agent_state tmux "firstmate:fm-$id")"
+  cp "$STATE/$id.status" "$LAB/$id.status.before-replay"
+done
+for t in $TASKS; do arm "${t%%:*}" "${t#*:}"; done
+printf 'done: other work finished again\n' > "$STATE/other2.status"
+run_watcher replay
+for t in $TASKS; do
+  id=${t%%:*}
+  if cmp -s "$STATE/$id.status" "$LAB/$id.status.before-replay"; then
+    echo "$id: status unchanged by the replay"
+  else
+    echo "$id: STATUS CHANGED BY REPLAY:"; diff "$LAB/$id.status.before-replay" "$STATE/$id.status"
+  fi
+  printf -- '- poll still armed after replay: %s\n' "$([ -e "$STATE/$id.check.sh" ] || [ -e "$STATE/$id.pr-poll" ] && echo yes || echo no)"
+done
+
+say "replay through the shared outcome entry (as fm-pr-merge.sh calls it) after a worker's own result"
+printf 'done [at=%s]: live check passed\n' "$(date +%s)" >> "$STATE/wdead.status"
+lt respawn-pane -k -t firstmate:fm-wdead '/bin/zsh -f'
+sleep 1
+echo "wdead now reads $(fm_backend_agent_state tmux firstmate:fm-wdead)"
+(
+  . "$WT/bin/fm-merge-outcome-lib.sh"
+  env_rc=0
+  FM_HOME="$LAB" fm_merge_outcome_report "$LAB" "$STATE" wdead https://github.com/example/repo/pull/71 self || env_rc=$?
+  echo "fm_merge_outcome_report rc=$env_rc already_recorded=$FM_MERGE_OUTCOME_ALREADY_RECORDED"
+)
+echo "wdead last line: $(tail -n 1 "$STATE/wdead.status")"
+
+say "tmux gh stand-in calls"
+sed "s|$LAB|<lab>|g" "$LAB/gh.log" | cut -c1-120
+
+say "watcher triage log (merge-related lines)"
+grep -iE "merge|absorbed|retire" "$STATE/.watch-triage.log" 2>/dev/null | sed -e "s|$LAB|<lab>|g" -e 's/^\[[^]]*\] //' | cut -c1-200

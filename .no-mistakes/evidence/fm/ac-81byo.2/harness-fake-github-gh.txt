@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Disposable stand-in for the GitHub GraphQL endpoint: every pull request the
+# poll asks about reads MERGED. The real gh applies --jq to the server response,
+# so this applies the caller's own filter with real jq.
+printf '%s\n' "$*" >> "${FM_LIVE_GH_LOG:-/dev/null}"
+[ "${1:-} ${2:-}" = "api graphql" ] || exit 1
+shift 2
+filter= query= n=0
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --jq) filter=$2; shift 2 ;;
+    --hostname) shift 2 ;;
+    -f|-F)
+      case "$2" in
+        query=*) query=${2#query=} ;;
+        o[0-9]*=*) n=$((n + 1)) ;;
+      esac
+      shift 2 ;;
+    *) shift ;;
+  esac
+done
+pr='{"state":"MERGED","merged":true,"isInMergeQueue":false,"timelineItems":{"nodes":[]}}'
+case "$query" in
+  *FmPollBatch*)
+    body= i=0
+    while [ "$i" -lt "$n" ]; do
+      [ -z "$body" ] || body="$body,"
+      body="$body\"p$i\":{\"pullRequest\":$pr}"
+      i=$((i + 1))
+    done
+    resp="{\"data\":{$body}}" ;;
+  *pullRequests\(states:\[OPEN\]*)
+    resp='{"data":{"repository":{"pullRequests":{"pageInfo":{"hasNextPage":false,"endCursor":null},"nodes":[]}}}}' ;;
+  *) resp="{\"data\":{\"repository\":{\"pullRequest\":$pr}}}" ;;
+esac
+printf '%s\n' "$resp" | jq -r "$filter"

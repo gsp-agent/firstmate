@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# Live lab: a merge reaching PM-live tasks whose Herdr workers are dead (shell
+# only, no agent) or missing (pane destroyed), driven through the real
+# bin/fm-watch.sh against a real Herdr server in a named fm-lab-* session.
+set -u
+WT=<worktree>
+HERE=$(cd "$(dirname "$0")" && pwd)
+FAKEBIN="$HERE/fakebin"
+unset HERDR_ENV HERDR_PANE_ID HERDR_TAB_ID HERDR_WORKSPACE_ID HERDR_SOCKET_PATH HERDR_SESSION
+SESSION=$("$WT/bin/fm-herdr-lab.sh" name mergeowner) || exit 1
+export HERDR_SESSION="$SESSION"
+LAB=$(mktemp -d "${TMPDIR:-/tmp}/fm-lab.XXXXXX")
+"$WT/bin/fm-lab-home.sh" create "$LAB" >/dev/null || exit 1
+STATE="$LAB/state"
+
+cleanup() {
+  "$WT/bin/fm-herdr-lab.sh" teardown "$SESSION" 2>&1 | sed "s/$SESSION/<lab-session>/g" | tail -n 3
+  rm -rf "${LAB:?}"
+}
+trap cleanup EXIT
+say() { printf '\n=== %s\n' "$*"; }
+
+"$WT/bin/fm-herdr-lab.sh" prepare "$SESSION" >/dev/null || { echo "herdr lab prepare failed"; exit 1; }
+mkdir -p "$LAB/wt"
+. "$WT/bin/fm-pr-lib.sh"
+. "$WT/bin/fm-backend.sh"
+fm_backend_source herdr || { echo "cannot source herdr backend"; exit 1; }
+raw=$(fm_backend_herdr_container_ensure "$LAB/wt") || { echo "container_ensure failed"; exit 1; }
+CONTAINER=${raw%%$'\t'*}
+SEEDED=${raw#*$'\t'}
+read -r _ PANE_DEAD <<EOF
+$(fm_backend_herdr_create_task "$CONTAINER" fm-hdead "$LAB/wt" "$SEEDED")
+EOF
+read -r _ PANE_MISS <<EOF
+$(fm_backend_herdr_create_task "$CONTAINER" fm-hmiss "$LAB/wt" "")
+EOF
+[ -n "$PANE_DEAD" ] && [ -n "$PANE_MISS" ] || { echo "could not create lab panes"; exit 1; }
+fm_backend_herdr_kill "$SESSION:$PANE_MISS" || echo "pane close returned nonzero"
+
+arm() {  # <id> <number> <pane>
+  local id=$1 n=$2 url=https://github.com/example/repo/pull/$2
+  printf 'backend=herdr\nwindow=%s:%s\nworktree=%s/wt\nspawn_gen=gen-%s\npr=%s\n' "$SESSION" "$3" "$LAB" "$id" "$url" > "$STATE/$id.meta"
+  printf 'bead=example-%s\npid=%s\ntask=%s\n' "$id" "$$" "$id" > "$STATE/.pm-live-$id"
+  printf 'done: PR ready for merge\n' > "$STATE/$id.status"
+  fm_pr_poll_prepare "$STATE" "$id" github "$url" github.com example/repo "$n" "$WT/bin/fm-pr-poll.sh" \
+    && fm_pr_poll_publish_prepared || { echo "could not arm $id"; exit 1; }
+}
+arm hdead 81 "$PANE_DEAD"
+arm hmiss 82 "$PANE_MISS"
+
+say "real herdr classifier verdicts before the merge"
+echo "hdead <lab-session>:$PANE_DEAD -> $(fm_backend_agent_state herdr "$SESSION:$PANE_DEAD")"
+echo "hmiss <lab-session>:$PANE_MISS -> $(fm_backend_agent_state herdr "$SESSION:$PANE_MISS")"
+
+printf 'done: other work finished\n' > "$STATE/other.status"
+perl -e 'alarm shift; exec @ARGV' 240 \
+  env -u NO_MISTAKES_GATE -u FM_GATE_REFUSE_BYPASS -u FM_ROOT_OVERRIDE -u FM_STATE_OVERRIDE \
+    -u FM_DATA_OVERRIDE -u FM_CONFIG_OVERRIDE -u FM_PROJECTS_OVERRIDE \
+    FM_HOME="$LAB" FM_CHECK_INTERVAL=0 FM_POLL=0.2 FM_HEARTBEAT=999999 FM_SIGNAL_GRACE=0 \
+    PATH="$FAKEBIN:$PATH" "$WT/bin/fm-watch.sh" > "$LAB/watch.out" 2> "$LAB/watch.err"
+rc=$?
+say "watcher exit=$rc"
+echo "--- stdout"; sed -e "s|$LAB|<lab>|g" -e "s/$SESSION/<lab-session>/g" "$LAB/watch.out"
+echo "--- stderr"; sed -e "s|$LAB|<lab>|g" -e "s/$SESSION/<lab-session>/g" "$LAB/watch.err"
+for id in hdead hmiss; do
+  say "$id.status"
+  sed -e "s|$LAB|<lab>|g" -e "s/$SESSION/<lab-session>/g" "$STATE/$id.status"
+  printf -- '- marker committed: %s\n' "$([ -e "$STATE/$id.pr-poll-merge-notified" ] && echo yes || echo no)"
+  printf -- '- poll still armed: %s\n' "$( { [ -e "$STATE/$id.check.sh" ] || [ -e "$STATE/$id.pr-poll" ]; } && echo yes || echo no)"
+done
+say "main wake queue"
+if [ -s "$STATE/.wake-queue" ]; then sed "s|$LAB|<lab>|g" "$STATE/.wake-queue"; else echo "(empty)"; fi
+say "lab teardown"

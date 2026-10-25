@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Run one fm-teardown.test.sh case: source the suite's definitions (everything
+# before its invocation list) from the worktree, then call the single case.
+WT=<worktree>
+cd "$WT" || exit 1
+last=$(grep -n '^test_task_data_legacy_rows$' tests/fm-teardown.test.sh | head -n 1 | cut -d: -f1)
+[ -n "$last" ] || { echo "cannot find the invocation list"; exit 1; }
+. tests/lib.sh
+# shellcheck disable=SC1090
+. <(sed -n "1,$((last - 1))p" tests/fm-teardown.test.sh | sed '86s|^\. .*lib\.sh"$|:|')
+"$1"

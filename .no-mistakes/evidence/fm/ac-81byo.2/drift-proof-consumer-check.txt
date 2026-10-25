@@ -1,0 +1,19 @@
+### bin/fm-drift-nightly.sh check: fork = base + this branch squashed as (#134), upstream = base 41a0d972, proof = drift-proof.txt in the fork tree
+behind: 0
+ahead: 1
+path-ok: bin/fm-merge-outcome-lib.sh
+path-ok: bin/fm-stock-bash-check.sh
+path-ok: bin/fm-task-bead-lib.sh
+path-ok: bin/fm-teardown.sh
+path-ok: drift-proof.txt
+path-ok: tests/fm-pm-live.test.sh
+path-ok: tests/fm-pr-check-security.test.sh
+path-ok: tests/fm-stock-bash-check.test.sh
+path-ok: tests/fm-teardown.test.sh
+keep: f48cb60eab4e8a9b8073cd20eddc5d498c6a54bb fix: block merge handoff when the worker is not live (#134)
+exit=0
+(unmatched lines for older PR entries omitted: 61; 'unmatched: 134' present: no)
+
+### adversarial: the earlier malformed form 'pending-pr: ac-81byo.2' through the same consumer
+error: pending-pr line is not '<number> <bead>': pending-pr: ac-81byo.2
+exit=2

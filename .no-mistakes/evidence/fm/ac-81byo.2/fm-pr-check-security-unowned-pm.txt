@@ -1,0 +1,1 @@
+ok - a merge handed to a live PM as blocked retires its poll and the watcher still runs later checks and signals
