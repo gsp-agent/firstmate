@@ -146,11 +146,9 @@
 #   only a shell that will not go refuses.
 #   --harness <name> is the explicit per-spawn harness/profile adapter. The old
 #   positional harness arg still works for back-compat.
-#   --route-reason <text> records an optional runtime choice explanation in task
-#   meta; CR and LF become spaces. Relaunch keeps an omitted reason only when
-#   the resolved harness, model, and effort are unchanged. A launch route that
-#   changes the harness records its own fallback reason instead.
-#
+#   --route-reason <text> records an optional runtime choice explanation as
+#   route_reason= in task meta; docs/configuration.md "Task metadata" owns how
+#   relaunch, launch routing, and restore keep or replace it.
 #   --model <name> and --effort <low|medium|high|xhigh|max|ultra> are concrete profile
 #   axes chosen by firstmate at intake. Only with --relaunch, either flag also
 #   accepts default to request the harness default for that axis; empty values

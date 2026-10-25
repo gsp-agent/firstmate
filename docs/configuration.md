@@ -469,7 +469,7 @@ A backend spawn refusal from a missing dependency, version gate, or unauthentica
 
 ### Task metadata
 
-An optional `route_reason=` records why the runtime was chosen, with carriage returns and newlines flattened to spaces.
+An optional `route_reason=`, supplied by `--route-reason` on `bin/fm-spawn.sh` or `bin/fm-control.sh <id> relaunch`, records why the runtime was chosen, with carriage returns and newlines flattened to spaces.
 A relaunch replaces it when supplied, preserves it when omitted and the resolved harness, model, and effort are unchanged, and otherwise removes it.
 When the launch route in `bin/fm-cursor-guard.sh` changes the harness, the route's own fallback reason replaces any supplied reason.
 `relaunch --restore` carries the archived reason over when `--harness`, `--model`, and `--effort` are all omitted.
