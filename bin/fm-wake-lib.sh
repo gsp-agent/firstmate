@@ -2345,8 +2345,8 @@ fm_wake_append_locked() {
   # A failed write can leave a partial last line. Keep that fragment on its
   # own line so the next row stays whole. The drain already retires the fragment.
   if [ "$status" -eq 0 ] && [ -s "$FM_WAKE_QUEUE" ]; then
-    last=$(tail -c 1 "$FM_WAKE_QUEUE" 2>/dev/null || true)
-    if [ "$last" != $'\n' ]; then
+    last=$(tail -c 1 "$FM_WAKE_QUEUE" 2>/dev/null; printf '.')
+    if [ "$last" != $'\n.' ]; then
       printf '\n' >> "$FM_WAKE_QUEUE" || status=$?
     fi
   fi

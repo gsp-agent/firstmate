@@ -3533,6 +3533,17 @@ SH
   pass "watch liveness: an unreachable remote secondmate is probed, preserved, and never failed over"
 }
 
+test_complete_append_does_not_insert_a_blank_row() {
+  local dir state
+  dir=$(make_case complete-append)
+  state="$dir/state"
+  append_wake "$state" check first 'check: first complete row' || fail "first append failed"
+  append_wake "$state" check second 'check: second complete row' || fail "second append failed"
+  [ "$(wc -l < "$state/.wake-queue" | tr -d ' ')" -eq 2 ] \
+    || fail "two complete appends must produce exactly two queue lines"
+  pass "complete appends do not insert blank queue rows"
+}
+
 test_partial_append_leaves_the_next_row_whole() {
   local dir state fragment
   dir=$(make_case partial-append)
@@ -3635,4 +3646,5 @@ test_secondmate_liveness_tick_unqueued_outcome_is_an_error_not_a_wake
 test_secondmate_liveness_tick_skips_mate_whose_lock_is_held
 test_secondmate_liveness_tick_preserves_unreachable_remote
 test_liveness_relaunch_trust_write_stays_in_the_sandbox
+test_complete_append_does_not_insert_a_blank_row
 test_partial_append_leaves_the_next_row_whole
