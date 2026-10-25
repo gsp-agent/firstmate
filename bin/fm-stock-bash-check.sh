@@ -225,7 +225,7 @@ fm_stock_bash_suite() {  # <step> <count> <tests/script> [NAME=value...]
 # fixture, in the same commit.
 fm_stock_bash_checks() {
   fm_stock_bash_suite snapshot-view 19 tests/fm-fleet-snapshot-view.test.sh
-  fm_stock_bash_suite bearings 60 tests/fm-bearings-snapshot.test.sh
+  fm_stock_bash_suite bearings 62 tests/fm-bearings-snapshot.test.sh
   # The full public-followup and watch-triage suites are not stock-Bash
   # snapshots; FM_TEST_ONLY runs only their Bash 3.2 empty-array regressions.
   fm_stock_bash_suite public-followup-empty-lock 1 tests/fm-public-followup.test.sh \
@@ -233,7 +233,7 @@ fm_stock_bash_checks() {
   fm_stock_bash_suite watch-churn-deferral 1 tests/fm-watch-triage.test.sh \
     FM_TEST_ONLY=test_turn_ended_churn_existing_marker_absorbed
   # Bash 3.2 has no printf %(...)T clock, so the helpers' date fallback runs.
-  fm_stock_bash_suite fork-free-helpers 14 tests/fm-fork-free-helpers.test.sh
+  fm_stock_bash_suite fork-free-helpers 16 tests/fm-fork-free-helpers.test.sh
   fm_stock_bash_suite backend-adapter-file 2 tests/fm-backend.test.sh \
     FM_TEST_ONLY=test_backend_source_requires_adapter_file FM_TEST_BASH="$STOCK_BASH"
 }

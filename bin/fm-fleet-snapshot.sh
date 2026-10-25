@@ -224,7 +224,7 @@ esac
 . "$SCRIPT_DIR/fm-ff-lib.sh"  # validate_secondmate_home: shared seeded-home boundary checks
 # shellcheck source=bin/fm-timeout-lib.sh
 # shellcheck disable=SC1091
-. "$SCRIPT_DIR/fm-timeout-lib.sh"  # fm_run_timed: the shared hard bound
+. "$SCRIPT_DIR/fm-timeout-lib.sh"  # fm_run_timed, fm_run_cpu_timed: the shared bounds
 # shellcheck source=bin/fm-landed-lib.sh
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/fm-landed-lib.sh"  # FM_LANDED_JQ_DEFS: the shared landed selector
@@ -276,10 +276,14 @@ FM_SNAPSHOT_TERMINAL_LINES, FM_SNAPSHOT_TERMINAL_BYTES, and
 FM_SNAPSHOT_TERMINAL_TIMEOUT and never becomes canonical current state.
 Parent activity evidence uses FM_SNAPSHOT_PARENT_ACTIVITY_LINES,
 FM_SNAPSHOT_PARENT_ACTIVITY_BYTES, FM_SNAPSHOT_PARENT_ACTIVITIES, and
-FM_SNAPSHOT_PARENT_ACTIVITY_TIMEOUT, with truncation disclosed in the result.
+FM_SNAPSHOT_PARENT_ACTIVITY_TIMEOUT. That timeout is CPU time, via
+fm_run_cpu_timed, so a wait does not exhaust it. Truncation is disclosed
+in the result.
 The registered secondmate table uses FM_SNAPSHOT_REGISTRY_LINES,
 FM_SNAPSHOT_REGISTRY_BYTES, FM_SNAPSHOT_REGISTRY_RECORDS, and
-FM_SNAPSHOT_REGISTRY_TIMEOUT, with unavailability and truncation disclosed.
+FM_SNAPSHOT_REGISTRY_TIMEOUT. The timeout counts per-process CPU time with
+fm_run_cpu_timed, as the parent activity scan does. Unavailability and
+truncation are disclosed.
 Every captain hold carries hold_bucket, decided only from structured fields and
 never from hold reason or body prose: "blocked", "dated", "aged", or "live".
 An undated hold ages once its hold-set timestamp is at least
@@ -1200,6 +1204,12 @@ registry_secondmates_json() {
     return 0
   fi
   script=$(cat <<'BASH'
+    finish_registry_read() {
+      if [ "$1" -eq 124 ] || [ "$1" -eq 137 ] || [ "$1" -eq 152 ]; then
+        exit 124
+      fi
+      exit 3
+    }
     f=$1
     max_lines=$2
     max_bytes=$3
@@ -1208,7 +1218,7 @@ registry_secondmates_json() {
     observed=$6
     parse_filter=$7
     output_filter=$8
-    content=$(LC_ALL=C head -c "$((max_bytes + 1))" "$f" || exit 3; printf "\036") || exit 3
+    content=$(LC_ALL=C head -c "$((max_bytes + 1))" "$f" || finish_registry_read $?; printf "\036") || finish_registry_read $?
     content=${content%$'\036'}
     bytes=$(printf "%s" "$content" | LC_ALL=C wc -c | tr -d " ")
     byte_truncated=false
@@ -1229,16 +1239,17 @@ registry_secondmates_json() {
     fi
     line_truncated=false
     if [ "$lines" -gt "$max_lines" ]; then line_truncated=true; fi
-    window=$(printf "%s\n" "$content" | LC_ALL=C head -n "$max_lines") || exit 3
+    window=$(printf "%s\n" "$content" | LC_ALL=C head -n "$max_lines") || finish_registry_read $?
     if [ -n "$window" ]; then
       lines_in_window=$(printf "%s\n" "$window" | awk "END {print NR}")
     else
       lines_in_window=0
     fi
-    records=$(printf "%s\n" "$window" | jq -Rn "$parse_filter") || exit 3
-    records_in_window=$(printf "%s" "$records" | jq "length") || exit 3
+    records=$(set -o pipefail; printf "%s\n" "$window" | jq -Rn "$parse_filter") || finish_registry_read $?
+    records_in_window=$(set -o pipefail; printf "%s" "$records" | jq "length") || finish_registry_read $?
     records_truncated=false
     if [ "$records_in_window" -gt "$max_records" ]; then records_truncated=true; fi
+    set -o pipefail
     printf "%s" "$records" | jq \
       --arg path "$path" --arg observed "$observed" \
       --argjson byte_truncated "$byte_truncated" \
@@ -1278,7 +1289,7 @@ JQ
        ],lines_in_window:$lines_in_window,records_in_window:$records_in_window}
 JQ
   )
-  out=$(fm_run_timed "$FM_SNAPSHOT_REGISTRY_TIMEOUT" bash -c "$script" \
+  out=$(fm_run_cpu_timed "$FM_SNAPSHOT_REGISTRY_TIMEOUT" bash -c "$script" \
     fm-secondmate-registry "$reg" "$FM_SNAPSHOT_REGISTRY_LINES" \
     "$FM_SNAPSHOT_REGISTRY_BYTES" "$FM_SNAPSHOT_REGISTRY_RECORDS" "$reg" "$SNAPSHOT_NOW" \
     "$parse_filter" "$output_filter" 2>/dev/null)
@@ -1530,13 +1541,19 @@ bounded_parent_activities_json() {  # <status-file>
     max_bytes=$4
     max_records=$5
     stat_style=$6
+    finish_scan() {
+      if [ "$1" -eq 124 ] || [ "$1" -eq 137 ] || [ "$1" -eq 152 ]; then
+        exit 124
+      fi
+      exit 3
+    }
     . "$classify"
     if [ "$stat_style" = bsd ]; then
-      size=$(/usr/bin/stat -f "%z" "$f" 2>/dev/null) || exit 3
+      size=$(/usr/bin/stat -f "%z" "$f" 2>/dev/null) || finish_scan $?
     else
-      size=$(stat -c "%s" "$f" 2>/dev/null) || exit 3
+      size=$(stat -c "%s" "$f" 2>/dev/null) || finish_scan $?
     fi
-    content=$(LC_ALL=C tail -c "$max_bytes" "$f") || exit 3
+    content=$(LC_ALL=C tail -c "$max_bytes" "$f") || finish_scan $?
     byte_truncated=false
     if [ "$size" -gt "$max_bytes" ]; then
       byte_truncated=true
@@ -1554,7 +1571,7 @@ bounded_parent_activities_json() {  # <status-file>
     fi
     line_truncated=false
     if [ "$lines_in_chunk" -gt "$max_lines" ]; then line_truncated=true; fi
-    window=$(printf "%s\n" "$content" | LC_ALL=C tail -n "$max_lines") || exit 3
+    window=$(printf "%s\n" "$content" | LC_ALL=C tail -n "$max_lines") || finish_scan $?
     if [ -n "$window" ]; then
       lines_in_window=$(printf "%s\n" "$window" | awk "END {print NR}")
     else
@@ -1563,8 +1580,8 @@ bounded_parent_activities_json() {  # <status-file>
     records=$(printf "%s\n" "$window" | status_open_activities - \
       | jq -R -s '[splits("\n") | select(length > 0)
           | (capture("^(?<key>[^\t]*)\t(?<verb>[^\t]*)\t(?<summary>.*)$")?)
-          | select(. != null)]') || exit 3
-    records_in_window=$(printf "%s" "$records" | jq "length") || exit 3
+          | select(. != null)]') || finish_scan $?
+    records_in_window=$(printf "%s" "$records" | jq "length") || finish_scan $?
     retained_truncated=false
     if [ "$records_in_window" -gt "$max_records" ]; then retained_truncated=true; fi
     printf "%s" "$records" | jq \
@@ -1587,7 +1604,7 @@ bounded_parent_activities_json() {  # <status-file>
          records_in_window:$records_in_window}'
 BASH
   )
-  out=$(fm_run_timed "$FM_SNAPSHOT_PARENT_ACTIVITY_TIMEOUT" bash -c "$script" \
+  out=$(fm_run_cpu_timed "$FM_SNAPSHOT_PARENT_ACTIVITY_TIMEOUT" bash -c "$script" \
     fm-parent-activities "$SCRIPT_DIR/fm-classify-lib.sh" "$f" \
     "$FM_SNAPSHOT_PARENT_ACTIVITY_LINES" "$FM_SNAPSHOT_PARENT_ACTIVITY_BYTES" \
     "$FM_SNAPSHOT_PARENT_ACTIVITIES" "$SNAPSHOT_STAT_STYLE" 2>/dev/null)

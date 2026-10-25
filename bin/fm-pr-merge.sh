@@ -30,10 +30,19 @@
 # /actions/runs/. Commit statuses, other check runs, and required-context
 # presence checks remain enforced; an unreadable permissions read exempts none.
 # Without --attended-override, GitHub also requires approval at the verified
-# head from FM_MERGE_REVIEWER (default carmanchip23-dev). Among that reviewer's
-# APPROVED, CHANGES_REQUESTED and COMMENTED reviews at that head in the response,
-# the last must be APPROVED, and any CHANGES_REQUESTED in that response vetoes
-# the head even if an approval follows; an unreadable response refuses the merge.
+# head from FM_MERGE_REVIEWER (default carmanchip23-dev). Every review page is
+# read. A review is at that head only when its commit_id equals the head and
+# the head commit's committer time is at or before submitted_at, plus five
+# seconds for clock skew. Among that reviewer's APPROVED, CHANGES_REQUESTED
+# and COMMENTED reviews at that head, the last must be APPROVED, and any
+# CHANGES_REQUESTED in that set vetoes the head even if an approval follows.
+# An APPROVED review whose commit_id equals the head but which was submitted
+# earlier than that is a moved approval. Moved approvals are refused by name,
+# each with its review id, submitted_at, and the head commit's committer time,
+# only when a moved approval is that reviewer's latest review at the head:
+# none of their APPROVED, CHANGES_REQUESTED or COMMENTED reviews counts at
+# the head. Otherwise the generic "no approval ... at head" refusal prints.
+# An unreadable review read or an unreadable head commit time refuses the merge.
 # The check rollup is a second read, and only after the cheap fields show the
 # pull request is open, not a draft, and otherwise mergeable. A closed, draft,
 # conflicting, or still-UNKNOWN pull request never requests that rollup.
@@ -1034,6 +1043,83 @@ github_required_checks_missing() {
   ' 2>/dev/null || return 1
 }
 
+# Print the reviewer-approval refusal, or nothing when the verified head is
+# approved. Five seconds is the clock skew named in the header above.
+github_reviewer_refusal() {
+  local live_head=$1 reviewer reviews commit_json committed verdict line rest id submitted
+  local skew=5
+  reviewer=${FM_MERGE_REVIEWER:-carmanchip23-dev}
+  if ! reviews=$(gh api --paginate "repos/$PR_OWNER/$PR_REPO/pulls/$PR_NUMBER/reviews?per_page=100" 2>/dev/null) \
+    || ! printf '%s' "$reviews" | jq -e 'type == "array"' >/dev/null 2>&1; then
+    printf '  - no approval by %s at head %s\n' "$reviewer" "$live_head"
+    return 0
+  fi
+  if ! commit_json=$(gh api "repos/$PR_OWNER/$PR_REPO/commits/$live_head" 2>/dev/null) \
+    || ! committed=$(printf '%s' "$commit_json" | jq -er '.commit.committer.date | strings'); then
+    printf '  - no approval by %s at head %s\n' "$reviewer" "$live_head"
+    return 0
+  fi
+  # shellcheck disable=SC2016 # jq program text, not shell expansion.
+  if ! verdict=$(printf '%s' "$reviews" | jq -r \
+    --arg head "$live_head" \
+    --arg reviewer "$reviewer" \
+    --arg committed "$committed" \
+    --argjson skew "$skew" '
+      def epoch:
+        if type != "string" then error("time")
+        else sub("\\.[0-9]+"; "") | fromdateiso8601 end;
+      ($committed | epoch) as $born
+      | [ .[] | select(.user.login == $reviewer and .commit_id == $head and .submitted_at != null) ] as $same
+      | [ $same[]
+          | (.submitted_at | epoch) as $at
+          | select($at + $skew >= $born)
+        ] as $at_head
+      | [ $same[]
+          | select(.state == "APPROVED")
+          | (.submitted_at | epoch) as $at
+          | select($at + $skew < $born)
+          | "moved \(.id | tostring) \(.submitted_at)"
+        ] as $moved
+      | ([$at_head[] | select(.state == "CHANGES_REQUESTED")] | length) as $vetoes
+      | ([$at_head[]
+          | select(.state == "APPROVED" or .state == "CHANGES_REQUESTED" or .state == "COMMENTED")]
+          | last | .state) as $last
+      | if $vetoes == 0 and $last == "APPROVED" then
+          "approved"
+        elif ($moved | length) > 0 and $vetoes == 0 and $last == null then
+          $moved[]
+        else
+          "none"
+        end
+    ' 2>/dev/null); then
+    printf '  - no approval by %s at head %s\n' "$reviewer" "$live_head"
+    return 0
+  fi
+  case "$verdict" in
+    approved) return 0 ;;
+    ''|none)
+      printf '  - no approval by %s at head %s\n' "$reviewer" "$live_head"
+      return 0
+      ;;
+  esac
+  while IFS= read -r line; do
+    case "$line" in
+      moved\ *)
+        rest=${line#moved }
+        id=${rest%% *}
+        submitted=${rest#* }
+        printf '  - approval %s by %s submitted at %s, before head %s existed at %s\n' \
+          "$id" "$reviewer" "$submitted" "$live_head" "$committed"
+        ;;
+      *)
+        printf '  - no approval by %s at head %s\n' "$reviewer" "$live_head"
+        ;;
+    esac
+  done <<VERDICT
+$verdict
+VERDICT
+}
+
 # Pre-merge conditions from a live PR view, base requirements, and head producers.
 # Sets FM_PR_MERGE_HEAD to the verified head on success. Returns 3, rather than
 # the usual 1, when mergeable=UNKNOWN is the only failing condition, so the
@@ -1042,7 +1128,7 @@ github_verify_mergeable() {
   local json fields line red name covered missing unreported producers runs
   local total=0 named=0 refusals='' mergeable_refusal=''
   local state='' draft='' mergeable='' merge_state='' live_head='' base=''
-  local rollup_json=''
+  local rollup_json='' review_refusal=''
 
   if ! json=$(gh pr view "$URL" --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName 2>/dev/null) \
     || [ -z "$json" ]; then
@@ -1186,14 +1272,12 @@ EOF
   # exact head on any path through here (agent-config #312 merged unreviewed),
   # and any chip CHANGES_REQUESTED at that head vetoes it even when an
   # approval follows at the same head (change 11; a new head clears it).
+  # A review whose commit_id moved onto a later commit is not at that head.
   # An attended override is the operator's explicit word and still binds head.
   if [ "$ATTENDED_OVERRIDE" != true ]; then
-    if ! gh api "repos/$PR_OWNER/$PR_REPO/pulls/$PR_NUMBER/reviews?per_page=100" 2>/dev/null \
-        | jq -e --arg head "$live_head" --arg reviewer "${FM_MERGE_REVIEWER:-carmanchip23-dev}" '
-          ([.[] | select(.user.login == $reviewer and .commit_id == $head)] as $at
-           | (([$at[] | select(.state == "CHANGES_REQUESTED")] | length) == 0)
-             and (([$at[] | select(.state == "APPROVED" or .state == "CHANGES_REQUESTED" or .state == "COMMENTED")] | last | .state) == "APPROVED"))' >/dev/null 2>&1; then
-      refusals="$refusals  - no approval by ${FM_MERGE_REVIEWER:-carmanchip23-dev} at head $live_head
+    review_refusal=$(github_reviewer_refusal "$live_head")
+    if [ -n "$review_refusal" ]; then
+      refusals="$refusals$review_refusal
 "
     fi
   fi

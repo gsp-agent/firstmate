@@ -2299,6 +2299,57 @@ SH
   done
 }
 
+test_route_reason_is_single_line_for_ship_and_scout() {
+  local kind id rec out rc
+  for kind in ship scout; do
+    id="reason-$kind"
+    rec=$(make_spawn_case "$id" codex "$id")
+    read_case_record "$rec"
+    if [ "$kind" = ship ]; then
+      out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --route-reason $'quota exhausted\nuse fallback\rnow'); rc=$?
+    else
+      out=$(run_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" --scout --route-reason $'quota exhausted\nuse fallback\rnow'); rc=$?
+    fi
+    expect_code 0 "$rc" "route reason spawn should succeed"$'\n'"$out"
+    grep -qx 'route_reason=quota exhausted use fallback now' "$HOME_DIR/state/$id.meta" || fail "reason must flatten newlines"
+    [ "$(grep -c '^route_reason=' "$HOME_DIR/state/$id.meta")" = 1 ] || fail "reason must appear once"
+  done
+  pass "spawn records a single-line route reason for ships and scouts"
+}
+
+test_launch_route_records_its_own_route_reason() {
+  local id=reason-route rec out rc
+  rec=$(make_spawn_case "$id" codex "$id")
+  read_case_record "$rec"
+  mkdir -p "$HOME_DIR/state"
+  printf 'codex run for %s hit its usage limit\n' "$id" > "$HOME_DIR/state/$id.codex-limit"
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" \
+    --harness codex --route-reason 'codex by rule'); rc=$?
+  expect_code 0 "$rc" "a routed spawn with a route reason should succeed"$'\n'"$out"
+  assert_grep 'harness=claude' "$HOME_DIR/state/$id.meta" "the launch route did not change the harness"
+  grep -qx "route_reason=codex run for $id hit its usage limit" "$HOME_DIR/state/$id.meta" \
+    || fail "the launch route must replace the supplied route reason with its own"
+  [ "$(grep -c '^route_reason=' "$HOME_DIR/state/$id.meta")" = 1 ] || fail "reason must appear once"
+  pass "a spawn the launch route moves to another harness records the route's reason"
+}
+
+test_batch_forwards_the_route_reason_to_every_pair() {
+  local rec id1=reason-batch-a id2=reason-batch-b id out rc
+  rec=$(make_spawn_case reason-batch codex "$id1" "$id2")
+  read_case_record "$rec"
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" \
+    "$id1=$PROJ_DIR" "$id2=$PROJ_DIR" --harness codex --route-reason=--claude-out-of-quota); rc=$?
+  expect_code 0 "$rc" "a batch spawn with a route reason should succeed"$'\n'"$out"
+  for id in "$id1" "$id2"; do
+    grep -qx 'route_reason=--claude-out-of-quota' "$HOME_DIR/state/$id.meta" \
+      || fail "batch pair $id lost the shared route reason"
+  done
+  pass "batch dispatch forwards a shared route reason to every pair"
+}
+
+test_route_reason_is_single_line_for_ship_and_scout
+test_launch_route_records_its_own_route_reason
+test_batch_forwards_the_route_reason_to_every_pair
 test_launch_environment_allowlist
 test_launch_environment_invalid_config_refuses
 test_launch_environment_inaccessible_config_refuses

@@ -2644,12 +2644,13 @@ heartbeat_scan_finds_actionable() {
 }
 
 # event_wait_or_sleep: the terminal wait of each supervision cycle. For a home
-# with push-capable windows (herdr), it replaces the blind `sleep POLL` with a
+# with push-capable windows (herdr), it replaces the blind POLL wait with a
 # bounded wait on the backend's native transition stream, so a crew going
 # `blocked` wakes the supervisor sub-second instead of after the stale-pane
 # wedge timer. For every other home - no push-capable window, backend not
-# capable, or the event path proven unreliable this process - it sleeps POLL,
-# byte-for-byte today's behavior. The poll loop above still runs every cycle, so
+# capable, or the event path proven unreliable this process - it waits POLL
+# in fm_sleep (bin/fm-wake-lib.sh), which starts no process where Bash's sleep
+# builtin is installed. The poll loop above still runs every cycle, so
 # this only ever SHORTENS latency; it can never drop an escalation (the poll
 # loop is the permanent fail-closed backstop). This preserves the single live
 # supervision cycle: the reader is a short-lived subprocess of THIS watcher, not
@@ -2682,7 +2683,7 @@ $listed
 EOF
 
   if [ "${#windows[@]}" -eq 0 ]; then
-    sleep "$POLL"
+    fm_sleep "$POLL"
     return
   fi
 
@@ -2698,7 +2699,7 @@ EOF
     _event_cap_fails=0
   fi
   if [ "$_event_cap_ok" != 1 ]; then
-    sleep "$POLL"
+    fm_sleep "$POLL"
     return
   fi
 
@@ -2715,7 +2716,7 @@ EOF
       # pure polling for the rest of this watcher process.
       _event_cap_fails=$((_event_cap_fails + 1))
       [ "$_event_cap_fails" -ge "$EVENT_CAP_FAIL_MAX" ] && _event_cap_ok=0
-      sleep "$POLL"
+      fm_sleep "$POLL"
       ;;
     *)
       # 1: a clean full-budget wait with no actionable edge - the reader already
@@ -3777,7 +3778,7 @@ EOF
   # signature for an already-pending file (last write wins below).
   scan_signals_to pending
   if [ -n "$pending" ]; then
-    sleep "$SIGNAL_GRACE"
+    fm_sleep "$SIGNAL_GRACE"
     pending=$(printf '%s\n%s' "$pending" "$(scan_signals)")
     # A task with a live PM reports to that PM alone: its PM's waiter reads
     # the same status file, so advance this watcher's markers past the

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Spawn a direct report: a crewmate in a treehouse or Orca worktree, or a
 # secondmate in its isolated firstmate home.
-# Usage: fm-spawn.sh <task-id> <project-dir> --mode <no-mistakes|direct-PR|local-only> --yolo <on|off> [--upstream-consent <host>/<owner>/<repo>] [--branch-prefix <prefix>] [--base-branch <branch>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
+# Usage: fm-spawn.sh <task-id> <project-dir> --mode <no-mistakes|direct-PR|local-only> --yolo <on|off> [--upstream-consent <host>/<owner>/<repo>] [--branch-prefix <prefix>] [--base-branch <branch>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--route-reason <text>] [--backend <name>] [--herdr-resume-lock-wait]
 #        fm-spawn.sh <task-id> <project-dir> --queue-start [--queue-owner <request> --queue-project <project>] [--branch-prefix <prefix>] [--base-branch <branch>] [--backend <name>] [--herdr-resume-lock-wait]
-#        fm-spawn.sh <task-id> <project-dir> --scout [--base-branch <branch>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] [--herdr-resume-lock-wait]
+#        fm-spawn.sh <task-id> <project-dir> --scout [--base-branch <branch>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--route-reason <text>] [--backend <name>] [--herdr-resume-lock-wait]
 #        fm-spawn.sh <task-id> [<firstmate-home>] [--harness <name>|harness|launch-command] [--model <name>] [--effort <level>] [--backend <name>] --secondmate
 #   --mode and --yolo are this task's delivery contract, REQUIRED for every ship
 #   spawn and refused on --scout and --secondmate spawns. Firstmate resolves both
@@ -109,7 +109,7 @@
 #   first in the private launch-brief overlay, including the exact task-owned
 #   steering inbox. This never rewrites a project's instruction files or a
 #   secondmate's charter.
-#        fm-spawn.sh <task-id> --relaunch [--harness <name>] [--model <name>] [--effort <level>]
+#        fm-spawn.sh <task-id> --relaunch [--harness <name>] [--model <name>] [--effort <level>] [--route-reason <text>]
 #   --relaunch launches a replacement agent for an EXISTING task into that
 #   task's own recorded worktree, reusing its recorded endpoint when that
 #   endpoint still exists, instead of creating either from scratch. It is
@@ -146,6 +146,9 @@
 #   only a shell that will not go refuses.
 #   --harness <name> is the explicit per-spawn harness/profile adapter. The old
 #   positional harness arg still works for back-compat.
+#   --route-reason <text> records an optional runtime choice explanation as
+#   route_reason= in task meta; docs/configuration.md "Task metadata" owns how
+#   relaunch, launch routing, and restore keep or replace it.
 #   --model <name> and --effort <low|medium|high|xhigh|max|ultra> are concrete profile
 #   axes chosen by firstmate at intake. Only with --relaunch, either flag also
 #   accepts default to request the harness default for that axis; empty values
@@ -425,7 +428,7 @@
 # Batch dispatch: pass one or more `id=repo` pairs instead of a single <id> <project>, e.g.
 #     fm-spawn.sh fix-a-k3=projects/foo add-b-q7=projects/bar [--scout]
 #   Each pair re-execs this script in single-task mode, so the single path stays the only
-#   source of truth; shared --scout/--harness/--model/--effort/--backend/--mode/--yolo
+#   source of truth; shared --scout/--harness/--model/--effort/--route-reason/--backend/--mode/--yolo
 #   applies to every pair. A ship batch therefore carries one delivery contract, and each
 #   pair still checks it against its own brief; a batch spanning modes is two invocations.
 #   If config/crew-dispatch.json exists, shared --harness is required for crewmate
@@ -873,6 +876,8 @@ fm_refuse_if_gate_agent
 [ -n "${FM_SPAWN_NO_GUARD:-}" ] || "$FM_ROOT/bin/fm-guard.sh" || true
 KIND=ship
 KIND_SET=0
+ROUTE_REASON=
+ROUTE_REASON_SET=0
 HARNESS_ARG=
 MODEL=
 EFFORT=
@@ -914,6 +919,10 @@ for a in "$@"; do
       ;;
     esac
     case "$want_value" in
+    route-reason)
+      ROUTE_REASON=$a
+      ROUTE_REASON_SET=1
+      ;;
     harness)
       HARNESS_ARG=$a
       HARNESS_SET=1
@@ -988,6 +997,8 @@ for a in "$@"; do
     MODEL=${a#--model=}
     MODEL_SET=1
     ;;
+  --route-reason) want_value=route-reason ;;
+  --route-reason=*) ROUTE_REASON=${a#--route-reason=}; ROUTE_REASON_SET=1 ;;
   --effort) want_value=effort ;;
   --effort=*)
     EFFORT=${a#--effort=}
@@ -2080,6 +2091,7 @@ if [ "${#POS[@]}" -gt 0 ] && [ "${POS[0]}" != "$idpart" ] && case "$idpart" in *
   [ -z "$HARNESS_ARG" ] || shared_args+=(--harness "$HARNESS_ARG")
   [ -z "$MODEL" ] || shared_args+=(--model "$MODEL")
   [ -z "$EFFORT" ] || shared_args+=(--effort "$EFFORT")
+  [ "$ROUTE_REASON_SET" -eq 0 ] || shared_args+=("--route-reason=$ROUTE_REASON")
   [ -z "$BACKEND_ARG" ] || shared_args+=(--backend "$BACKEND_ARG")
   # One delivery contract applies to every pair in a batch, exactly like the shared
   # harness. Each pair still re-validates it against its own brief, so a batch
@@ -3256,6 +3268,7 @@ if [ "$KIND" != secondmate ] && [ "$SPAWN_CONTROL_PARENT" = 0 ]; then
     echo "$HARNESS fallback: launching $ID on the ${LAUNCH_ROUTE%% *} harness (default model, effort $ROUTE_EFFORT): ${LAUNCH_ROUTE#* }" >&2
     HARNESS=${LAUNCH_ROUTE%% *} MODEL='' EFFORT=$ROUTE_EFFORT
     ROUTE_FALLBACK=1
+    ROUTE_REASON=${LAUNCH_ROUTE#* } ROUTE_REASON_SET=1
     LAUNCH=$(launch_template "$HARNESS" "$KIND") || {
       echo "error: no launch template for the fallback harness '$HARNESS'" >&2
       exit 1
@@ -6451,10 +6464,19 @@ else
   SPAWN_FRESH_COMMIT_PENDING=1
 fi
 SPAWN_META_PATH=$SPAWN_META_TMP
+# A reason belongs to the final runtime, including dispatch fallback resolution.
+if [ "$ROUTE_REASON_SET" = 0 ] && [ "$RELAUNCH" -eq 1 ] \
+  && [ "$HARNESS" = "$(fm_meta_get "$RELAUNCH_META" harness)" ] \
+  && [ "${MODEL:-default}" = "$RELAUNCH_RECORDED_MODEL" ] \
+  && [ "${EFFORT:-default}" = "$RELAUNCH_RECORDED_EFFORT" ]; then
+  ROUTE_REASON=$(fm_meta_get "$RELAUNCH_META" route_reason)
+fi
+ROUTE_REASON=${ROUTE_REASON//$'\n'/ }
+ROUTE_REASON=${ROUTE_REASON//$'\r'/ }
 preserve_relaunch_meta() {
   awk -F= '
     BEGIN {
-      split("window endpoint_task_id worktree project harness kind decision_owner mode yolo branch tasktmp base_branch upstream_consent model effort route_fallback account account_provider busy_gen spawn_gen traceparent backend herdr_session herdr_workspace_id herdr_tab_id herdr_pane_id zellij_session zellij_tab_id zellij_pane_id orca_worktree_id terminal cmux_workspace_id cmux_surface_id home projects control_relaunch_tx", keys, " ")
+      split("window endpoint_task_id worktree project harness kind decision_owner mode yolo branch tasktmp base_branch upstream_consent model effort route_reason route_fallback account account_provider busy_gen spawn_gen traceparent backend herdr_session herdr_workspace_id herdr_tab_id herdr_pane_id zellij_session zellij_tab_id zellij_pane_id orca_worktree_id terminal cmux_workspace_id cmux_surface_id home projects control_relaunch_tx", keys, " ")
       for (i in keys) owned[keys[i]] = 1
     }
     !($1 in owned)
@@ -6480,6 +6502,7 @@ preserve_relaunch_meta() {
   [ -z "$UPSTREAM_CONSENT" ] || echo "upstream_consent=$UPSTREAM_CONSENT"
   echo "model=${MODEL:-default}"
   echo "effort=${EFFORT:-default}"
+  [ -z "$ROUTE_REASON" ] || printf 'route_reason=%s\n' "$ROUTE_REASON"
   [ "$ROUTE_FALLBACK" != 1 ] || echo "route_fallback=1"
   # The worker account pin, only when this home declares one, so an unpinned
   # task record stays byte-identical.

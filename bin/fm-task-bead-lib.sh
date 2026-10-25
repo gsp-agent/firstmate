@@ -17,10 +17,12 @@
 # its old behavior.
 # The read is the native `br --db <db> show <bead> --json`, run from / with
 # BEADS_DIR, BEADS_DB and BR_DB cleared, bounded by FM_TASK_BEAD_TIMEOUT_SECS
-# (default 10).
+# (default 10). A unique short id that br expands to its canonical id is that
+# bead when fm-task-data-lib.sh's fm_task_data_bead_id_matches accepts it.
 #
 # fm_task_bead_read <task-id>
-#   0  the task has a bead: FM_TASK_BEAD_ID and FM_TASK_BEAD_STATUS are set.
+#   0  the task has a bead: FM_TASK_BEAD_ID (the id asked for, never the
+#      expanded canonical id) and FM_TASK_BEAD_STATUS are set.
 #   3  the task has no bead.
 #   1  the owning database exists but did not answer; FM_TASK_BEAD_ERROR says
 #      why. A caller deciding to close must refuse rather than guess.
@@ -45,7 +47,7 @@ fm_task_bead_candidate() {  # <task-id>
 
 # shellcheck disable=SC2034 # FM_TASK_BEAD_* are results for sourcing callers.
 fm_task_bead_read() {  # <task-id>
-  local bead db out status=0 secs=${FM_TASK_BEAD_TIMEOUT_SECS:-10} code
+  local bead db out canonical status=0 secs=${FM_TASK_BEAD_TIMEOUT_SECS:-10} code
   FM_TASK_BEAD_ID=
   FM_TASK_BEAD_STATUS=
   FM_TASK_BEAD_ERROR=
@@ -83,7 +85,14 @@ fm_task_bead_read() {  # <task-id>
     fi
     return 1
   fi
-  FM_TASK_BEAD_STATUS=$(printf '%s\n' "$out" | jq -r --arg id "$bead" '
+  canonical=$(printf '%s\n' "$out" | jq -r '
+    if type == "array" and length == 1 and (.[0].id | type) == "string"
+    then .[0].id else empty end' 2>/dev/null)
+  if [ -z "$canonical" ] || ! fm_task_data_bead_id_matches "$bead" "$canonical" "$db"; then
+    FM_TASK_BEAD_ERROR="br show $bead returned no readable status"
+    return 1
+  fi
+  FM_TASK_BEAD_STATUS=$(printf '%s\n' "$out" | jq -r --arg id "$canonical" '
     if type == "array" and length == 1 and .[0].id == $id
        and (.[0].status | type) == "string" and (.[0].status | length) > 0
     then .[0].status else empty end' 2>/dev/null)

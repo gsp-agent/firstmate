@@ -538,6 +538,86 @@ SH
   pass "pending directory reads and the conservative process-event precheck preserve results"
 }
 
+test_sleep_helper_waits_without_a_process() {
+  local script="$TMP_ROOT/sleep.sh" shim="$TMP_ROOT/sleep-shim" log="$TMP_ROOT/sleep.log"
+  mkdir -p "$shim"
+  cat > "$shim/sleep" <<SH
+#!/bin/sh
+printf 'sleep\n' >> "$log"
+exec $(command -v sleep) "\$@"
+SH
+  chmod +x "$shim/sleep"
+  cat > "$script" <<'SH'
+. "$1/bin/fm-wake-lib.sh"
+PATH="$2:$PATH"
+: > "$3"
+now() { perl -MTime::HiRes=time -e 'printf "%.3f\n", time'; }
+start=$(now)
+fm_sleep 0.3
+mid=$(now)
+fm_sleep 0
+( fm_sleep 0.2 )
+end=$(now)
+perl -e 'exit !($ARGV[1] - $ARGV[0] >= 0.28 && $ARGV[1] - $ARGV[0] < 3)' "$start" "$mid" \
+  || printf 'fm_sleep 0.3 took %s to %s\n' "$start" "$mid"
+perl -e 'exit !($ARGV[1] - $ARGV[0] >= 0.18 && $ARGV[1] - $ARGV[0] < 3)' "$mid" "$end" \
+  || printf 'fm_sleep 0 then a subshell fm_sleep 0.2 took %s to %s\n' "$mid" "$end"
+sleeps=$(grep -c . "$3" || true)
+if fm_sleep_builtin_available; then
+  [ "$sleeps" -eq 0 ] || printf 'bash %s with its sleep builtin ran sleep %s times\n' "$BASH_VERSION" "$sleeps"
+else
+  # Without the builtin every wait runs sleep(1), as before, including sleep 0.
+  [ "$sleeps" -eq 3 ] || printf 'bash %s ran sleep %s times, not once per wait\n' "$BASH_VERSION" "$sleeps"
+fi
+# The builtin is enabled only for the wait, so later sleeps reach PATH.
+[ "$(type -t sleep)" = file ] || printf 'sleep resolves to %s after fm_sleep\n' "$(type -t sleep)"
+SH
+  command -v perl >/dev/null 2>&1 || { pass "fm_sleep: skipped (perl absent for sub-second timing)"; return 0; }
+  run_everywhere "sleep helper" "$script" "$shim" "$log"
+  pass "fm_sleep waits the requested time, returns at once for 0, and starts no process where the sleep builtin exists"
+}
+
+test_sleep_signal_cleanup_runs_to_completion() {
+  local script="$TMP_ROOT/sleep-signal.sh" dir="$TMP_ROOT/sleep-signal"
+  mkdir -p "$dir"
+  cat > "$script" <<'SH'
+. "$1/bin/fm-wake-lib.sh"
+CASE_DIR=$2
+set -T
+trap 'if [ "${FUNCNAME[0]:-}" = fm_sleep ] && [ "$BASH_COMMAND" = '\''sleep "$@"'\'' ]; then : > "$CASE_DIR/ready"; fi' DEBUG
+trap 'printf started > "$CASE_DIR/cleanup"; sleep 3; printf completed >> "$CASE_DIR/cleanup"; exit 143' TERM
+fm_sleep 2
+printf 'continued' > "$CASE_DIR/continued"
+SH
+  (
+    child=
+    trap 'if [ -n "$child" ]; then kill -TERM "$child" 2>/dev/null || true; wait "$child" 2>/dev/null || true; fi' EXIT
+    while IFS= read -r interpreter; do
+      for fallback in '' 1; do
+        case_dir=$(mktemp -d "$dir/case.XXXXXX")
+        FM_TEST_SEAM=1 FM_TEST_NO_SLEEP_BUILTIN=$fallback FM_STATE_OVERRIDE="$case_dir/state" \
+          "$interpreter" "$script" "$ROOT" "$case_dir" > "$case_dir/output" 2>&1 &
+        child=$!
+        tries=0
+        while [ ! -e "$case_dir/ready" ] && [ "$tries" -lt 300 ]; do
+          sleep 0.01
+          tries=$((tries + 1))
+        done
+        [ -e "$case_dir/ready" ] || fail "sleep signal: wait was not entered"
+        sleep 0.1
+        kill -TERM "$child" || fail "sleep signal: child exited before TERM"
+        rc=0
+        wait "$child" || rc=$?
+        child=
+        [ "$rc" = 143 ] || fail "sleep signal: expected 143, got $rc"
+        [ "$(cat "$case_dir/cleanup")" = startedcompleted ] || fail "sleep signal: cleanup was interrupted"
+        [ ! -e "$case_dir/continued" ] || fail "sleep signal: normal execution resumed after TERM"
+      done
+    done < <(test_interpreters)
+  ) || fail "sleep signal cleanup regression"
+  pass "TERM completes cleanup even beyond the interrupted wait, with builtin and external sleep"
+}
+
 if [ -n "${FM_TEST_ONLY:-}" ]; then
   "$FM_TEST_ONLY"
 else
@@ -548,6 +628,8 @@ else
   test_window_to_task_matches_the_meta_pipeline
   test_classify_stat_helpers_read_the_kernel_name_once
   test_read_text_helper_matches_cat
+  test_sleep_helper_waits_without_a_process
+  test_sleep_signal_cleanup_runs_to_completion
   test_touch_helper_moves_the_mtime_like_touch
   test_one_stat_snapshot_matches_the_per_file_signatures
   test_target_of_meta_to_matches_the_printing_form
