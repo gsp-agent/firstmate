@@ -57,6 +57,18 @@ else
   fm_epoch_seconds_to() { printf -v "$1" '%s' "$(date +%s)"; }
 fi
 
+# Fork-free stand-in for `touch <file>` on an empty marker whose mtime is the
+# whole record, such as the watcher's liveness beacon: opening an empty
+# regular file (or a missing one) for truncation sets its mtime to now and
+# leaves it empty. Anything else - a symlink, which truncation would follow
+# into its target, a file with content, or a failed open - runs touch(1).
+fm_touch_empty() {  # <file>
+  if [ ! -L "$1" ] && { [ ! -e "$1" ] || { [ -f "$1" ] && [ ! -s "$1" ]; }; }; then
+    { : > "$1"; } 2>/dev/null && return 0
+  fi
+  touch "$1"
+}
+
 # Fork-free stand-in for `$(cat <file> 2>/dev/null || true)` on per-poll reads
 # of small state files: <out-var> gets the file's bytes with trailing newlines
 # removed, or nothing when it cannot be read. A file holding a NUL byte, which
@@ -937,6 +949,26 @@ _fm_recovery_marker_ack() {
 _fm_recovery_marker_arm_check() {
   local marker=$1 lock line quarantine
   FM_RECOVERY_MARKER_ACTION='none'
+  # A first look without either lock, which the watcher takes on every poll:
+  # each reading here leads the locked path below to the same action with no
+  # write, so it returns that action at once. Marker writes are atomic renames
+  # and the queue changes only under its lock, so this look sees a state the
+  # locked path could have seen; anything that may write - a downtime
+  # episode, acked with rows queued, absent with rows queued, or an unreadable
+  # marker - takes the locked path, which reads both again.
+  if [ ! -e "$marker" ] && [ ! -L "$marker" ]; then
+    [ -s "$FM_WAKE_QUEUE" ] || return 0
+  elif fm_recovery_marker_read "$marker"; then
+    case "$FM_RECOVERY_MARKER_TOKEN" in
+      pending:handling:*|announced:handling:*|announced:downtime:*)
+        FM_RECOVERY_MARKER_ACTION='wait'
+        return 0
+        ;;
+      acked:*)
+        [ -s "$FM_WAKE_QUEUE" ] || return 0
+        ;;
+    esac
+  fi
   lock="${marker}.lock"
   fm_lock_acquire_wait "$FM_WAKE_QUEUE_LOCK" || return 1
   if ! fm_lock_acquire_wait "$lock"; then

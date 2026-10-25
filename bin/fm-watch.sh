@@ -1121,7 +1121,7 @@ secondmate_ring_to_drain() {  # <task> <window>
 # Receipts close the append-before-marker crash window without changing the
 # foreign queue.
 secondmate_wake_stall_tick() {
-  local now=$(( $(date +%s) )) threshold=$SECONDMATE_WAKE_STALL_SECS
+  local now='' threshold=$SECONDMATE_WAKE_STALL_SECS
   local meta task kind remote_host home queue row epoch seq row_key marker progress_marker ring_marker progress observed_at observed_key
   local receipt receipt_dir notify_key queued idle reason episode_alerted already_rung w
   # Endpoint metadata admits this queue-loop check; secondmate-liveness owns registered mates whose endpoint is missing or dead.
@@ -1129,6 +1129,8 @@ secondmate_wake_stall_tick() {
     [ -e "$meta" ] || continue
     fm_meta_get "$meta" kind kind
     [ "$kind" = secondmate ] || continue
+    # The clock is read once, and only for a home with a secondmate.
+    [ -n "$now" ] || now=$(( $(date +%s) ))
     remote_host=$(fm_meta_get "$meta" remote_host)
     [ -z "$remote_host" ] || continue
     task=${meta##*/}
@@ -1233,15 +1235,17 @@ EOF
 # session-start sweep, so neither side can kill or re-probe an endpoint the
 # other is mid-relaunch on.
 secondmate_liveness_tick() {
-  local tick_marker="$STATE/.secondmate-liveness-tick"
-  [ "$(age_of "$tick_marker")" -ge "$SECONDMATE_LIVENESS_SECS" ] || return 0
+  local tick_marker="$STATE/.secondmate-liveness-tick" tick_age
+  snapshot_age_to tick_age "$tick_marker"
+  [ "$tick_age" -ge "$SECONDMATE_LIVENESS_SECS" ] || return 0
   touch "$tick_marker" || return 1
-  local now=$(( $(date +%s) )) meta id kind
+  local now='' meta id kind
   local bound_marker attempts notify_key reason queued err first_reason='' failed=0
   for meta in "$STATE"/*.meta; do
     [ -e "$meta" ] || continue
     fm_meta_get "$meta" kind kind 2>/dev/null || kind=
     [ "$kind" = secondmate ] || continue
+    [ -n "$now" ] || now=$(( $(date +%s) ))
     id=${meta##*/}
     id=${id%.meta}
     case "$id" in ''|*[!A-Za-z0-9._-]*) continue ;; esac
@@ -2196,7 +2200,7 @@ scan_signals_to() {  # <out-var>
     fi
     _ss_files[${#_ss_files[@]}]=$_ss_f
   done
-  fm_stat_snapshot ${_ss_files[@]+"${_ss_files[@]}"} "$STATE"/.count-* \
+  fm_stat_snapshot ${_ss_files[@]+"${_ss_files[@]}"} "$STATE"/.count-* "$STATE/.last-heartbeat" \
     "$STATE"/*.meta "$STATE"/*.progress
   while [ "$_ss_i" -lt "${#_ss_files[@]}" ]; do
     _ss_f=${_ss_files[$_ss_i]}
@@ -2242,7 +2246,7 @@ scan_signals_to() {  # <out-var>
 # Age in seconds of a path this poll's latest snapshot covered, as age_of
 # prints it: 999999 when it is missing or dated in the future. A path the
 # snapshot did not read is stat'ed by age_of itself. The poll reads each path
-# only after the signal scan has taken the snapshot that covers it.
+# only after the snapshot that covers it (the cadence markers, then the scan).
 snapshot_age_to() {  # <out-var> <path>
   local _sa_now
   if fm_stat_snapshot_find "$2" && [ "${FM_STAT_SNAPSHOT_OK[$FM_STAT_SNAPSHOT_AT]}" = 1 ]; then
@@ -2319,10 +2323,25 @@ procevent_surface_after_output() {
   return "$status"
 }
 
+# True when some queue row could carry a process-event key, read without the
+# queue lock or a process: a row without the text "procevent:" cannot, so a
+# poll whose queue holds none skips the locked read below. A row appended
+# after this read is seen by the next poll. Queue rows come from fm_wake_append,
+# whose Bash variables cannot carry NUL bytes; a hand-inserted NUL can hide a
+# later key from read in stock Bash 3.2 and is outside this precheck's contract.
+procevent_queue_may_hold_key() {
+  local line
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in *procevent:*) return 0 ;; esac
+  done < "$FM_WAKE_QUEUE"
+  return 1
+}
+
 procevent_surface_queued() {
   local key reason captured="" stranded="" unstarted=""
   PROCEVENT_SURFACED=
   [ -s "$FM_WAKE_QUEUE" ] || return 0
+  procevent_queue_may_hold_key 2>/dev/null || return 0
   fm_lock_acquire_wait "$FM_WAKE_QUEUE_LOCK"
   while IFS= read -r key; do
     case "$key" in procevent:*) ;; *) continue ;; esac
@@ -3300,13 +3319,14 @@ while :; do
   # no-ops because the lock pid is not ours, so the survivor's lock is untouched.
   # This makes any duplicate self-resolve within one poll instead of persisting
   # and doubling every wake.
-  if [ "$(cat "$WATCH_LOCK/pid" 2>/dev/null || true)" != "$WATCHER_PID" ]; then
+  fm_read_text_to watch_lock_pid "$WATCH_LOCK/pid" || watch_lock_pid=
+  if [ "$watch_lock_pid" != "$WATCHER_PID" ]; then
     exit 0
   fi
 
   # Liveness beacon for fm-guard.sh: a fresh mtime here means a watcher is
   # alive. Supervision scripts warn when this goes stale with tasks in flight.
-  touch "$STATE/.last-watcher-beat"
+  fm_touch_empty "$STATE/.last-watcher-beat"
 
   # One walk of the meta files for this poll. Later window lookups read it
   # in this shell. Rebuilding every lookup is what forked the watcher
@@ -3317,7 +3337,9 @@ while :; do
   # status lines before this cycle can exit on a wake. Off costs one file test.
   [ ! -e "$CONFIG/fleet-ledger" ] || FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE FM_CONFIG_OVERRIDE=$CONFIG "$SCRIPT_DIR/fm-fleet-ledger.sh" capture || true
 
-  if [ "$(age_of "$STATE/home-summary.json")" -ge "$HOME_SUMMARY_INTERVAL" ]; then
+  # A main home has no ledger reader (home_summary_refresh_detached).
+  if [ -f "$FM_HOME/.fm-secondmate-home" ] \
+    && [ "$(age_of "$STATE/home-summary.json")" -ge "$HOME_SUMMARY_INTERVAL" ]; then
     home_summary_refresh_detached
   fi
 
@@ -3333,6 +3355,9 @@ while :; do
   # repost after grace, and escalate once if the recovery turn is also missed.
   # No conversation scraping; unresolved records are never silently expired.
   fm_pending_reply_tick "$STATE" || true
+
+  # One stat covers the cadence markers used before the signal scan.
+  fm_stat_snapshot "$STATE/.secondmate-liveness-tick" "$STATE/.inactive-outcome-reconcile" "$STATE/.last-check"
 
   # Endpoint liveness runs before queue observation: a positively dead or
   # missing secondmate endpoint is relaunched here on a bounded cadence, which
@@ -3370,8 +3395,6 @@ while :; do
   # The existing poll loop also owns the bounded inactive-outcome cadence.
   # This is mechanical and silent unless a durable terminal-outcome obligation
   # was created, so quiet cycles never wake firstmate or consume model tokens.
-  # Read the existing cadence before starting a scan that would return idle.
-  fm_stat_snapshot "$STATE/.inactive-outcome-reconcile"
   inactive_out=
   if inactive_reconcile_idle; then
     :
@@ -3393,7 +3416,9 @@ while :; do
   # keeps producing signals - the slow poll (e.g. merge detection) would then
   # never run until the fleet went quiet. Checks are due only every
   # CHECK_INTERVAL, so most cycles skip this block and fall straight through.
-  if [ "$(age_of "$STATE/.last-check")" -ge "$CHECK_INTERVAL" ]; then
+  check_age=
+  snapshot_age_to check_age "$STATE/.last-check"
+  if [ "$check_age" -ge "$CHECK_INTERVAL" ]; then
     hold_route_reason=
     if [ -d "$STATE/hold-domain" ]; then
       CHECK_TIMEOUT=${FM_CHECK_TIMEOUT:-90} FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" FM_CHECK_CAPTURE_STDERR=1 \
@@ -4145,11 +4170,14 @@ EOF
   # what. Time-based via .last-heartbeat mtime; interval doubles per consecutive
   # no-change heartbeat (idle fleet) up to HEARTBEAT_MAX, and resets on any
   # surfaced non-heartbeat wake.
-  streak=$(cat "$STATE/.heartbeat-streak" 2>/dev/null || echo 0)
+  fm_read_text_to streak "$STATE/.heartbeat-streak" || streak=0
   [ "$streak" -gt 12 ] && streak=12
   hb=$(( HEARTBEAT * (1 << streak) ))
   [ "$hb" -gt "$HEARTBEAT_MAX" ] && hb=$HEARTBEAT_MAX
-  if [ "$(age_of "$STATE/.last-heartbeat")" -ge "$hb" ]; then
+  # The age comes from this poll's signal snapshot.
+  heartbeat_age=
+  snapshot_age_to heartbeat_age "$STATE/.last-heartbeat"
+  if [ "$heartbeat_age" -ge "$hb" ]; then
     # Triage: in always-on mode a heartbeat is benign unless the cheap fleet-scan
     # turns up a captain-relevant status the per-wake path missed. Absorb the
     # no-change case (advance the schedule and back off exactly as wake() would,

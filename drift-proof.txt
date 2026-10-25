@@ -119,3 +119,5 @@ pr: 136
 pr: 137
 # Failing-first inactive-reconcile budget in tests/fm-watch-inactive-fork-budget.test.sh: upstream-lean 446eb1e7 starts 656 processes over four not-due polls (164 per poll, fails the 256 budget); the cadence guard starts 256 (64 per poll, passes), preserving due scans and per-poll secondmate ledger delivery.
 pr: 138
+# Failing-first fixed-read budget in tests/fm-watch-fixed-fork-budget.test.sh: upstream-lean efbe1b61 starts 256 processes over four idle polls (64 per poll, fails the 12 budget); combined reads and conservative idle checks start 12 (3 per poll, passes). The shared counter exits between polls and waits for cleanup; both measured runs leave zero worktree/test-folder processes.
+pr: 139

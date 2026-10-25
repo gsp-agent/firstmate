@@ -483,6 +483,61 @@ SH
   pass "only a known idle main-home scan is skipped; due scans, secondmates and uncertain state keep the existing path"
 }
 
+test_touch_helper_moves_the_mtime_like_touch() {
+  local script="$TMP_ROOT/touch.sh" dir="$TMP_ROOT/touch-cases"
+  mkdir -p "$dir"
+  cat > "$script" <<'SH'
+. "$1/bin/fm-wake-lib.sh"
+d=$2
+rm -f "$d"/beat "$d"/full "$d"/link "$d"/new
+: > "$d/beat"
+printf 'kept\n' > "$d/full"
+ln -s full "$d/link"
+touch -t 202001010000 "$d/beat" "$d/full"
+fm_epoch_seconds_to before
+for f in beat full link new; do
+  fm_touch_empty "$d/$f" || printf 'fm_touch_empty %s failed\n' "$f"
+done
+for f in beat full new; do
+  m=$(fm_path_mtime "$d/$f")
+  [ "$m" -ge $((before - 2)) ] || printf '%s mtime %s did not move to now (%s)\n' "$f" "$m" "$before"
+done
+[ ! -s "$d/beat" ] || printf 'the empty beacon gained content\n'
+[ ! -s "$d/new" ] && [ -f "$d/new" ] || printf 'a missing marker was not created empty\n'
+[ "$(cat "$d/full")" = kept ] || printf 'a file with content lost it\n'
+[ -L "$d/link" ] && [ "$(cat "$d/link")" = kept ] || printf 'a symlink was followed into truncation\n'
+:
+SH
+  run_everywhere "touch helper" "$script" "$dir"
+  pass "fm_touch_empty moves an empty marker's mtime and leaves content and symlink targets alone"
+}
+
+test_fixed_read_helpers_match_the_existing_readers() {
+  local script="$TMP_ROOT/fixed-reads.sh" home="$TMP_ROOT/fixed-home"
+  mkdir -p "$home"
+  cat > "$script" <<'SH'
+case_home=$(mktemp -d "$2/fixed-case.XXXXXX")
+export FM_HOME=$case_home FM_STATE_OVERRIDE=$case_home/state FM_CONFIG_OVERRIDE=$case_home/config
+mkdir -p "$FM_CONFIG_OVERRIDE"
+. "$1/bin/fm-watch.sh"
+for override in '' '/a path' $'/with\ninside' $'/with\n\n' $'\n\n'; do
+  FM_PENDING_REPLY_DIR_OVERRIDE=$override
+  want=$(fm_pending_reply_dir "$STATE")
+  fm_pending_reply_dir_to got "$STATE"
+  [ "$got" = "$want" ] || printf 'pending directory helper differs: %q versus %q\n' "$got" "$want"
+done
+printf 'check\tordinary\tprose\n' > "$FM_WAKE_QUEUE"
+procevent_queue_may_hold_key && printf 'ordinary row unnecessarily took process-event path\n'
+printf 'check\tprocevent:source:1\tresult\n' >> "$FM_WAKE_QUEUE"
+procevent_queue_may_hold_key || printf 'queued process-event was missed\n'
+printf 'check\tprocevent:partial' > "$FM_WAKE_QUEUE"
+procevent_queue_may_hold_key || printf 'unterminated candidate was missed\n'
+:
+SH
+  run_everywhere "fixed poll reads" "$script" "$home"
+  pass "pending directory reads and the conservative process-event precheck preserve results"
+}
+
 if [ -n "${FM_TEST_ONLY:-}" ]; then
   "$FM_TEST_ONLY"
 else
@@ -493,9 +548,11 @@ else
   test_window_to_task_matches_the_meta_pipeline
   test_classify_stat_helpers_read_the_kernel_name_once
   test_read_text_helper_matches_cat
+  test_touch_helper_moves_the_mtime_like_touch
   test_one_stat_snapshot_matches_the_per_file_signatures
   test_target_of_meta_to_matches_the_printing_form
   test_watch_read_helpers_preserve_results
   test_status_reads_notice_same_stamp_rewrites
   test_inactive_cadence_skips_only_a_known_idle_main_home
+  test_fixed_read_helpers_match_the_existing_readers
 fi
