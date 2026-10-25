@@ -150,11 +150,14 @@ case "${1:-} ${2:-}" in
   "api --paginate")
     case " $* " in
       *merge_queue*) ;;
+      *" repos/"*"/pulls/"*"/reviews"*)
+        printf '%s\n' '[{"id":1,"user":{"login":"carmanchip23-dev"},"state":"APPROVED","commit_id":"1111111111111111111111111111111111111111","submitted_at":"2020-01-01T00:00:30Z"}]'
+        ;;
       *) printf '%s\n' '[]' ;;
     esac
     ;;
-  "api repos/"*"/pulls/"*"/reviews"*)
-    printf '%s\n' '[{"user":{"login":"carmanchip23-dev"},"state":"APPROVED","commit_id":"1111111111111111111111111111111111111111"}]'
+  "api repos/"*"/commits/"*)
+    printf '%s\n' '{"sha":"1111111111111111111111111111111111111111","commit":{"committer":{"date":"2020-01-01T00:00:00Z"}}}'
     ;;
   "api repos/"*) printf '%s\n' '{"name":"main","protected":false}' ;;
 esac
