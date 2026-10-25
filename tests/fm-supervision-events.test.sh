@@ -25,11 +25,13 @@ export FM_ROOT_OVERRIDE="$ROOT"
 # shellcheck source=/dev/null
 . "$ROOT/bin/fm-watch.sh"
 
-# Overrides: capture wake reasons and neutralize real sleeps (POLL is 15s).
+# Overrides: capture wake reasons and neutralize real waits (POLL is 15s). The
+# watcher's plain POLL wait is fm_sleep (bin/fm-wake-lib.sh), so both are stood in.
 WAKE_LOG="$TMP/wakes"
 SLEEP_LOG="$TMP/sleeps"
 wake() { printf '%s\n' "$1" >> "$WAKE_LOG"; return 0; }
 sleep() { printf 'SLEEP\n' >> "$SLEEP_LOG"; }
+fm_sleep() { printf 'SLEEP\n' >> "$SLEEP_LOG"; }
 
 reset_state() {
   rm -f "$STATE_DIR"/*.meta "$STATE_DIR"/*.status "$STATE_DIR"/.wake-queue \
@@ -133,7 +135,7 @@ fm_write_meta "$STATE_DIR/tk4.meta" "window=fmses:fm-tk4" "kind=ship"   # no bac
 fm_backend_wait_transition() { printf 'CALLED\n' > "$TMP/wtcalled"; return 1; }
 event_wait_or_sleep
 [ ! -e "$TMP/wtcalled" ] || fail "a tmux-only home must never invoke the event wait path"
-grep -q 'SLEEP' "$SLEEP_LOG" || fail "a tmux-only home must sleep POLL exactly as before"
+grep -q 'SLEEP' "$SLEEP_LOG" || fail "a tmux-only home must wait POLL exactly as before"
 pass "event_wait_or_sleep: a home with no push-capable window is inert (sleeps POLL, never touches the event path)"
 
 # --- event_wait_or_sleep: runtime failures disable the event path (fail-closed)
