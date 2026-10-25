@@ -25,6 +25,8 @@
 # its waiter already watches, before the marker is committed. Replaying an old
 # marker repairs a missing PM event. Publication is a handoff to the existing
 # owner for activation and live verification, never proof those steps finished.
+# When that owner's worker is not confirmed alive, the event is a blocked line
+# naming the recovery instead, and delivering it is the handoff.
 #
 # Sourced by bin/fm-pr-merge.sh, bin/fm-watch.sh, and tests. No side effects on
 # source beyond its sourced libraries.
@@ -35,8 +37,26 @@ _FM_MERGE_OUTCOME_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=bin/fm-parent-channel-lib.sh
 . "$_FM_MERGE_OUTCOME_LIB_DIR/fm-parent-channel-lib.sh"
 
+# shellcheck source=bin/fm-backend.sh
+. "$_FM_MERGE_OUTCOME_LIB_DIR/fm-backend.sh"
+
 # shellcheck disable=SC2034 # Public result consumed by sourcing callers.
 FM_MERGE_OUTCOME_ALREADY_RECORDED=false
+
+# 0 when <status-file> already holds the PM handoff event, note or blocked, for
+# this task, canonical PR and generation, at any position and under any stamp.
+fm_merge_outcome_pm_event_recorded() {  # <status-file> <task-id> <canonical-pr-url> <generation>
+  local file=$1 id=$2 url=$3 generation=$4 line
+  [ -f "$file" ] || return 1
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+      "note [key=merged-$id]"*": merged $id $url spawn_gen=$generation; "*|"blocked [key=merged-owner-$id]"*": merged $id $url spawn_gen=$generation; "*)
+        return 0
+        ;;
+    esac
+  done < "$file"
+  return 1
+}
 
 # Called under the merge-notification lock. The task metadata lock protects
 # the PR/incarnation read and status append from teardown or a replacement.
@@ -49,8 +69,20 @@ FM_MERGE_OUTCOME_ALREADY_RECORDED=false
 # stream instead, naming the restore, and the outcome fails so the merge stays
 # unacknowledged. A gone record with no matching archive stays refused with no
 # event, because nothing binds the merge to this task.
+# For a live record, an event already on the stream for this task, PR and
+# generation is delivered: a replay appends nothing and never re-reads
+# liveness, so it cannot land after a later worker result. Otherwise only an
+# `alive` worker (fm_backend_agent_state) gets the pending-verification note.
+# Every other verdict gets a blocked line naming the backend, endpoint and
+# verdict. It names bin/fm-control.sh <id> relaunch only for `dead`, or for
+# `missing` on herdr, the verdicts that relaunch can recover; any other line
+# says why relaunch would refuse and what to check. Relaunch takes the
+# metadata lock itself and cannot bind an expected generation, so the live PM
+# drives it. The blocked line is the handoff and succeeds, so the outcome
+# commits its marker and the poll retires.
 fm_merge_outcome_pm_handoff() {  # <state> <task-id> <canonical-pr-url> [data-dir]
   local state=$1 id=$2 url=$3 data=${4-} meta lock generation line archive rc=0
+  local backend target owner_state recovery
   meta="$state/$id.meta"
   lock=$(fm_meta_lock_path "$meta") || return 1
   fm_lock_acquire_wait "$lock" || return 1
@@ -73,8 +105,36 @@ fm_merge_outcome_pm_handoff() {  # <state> <task-id> <canonical-pr-url> [data-di
     rc=1
   else
     generation=${FM_BACKLOG_META_SPAWN_GEN:-legacy}
-    line="note [key=merged-$id]: merged $id $url spawn_gen=$generation; activation and live verification pending with the existing owner"
-    fm_parent_channel_append_once "$state/$id.status" "$(status_stamp_line "$line")" || rc=1
+    if ! fm_merge_outcome_pm_event_recorded "$state/$id.status" "$id" "$url" "$generation"; then
+      backend=$(fm_backend_of_meta "$meta")
+      target=$(fm_backend_target_of_meta "$meta") || target=
+      owner_state=unreadable
+      if [ -n "$target" ]; then
+        owner_state=$(fm_backend_agent_state "$backend" "$target") || owner_state=unreadable
+      fi
+      case "$owner_state:$backend" in
+        alive:*) recovery= ;;
+        dead:*|missing:herdr)
+          recovery="relaunch it with bin/fm-control.sh $id relaunch --note 'Merged $url; activation and live verification remain pending'" ;;
+        missing:*)
+          recovery="relaunch would refuse because $backend cannot prove that endpoint is gone; find it on the $backend server that owns it and confirm whether its worker still runs" ;;
+        unverified:*)
+          recovery="relaunch would refuse because $backend has no recovery-grade classifier; confirm by hand whether its worker still runs" ;;
+        *)
+          recovery="relaunch would refuse on an endpoint that reads $owner_state; confirm by hand whether its worker still runs" ;;
+      esac
+      if [ -z "$recovery" ]; then
+        line="note [key=merged-$id]: merged $id $url spawn_gen=$generation; activation and live verification pending with the existing owner"
+      else
+        line="blocked [key=merged-owner-$id]: merged $id $url spawn_gen=$generation; activation and live verification have no confirmed live owner: $backend endpoint ${target:-(none recorded)} reads $owner_state; $recovery"
+      fi
+      if fm_parent_channel_append_once "$state/$id.status" "$(status_stamp_line "$line")"; then
+        [ -z "$recovery" ] \
+          || printf 'merge handoff for %s blocked: its worker reads %s, so its live PM was told on %s\n' "$id" "$owner_state" "$state/$id.status" >&2
+      else
+        rc=1
+      fi
+    fi
   fi
   fm_lock_release "$lock" || rc=1
   return "$rc"

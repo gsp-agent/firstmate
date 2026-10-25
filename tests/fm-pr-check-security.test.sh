@@ -2691,6 +2691,40 @@ test_merged_poll_retires_once() {
   pass "validated merged polls notify once and retire before the next watcher cycle"
 }
 
+# A merge reaching a live PM's task whose worker is not confirmed alive is
+# handed off as a blocked line on that task's status stream. The delivered line
+# is the recorded outcome, so the watcher retires the poll and keeps going:
+# later checks still run and other tasks' signals still surface.
+test_merged_poll_for_an_unowned_pm_task_keeps_the_watcher_going() {
+  local dir state url rc
+  dir=$(make_case merged-unowned-pm-task)
+  state="$dir/home/state"
+  url=https://github.com/o/r/pull/1
+  write_poll_meta "$state" task-a "$url"
+  printf 'bead=test-bead\npid=%s\ntask=task-a\n' "$$" > "$state/.pm-live-task-a"
+  seed_canonical_poll "$dir" task-a "$url"
+  printf '#!/usr/bin/env bash\ntouch "%s/later-check.ran"\n' "$dir" > "$state/z-later.check.sh"
+  chmod 0700 "$state/z-later.check.sh"
+  FM_HOME="$dir/home" "$REGISTER" z-later >/dev/null \
+    || fail "could not register the later custom check"
+  printf 'done: other work finished\n' > "$state/other.status"
+
+  set +e
+  FM_TEST_GH_STATE=MERGED run_watcher_bounded "$dir/home" "$dir/fakebin" > "$dir/watch.out" 2> "$dir/watch.err"
+  rc=$?
+  set -e
+  [ "$rc" -eq 0 ] || fail "the watcher stopped on a merge whose live PM's worker is not alive (rc=$rc): $(cat "$dir/watch.err")"
+  grep -F "blocked [key=merged-owner-task-a]" "$state/task-a.status" >/dev/null \
+    || fail "the live PM was not told its worker cannot own live verification: $(cat "$state/task-a.status" 2>/dev/null)"
+  [ -e "$state/task-a.pr-poll-merge-notified" ] || fail "the delivered blocked handoff did not commit its marker"
+  assert_poll_absent "$state" task-a
+  [ -e "$dir/later-check.ran" ] || fail "a check after the merged poll never ran"
+  grep -qxF "signal: $state/other.status" "$dir/watch.out" \
+    || fail "another task's signal did not surface after the merged poll: $(cat "$dir/watch.out")"
+  ! grep -F task-a "$dir/watch.out" >/dev/null || fail "the live PM's merge woke main: $(cat "$dir/watch.out")"
+  pass "a merge handed to a live PM as blocked retires its poll and the watcher still runs later checks and signals"
+}
+
 # A poll's own retirement state is scoped to ONE registration, so it cannot by
 # itself catch a poll re-registered for a task whose merge was already
 # surfaced (e.g. bin/fm-pr-check.sh re-armed after the fact). The per-task
@@ -6023,6 +6057,7 @@ test_gerrit_arming_records_no_patch_set_revision
 test_gerrit_ready_gate_reads_the_published_tree
 test_gerrit_nm_ready_gate_requires_recovered_custody
 test_merged_poll_retires_once
+test_merged_poll_for_an_unowned_pm_task_keeps_the_watcher_going
 test_merged_poll_reregistration_after_notification_is_absorbed
 test_merged_poll_retries_a_failed_upward_report
 test_self_merge_and_poll_publish_one_outcome

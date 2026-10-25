@@ -5589,10 +5589,17 @@ test_merge_handoff_pending_keeps_a_task_whose_bead_closed() {
   expect_code 1 "$rc" "a task whose last note leaves live verification pending was cleaned up"$'\n'"$out"
   assert_contains "$out" "activation and live verification pending" "the refusal did not name the pending verification"
   assert_bead_refusal_kept_everything "$case_dir" "$id" "pending handoff"
+  printf '%s\n' "blocked [key=merged-owner-$id] [at=1792800044]: merged $id https://github.com/example/repo/pull/7 spawn_gen=teardown-test-$id; activation and live verification have no confirmed live owner: tmux endpoint firstmate:fm-$id reads dead; relaunch it with bin/fm-control.sh $id relaunch --note 'Merged https://github.com/example/repo/pull/7; activation and live verification remain pending'" \
+    >> "$case_dir/state/$id.status"
+  rc=0
+  out=$(run_bead_teardown "$case_dir" "$id" 2>&1) || rc=$?
+  expect_code 1 "$rc" "a task whose merge handoff found no live owner was cleaned up before its relaunch"$'\n'"$out"
+  assert_contains "$out" "activation and live verification pending" "the refusal did not name the unowned pending verification"
+  assert_bead_refusal_kept_everything "$case_dir" "$id" "unowned pending handoff"
   printf '%s\n' "done [at=1792800900]: live check passed on the deployed revision" >> "$case_dir/state/$id.status"
   out=$(run_bead_teardown "$case_dir" "$id" 2>&1) || fail "a verified task whose bead closed could not be cleaned up: $out"
   assert_absent "$case_dir/state/$id.meta" "a verified task kept its record"
-  pass "fm-teardown: a task whose own last note leaves activation and live verification pending is not done"
+  pass "fm-teardown: a task whose own last merge handoff, owned or not, leaves activation and live verification pending is not done"
 }
 
 test_unreadable_task_bead_refuses_cleanup() {
