@@ -6515,11 +6515,13 @@ preserve_relaunch_meta() {
     echo "home=$PROJ_ABS"
     echo "projects=$SECONDMATE_PROJECTS"
   fi
-  if [ "$RELAUNCH" -eq 1 ]; then
-    preserve_relaunch_meta
-  fi
   if [ "$SPAWN_CONTROL_PARENT" = 1 ] && [ -n "${FM_CONTROL_RELAUNCH_TX:-}" ]; then
     echo "control_relaunch_tx=$FM_CONTROL_RELAUNCH_TX"
+  fi
+  # Preserved keys go last: they can carry a registered pr=/pr_head= block, and
+  # fm_pr_metadata_identity_parse accepts only x_* keys after pr=.
+  if [ "$RELAUNCH" -eq 1 ]; then
+    preserve_relaunch_meta
   fi
 } >"$SPAWN_META_PATH" || {
   echo "error: task record for $ID could not be prepared at $SPAWN_META_PATH" >&2
@@ -6836,9 +6838,15 @@ spawn_record_traceparent() {
     acquired=1
   fi
   trace_tmp="$STATE/.$ID.meta.trace.${BASHPID:-$$}"
+  # traceparent= lands ahead of any pr= a relaunch preserved, keeping the PR
+  # identity readable by fm_pr_metadata_identity_parse.
   if [ ! -f "$meta" ] || [ ! -w "$meta" ] ||
-    ! awk -F= '$1 != "traceparent"' "$meta" >"$trace_tmp" ||
-    ! printf 'traceparent=%s\n' "$SPAWN_TRACEPARENT" >>"$trace_tmp" ||
+    ! SPAWN_TRACE_LINE="traceparent=$SPAWN_TRACEPARENT" awk -F= '
+        $1 == "traceparent" { next }
+        !placed && $1 == "pr" { print ENVIRON["SPAWN_TRACE_LINE"]; placed = 1 }
+        { print }
+        END { if (!placed) print ENVIRON["SPAWN_TRACE_LINE"] }
+      ' "$meta" >"$trace_tmp" ||
     ! fm_backlog_atomic_transition publish "$trace_tmp" "$meta" "task record" "$STATE"; then
     status=1
     rm -f "$trace_tmp" 2>/dev/null || true

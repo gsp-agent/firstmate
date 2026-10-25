@@ -107,3 +107,5 @@ pr: 128
 pr: 135
 # Failing-first gone-owner merge handoff in tests/fm-pm-live.test.sh: on 41a0d972 test_merge_without_live_owner_blocks_the_pm fails with "dead:tmux: a worker that is not alive was handed live verification"; tests/fm-pr-check-security.test.sh proves the watcher still runs later checks and signals after the blocked handoff.
 pr: 134
+# Failing-first registered PR identity regressions in tests/fm-control-relaunch.test.sh: untraced and traced control relaunches reject pre-fix record ordering and preserve parser-readable PR identity after the writer fixes.
+pr: 133
