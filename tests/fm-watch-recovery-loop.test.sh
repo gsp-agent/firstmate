@@ -395,8 +395,68 @@ test_host_recovery_with_failed_output_retries_the_close() {
   pass "a host recovery whose wake could not be written retries the close"
 }
 
+# The old row's sequence is the counter at start. A later note is a higher
+# sequence, so only that note closes this successor.
+test_handling_successor_closes_on_a_row_newer_than_its_start() {
+  local dir home state child now out old new
+  dir=$(make_case successor-newer-row)
+  home="$dir/home"
+  state="$dir/state"
+  mkdir -p "$home/data" "$home/config"
+  printf 'pending:downtime:park.1.aaa\n' > "$state/.watcher-down"
+  chmod 600 "$state/.watcher-down"
+  old='check: old row queued before the successor started'
+  new='check: captain inbox note n1 - hello'
+  printf '%s\t4\tcheck\told\t%s\n' "$(date +%s)" "$old" > "$state/.wake-queue"
+  printf '4\n' > "$state/.wake-queue.seq"
+  out="$dir/watch.out"
+  PATH="$dir/fakebin:$PATH" FM_HOME="$home" FM_STATE_OVERRIDE="$state" \
+    FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=600 \
+    FM_WATCH_HANDLING_SUCCESSOR=1 "$WATCH" > "$out" 2>&1 &
+  child=$!
+  fm_test_track_pid "$child"
+  now=0
+  while [ "$now" -lt 40 ]; do
+    [ "$(cat "$state/.watch.lock/pid" 2>/dev/null || true)" = "$child" ] && break
+    sleep 0.1
+    now=$((now + 1))
+  done
+  [ "$(cat "$state/.watch.lock/pid" 2>/dev/null || true)" = "$child" ] \
+    || { kill -TERM "$child" 2>/dev/null || true; fail "handling successor did not take the watcher lock"; }
+  sleep 1.5
+  kill -0 "$child" 2>/dev/null \
+    || { fail "the row queued before start closed the successor: $(cat "$out")"; }
+  ! grep -F "$old" "$out" >/dev/null \
+    || { kill -TERM "$child" 2>/dev/null || true; fail "the row queued before start was delivered: $(cat "$out")"; }
+  append_wake "$state" check "inbox:n1" "$new" \
+    || { kill -TERM "$child" 2>/dev/null || true; fail "could not append the newer note"; }
+  now=0
+  while [ "$now" -lt 40 ]; do
+    kill -0 "$child" 2>/dev/null || break
+    sleep 0.5
+    now=$((now + 1))
+  done
+  if kill -0 "$child" 2>/dev/null; then
+    kill -TERM "$child" 2>/dev/null || true
+    wait "$child" 2>/dev/null || true
+    fail "a note newer than the successor start did not close it: $(cat "$out")"
+  fi
+  wait "$child" 2>/dev/null || true
+  grep -Fx "$new" "$out" >/dev/null \
+    || fail "the successor did not close on the newer note: $(cat "$out")"
+  ! grep -F "$old" "$out" >/dev/null \
+    || fail "the successor also delivered the older row: $(cat "$out")"
+  pass "a handling successor closes on a main row newer than its start and leaves the older row"
+}
+
+if [ -n "${FM_TEST_ONLY:-}" ]; then
+  run_case "$FM_TEST_ONLY"
+  exit
+fi
+
 run_case test_handling_successor_does_not_go_blind
 run_case test_unacknowledged_recovery_is_announced_once_per_generation
 run_case test_host_recovery_closes_on_its_oldest_branch_row
 run_case test_plain_recovery_over_live_pm_rows_stays_quiet
 run_case test_host_recovery_with_failed_output_retries_the_close
+run_case test_handling_successor_closes_on_a_row_newer_than_its_start

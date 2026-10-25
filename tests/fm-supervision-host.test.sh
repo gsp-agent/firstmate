@@ -1364,6 +1364,47 @@ test_attended_main_only_close_passes_straight_to_main() {
   pass "host: an attended decision close stays main's exactly as the plain arm delivers it"
 }
 
+# The successor closes only on rows newer than its own start. A note queued
+# while the host starts that successor is not newer, so the host reads it after
+# the handled turn and hands it to main instead of parking.
+test_attended_note_queued_while_the_successor_starts_reaches_main() {
+  local home real_mktemp
+  home=$(make_home attended-successor-start-note attended)
+  real_mktemp=$(command -v mktemp)
+  cat > "$home/fakebin/mktemp" <<SH
+#!/usr/bin/env bash
+case "\${1:-}" in
+  */.supervision-host-arm.*)
+    if [ -e "\$FM_HOME/first-arm-made" ] && [ ! -e "\$FM_HOME/note-appended" ]; then
+      : > "\$FM_HOME/note-appended"
+      FM_STATE_OVERRIDE="\$FM_HOME/state" bash -c '. "\$1"; fm_wake_append check inbox:n1 "\$2"' \\
+        _ "$ROOT/bin/fm-wake-lib.sh" 'check: captain inbox note n1 - hello'
+    fi
+    : > "\$FM_HOME/first-arm-made"
+    ;;
+esac
+exec "$real_mktemp" "\$@"
+SH
+  chmod +x "$home/fakebin/mktemp"
+  start_host "$home"
+  wait_until 150 watcher_live "$home" || fail "startup note: the host never started a watcher cycle: $(cat "$home/host.out")"
+  append_status "$home" 'step one'
+  wait_until 250 handled_at_least "$home" 1 \
+    || fail "startup note: the wake was not handled on the engine: $(cat "$home/host.out"; cat "$home/state/.supervision-host.log")"
+  wait_until 250 host_exited "$home" \
+    || fail "startup note: the note queued while the successor started never reached main: $(cat "$home/host.out"; cat "$home/state/.supervision-host.log")"
+  [ -e "$home/note-appended" ] || fail "fixture: the note was not queued while the successor started"
+  expect_code 0 "$(cat "$home/host.rc")" "the hand-back must exit 0 for the owner to deliver"
+  assert_re '^supervision-host: the supervision session handled this wake, and a main-only wake is queued for you' \
+    "$home/host.out" "the exit must send main to its drain"
+  assert_no_re '^signal:' "$home/host.out" "the close the engine handled must not reach main as a wake"
+  assert_no_grep 'demo.status' "$home/state/.wake-queue" "the engine's acknowledgement did not consume the wake"
+  assert_grep 'check: captain inbox note n1 - hello' "$home/state/.wake-queue" "the note must stay queued for main"
+  watcher_live "$home" || fail "startup note: the hand-back left main without a live consumer"
+  stop_home_processes "$home"
+  pass "host: a main-only note queued while the successor starts reaches main after the handled turn"
+}
+
 # The file is read at every wake (docs/configuration.md "Supervision host"), so
 # an off written while the host is parked sends the next attended close to main
 # exactly as the arm printed it, with the ledger naming the opt-out.
@@ -1640,22 +1681,24 @@ SH
   : > "$home/fail-downtime-write"
   printf 'continue\n' > "$home/stub-release"
   wait_until 250 hook_exited "$home" || fail "restore failure: the Stop hook did not finish"
-  expect_code 2 "$(cat "$home/hook.rc")" "the Stop hook must notify main when neither hand-back nor downtime restoration commits"
-  assert_grep 'firstmate watcher auto-arm FAILED' "$home/hook.err" "the refused rewake must turn into a delivered failure notice"
-  assert_re '^epoch=[0-9]+ owner_pid=[0-9]+ outcome=failed ' "$home/state/.claude-autoarm-epoch" \
-    "the failed hand-back must be committed"
+  expect_code 2 "$(cat "$home/hook.rc")" "the Stop hook must deliver the close when downtime restoration fails"
+  assert_grep 'firstmate watcher wake - one supervision event needs a handling turn now.' "$home/hook.err" "the close must be delivered"
+  assert_grep 'supervision-host: watcher downtime could not be restored for the main hand-back' "$home/hook.err" "the delivered close must say downtime was not restored"
+  assert_not_contains "$(cat "$home/hook.err")" 'firstmate watcher auto-arm FAILED' "a committed rewake must not become a failure notice"
+  assert_re '^epoch=[0-9]+ owner_pid=[0-9]+ outcome=rewake ' "$home/state/.claude-autoarm-epoch" \
+    "the close must be committed as a rewake"
   : > "$home/session.stop"
   stop_home_processes "$home"
 }
 
 test_claude_stop_hook_notifies_when_closed_successor_downtime_restore_fails() {
   assert_claude_stop_hook_notifies_when_closed_successor_downtime_restore_fails pending
-  pass "host+hook: a refused hand-back becomes a delivered failure notice"
+  pass "host+hook: a close is delivered when downtime restoration fails"
 }
 
 test_claude_stop_hook_notifies_when_closed_announced_successor_downtime_restore_fails() {
   assert_claude_stop_hook_notifies_when_closed_successor_downtime_restore_fails announced
-  pass "host+hook: a refused hand-back on an announced handling marker becomes a delivered failure notice"
+  pass "host+hook: a close is delivered when an announced handling marker cannot be restored to downtime"
 }
 
 test_claude_stop_hook_restores_handoff_when_successor_closed_mid_engine_turn() {
@@ -3531,6 +3574,7 @@ supervision_host_lane_b() {
   test_unverified_engine_hands_every_away_wake_to_main
   test_host_outside_the_lock_owner_stands_down
   test_superseded_host_leaves_the_owner_untouched
+  test_attended_note_queued_while_the_successor_starts_reaches_main
 }
 
 [ "${BASH_SOURCE[0]}" = "$0" ] || return 0

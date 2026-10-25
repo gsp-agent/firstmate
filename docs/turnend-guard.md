@@ -130,7 +130,7 @@ Under the Claude Stop auto-arm model a beacon fresh within grace is healthy even
 A stale beacon is still healthy while `fm_autoarm_midturn_healthy` in `bin/fm-wake-lib.sh` proves a Claude rewake explains the mid-turn gap.
 That proof requires both of these:
 
-- The rewake is bound to the current recovery generation and live session-lock owner.
+- The rewake is the current ledger generation's outcome and is bound to the live session-lock owner; the recovery marker is not part of it.
 - No later watcher beacon or exhausted-failure marker supersedes it.
 
 The tolerance holds because that session's turn-end will re-arm.
@@ -365,7 +365,8 @@ An owned terminal commit therefore decides the exit:
 - Markerless outcomes commit with the ledger write.
 - The once-per-episode failure notice commits only when its marker is created after the winning failed write in the same critical section.
 
-A generation whose required marker cannot be created is refused and exits 0 silently even after printing.
+A generation whose required marker cannot be created is refused and prints nothing, because a banner or notice is printed only after its own commit wins.
+It still delivers an unread wake-queue row with exit 2 when one remains, and otherwise exits 0.
 Its terminal ledger entry is superseded by a later firing, which retries the notice.
 
 #### Why the claim boundaries exist
@@ -419,7 +420,8 @@ The one loud attended fail-open is available only when all of these hold:
 - The block budget is exhausted.
 - A final check finds neither a healthy watcher nor an automatic continuation.
 
-After that alarm, the Stop auto-arm suppresses further exit-2 continuations until positive watcher recovery, so the final fail-open remains reachable.
+After that alarm, the Stop auto-arm suppresses further failure notices and failure continuations until positive watcher recovery, so the final fail-open remains reachable.
+The alarm suppresses failure notices, not records: an actionable close or an unread wake-queue row is still delivered with exit 2.
 The alarm cannot repeat during that failure episode, and a later unhealthy stop blocks again.
 A positively verified healthy watcher clears the failure notice, alarm, and block budget for a future independent episode.
 A Claude failure notice describes the automatic mechanism as broken and does not direct a routine manual background arm.
@@ -576,7 +578,7 @@ It proves that a live foreign owner still prevents arming while repeated non-own
 `tests/fm-guard-stale-banner.test.sh` covers the pull-guard predicate for each supervision model:
 
 - The persistent model's fresh-leftover-beacon negative control.
-- The auto-arm model's healthy fresh-beacon-without-a-watcher case, session-and-recovery-bound long-turn rewake tolerance, independently broken tolerance signals, open-claim negative control, stale-beacon alarm, and isolation from other models.
+- The auto-arm model's healthy fresh-beacon-without-a-watcher case, session-and-generation-bound long-turn rewake tolerance, independently broken tolerance signals, open-claim negative control, stale-beacon alarm, and isolation from other models.
 - The extension model's live-watcher path, ownership-qualified fresh hand-off, held-lock failures, independently broken ownership signals, stale-beacon alarm, queued-wake warning, and Pi and pi-signed harness routing.
 
 It also covers true-reason banner wording and reason-keyed episode dedup surviving a beacon mtime change.

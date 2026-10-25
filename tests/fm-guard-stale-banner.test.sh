@@ -76,12 +76,14 @@ run_guard_case_autoarm() {
 
 # Age the rewake ledger into the past so a passing long-turn case cannot rest on
 # epoch freshness: a handling turn that has already outrun grace still has this
-# shape, which is the false alarm this suite now pins.
+# shape, which is the false alarm this suite now pins. The ledger line is the
+# one the Stop hook commits, and the handling turn's drain has moved the
+# recovery marker to a generation of its own.
 record_aged_rewake_epoch() {
-  local home=$1 session_pid=$2 recovery=${3:-guard-test-generation}
-  printf 'epoch=7 owner_pid=1 outcome=rewake updated_at=1 session_pid=%s recovery_generation=%s\n' \
-    "$session_pid" "$recovery" > "$home/state/.claude-autoarm-epoch"
-  printf 'acked:handling:%s\n' "$recovery" > "$home/state/.watcher-down"
+  local home=$1 session_pid=$2
+  printf 'epoch=7 owner_pid=1 outcome=rewake updated_at=1 session_pid=%s\n' \
+    "$session_pid" > "$home/state/.claude-autoarm-epoch"
+  printf 'pending:handling:session-start.1.aaa\n' > "$home/state/.watcher-down"
   touch -t 201901010000 "$home/state/.last-watcher-beat"
   touch -t 202001010000 "$home/state/.claude-autoarm-epoch"
 }
@@ -491,7 +493,7 @@ test_autoarm_long_handling_turn_stays_silent() {
 # is not enough to stay quiet, and adding a failure marker is not either.
 test_autoarm_long_turn_requires_every_healthy_signal() {
   local dir home out pid replacement_pid='' case_name
-  for case_name in no-epoch failed-outcome failure-notified failure-alarmed dead-lock missing-lock changed-lock moved-recovery later-beacon; do
+  for case_name in no-epoch failed-outcome failure-notified failure-alarmed dead-lock missing-lock changed-lock later-beacon; do
     dir=$(make_guard_case "autoarm-long-turn-$case_name")
     home=$(case_home "$dir")
     sleep 60 &
@@ -524,9 +526,6 @@ test_autoarm_long_turn_requires_every_healthy_signal() {
         sleep 60 &
         replacement_pid=$!
         record_session_lock_pid "$home" "$replacement_pid"
-        ;;
-      moved-recovery)
-        printf 'pending:handling:later-turn-generation\n' > "$home/state/.watcher-down"
         ;;
       later-beacon)
         touch -t 202101010000 "$home/state/.last-watcher-beat"

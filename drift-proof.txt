@@ -137,3 +137,5 @@ pr: 142
 pr: 145
 # Failing-first route-reason regressions in tests/fm-spawn-dispatch-profile.test.sh and tests/fm-control-relaunch.test.sh.
 pr: 144
+# Failing-first unread-record delivery. On upstream-lean e45c14f1 these replays fail, and they pass once the queued record decides. tests/fm-claude-stop-autoarm.test.sh covers a released probe at admission and mid-cycle, a handling-marker close, an alarmed close, a healthy foreign watcher, a successor note, the guard after that rewake, a plain-home heartbeat, and an away record. tests/fm-wake-queue.test.sh covers a partial append. tests/fm-watch-recovery-loop.test.sh covers a handling successor and a row newer than its start. Two review replays fail on e7de2e60 and pass on the fix: test_host_away_record_delivers_no_unread_row in tests/fm-claude-stop-autoarm.test.sh and test_attended_note_queued_while_the_successor_starts_reaches_main in tests/fm-supervision-host.test.sh.
+pr: 146

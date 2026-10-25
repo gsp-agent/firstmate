@@ -54,8 +54,9 @@
 #     before the close is printed, so supervision continues when the session
 #     drops the handoff and, as a covering successor (bin/fm-watch-arm.sh
 #     FM_WATCH_COVER), through main's whole turn. It confirms no handling
-#     handoff, so the recovery marker still reads downtime and the re-arm
-#     owner delivers the close to main. The host records that successor's arm before relinquishing it
+#     handoff, so the recovery marker still reads downtime; the re-arm owner
+#     delivers the close to main on its session and generation commit, whatever
+#     the marker reads. The host records that successor's arm before relinquishing it
 #     (detach_successor owns the persistence check and failure path). The
 #     session's next park without --restart requests a take-over of its cycle
 #     rather than an ordinary attach; bin/fm-watch-arm.sh's --take-over header owns the
@@ -83,8 +84,11 @@
 # attended wake that recorded a captain outcome exits with one "supervision-host: branch-outcome:"
 # line naming its store rows, without the close it handled; main drains, where
 # the BRANCH OUTCOMES section (bin/fm-wake-drain.sh) presents every
-# unprocessed captain outcome until main acknowledges it. Otherwise the host
-# parks on the successor.
+# unprocessed captain outcome until main acknowledges it. A handled attended
+# wake that leaves a main-only row unread (fm_wake_main_unread) exits the same
+# way with one "supervision-host:" line sending main to its drain: a row
+# queued before the successor's start never closes that successor. Otherwise
+# the host parks on the successor.
 # Every other outcome exits with the close's own reason line plus one
 # "supervision-host:" line saying why main has this wake, leaving a covering
 # successor cycle for main's turn. Whenever the captain returned during an away
@@ -168,7 +172,7 @@
 # registration lets turns run past the boundary up to it, any other value is
 # the boundary), FM_SUPERVISION_HOST_TURN_TIMEOUT (1200), FM_SUPERVISION_HOST_ROTATE_TURNS (20:
 # a new engine conversation after this many turns; every main session start
-# also opens a new one), FM_SUPERVISION_HOST_READY_TIMEOUT (25: how long a
+# also opens a new one), FM_SUPERVISION_HOST_READY_TIMEOUT (60: how long a
 # successor cycle may take to verify), FM_SUPERVISION_HOST_LEASE_WAIT (5: how
 # long a branch lease release waits for the lease-command lock),
 # FM_SUPERVISION_HOST_POLL (1).
@@ -225,7 +229,7 @@ PARK_LIMIT=$(numeric_or "${FM_SUPERVISION_HOST_PARK_LIMIT:-}" "$PARK_SECONDS")
 { [ "$PARK_LIMIT" -lt 28800 ] && [ "$PARK_LIMIT" -ge "$PARK_SECONDS" ]; } 2>/dev/null || PARK_LIMIT=$PARK_SECONDS
 TURN_TIMEOUT=$(numeric_or "${FM_SUPERVISION_HOST_TURN_TIMEOUT:-}" 1200)
 ROTATE_TURNS=$(numeric_or "${FM_SUPERVISION_HOST_ROTATE_TURNS:-}" 20)
-READY_TIMEOUT=$(numeric_or "${FM_SUPERVISION_HOST_READY_TIMEOUT:-}" 25)
+READY_TIMEOUT=$(numeric_or "${FM_SUPERVISION_HOST_READY_TIMEOUT:-}" 60)
 LEASE_WAIT=$(numeric_or "${FM_SUPERVISION_HOST_LEASE_WAIT:-}" 5)
 POLL=$(numeric_or "${FM_SUPERVISION_HOST_POLL:-}" 1)
 COOLDOWN=$FM_SUPERVISION_HOST_COOLDOWN
@@ -488,9 +492,11 @@ start_arm() {  # <predecessor-arm-pid or empty> [--restart]; sets the started pi
   # (the shape start_handling_successor in bin/fm-claude-stop-autoarm.sh uses).
   [ "${ARM_OWN_GROUP:-0}" -ne 1 ] || set -m 2>/dev/null || true
   if [ -n "$predecessor" ]; then
-    FM_WATCH_PREDECESSOR_ARM_PID=$predecessor FM_GUARD_GRACE="$GRACE" "$SCRIPT_DIR/fm-watch-arm.sh" "$@" >"$out" 2>&1 </dev/null &
+    FM_ARM_CONFIRM_TIMEOUT=30 FM_WATCH_PREDECESSOR_ARM_PID=$predecessor \
+      FM_GUARD_GRACE="$GRACE" "$SCRIPT_DIR/fm-watch-arm.sh" "$@" >"$out" 2>&1 </dev/null &
   else
-    FM_GUARD_GRACE="$GRACE" "$SCRIPT_DIR/fm-watch-arm.sh" "$@" >"$out" 2>&1 </dev/null &
+    FM_ARM_CONFIRM_TIMEOUT=30 FM_GUARD_GRACE="$GRACE" \
+      "$SCRIPT_DIR/fm-watch-arm.sh" "$@" >"$out" 2>&1 </dev/null &
   fi
   pid=$!
   [ "${ARM_OWN_GROUP:-0}" -ne 1 ] || set +m 2>/dev/null || true
@@ -716,10 +722,11 @@ detach_successor() {
 }
 
 # Start the same successor a handled wake starts and leave it running. It
-# confirms no handling handoff: main, not the engine, handles this close, and
-# the re-arm owner delivers it only while the recovery marker still reads
-# downtime (autoarm_commit in bin/fm-claude-stop-autoarm.sh). A failed start
-# returns 1; the caller still prints the close unchanged.
+# confirms no handling handoff: main, not the engine, handles this close, so
+# the recovery marker keeps reading downtime. The re-arm owner's rewake commit
+# binds the session and generation, not the marker (autoarm_commit in
+# bin/fm-claude-stop-autoarm.sh). A failed start returns 1; the caller still
+# prints the close unchanged.
 leave_successor_for_main() {
   local deadline='' rc
   while :; do
@@ -1166,8 +1173,8 @@ while :; do
     log_line "pass-through	attended	$ATTENDED_WHY	$(printf '%s\n' "$REASON" | head -n 1)"
     leave_successor_for_main || true
     # Main handles this close after all, so hand back the downtime the handoff
-    # above consumed: the re-arm owner delivers the close only while the
-    # recovery marker reads downtime (leave_successor_for_main).
+    # above consumed (leave_successor_for_main); the re-arm owner's commit does
+    # not read the marker.
     if [ -n "$SUCCESSOR_GENERATION" ] \
       && ! fm_recovery_marker_publish "$STATE/.watcher-down" downtime >/dev/null 2>&1; then
       log_line "pass-through	downtime-unrestored	$(printf '%s\n' "$REASON" | head -n 1)"
@@ -1206,6 +1213,14 @@ while :; do
       exit_to_main "branch-outcome: the supervision session handled this wake and recorded captain outcomes for you (store rows $CAPTAIN_SEQS); run bin/fm-wake-drain.sh, act on its BRANCH OUTCOMES section, and acknowledge them as it prints" \
         "$HEALTH_NOTE"
     fi
+  fi
+  # The successor closes only on rows newer than its own start, so a main-only
+  # row queued before that start is read here. Away, the turn's scope already
+  # claimed it.
+  if ! fm_afk_contract_away_present "$STATE" && fm_wake_main_unread "$STATE" main-only >/dev/null; then
+    ARM_TEXT=
+    exit_to_main "the supervision session handled this wake, and a main-only wake is queued for you; run bin/fm-wake-drain.sh and handle it" \
+      "$HEALTH_NOTE"
   fi
 
   # Handled: park on the successor.

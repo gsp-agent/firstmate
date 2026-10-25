@@ -111,7 +111,7 @@ On every attended pass-through the host starts the successor watcher cycle and l
 That successor is a covering one ([Claude handling successor](watcher-continuity.md#claude-handling-successor)), so a fleet event during main's turn does not leave the home uncovered until the turn ends.
 That successor, like one a turn hands back at its start (see [Away](#away)), runs in a process group of its own, so the harness tearing down the hook's group after the rewake does not stop it.
 The host records the coverage handover before detaching the successor; [Claude handling successor](watcher-continuity.md#claude-handling-successor) owns continuity during the owner's exit cleanup.
-The host leaves the watcher's recovery marker reading downtime, confirming no handling handoff, because the re-arm owner delivers a close to main only while that marker reads downtime.
+The host leaves the watcher's recovery marker reading downtime and confirms no handling handoff, because main, not the engine, handles the close; the Claude re-arm owner commits its rewake on the session and generation, whatever the marker reads.
 The session's next park without `--restart` requests a take-over to restore a single host-owned arm; the [host header](../bin/fm-supervision-host.sh) owns successor persistence and cleanup, and the [arm header](../bin/fm-watch-arm.sh) owns take-over eligibility and fallback.
 OpenCode and omp still launch the host with `--restart`, which takes precedence over recorded take-over and lacks its acknowledgement-preserving handover; changing that first-cycle path remains a follow-up.
 The host-off Claude Stop hook's detached handling successor covers main's turn the same way; see [Claude handling successor](watcher-continuity.md#claude-handling-successor).
@@ -171,6 +171,7 @@ On each actionable close the engine takes, the host runs these steps:
    A teardown holds the lease-command lock for its whole length, so a release waits for it only a bounded time and is otherwise retried while the host parks, never during an engine turn; the host's header owns the bound.
 5. It parks on the successor only for a handled wake.
    A main-only pass-through is not a park: the host exits after leaving that cycle running, as [Attended](#attended) describes.
+   Attended, a handled wake that leaves a main-only row unread is not a park either: the successor closes only on rows newer than its own start, so the host exits with one `supervision-host:` line that sends main to its drain.
 
 The host counts the wake handled only when all three hold:
 
@@ -236,7 +237,9 @@ The same handover covers captain outcomes, engine failures, returns and the park
 Whenever a successor generation was recorded (confirmed or not), the host explicitly republishes downtime for that generation.
 That publication is required even when the successor already exited, because no watcher cleanup remains to make the close deliverable to the arm owner.
 If that publication fails, the hand-back adds a `supervision-host: watcher downtime could not be restored` line and the host exits nonzero.
-On Claude, a Stop hook whose rewake is refused while the recovery marker is still `pending:handling` or `announced:handling` commits the auto-arm failure notice once per failure episode (`failed-suppressed` after that) and still exits 2, so the hand-back reaches main even when its successor is healthy; every other refused rewake stays silent as before.
+On Claude, the Stop hook commits a hand-back's rewake on the session and generation, whatever the recovery marker reads, so the hand-back reaches main with exit 2 even when its successor is healthy.
+When that commit is refused while the marker reads `pending:handling` or `announced:handling`, the hook commits the auto-arm failure notice once per failure episode (`failed-suppressed` after that) and still exits 2.
+A refused commit prints nothing; the hook then delivers an unread wake-queue row with exit 2 when one remains, and otherwise exits 0.
 The wake stays durable in the queue while the successor covers main's turn.
 
 ### Paths that hand the wake back

@@ -86,8 +86,12 @@ It re-arms by parking that awaited hook on `bin/fm-watch-arm.sh` and returning a
 Claude's `.claude/settings.json` Stop `asyncRewake` hook (`bin/fm-claude-stop-autoarm.sh`) owns routine tokenless re-arm.
 Do not run the hook as a manual arm from a tool turn: a short-lived tool process cannot own its park; its header and help own the invocation contract.
 The hook fires on every Stop.
-On each Stop, an eligible primary with [supervision need](turnend-guard.md#supervision-need) admits one home-scoped owner, which foregrounds `bin/fm-watch-arm.sh` inside the hook-owned process tree.
+On each Stop, an eligible primary with [supervision need](turnend-guard.md#supervision-need), or one holding a wake-queue row main has not been shown (`fm_wake_main_unread` in `bin/fm-wake-lib.sh`), admits one home-scoped owner.
+That owner delivers such a row at once with exit 2; otherwise it foregrounds `bin/fm-watch-arm.sh` inside the hook-owned process tree, and a home admitted only for a row it can no longer find arms nothing.
+On a supervision-host home that needs supervision, main's rows are the main-only class, because the park runs the engine that owns routine rows; with no supervision need no park will run, so every unread row is main's.
+While that home's away record is present the host takes every close, so the hook delivers no unread row.
 While away mode remains inactive, an actionable close wakes the idle session through exit 2, including when the event itself ends supervision need.
+Known limit: nothing yet records when a turn started, so a parked hook that delivers during a turn the captain typed is followed at that turn's end by a second delivery of the same rows, which costs one short turn.
 
 ### Claude session-lock ownership
 
@@ -104,7 +108,7 @@ That verdict accepts either of two cases:
 
 With that verdict, a background session keeps arming after its transient helper chain is recycled.
 [`turnend-guard.md`](turnend-guard.md#guard-predicates) owns the Claude guard's behavior when that live owner is genuinely another session.
-The stale-owner claim occurs only after the existing AFK and supervision-need gates pass.
+The stale-owner claim occurs only after the existing AFK gate and the admission above (supervision need or an unread row) pass.
 
 ### Claude arm failures
 
@@ -114,7 +118,7 @@ The hook reads the [watcher beacon](turnend-guard.md#guard-grace-and-the-poll-ca
 - A cycle-end failure is benign when that live-watcher predicate is true.
   In that case the hook suppresses the arm output and continues silently.
 - Only an exhausted failure with no verified watcher commits one last-resort notice for the continuous failure episode.
-- A refused notice commit stays silent for a later retry.
+- A refused notice commit prints nothing and is retried later; an unread wake-queue row is still delivered with exit 2.
 - After a successful notice, later Stop cycles exit 2 without repeating it until the turn-end guard consumes the attended fail-open.
 
 The Claude turn-end guard owns that notice commit contract, the monotonic failure progression, one-time attended fail-open, post-alarm continuation suppression, and positive recovery reset described in [`turnend-guard.md`](turnend-guard.md#harness-integrations).
@@ -198,6 +202,7 @@ So a finished, hung, or identity-mismatched claim cannot suppress that recovery 
 The recovery-episode contract below owns once-per-generation announcement.
 A handling successor does not re-announce.
 It enters its poll loop immediately and keeps scanning signals, stale panes, and checks.
+Like every watcher, it closes when a main-only row with a sequence above the queue sequence at its own start appears; rows queued before its start were part of its predecessor's wake.
 
 ### Manual recovery and other harnesses
 
@@ -227,7 +232,7 @@ The first recovery marks that generation announced, and later empty-queue arms l
 A non-successor watcher start checks the durable queue and recovery marker under their locks.
 If an announced-but-unacknowledged episode has an empty queue, the arm leaves that generation announced, making repeated empty-queue arms idempotent while a long-poll source is merely alive.
 If a durable row arrived after the announcement, the arm opens a fresh pending downtime generation so buried work still resurfaces once.
-A recovery announcement is presented to main only when the durable queue holds a row only main can do (`resurface_row_main_only` in `bin/fm-watch.sh`: a check row, a needs-decision signal, a decision-owned signal or stale row, or a row that cannot be classified).
+A recovery announcement is presented to main only when the durable queue holds a row only main can do (`resurface_row_main_only` in `bin/fm-wake-lib.sh`: a check row, a needs-decision signal, a decision-owned signal or stale row, or a row that cannot be classified).
 An empty queue is absorbed in the poll loop instead, and so is a queue holding only branch-owned or live-PM-owned rows on the away-mode daemon's home, because the daemon reads those rows from the queue itself; the episode stays announced.
 On a supervision-host home such a queue closes the watcher on its oldest row's own reason instead, passing over rows a live PM owns, because the host starts an engine turn only on a watcher close and that turn's drain presents every row.
 That gate applies only where an alternate supervisor exists - the away-mode daemon or a home running the supervision host; on a plain home main owns every row, and the resurface presents them exactly as it always has.
@@ -499,7 +504,7 @@ It checks that a newly appended keyed decision is classified without rereading e
 
 - The auto-arm's scope.
 - Stale and live session owners.
-- Unchanged AFK and need boundaries.
+- AFK and admission boundaries, including delivery of an unread wake-queue row.
 - Single-flight.
 - Bounded failure retries.
 - Benign live-watcher cycle ends.

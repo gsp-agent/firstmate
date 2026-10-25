@@ -2898,6 +2898,26 @@ done
 if [ -n "$EVICTED_PID" ]; then
   echo "watcher: replaced stalled pid $EVICTED_PID (beacon ${EVICTED_BEAT_AGE}s past hard bound ${WATCHER_STALL_BOUND}s)"
 fi
+# Rows at or below this sequence were already queued when this watcher took
+# the lock. A later main-only row is new work, including for a handling
+# successor. The high-water is the greater of the published counter and the
+# highest complete sequence already in the queue, so a missing counter or one
+# that lags a hand-written row cannot make that row look new.
+WATCHER_START_SEQ=0
+if [ -f "$STATE/.wake-queue.seq" ]; then
+  WATCHER_START_SEQ=$(cat "$STATE/.wake-queue.seq" 2>/dev/null || echo 0)
+fi
+case "$WATCHER_START_SEQ" in
+  ''|*[!0-9]*) WATCHER_START_SEQ=0 ;;
+esac
+_watcher_queue_max=$(awk -F '\t' 'NF >= 5 && $2 ~ /^[0-9]+$/ && $2+0 > max { max = $2+0 } END { print max + 0 }' "$FM_WAKE_QUEUE" 2>/dev/null || echo 0)
+case "$_watcher_queue_max" in
+  ''|*[!0-9]*) _watcher_queue_max=0 ;;
+esac
+if [ "$_watcher_queue_max" -gt "$WATCHER_START_SEQ" ]; then
+  WATCHER_START_SEQ=$_watcher_queue_max
+fi
+unset _watcher_queue_max
 WATCHER_RECOVERY_PENDING=0
 # The reason resurface_after_downtime is about to close on, recorded before
 # wake() exits the cycle. watcher_cleanup preserves the recovery marker only
@@ -3187,58 +3207,6 @@ rerecord_template_device_pr_poll() {  # <id>
   return 0
 }
 
-# 0 when another supervisor owns this home's ordinary rows: the away-mode
-# daemon, or the supervision host whose branch can claim them. On a plain
-# home main is the only supervisor, so ordinary queued rows stay main's and
-# the legacy resurface presentation is preserved exactly.
-resurface_alternate_owner() {
-  daemon_owns_supervision && return 0
-  fm_supervision_host_enabled "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
-}
-
-# A queued row only main can do: a check-kind row, a needs-decision signal,
-# a signal or stale row whose task still holds an open decision or a
-# captain-held declaration, or a row this reader cannot classify (fail
-# safe: main looks). Heartbeat rows and ordinary signal/stale rows are the
-# supervision branch's or a live PM's, never a reason to wake main - unless
-# this home has no alternate supervisor (RESURFACE_ALT_OWNER=0), where main
-# owns every row and the resurface presents them as it always has.
-# Sets RESURFACE_ROW_PM=1 when a live PM owns the row.
-resurface_row_main_only() {  # <kind> <key> <payload>
-  local kind=$1 key=$2 payload=$3 task status_file
-  RESURFACE_ROW_PM=0
-  case "$kind" in
-    check)
-      case "$payload" in
-        'check: merge landed: '*)
-          task=${payload#'check: merge landed: '}; task=${task%% *}
-          if fm_pm_live_task "$STATE" "$task"; then RESURFACE_ROW_PM=1; return 1; fi
-          ;;
-      esac
-      return 0 ;;
-    heartbeat) if [ "$RESURFACE_ALT_OWNER" -eq 1 ]; then return 1; fi; return 0 ;;
-    signal)
-      task=${key%.status}; task=${task%.turn-ended}
-      ;;
-    stale)
-      task=$(window_to_task "$key" "$STATE")
-      [ -n "$task" ] || return 0
-      ;;
-    *) return 0 ;;
-  esac
-  case "$task" in ''|*[!A-Za-z0-9._-]*) return 0 ;; esac
-  if fm_pm_live_task "$STATE" "$task"; then RESURFACE_ROW_PM=1; return 1; fi
-  if [ "$RESURFACE_ALT_OWNER" -ne 1 ]; then return 0; fi
-  if [ "$kind" = signal ]; then
-    case "$payload" in needs-decision:*) return 0 ;; esac
-  fi
-  status_file="$STATE/$task.status"
-  [ -f "$status_file" ] || return 1
-  status_has_open_needs_decision "$status_file" && return 0
-  status_is_captain_held "$(status_declared_wait_line "$status_file")" && return 0
-  return 1
-}
-
 # 0 when the durable wake queue holds at least one row only main can do.
 # Read under the queue lock so a concurrent append is never half-seen.
 # Leaves the oldest row's reason line in RESURFACE_OLDEST_REASON, passing
@@ -3264,9 +3232,40 @@ resurface_queue_has_main_only() {
 }
 
 resurface_after_downtime() {
+  local epoch seq kind key payload rest start newer queue_seq
+  start=${WATCHER_START_SEQ:-0}
+  newer=
+  # Every append raises the counter before it writes its row, so a counter at
+  # or below this watcher's start proves no newer row exists.
+  fm_read_text_to queue_seq "$STATE/.wake-queue.seq" || queue_seq=
+  case "$queue_seq" in
+    ''|*[!0-9]*) queue_seq= ;;
+  esac
+  if [ -s "${FM_WAKE_QUEUE:-}" ] && { [ -z "$queue_seq" ] || [ "$queue_seq" -gt "$start" ]; }; then
+    RESURFACE_ALT_OWNER=1
+    resurface_alternate_owner || RESURFACE_ALT_OWNER=0
+    if fm_lock_acquire_wait_max "$FM_WAKE_QUEUE_LOCK" 2; then
+      while IFS="$(printf '\t')" read -r epoch seq kind key payload rest; do
+        case "$seq" in
+          ''|*[!0-9]*) continue ;;
+        esac
+        [ "$seq" -gt "$start" ] || continue
+        if resurface_row_main_only "$kind" "$key" "$payload"; then
+          newer=$payload
+          break
+        fi
+      done < "$FM_WAKE_QUEUE"
+      fm_lock_release "$FM_WAKE_QUEUE_LOCK"
+    fi
+    if [ -n "$newer" ]; then
+      WATCHER_RESURFACE_REASON=$newer
+      wake "$newer"
+    fi
+  fi
   # Handling successors already have a predecessor-delivered wake on the way.
-  # Re-announcing from this cycle is what turned a lost handshake into an
-  # unbounded recovery loop; stay in the poll loop and supervise instead.
+  # Re-announcing rows that were queued at this watcher's start is what turned
+  # a lost handshake into an unbounded recovery loop. A row newer than that
+  # start closed above. Anything older stays in the poll loop.
   if [ "${FM_WATCH_HANDLING_SUCCESSOR:-0}" = 1 ]; then
     return 0
   fi
