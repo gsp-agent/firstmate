@@ -49,7 +49,7 @@ EOF
   write_suite "$repo/tests/fm-bearings-snapshot.test.sh" 60
   write_suite "$repo/tests/fm-public-followup.test.sh" 1
   write_suite "$repo/tests/fm-watch-triage.test.sh" 1
-  write_suite "$repo/tests/fm-fork-free-helpers.test.sh" 6
+  write_suite "$repo/tests/fm-fork-free-helpers.test.sh" 8
   write_suite "$repo/tests/fm-backend.test.sh" 2
 }
 

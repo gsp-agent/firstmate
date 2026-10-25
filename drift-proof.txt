@@ -102,5 +102,10 @@ pr: 124
 pr: 125
 # Failing-first parsed YAML regression in tests/fm-nm-test-contract.test.sh: test_nm_pins_gate_to_claude_then_codex fails on e0288d6e's [codex] pin and passes once the trusted list is [claude, codex] with disable_project_settings still true.
 pr: 128
+# Failing-first evidence-offload regressions in tests/fm-task-data-offload.test.sh: incidental brief/log/backlog path mentions authorized moves and refused repository tasks gained a record directory before their fixes; both regressions pass with all 13 fake-remote test groups.
+# Failing-first on 9331c976: real Apple openrsync and its corrected fake nested directory candidates, partial/wrong file and directory payloads stranded retries, and a later failure hid completed moves; all regressions pass after fixing placement, verifying/recovering existing payloads, and reporting partial results.
+pr: 135
+# Failing-first gone-owner merge handoff in tests/fm-pm-live.test.sh: on 41a0d972 test_merge_without_live_owner_blocks_the_pm fails with "dead:tmux: a worker that is not alive was handed live verification"; tests/fm-pr-check-security.test.sh proves the watcher still runs later checks and signals after the blocked handoff.
+pr: 134
 # Failing-first registered PR identity regressions in tests/fm-control-relaunch.test.sh: untraced and traced control relaunches reject pre-fix record ordering and preserve parser-readable PR identity after the writer fixes.
 pr: 133

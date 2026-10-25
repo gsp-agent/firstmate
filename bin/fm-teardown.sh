@@ -725,7 +725,7 @@ teardown_require_task_bead_done() {
     return 1
   fi
   if fm_task_merge_handoff_pending "$STATE/$ID.status" "$ID"; then
-    echo "REFUSED: task $ID's last status line is the merge handoff that leaves activation and live verification pending with its owner, so the task is not done even though bead $FM_TASK_BEAD_ID is closed; nothing was changed. Its worker or owner records the verification result as a later status line before cleanup." >&2
+    echo "REFUSED: task $ID's last status line is the merge handoff that leaves activation and live verification pending, so the task is not done even though bead $FM_TASK_BEAD_ID is closed; nothing was changed. Its worker or owner records the verification result as a later status line before cleanup." >&2
     return 1
   fi
   return 0
