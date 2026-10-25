@@ -2317,7 +2317,24 @@ test_route_reason_is_single_line_for_ship_and_scout() {
   pass "spawn records a single-line route reason for ships and scouts"
 }
 
+test_launch_route_records_its_own_route_reason() {
+  local id=reason-route rec out rc
+  rec=$(make_spawn_case "$id" codex "$id")
+  read_case_record "$rec"
+  mkdir -p "$HOME_DIR/state"
+  printf 'codex run for %s hit its usage limit\n' "$id" > "$HOME_DIR/state/$id.codex-limit"
+  out=$(run_ship_spawn "$HOME_DIR" "$WT_DIR" "$FAKEBIN_DIR" "$LAUNCH_LOG" "$id" "$PROJ_DIR" \
+    --harness codex --route-reason 'codex by rule'); rc=$?
+  expect_code 0 "$rc" "a routed spawn with a route reason should succeed"$'\n'"$out"
+  assert_grep 'harness=claude' "$HOME_DIR/state/$id.meta" "the launch route did not change the harness"
+  grep -qx "route_reason=codex run for $id hit its usage limit" "$HOME_DIR/state/$id.meta" \
+    || fail "the launch route must replace the supplied route reason with its own"
+  [ "$(grep -c '^route_reason=' "$HOME_DIR/state/$id.meta")" = 1 ] || fail "reason must appear once"
+  pass "a spawn the launch route moves to another harness records the route's reason"
+}
+
 test_route_reason_is_single_line_for_ship_and_scout
+test_launch_route_records_its_own_route_reason
 test_launch_environment_allowlist
 test_launch_environment_invalid_config_refuses
 test_launch_environment_inaccessible_config_refuses

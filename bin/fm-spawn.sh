@@ -148,7 +148,8 @@
 #   positional harness arg still works for back-compat.
 #   --route-reason <text> records an optional runtime choice explanation in task
 #   meta; CR and LF become spaces. Relaunch keeps an omitted reason only when
-#   the resolved harness, model, and effort are unchanged.
+#   the resolved harness, model, and effort are unchanged. A launch route that
+#   changes the harness records its own fallback reason instead.
 #
 #   --model <name> and --effort <low|medium|high|xhigh|max|ultra> are concrete profile
 #   axes chosen by firstmate at intake. Only with --relaunch, either flag also
@@ -3268,6 +3269,7 @@ if [ "$KIND" != secondmate ] && [ "$SPAWN_CONTROL_PARENT" = 0 ]; then
     echo "$HARNESS fallback: launching $ID on the ${LAUNCH_ROUTE%% *} harness (default model, effort $ROUTE_EFFORT): ${LAUNCH_ROUTE#* }" >&2
     HARNESS=${LAUNCH_ROUTE%% *} MODEL='' EFFORT=$ROUTE_EFFORT
     ROUTE_FALLBACK=1
+    ROUTE_REASON=${LAUNCH_ROUTE#* } ROUTE_REASON_SET=1
     LAUNCH=$(launch_template "$HARNESS" "$KIND") || {
       echo "error: no launch template for the fallback harness '$HARNESS'" >&2
       exit 1

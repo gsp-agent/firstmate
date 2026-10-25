@@ -454,8 +454,11 @@ do_restore() {
   consent=$(fm_meta_get "$archive" upstream_consent)
   backend=$(fm_meta_get "$archive" backend)
 
+  [ "$ROUTE_REASON_SET$HARNESS_SET$MODEL_SET$EFFORT_SET" != 0000 ] \
+    || ROUTE_REASON=$(fm_meta_get "$archive" route_reason)
+
   spawn_args=("$ID" "$project" "$harness")
-  [ "$ROUTE_REASON_SET" = 0 ] || spawn_args+=(--route-reason "$ROUTE_REASON")
+  [ -z "$ROUTE_REASON" ] || spawn_args+=("--route-reason=$ROUTE_REASON")
   case "$model" in ''|default) ;; *) spawn_args+=(--model "$model") ;; esac
   case "$effort" in ''|default) ;; *) spawn_args+=(--effort "$effort") ;; esac
   [ -z "$backend" ] || spawn_args+=(--backend "$backend")
@@ -1578,6 +1581,7 @@ resolve_relaunch_profile() {
       echo "$TARGET_HARNESS fallback: relaunching $ID on the ${route%% *} harness (default model, effort $route_effort): ${route#* }" >&2
       TARGET_HARNESS=${route%% *} TARGET_MODEL=default TARGET_EFFORT=$route_effort
       TARGET_ROUTE_FALLBACK=1
+      ROUTE_REASON=${route#* } ROUTE_REASON_SET=1
     fi
   fi
   if [ "$TARGET_EFFORT" = ultra ]; then
@@ -1752,7 +1756,7 @@ do_relaunch() {
   journal_write launching "${CHECKPOINT_LINES[@]}" "$note_line" "relaunch_tx=$RELAUNCH_TX"
   spawn_args=("$ID" --relaunch --harness "$TARGET_HARNESS"
     --model "$TARGET_MODEL" --effort "$TARGET_EFFORT")
-  [ "$ROUTE_REASON_SET" = 0 ] || spawn_args+=(--route-reason "$ROUTE_REASON")
+  [ "$ROUTE_REASON_SET" = 0 ] || spawn_args+=("--route-reason=$ROUTE_REASON")
   if FM_CONTROL_RELAUNCH_TX="$RELAUNCH_TX" \
       FM_CONTROL_ROUTE_FALLBACK="$TARGET_ROUTE_FALLBACK" \
       "$SCRIPT_DIR/fm-spawn.sh" "${spawn_args[@]}" >/dev/null; then

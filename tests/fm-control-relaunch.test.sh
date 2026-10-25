@@ -3405,7 +3405,7 @@ test_relaunch_stop_background_does_nothing_when_there_is_no_picker() {
 test_route_reason_follows_runtime() {
   local scenario dir out rc expected
   local args=()
-  for scenario in replace keep same model effort harness; do
+  for scenario in replace dash keep same model effort harness guard guard-supplied; do
     dir=$(new_case "route-$scenario" route1)
     add_ship_task "$dir" route1 claude
     printf 'route_reason=original choice\n' >> "$dir/home/state/route1.meta"
@@ -3417,6 +3417,13 @@ test_route_reason_follows_runtime() {
       effort) args=(--effort high); expected= ;;
       harness) args=(--harness codex); printf codex > "$dir/fake/becomes"; expected= ;;
       replace) args=(--route-reason $'new choice\nquota\rchanged'); expected='new choice quota changed' ;;
+      dash) args=(--route-reason=--quota-out); expected=--quota-out ;;
+      guard*)
+        printf 'codex run for route1 hit its usage limit\n' > "$dir/home/state/route1.codex-limit"
+        args=(--harness codex)
+        [ "$scenario" = guard ] || args+=(--route-reason 'codex by rule')
+        expected='codex run for route1 hit its usage limit'
+        ;;
     esac
     out=$(run_control "$dir" route1 relaunch --note resume "${args[@]}"); rc=$?
     expect_code 0 "$rc" "route reason relaunch $scenario should succeed"$'\n'"$out"
@@ -3428,6 +3435,26 @@ test_route_reason_follows_runtime() {
     fi
   done
   pass "relaunch preserves, clears, or replaces the route reason with its runtime"
+}
+
+test_restore_carries_the_archived_route_reason() {
+  local rec case_dir home proj wt fakebin id out rc scenario expected
+  local args=()
+  for scenario in archived supplied; do
+    id="rs-reason-$scenario"
+    rec=$(restore_case "reason-$scenario" "$id")
+    IFS='|' read -r case_dir home proj wt fakebin <<<"$rec"
+    restore_seed_closed_row "$home" "$id"
+    printf 'route_reason=claude quota\n' >> "$home/data/$id/record/closed-task.meta"
+    args=()
+    expected='claude quota'
+    [ "$scenario" = archived ] || { args=(--route-reason=--quota-out); expected=--quota-out; }
+    rc=0
+    out=$(run_restore_control "$home" "$wt" "$fakebin" "$id" relaunch --restore --note "finish it" "${args[@]}") || rc=$?
+    expect_code 0 "$rc" "restore with the $scenario route reason should succeed"$'\n'"$out"
+    grep -Fxq "route_reason=$expected" "$home/state/$id.meta" || fail "restore lost the $scenario route reason"
+  done
+  pass "fm-control relaunch --restore: an unchanged runtime keeps its archived route reason, and a supplied one replaces it"
 }
 
 test_route_reason_follows_runtime
@@ -3611,6 +3638,7 @@ if [ "${FM_CONTROL_RELAUNCH_TEST_GROUP:-}" = restore ]; then
   test_restore_preserves_an_empty_branch_prefix
   test_restore_re_adds_a_row_that_was_archived_away
   test_restore_that_cannot_dispatch_changes_no_instructions
+  test_restore_carries_the_archived_route_reason
   exit 0
 fi
 
@@ -3718,3 +3746,4 @@ test_relaunch_of_a_closed_task_names_its_archive_and_restores_it
 test_restore_preserves_an_empty_branch_prefix
 test_restore_re_adds_a_row_that_was_archived_away
 test_restore_that_cannot_dispatch_changes_no_instructions
+test_restore_carries_the_archived_route_reason
