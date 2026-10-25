@@ -1928,7 +1928,9 @@ fm_failure_episode_reset() {
 #     write. The once-per-episode failure notice commits only when its marker is
 #     created after the winning "failed" write in the same owned critical
 #     section. A superseded generation or failed required-marker creation is
-#     refused and exits 0 silently even after printing; a later generation
+#     refused; nothing is printed until a commit wins, so a refused notice is
+#     never delivered. A generation that still owns its entry delivers an
+#     unread record with exit 2, and otherwise exits 0. A later generation
 #     supersedes the terminal entry and retries the notice.
 #
 # This structurally removes the failure classes the lock-held-across-arm

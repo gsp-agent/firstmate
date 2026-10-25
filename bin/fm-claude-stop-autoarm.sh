@@ -208,9 +208,10 @@ fm_primary_scope_matches "$FM_ROOT" "$STATE" || exit 0
 # --- identity: only the lock-owning session's hooks may arm ------------------
 # A prior session may have died after leaving its numeric harness pid in .lock.
 # Use the shared liveness predicate to recognize only that stale-owner case.
-# Defer the mutating claim until after the unchanged AFK and need gates, so an
-# idle or away home remains byte-for-byte inert. Missing or malformed locks are
-# uncertainty rather than stale-owner evidence and remain inert.
+# Defer the mutating claim until after the AFK gate and the admission gate
+# (supervision need, or an unread record), so an away home, or an idle home
+# with no unread record, remains byte-for-byte inert. Missing or malformed
+# locks are uncertainty rather than stale-owner evidence and remain inert.
 RECOVER_SESSION_LOCK=0
 if ! fm_session_lock_owned_by_self "$STATE"; then
   LOCK_PID=$(cat "$STATE/.lock" 2>/dev/null || true)
@@ -234,15 +235,22 @@ need_supervision() {
 # host off, or on a host home with no supervision need, where no park will run
 # that engine. No scope (return 1) while the away daemon's flag or, on a host
 # home, the away record is present: the daemon or the host then takes every
-# close.
-main_unread_scope() {
+# close. A caller that has just read need passes idle or needed, so need is
+# not probed twice at one decision point.
+main_unread_scope() {  # [idle|needed]
   [ -e "$STATE/.afk" ] && return 1
   if fm_supervision_host_enabled "$CONFIG" claude; then
     fm_afk_contract_away_present "$STATE" && return 1
-    if need_supervision; then
-      printf 'main-only\n'
-      return 0
-    fi
+    case "${1:-}" in
+      needed) printf 'main-only\n'; return 0 ;;
+      idle) ;;
+      *)
+        if need_supervision; then
+          printf 'main-only\n'
+          return 0
+        fi
+        ;;
+    esac
   fi
   printf 'any\n'
 }
@@ -250,12 +258,12 @@ main_unread_scope() {
 # Exit 2 when this generation delivers an unread record. Exit 0 when a record
 # was unread but the commit was refused. Return 1 when there is nothing to
 # deliver or this generation no longer owns the epoch.
-deliver_unread_instead() {
+deliver_unread_instead() {  # [idle|needed]
   local scope rows banner
   if ! fm_autoarm_still_owner "$STATE" "$MY_GEN"; then
     return 1
   fi
-  scope=$(main_unread_scope) || return 1
+  scope=$(main_unread_scope "${1:-}") || return 1
   rows=$(fm_wake_main_unread "$STATE" "$scope") || return 1
   [ -n "$rows" ] || return 1
   if ! fm_autoarm_still_owner "$STATE" "$MY_GEN"; then
@@ -278,7 +286,8 @@ deliver_unread_instead() {
 # A home with no supervision need still admits when an unread record is waiting.
 # The probe's own output is discarded. Delivery after the claim prints it.
 if ! need_supervision; then
-  UNREAD_SCOPE=$(main_unread_scope) || exit 0
+  [ -s "$STATE/.wake-queue" ] || exit 0
+  UNREAD_SCOPE=$(main_unread_scope idle) || exit 0
   fm_wake_main_unread "$STATE" "$UNREAD_SCOPE" >/dev/null || exit 0
 fi
 
@@ -359,8 +368,9 @@ autoarm_record() {  # <outcome>
 # failure protocol instead: the winning generation records a terminal outcome,
 # creates the episode marker, and exits 2 so Claude delivers a recovery turn -
 # except after Claude's own timeout kill, whose exit 2 is dropped (header).
-# A superseded generation remains silent, and an episode whose attended
-# fail-open was already consumed must not restart automatic continuation.
+# A superseded generation remains silent. An episode whose attended fail-open
+# was already consumed starts no failure continuation, though an unread record
+# is still delivered with exit 2.
 # shellcheck disable=SC2329 # Invoked indirectly by the signal traps below.
 handle_autoarm_signal() {
   local signal=$1
@@ -492,9 +502,9 @@ fi
 # attended host home are not in this scope, so they still reach the park.
 # A home admitted only for an unread row arms nothing once no such row is left.
 if ! need_supervision; then
-  deliver_unread_instead || { autoarm_record clean; exit 0; }
+  deliver_unread_instead idle || { autoarm_record clean; exit 0; }
 fi
-deliver_unread_instead || true
+deliver_unread_instead needed || true
 attempt=0
 while [ "$attempt" -lt "$AUTOARM_ATTEMPTS" ]; do
   # A superseded owner must not start or attach another watcher or mutate any
@@ -566,7 +576,7 @@ done
 # event to deliver: releasing the final probe hold can itself end that need.
 if [ "$ACTIONABLE" -eq 0 ] && ! need_supervision; then
   autoarm_record clean
-  deliver_unread_instead || {
+  deliver_unread_instead idle || {
     [ -z "$OUT" ] || rm -f "$OUT" 2>/dev/null || true
     exit 0
   }
