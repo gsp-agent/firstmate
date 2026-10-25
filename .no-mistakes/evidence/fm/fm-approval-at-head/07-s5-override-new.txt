@@ -1,0 +1,28 @@
+$ fm-pr-merge.sh task-s5 https://github.com/gsp-agent/firstmate/pull/105 --attended-override   (code: /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5SNQBRB440DCYFGBZ3N73CS)
+exit status: 1
+--- stdout
+armed: state/task-s5.check.sh
+--- stderr
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+verified: https://github.com/gsp-agent/firstmate/pull/105 is open and mergeable, with every unwaived required check reported and every unwaived check green at head 95fb0ba8f83d4c0f2b5c41b6ba88dc165d039020
+lab-gh: merge blocked by the lab shim; no request sent to GitHub
+error: GitHub merge outcome was not successful: state=CLOSED, merged=false, isInMergeQueue=false
+--- gh calls made by the script (lab shim log; "http" lines are the real requests gh sent to api.github.com)
+gh pr view https://github.com/gsp-agent/firstmate/pull/105 --json headRefOid -q .headRefOid
+  http https://api.github.com/graphql
+gh pr view https://github.com/gsp-agent/firstmate/pull/105 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName
+  http https://api.github.com/graphql
+lab-gh OVERLAY cheap state -> OPEN/MERGEABLE/CLEAN, real head 95fb0ba8f83d4c0f2b5c41b6ba88dc165d039020 base upstream-lean
+gh pr view https://github.com/gsp-agent/firstmate/pull/105 --json headRefOid,statusCheckRollup
+  http https://api.github.com/graphql
+lab-gh OVERLAY null statusCheckRollup -> []
+gh api repos/gsp-agent/firstmate/actions/permissions
+  http https://api.github.com/repos/gsp-agent/firstmate/actions/permissions
+gh api repos/gsp-agent/firstmate/branches/upstream-lean
+  http https://api.github.com/repos/gsp-agent/firstmate/branches/upstream-lean
+gh api --paginate repos/gsp-agent/firstmate/rules/branches/upstream-lean
+  http https://api.github.com/repos/gsp-agent/firstmate/rules/branches/upstream-lean?per_page=100
+gh pr merge 105 --repo gsp-agent/firstmate --match-head-commit 95fb0ba8f83d4c0f2b5c41b6ba88dc165d039020 --squash
+lab-gh BLOCKED MERGE (no request sent): pr merge 105 --repo gsp-agent/firstmate --match-head-commit 95fb0ba8f83d4c0f2b5c41b6ba88dc165d039020 --squash
+gh api graphql -f query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue baseRefName}}} -F owner=gsp-agent -F repo=firstmate -F number=105 --jq .data.repository.pullRequest | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "base=" + (.baseRefName // "")
+  http https://api.github.com/graphql

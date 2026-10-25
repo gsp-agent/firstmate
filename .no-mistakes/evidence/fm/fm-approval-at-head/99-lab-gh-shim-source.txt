@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# Lab gh: passes read-only GitHub reads to the real gh, refuses every write.
+# The cheap PR-state read is overlaid as OPEN/MERGEABLE/CLEAN (real head and
+# base kept) so the script reaches its reviewer rule on an already-closed PR.
+# The forge merge subcommand never leaves this machine.
+set -u
+: "${LAB_GH_LOG:?}" "${LAB_REAL_GH:?}"
+printf 'gh %s\n' "$*" >> "$LAB_GH_LOG"
+refuse() { printf 'lab-gh REFUSED: %s\n' "$*" >> "$LAB_GH_LOG"; echo "lab-gh: refused (no request sent)" >&2; exit 1; }
+real() {
+  # Record each HTTP request URL the real gh sends (request lines only, no headers).
+  local dbg rc
+  dbg=$(mktemp "${TMPDIR:-/tmp}/lab-gh-dbg.XXXXXX")
+  GH_DEBUG=api "$LAB_REAL_GH" "$@" 2>"$dbg"; rc=$?
+  grep -E '^\* Request to https://' "$dbg" | sed 's/^\* Request to /  http /' >> "$LAB_GH_LOG"
+  rm -f "$dbg"
+  [ "$rc" -eq 0 ] || printf '  real gh exit %s\n' "$rc" >> "$LAB_GH_LOG"
+  return $rc
+}
+case "${1:-} ${2:-}" in
+  "pr merge")
+    printf 'lab-gh BLOCKED MERGE (no request sent): %s\n' "$*" >> "$LAB_GH_LOG"
+    echo "lab-gh: merge blocked by the lab shim; no request sent to GitHub" >&2
+    exit 1 ;;
+  "pr view")
+    case " $* " in
+      *" --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName"*)
+        out=$(real "$@") || exit $?
+        printf '%s' "$out" | jq -c '.state="OPEN" | .isDraft=false | .mergeable="MERGEABLE" | .mergeStateStatus="CLEAN"'
+        printf 'lab-gh OVERLAY cheap state -> OPEN/MERGEABLE/CLEAN, real head %s base %s\n' \
+          "$(printf '%s' "$out" | jq -r .headRefOid)" "$(printf '%s' "$out" | jq -r .baseRefName)" >> "$LAB_GH_LOG"
+        exit 0 ;;
+      *" --json headRefOid,statusCheckRollup"*)
+        # A closed PR with no commits left reports a null rollup; an open PR
+        # in this repo (Actions disabled, nothing required) reports [].
+        out=$(real "$@") || exit $?
+        if printf '%s' "$out" | jq -e '.statusCheckRollup == null' >/dev/null; then
+          printf '%s' "$out" | jq -c '.statusCheckRollup = []'
+          printf 'lab-gh OVERLAY null statusCheckRollup -> []\n' >> "$LAB_GH_LOG"
+        else
+          printf '%s\n' "$out"
+        fi
+        exit 0 ;;
+      *) real "$@"; exit $? ;;
+    esac ;;
+  "api "*)
+    graphql=false; [ "${2:-}" = graphql ] && graphql=true
+    for a in "$@"; do
+      case "$a" in
+        -X*|--method*|--input*) refuse "$*" ;;
+        -f*|-F*|--field*|--raw-field*) $graphql || refuse "$*" ;;
+        *mutation*) refuse "$*" ;;
+      esac
+    done
+    if [ -n "${LAB_REVIEWS_PER_PAGE:-}" ]; then
+      args=()
+      for a in "$@"; do
+        case "$a" in
+          */pulls/*/reviews\?per_page=100)
+            a=${a%per_page=100}per_page=$LAB_REVIEWS_PER_PAGE
+            printf 'lab-gh REWRITE reviews per_page=100 -> per_page=%s\n' "$LAB_REVIEWS_PER_PAGE" >> "$LAB_GH_LOG" ;;
+        esac
+        args+=("$a")
+      done
+      set -- "${args[@]}"
+    fi
+    if [ -n "${LAB_INJECT_PENDING_HEAD:-}" ] && case " $* " in *"/pulls/"*"/reviews"*) true ;; *) false ;; esac; then
+      # GitHub shows an unsubmitted review only to its author: add one, with no submitted_at.
+      out=$(real "$@") || exit $?
+      printf '%s' "$out" | jq -c --arg head "$LAB_INJECT_PENDING_HEAD" \
+        '. + [{"id":0,"user":{"login":"carmanchip23-dev"},"state":"PENDING","commit_id":$head}]'
+      printf 'lab-gh INJECT synthetic PENDING review by carmanchip23-dev at %s (no submitted_at)\n' "$LAB_INJECT_PENDING_HEAD" >> "$LAB_GH_LOG"
+      exit 0
+    fi
+    real "$@"; exit $? ;;
+  *) refuse "$*" ;;
+esac

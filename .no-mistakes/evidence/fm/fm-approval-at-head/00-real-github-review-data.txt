@@ -1,0 +1,21 @@
+# Real GitHub data behind the live scenarios (read-only reads with the existing gsp-agent login)
+
+## PR 105: chip APPROVED review whose commit_id names the head, submitted before that head commit existed
+{"id":5626391553,"user":"carmanchip23-dev","state":"APPROVED","commit_id":"95fb0ba8f83d4c0f2b5c41b6ba88dc165d039020","submitted_at":"2026-10-23T09:28:24Z"}
+head commit 95fb0ba8f83d4c0f2b5c41b6ba88dc165d039020 committer date: 2026-10-23T09:30:57Z
+PR 105 timeline (review submitted, then the head was force-pushed; GitHub now reports the review at the new head):
+  review_requested 2026-10-23T09:18:07Z 
+  reviewed 2026-10-23T09:28:24Z 95fb0ba8f83d4c0f2b5c41b6ba88dc165d039020
+  closed 2026-10-23T09:32:06Z 
+  head_ref_force_pushed 2026-10-23T09:32:06Z 95fb0ba8f83d4c0f2b5c41b6ba88dc165d039020
+  commented 2026-10-23T09:35:19Z 
+
+## PR 139: CHANGES_REQUESTED on an earlier commit, then APPROVED at the head after it existed
+{"id":5643596140,"user":"carmanchip23-dev","state":"CHANGES_REQUESTED","commit_id":"76eef1285fe74c79cb4668b22b71a2d820a7f9c7","submitted_at":"2026-10-25T14:06:35Z"}
+{"id":5643658451,"user":"carmanchip23-dev","state":"APPROVED","commit_id":"5a9b1fc3e722465be4ee710a0e6ce32bec29c713","submitted_at":"2026-10-25T14:25:56Z"}
+head commit 5a9b1fc3e722465be4ee710a0e6ce32bec29c713 committer date: 2026-10-25T14:16:56Z
+
+## PR 118: only DISMISSED and COMMENTED reviews by chip at the head
+{"id":5634487243,"user":"carmanchip23-dev","state":"DISMISSED","commit_id":"8ecbc5a0b1ade145887ce24e161898fd3e541829","submitted_at":"2026-10-23T21:11:02Z"}
+{"id":5634543262,"user":"carmanchip23-dev","state":"COMMENTED","commit_id":"8ecbc5a0b1ade145887ce24e161898fd3e541829","submitted_at":"2026-10-23T21:17:45Z"}
+head commit 8ecbc5a0b1ade145887ce24e161898fd3e541829 committer date: 2026-10-23T21:07:30Z

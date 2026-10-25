@@ -1,0 +1,32 @@
+$ fm-pr-merge.sh task-s6 https://github.com/gsp-agent/firstmate/pull/139    (code: /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5SNQBRB440DCYFGBZ3N73CS)
+exit status: 1
+--- stdout
+armed: state/task-s6.check.sh
+--- stderr
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+verified: https://github.com/gsp-agent/firstmate/pull/139 is open and mergeable, with every unwaived required check reported and every unwaived check green at head 5a9b1fc3e722465be4ee710a0e6ce32bec29c713
+lab-gh: merge blocked by the lab shim; no request sent to GitHub
+actionable: the merge command for https://github.com/gsp-agent/firstmate/pull/139 failed, but the pull request reads back as state=MERGED, merged=true, isInMergeQueue=false
+--- gh calls made by the script (lab shim log; "http" lines are the real requests gh sent to api.github.com)
+gh pr view https://github.com/gsp-agent/firstmate/pull/139 --json headRefOid -q .headRefOid
+  http https://api.github.com/graphql
+gh pr view https://github.com/gsp-agent/firstmate/pull/139 --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName
+  http https://api.github.com/graphql
+lab-gh OVERLAY cheap state -> OPEN/MERGEABLE/CLEAN, real head 5a9b1fc3e722465be4ee710a0e6ce32bec29c713 base upstream-lean
+gh pr view https://github.com/gsp-agent/firstmate/pull/139 --json headRefOid,statusCheckRollup
+  http https://api.github.com/graphql
+gh api repos/gsp-agent/firstmate/actions/permissions
+  http https://api.github.com/repos/gsp-agent/firstmate/actions/permissions
+gh api repos/gsp-agent/firstmate/branches/upstream-lean
+  http https://api.github.com/repos/gsp-agent/firstmate/branches/upstream-lean
+gh api --paginate repos/gsp-agent/firstmate/rules/branches/upstream-lean
+  http https://api.github.com/repos/gsp-agent/firstmate/rules/branches/upstream-lean?per_page=100
+gh api --paginate repos/gsp-agent/firstmate/pulls/139/reviews?per_page=100
+  http https://api.github.com/repos/gsp-agent/firstmate/pulls/139/reviews?per_page=100
+lab-gh INJECT synthetic PENDING review by carmanchip23-dev at 5a9b1fc3e722465be4ee710a0e6ce32bec29c713 (no submitted_at)
+gh api repos/gsp-agent/firstmate/commits/5a9b1fc3e722465be4ee710a0e6ce32bec29c713
+  http https://api.github.com/repos/gsp-agent/firstmate/commits/5a9b1fc3e722465be4ee710a0e6ce32bec29c713
+gh pr merge 139 --repo gsp-agent/firstmate --match-head-commit 5a9b1fc3e722465be4ee710a0e6ce32bec29c713 --squash
+lab-gh BLOCKED MERGE (no request sent): pr merge 139 --repo gsp-agent/firstmate --match-head-commit 5a9b1fc3e722465be4ee710a0e6ce32bec29c713 --squash
+gh api graphql -f query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){state merged isInMergeQueue baseRefName}}} -F owner=gsp-agent -F repo=firstmate -F number=139 --jq .data.repository.pullRequest | "state=" + (.state // ""), "merged=" + (.merged | tostring), "queued=" + (.isInMergeQueue | tostring), "base=" + (.baseRefName // "")
+  http https://api.github.com/graphql
