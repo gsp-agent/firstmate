@@ -123,3 +123,5 @@ pr: 138
 pr: 139
 # Failing-first watcher sleep budget in tests/fm-watch-sleep-fork-budget.test.sh: upstream-lean f96e6fa9 starts 12 processes over four idle polls (3 per poll, including one external sleep) and fails the 8 budget; the loadable builtin starts 8 (2 per poll, zero sleep children) and passes. Forced external fallback remains 12 (3 per poll, one sleep child). Fixed and inactive budgets also measure 2 per poll; window overhead stays 10 per window per poll.
 pr: 140
+# Failing-first stub-forge regressions in tests/fm-pr-merge.test.sh: test_approval_submitted_before_the_head_existed_refuses accepted an approval older than the head, and test_reviewer_review_on_a_second_page_is_read missed the page-two approval before the fix; both pass afterward, while timely approvals and attended overrides still pass.
+pr: 141
