@@ -1,0 +1,12 @@
+# diag: snapshot took 28s, ledger calls logged: 0, load { 190.96 194.90 198.66 }
+# diag: secondmates: [{"id":"ledger-1","freshness":"unknown"},{"id":"ledger-2","freshness":"unknown"},{"id":"ledger-3","freshness":"unknown"},{"id":"ledger-4","freshness":"unknown"},{"id":"ledger-5","freshness":"unknown"}]
+not ok - a healthy snapshot did not issue exactly one remote file read per home
+--- run 1: exit 1 after 42s
+# diag: snapshot took 26s, ledger calls logged: 0, load { 180.72 192.08 197.51 }
+# diag: secondmates: [{"id":"ledger-1","freshness":"unknown"},{"id":"ledger-2","freshness":"unknown"},{"id":"ledger-3","freshness":"unknown"},{"id":"ledger-4","freshness":"unknown"},{"id":"ledger-5","freshness":"unknown"}]
+not ok - a healthy snapshot did not issue exactly one remote file read per home
+--- run 2: exit 1 after 33s
+# diag: snapshot took 29s, ledger calls logged: 0, load { 182.31 190.90 196.81 }
+# diag: secondmates: [{"id":"ledger-1","freshness":"unknown"},{"id":"ledger-2","freshness":"unknown"},{"id":"ledger-3","freshness":"unknown"},{"id":"ledger-4","freshness":"unknown"},{"id":"ledger-5","freshness":"unknown"}]
+not ok - a healthy snapshot did not issue exactly one remote file read per home
+--- run 3: exit 1 after 38s

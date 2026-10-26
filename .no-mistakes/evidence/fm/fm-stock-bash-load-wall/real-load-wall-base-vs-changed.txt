@@ -1,0 +1,66 @@
+=== BASE script, bearings step takes 25s under load (idle wall 10s)
+machine load before: { 170.67 188.59 199.32 } on 16 CPUs
+fm-stock-bash-check.sh: /bin/bash (Bash 3.2.57(1)-release); per step: 10s wall, 2097152 KiB tree RSS
+parse-sweep: 2s, peak tree RSS 3984 KiB
+ok - parse-sweep: 2 files parse under stock Bash 3.2.57(1)-release
+snapshot-view: 2s, peak tree RSS 5248 KiB
+bearings: 11s, peak tree RSS 14208 KiB
+FAIL bearings: stopped at the 10s wall bound
+public-followup-empty-lock: 1s, peak tree RSS 6208 KiB
+watch-churn-deferral: 1s, peak tree RSS 672 KiB
+fork-free-helpers: 2s, peak tree RSS 624 KiB
+backend-adapter-file: 1s, peak tree RSS 5024 KiB
+
+fm-stock-bash-check.sh: stock Bash 3.2.57(1)-release check FAILED:
+bearings: stopped at the 10s wall bound
+--- exit 1 after 23s wall; machine load after: { 171.65 187.69 198.75 }
+
+=== CHANGED script, bearings step takes 25s under load (idle wall 10s)
+machine load before: { 171.65 187.69 198.75 } on 16 CPUs
+fm-stock-bash-check.sh: /bin/bash (Bash 3.2.57(1)-release); per step: 10s wall at idle load, grown with load up to 6 times, 2097152 KiB tree RSS
+parse-sweep: 2s, load factor 6, peak tree RSS 272 KiB
+ok - parse-sweep: 2 files parse under stock Bash 3.2.57(1)-release
+snapshot-view: 1s, load factor 6, peak tree RSS 752 KiB
+bearings: 27s, load factor 6, peak tree RSS 14224 KiB
+public-followup-empty-lock: 2s, load factor 6, peak tree RSS 5216 KiB
+watch-churn-deferral: 5s, load factor 6, peak tree RSS 0 KiB
+fork-free-helpers: 1s, load factor 6, peak tree RSS 6336 KiB
+backend-adapter-file: 2s, load factor 6, peak tree RSS 4688 KiB
+
+fm-stock-bash-check.sh: every stock Bash 3.2.57(1)-release check passed
+--- exit 0 after 44s wall; machine load after: { 171.58 185.48 197.37 }
+
+=== BASE script, bearings step hangs (sleep 600), idle wall 10s
+machine load before: { 171.58 185.48 197.37 } on 16 CPUs
+fm-stock-bash-check.sh: /bin/bash (Bash 3.2.57(1)-release); per step: 10s wall, 2097152 KiB tree RSS
+parse-sweep: 1s, peak tree RSS 2768 KiB
+ok - parse-sweep: 2 files parse under stock Bash 3.2.57(1)-release
+snapshot-view: 1s, peak tree RSS 288 KiB
+bearings: 11s, peak tree RSS 14304 KiB
+FAIL bearings: stopped at the 10s wall bound
+public-followup-empty-lock: 2s, peak tree RSS 4064 KiB
+watch-churn-deferral: 3s, peak tree RSS 10672 KiB
+fork-free-helpers: 1s, peak tree RSS 10320 KiB
+backend-adapter-file: 1s, peak tree RSS 4528 KiB
+
+fm-stock-bash-check.sh: stock Bash 3.2.57(1)-release check FAILED:
+bearings: stopped at the 10s wall bound
+--- exit 1 after 24s wall; machine load after: { 171.38 184.32 196.60 }
+
+=== CHANGED script, bearings step hangs (sleep 600), idle wall 10s
+machine load before: { 171.38 184.32 196.60 } on 16 CPUs
+fm-stock-bash-check.sh: /bin/bash (Bash 3.2.57(1)-release); per step: 10s wall at idle load, grown with load up to 6 times, 2097152 KiB tree RSS
+parse-sweep: 2s, load factor 6, peak tree RSS 4256 KiB
+ok - parse-sweep: 2 files parse under stock Bash 3.2.57(1)-release
+snapshot-view: 1s, load factor 6, peak tree RSS 688 KiB
+bearings: 61s, load factor 6, peak tree RSS 14144 KiB
+FAIL bearings: stopped at the 60s wall bound (load factor 6 times 10s at idle load)
+public-followup-empty-lock: 1s, load factor 6, peak tree RSS 5056 KiB
+watch-churn-deferral: 1s, load factor 6, peak tree RSS 160 KiB
+fork-free-helpers: 1s, load factor 6, peak tree RSS 6704 KiB
+backend-adapter-file: 1s, load factor 6, peak tree RSS 2896 KiB
+
+fm-stock-bash-check.sh: stock Bash 3.2.57(1)-release check FAILED:
+bearings: stopped at the 60s wall bound (load factor 6 times 10s at idle load)
+--- exit 1 after 71s wall; machine load after: { 204.79 189.35 197.38 }
+

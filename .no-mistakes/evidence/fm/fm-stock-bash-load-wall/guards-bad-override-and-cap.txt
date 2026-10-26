@@ -1,0 +1,21 @@
+FM_STOCK_BASH_LOAD_FACTOR=0 -> exit 2: fm-stock-bash-check.sh: FM_STOCK_BASH_LOAD_FACTOR must be a positive integer
+FM_STOCK_BASH_LOAD_FACTOR=abc -> exit 2: fm-stock-bash-check.sh: FM_STOCK_BASH_LOAD_FACTOR must be a positive integer
+FM_STOCK_BASH_LOAD_FACTOR=07 -> exit 2: fm-stock-bash-check.sh: FM_STOCK_BASH_LOAD_FACTOR must be a positive integer
+FM_STOCK_BASH_LOAD_FACTOR=-3 -> exit 2: fm-stock-bash-check.sh: FM_STOCK_BASH_LOAD_FACTOR must be a positive integer
+FM_STOCK_BASH_LOAD_FACTOR=2.5 -> exit 2: fm-stock-bash-check.sh: FM_STOCK_BASH_LOAD_FACTOR must be a positive integer
+
+=== FM_STOCK_BASH_LOAD_FACTOR=50, idle wall 2s, bearings hangs (sleep 600): expect stop at 12s (factor capped at 6)
+fm-stock-bash-check.sh: /bin/bash (Bash 3.2.57(1)-release); per step: 2s wall at idle load, grown with load up to 6 times, 2097152 KiB tree RSS
+parse-sweep: 1s, load factor 6, peak tree RSS 2896 KiB
+ok - parse-sweep: 1 files parse under stock Bash 3.2.57(1)-release
+snapshot-view: 2s, load factor 6, peak tree RSS 13488 KiB
+bearings: 13s, load factor 6, peak tree RSS 14240 KiB
+FAIL bearings: stopped at the 12s wall bound (load factor 6 times 2s at idle load)
+public-followup-empty-lock: 2s, load factor 6, peak tree RSS 5472 KiB
+watch-churn-deferral: 2s, load factor 6, peak tree RSS 5024 KiB
+fork-free-helpers: 2s, load factor 6, peak tree RSS 7136 KiB
+backend-adapter-file: 5s, load factor 6, peak tree RSS 0 KiB
+
+fm-stock-bash-check.sh: stock Bash 3.2.57(1)-release check FAILED:
+bearings: stopped at the 12s wall bound (load factor 6 times 2s at idle load)
+--- exit 1 after 29s wall

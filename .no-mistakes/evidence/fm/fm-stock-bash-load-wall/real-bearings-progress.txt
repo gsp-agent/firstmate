@@ -1,0 +1,7 @@
+start 03:47:51 CT, load { 173.92 191.30 200.69 }, ncpu 16, idle wall 900s (default)
+t=0s load={ 173.92 191.30 200.69 } step-running=none
+t=31s load={ 170.67 188.59 199.32 } step-running=bearings
+t=62s load={ 170.37 186.86 198.33 } step-running=bearings
+t=93s load={ 171.98 185.79 197.55 } step-running=bearings
+t=124s load={ 171.38 184.32 196.60 } step-running=bearings
+end 03:50:27 CT, elapsed 156s, check exit=1

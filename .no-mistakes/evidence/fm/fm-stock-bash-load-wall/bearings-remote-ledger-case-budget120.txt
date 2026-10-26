@@ -1,0 +1,4 @@
+# diag: snapshot took 25s, ledger calls logged: 0, load { 180.59 188.88 195.66 }
+# diag: secondmates: [{"id":"ledger-1","freshness":"unknown"},{"id":"ledger-2","freshness":"unknown"},{"id":"ledger-3","freshness":"unknown"},{"id":"ledger-4","freshness":"unknown"},{"id":"ledger-5","freshness":"unknown"}]
+not ok - a healthy snapshot did not issue exactly one remote file read per home
+--- exit  after 31s

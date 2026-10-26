@@ -1,0 +1,11 @@
+ok - refuses to run, and so cannot pass, without stock Bash 3.2.57
+ok - --help prints the whole header through its usage lines
+ok - every passing step yields exit 0
+ok - a Bash-4-only construct fails the parse sweep naming its file
+ok - a suite short of its expected count fails naming the suite
+ok - a step past the memory cap is stopped and fails naming the cap
+ok - a failed process list fails the step instead of reporting 0 KiB
+ok - a step past the wall bound is stopped and fails naming the bound
+ok - the wall bound grows with load and still stops a hung step
+ok - a load rise mid-step grows the wall for the rest of the step
+exit 0 after 147s

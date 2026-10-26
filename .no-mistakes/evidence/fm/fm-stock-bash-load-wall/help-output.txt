@@ -1,0 +1,48 @@
+fm-stock-bash-check.sh - the stock macOS Bash 3.2 compatibility check.
+
+Runs on a Mac before a Firstmate branch is pushed: the trusted
+.no-mistakes.yaml declares it as the `stock-macos-bash` gate after lint, so
+a red parks the run before any push or PR, and a maintainer runs it by hand
+with no arguments. It owns what the removed macos-stock-bash GitHub job ran;
+docs/configuration.md ("Gate defaults") owns why it runs locally.
+
+Under the host's own stock Bash (it must report 3.2.57), with a PATH that
+resolves `bash` to that interpreter before any newer one, it:
+  1. parses every canonical shell root (bin/fm-lint.sh --list-files with
+     CI=true, the full set) with `bash -n`;
+  2. runs each Bash 3.2 regression listed in fm_stock_bash_checks below and
+     requires its exact count of `ok - ` lines.
+It never runs ShellCheck. Each step runs under a wall-clock bound and a
+resident-memory cap on the step's whole process tree, both checked by a
+sampler twice a second; past either, the step is stopped and fails naming
+the cap. A hard wall at 6 times the idle bound (bin/fm-timeout-lib.sh's
+fm_exec_timed, which kills the step's process group) backs the sampler, so
+a step stops even if sampling stalls. macOS cannot enforce an address-space
+rlimit, so the memory cap is that sampler.
+Every step runs even after one fails, and the summary names each failure.
+
+Environment:
+  FM_STOCK_BASH_STEP_SECONDS  wall bound per step at idle load (default
+                              900). The effective wall for a step is this
+                              bound times the highest load factor (below)
+                              seen while the step runs, so a busy laptop
+                              stretches the wall instead of stopping a step
+                              that is only waiting for a core. A step that
+                              makes no progress at idle still stops at the
+                              idle bound.
+  FM_STOCK_BASH_RSS_KIB       process-tree RSS cap per step, in KiB
+                              (default 2097152 = 2 GiB)
+  FM_STOCK_BASH               interpreter under test (default /bin/bash)
+  FM_STOCK_BASH_LOAD_FACTOR   load factor override (positive integer,
+                              capped at 6); default: the 1-minute load
+                              average divided by the CPU count, rounded
+                              up, at least 1 and at most 6, re-read at
+                              each sample
+
+Exit status: 0 every step passed; 1 a step failed or hit a cap; 2 this host
+cannot run the check (no Bash 3.2.57 interpreter, or jq or tasks-axi
+missing), so the gate fails closed rather than passing unchecked.
+
+Usage:
+  fm-stock-bash-check.sh          run every step
+  fm-stock-bash-check.sh --help   print this usage

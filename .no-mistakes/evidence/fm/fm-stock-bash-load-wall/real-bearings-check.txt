@@ -1,0 +1,57 @@
+fm-stock-bash-check.sh: /bin/bash (Bash 3.2.57(1)-release); per step: 900s wall at idle load, grown with load up to 6 times, 2097152 KiB tree RSS
+parse-sweep: 1s, load factor 6, peak tree RSS 256 KiB
+ok - parse-sweep: 4 files parse under stock Bash 3.2.57(1)-release
+snapshot-view: 1s, load factor 6, peak tree RSS 4704 KiB
+ok - stand-in 1
+ok - stand-in 2
+ok - stand-in 3
+ok - stand-in 4
+ok - stand-in 5
+ok - stand-in 6
+ok - stand-in 7
+ok - stand-in 8
+ok - stand-in 9
+ok - stand-in 10
+ok - stand-in 11
+ok - stand-in 12
+ok - stand-in 13
+ok - stand-in 14
+ok - stand-in 15
+ok - stand-in 16
+ok - stand-in 17
+ok - stand-in 18
+ok - stand-in 19
+bearings: 126s, load factor 6, peak tree RSS 210336 KiB
+ok - task teardown during metadata capture is omitted without aborting the snapshot
+ok - current state and decision hints share one captured status observation
+ok - reused live state is discarded when task generation changes
+ok - large local snapshot overlaps local reads with byte-identical serial and concurrent projections
+not ok - a healthy snapshot did not issue exactly one remote file read per home
+FAIL bearings: expected 62 passing tests from tests/fm-bearings-snapshot.test.sh, got 4 (exit 1)
+public-followup-empty-lock: 2s, load factor 6, peak tree RSS 4784 KiB
+ok - stand-in 1
+watch-churn-deferral: 2s, load factor 6, peak tree RSS 4496 KiB
+ok - stand-in 1
+fork-free-helpers: 1s, load factor 6, peak tree RSS 5232 KiB
+ok - stand-in 1
+ok - stand-in 2
+ok - stand-in 3
+ok - stand-in 4
+ok - stand-in 5
+ok - stand-in 6
+ok - stand-in 7
+ok - stand-in 8
+ok - stand-in 9
+ok - stand-in 10
+ok - stand-in 11
+ok - stand-in 12
+ok - stand-in 13
+ok - stand-in 14
+ok - stand-in 15
+ok - stand-in 16
+backend-adapter-file: 2s, load factor 6, peak tree RSS 656 KiB
+ok - stand-in 1
+ok - stand-in 2
+
+fm-stock-bash-check.sh: stock Bash 3.2.57(1)-release check FAILED:
+bearings: expected 62 passing tests from tests/fm-bearings-snapshot.test.sh, got 4 (exit 1)
