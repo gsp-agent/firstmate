@@ -1,0 +1,3 @@
+stopped: lab tmux server and lab processes
+removed: 1 Claude project entries under /private/tmp/fmlab.l53lv5
+removed: /private/tmp/fmlab.l53lv5

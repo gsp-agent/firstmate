@@ -1,0 +1,51 @@
+# Live away flag and presented-set reset (lab without the supervision host, empty fleet, real Claude 31007)
+
+## A. state/.afk set: waker silent, session open keeps the away daemon's presented set, daemon acknowledgement succeeds
+AFK_FLAG_AT=1792990246.607
+APPENDED_AT=1792990247.992
+# away daemon's claiming drain (run as the main actor, as bin/fm-supervise-daemon.sh does):
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 55176.1792990247.fC1Ii0
+CLEAR_SENT_AT=1792990276.291
+# real /clear through the SessionStart hook; the re-emitted digest held the lock (no READ-ONLY SESSION) and printed:
+Queued wakes below are presented only: drain them with bin/fm-wake-drain.sh in a turn before handling them.
+# daemon acknowledgement after the session open:
+daemon_ack_rc=0
+# observer (no ledger entry = no rewake while .afk; presented [1] survives the clear; queue empties at the ack):
+1792990245.521 turn=[idle 1792990231 31007 558df8e8-e023-43d4-a429-e55d915483c8] ledger=[] queue_lines=0 presented=[] afk=no
+1792990246.675 turn=[idle 1792990231 31007 558df8e8-e023-43d4-a429-e55d915483c8] ledger=[] queue_lines=0 presented=[] afk=yes
+1792990248.059 turn=[idle 1792990231 31007 558df8e8-e023-43d4-a429-e55d915483c8] ledger=[] queue_lines=1 presented=[] afk=yes
+1792990268.933 turn=[idle 1792990231 31007 558df8e8-e023-43d4-a429-e55d915483c8] ledger=[] queue_lines=1 presented=[1,] afk=yes
+1792990277.911 turn=[idle 1792990277 31007 c8d02330-163f-454a-bc69-4279a0bae571] ledger=[] queue_lines=1 presented=[1,] afk=yes
+1792990293.547 turn=[idle 1792990277 31007 c8d02330-163f-454a-bc69-4279a0bae571] ledger=[] queue_lines=0 presented=[] afk=yes
+1792990324.904 turn=[idle 1792990277 31007 c8d02330-163f-454a-bc69-4279a0bae571] ledger=[] queue_lines=1 presented=[2,] afk=yes
+1792990325.712 turn=[idle 1792990277 31007 c8d02330-163f-454a-bc69-4279a0bae571] ledger=[] queue_lines=1 presented=[2,] afk=no
+1792990331.713 turn=[idle 1792990331 31007 1244393f-4e4d-429b-af71-2f199cd28036] ledger=[] queue_lines=1 presented=[2,] afk=no
+1792990333.604 turn=[idle 1792990331 31007 1244393f-4e4d-429b-af71-2f199cd28036] ledger=[] queue_lines=1 presented=[] afk=no
+1792990334.959 turn=[idle 1792990331 31007 1244393f-4e4d-429b-af71-2f199cd28036] ledger=[epoch=1 owner_pid=85048 outcome=rewake updated_at=1792990334 session_pid=31007] queue_lines=1 presented=[] afk=no
+1792990335.248 turn=[busy 1792990335 31007 1244393f-4e4d-429b-af71-2f199cd28036] ledger=[epoch=1 owner_pid=85048 outcome=rewake updated_at=1792990334 session_pid=31007] queue_lines=1 presented=[] afk=no
+1792990338.276 turn=[busy 1792990335 31007 1244393f-4e4d-429b-af71-2f199cd28036] ledger=[epoch=1 owner_pid=85048 outcome=rewake updated_at=1792990334 session_pid=31007] queue_lines=1 presented=[2,] afk=no
+1792990341.021 turn=[busy 1792990335 31007 1244393f-4e4d-429b-af71-2f199cd28036] ledger=[epoch=1 owner_pid=85048 outcome=rewake updated_at=1792990334 session_pid=31007] queue_lines=0 presented=[] afk=no
+1792990342.107 turn=[idle 1792990335 31007 1244393f-4e4d-429b-af71-2f199cd28036] ledger=[epoch=1 owner_pid=85048 outcome=rewake updated_at=1792990334 session_pid=31007] queue_lines=0 presented=[] afk=no
+
+## B. no state/.afk: session open empties main's presented set; the pre-clear acknowledgement is refused; main drains again in its own turn
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 82838.1792990324.Y4qFWm
+CLEAR_SENT_AT=1792990330.027
+DIGEST_COMPLETE_SEEN_AT=1792990334.584
+presented_before_ack=[]
+wake drain: row 2 was not presented to main in a turn, so this acknowledgement is refused; re-run bin/fm-wake-drain.sh in a turn and use the WAKE_ACK_REQUIRED command it prints
+ACK_RC=1
+queue_lines_after_ack=1
+# observer:
+1792990323.477 turn=[idle 1792990277 31007 c8d02330-163f-454a-bc69-4279a0bae571] ledger=[] queue_lines=0 presented=[] afk=yes
+1792990324.899 turn=[idle 1792990277 31007 c8d02330-163f-454a-bc69-4279a0bae571] ledger=[] queue_lines=1 presented=[2,] afk=yes
+1792990325.719 turn=[idle 1792990277 31007 c8d02330-163f-454a-bc69-4279a0bae571] ledger=[] queue_lines=1 presented=[2,] afk=no
+1792990331.713 turn=[idle 1792990331 31007 1244393f-4e4d-429b-af71-2f199cd28036] ledger=[] queue_lines=1 presented=[2,] afk=no
+1792990333.588 turn=[idle 1792990331 31007 1244393f-4e4d-429b-af71-2f199cd28036] ledger=[] queue_lines=1 presented=[] afk=no
+1792990334.962 turn=[idle 1792990331 31007 1244393f-4e4d-429b-af71-2f199cd28036] ledger=[epoch=1 owner_pid=85048 outcome=rewake updated_at=1792990334 session_pid=31007] queue_lines=1 presented=[] afk=no
+1792990335.256 turn=[busy 1792990335 31007 1244393f-4e4d-429b-af71-2f199cd28036] ledger=[epoch=1 owner_pid=85048 outcome=rewake updated_at=1792990334 session_pid=31007] queue_lines=1 presented=[] afk=no
+1792990338.276 turn=[busy 1792990335 31007 1244393f-4e4d-429b-af71-2f199cd28036] ledger=[epoch=1 owner_pid=85048 outcome=rewake updated_at=1792990334 session_pid=31007] queue_lines=1 presented=[2,] afk=no
+1792990341.025 turn=[busy 1792990335 31007 1244393f-4e4d-429b-af71-2f199cd28036] ledger=[epoch=1 owner_pid=85048 outcome=rewake updated_at=1792990334 session_pid=31007] queue_lines=0 presented=[] afk=no
+1792990342.124 turn=[idle 1792990335 31007 1244393f-4e4d-429b-af71-2f199cd28036] ledger=[epoch=1 owner_pid=85048 outcome=rewake updated_at=1792990334 session_pid=31007] queue_lines=0 presented=[] afk=no
+# notification that started main's turn:
+Stop hook blocking error from command "SessionStart:clear": firstmate watcher wake - one supervision event needs a handling turn now.
+check: lab-noafk-1 live presented-set reset probe; no action needed beyond draining and acknowledging

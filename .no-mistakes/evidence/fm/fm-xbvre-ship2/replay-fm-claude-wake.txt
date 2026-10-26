@@ -14,4 +14,3 @@ ok - turn boundary across a park: after rewake R's own turn has run, the parked 
 ok - restart: a rewake committed by an earlier Claude process is not pending in the new one
 ok - session-start drain presents without claiming; digest-only ack refused
 ok - session-start drain presents only main's rows and names rows a live branch grant holds
-bash tests/fm-claude-wake.test.sh  9.84s user 19.24s system 76% cpu 38.244 total

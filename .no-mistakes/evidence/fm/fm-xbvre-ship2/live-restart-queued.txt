@@ -1,0 +1,22 @@
+# Live restart with a row already queued: lab primary Claude 87152 exited (/exit); row lab-restart-1 appended while no Claude ran; a fresh Claude launched in the same lab home
+APPENDED_AT=1792989238.048
+RELAUNCH_AT=1792989238.082
+# observer: the new Claude (49278) takes the lock; once its digest completes the session-open waker commits a rewake bound to 49278 (epoch 6); main drains row 9 and acknowledges it; its Stop hook then parks (epoch 7)
+1792989238.111 turn=[idle 1792989126 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=5 owner_pid=2298 outcome=failed updated_at=1792989226] queue_lines=1 presented=[]
+1792989245.623 turn=[idle 1792989126 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=6 owner_pid=49685 outcome=arming updated_at=1792989245] queue_lines=1 presented=[]
+1792989245.911 turn=[busy 1792989246 49278 234c1ec4-af51-41cb-a815-7cc713543c7a] ledger=[epoch=6 owner_pid=49685 outcome=rewake updated_at=1792989245 session_pid=49278] queue_lines=1 presented=[]
+1792989251.738 turn=[busy 1792989246 49278 234c1ec4-af51-41cb-a815-7cc713543c7a] ledger=[epoch=6 owner_pid=49685 outcome=rewake updated_at=1792989245 session_pid=49278] queue_lines=1 presented=[9,]
+1792989256.184 turn=[busy 1792989246 49278 234c1ec4-af51-41cb-a815-7cc713543c7a] ledger=[epoch=6 owner_pid=49685 outcome=rewake updated_at=1792989245 session_pid=49278] queue_lines=0 presented=[]
+1792989258.693 turn=[idle 1792989246 49278 234c1ec4-af51-41cb-a815-7cc713543c7a] ledger=[epoch=7 owner_pid=61358 outcome=arming updated_at=1792989258] queue_lines=0 presented=[]
+# lock and completion record after the relaunch:
+49278
+49278
+# notification (source command named by Claude):
+Stop hook blocking error from command "SessionStart:startup": firstmate watcher wake - one supervision event needs a handling turn now.
+check: lab-restart-1 live row queued while no Claude ran; no action needed beyond draining and acknowledging
+# the startup digest's WAKE QUEUE section as delivered to the session (present-only: no acknowledgement command):
+WAKE QUEUE
+--------------------------------------------------------------------------------
+1792989237	9	check	lab-restart-1	check: lab-restart-1 live row queued while no Claude ran; no action needed beyond draining and acknowledging
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+================================================================================

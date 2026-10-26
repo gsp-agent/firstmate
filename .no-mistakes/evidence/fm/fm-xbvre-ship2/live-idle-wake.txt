@@ -1,0 +1,29 @@
+# Live idle wake: FileChanged waker on a real Claude Code 2.1.310 lab primary (lab home at target d28d2b98)
+# append time:
+APPENDED_AT=1792988113.842 (row lab-idle-1)
+# observer: turn record, ledger head, queue size, presented set, each change with epoch.ms
+1792988111.570 turn=[idle 1792988076 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[] queue_lines=0 presented=[]
+1792988113.856 turn=[idle 1792988076 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[] queue_lines=1 presented=[]
+1792988114.705 turn=[idle 1792988076 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=1 owner_pid=97570 outcome=arming updated_at=1792988114] queue_lines=1 presented=[]
+1792988114.987 turn=[busy 1792988115 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=1 owner_pid=97570 outcome=rewake updated_at=1792988114 session_pid=78630] queue_lines=1 presented=[]
+1792988120.552 turn=[busy 1792988115 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=1 owner_pid=97570 outcome=rewake updated_at=1792988114 session_pid=78630] queue_lines=1 presented=[1,]
+1792988124.113 turn=[busy 1792988115 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=1 owner_pid=97570 outcome=rewake updated_at=1792988114 session_pid=78630] queue_lines=0 presented=[]
+1792988125.214 turn=[idle 1792988115 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=1 owner_pid=97570 outcome=rewake updated_at=1792988114 session_pid=78630] queue_lines=0 presented=[]
+
+# lab primary pane after the wake turn
+ ▐▛███▛█   Claude Code v2.1.310
+▝▜██████▀  Sonnet 5.5 with medium effort · Claude Max
+ ▝▝   ▝▝   /private/tmp/fmlab.jzmD02/home
+❯ Lab readiness probe from bin/fm-live-lab.sh. Run no tool or command for this message. Reply with only the word LABREADY, a hyphen, and then b8f5b9b7b0e8, with no spaces.                                                 
+⏺ LABREADY-b8f5b9b7b0e8
+✻ Worked for 3s · done 11:14 PM
+⏺ Stop hook feedback
+  Ran 1 shell command              
+⏺ The wake is a live waker probe with nothing to act on. Acknowledging.
+  Ran 1 shell command     
+⏺ Captain, shipshape.
+✻ Brewed for 10s · done 11:15 PM
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯                                                                                                                                                                          
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 3 agents                   

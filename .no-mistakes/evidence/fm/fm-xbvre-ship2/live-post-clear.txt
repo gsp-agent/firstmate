@@ -1,0 +1,59 @@
+# Live rows queued before /clear, no hook parked (real Claude lab primary)
+# Run A: row lab-preclear-1 landed, its FileChanged wake turn was interrupted with Escape (no Stop fires on an interrupt), so the turn record stayed busy.
+# Row lab-preclear-2 appended at 1792988420.242 while that busy record stood: no rewake (documented manual-interrupt limit).
+CLEAR_SENT_AT=1792988440.225
+1792988379.752 turn=[idle 1792988371 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=3 owner_pid=58097 outcome=rewake updated_at=1792988275 session_pid=78630] queue_lines=1 presented=[]
+1792988380.617 turn=[idle 1792988371 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=4 owner_pid=95131 outcome=arming updated_at=1792988380] queue_lines=1 presented=[]
+1792988380.914 turn=[idle 1792988371 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=4 owner_pid=95131 outcome=rewake updated_at=1792988380 session_pid=78630] queue_lines=1 presented=[]
+1792988381.185 turn=[busy 1792988381 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=4 owner_pid=95131 outcome=rewake updated_at=1792988380 session_pid=78630] queue_lines=1 presented=[]
+1792988420.296 turn=[busy 1792988381 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=4 owner_pid=95131 outcome=rewake updated_at=1792988380 session_pid=78630] queue_lines=2 presented=[]
+1792988441.770 turn=[idle 1792988441 78630 c35e8dd7-f82f-4cb3-b95a-2d3b3458e573] ledger=[epoch=4 owner_pid=95131 outcome=rewake updated_at=1792988380 session_pid=78630] queue_lines=2 presented=[]
+1792988445.263 turn=[idle 1792988441 78630 c35e8dd7-f82f-4cb3-b95a-2d3b3458e573] ledger=[epoch=5 owner_pid=30710 outcome=rewake updated_at=1792988445 session_pid=78630] queue_lines=2 presented=[]
+1792988445.559 turn=[busy 1792988446 78630 c35e8dd7-f82f-4cb3-b95a-2d3b3458e573] ledger=[epoch=5 owner_pid=30710 outcome=rewake updated_at=1792988445 session_pid=78630] queue_lines=2 presented=[]
+1792988449.331 turn=[busy 1792988446 78630 c35e8dd7-f82f-4cb3-b95a-2d3b3458e573] ledger=[epoch=5 owner_pid=30710 outcome=rewake updated_at=1792988445 session_pid=78630] queue_lines=2 presented=[13,14,]
+1792988452.993 turn=[busy 1792988446 78630 c35e8dd7-f82f-4cb3-b95a-2d3b3458e573] ledger=[epoch=5 owner_pid=30710 outcome=rewake updated_at=1792988445 session_pid=78630] queue_lines=0 presented=[]
+1792988454.114 turn=[idle 1792988446 78630 c35e8dd7-f82f-4cb3-b95a-2d3b3458e573] ledger=[epoch=5 owner_pid=30710 outcome=rewake updated_at=1792988445 session_pid=78630] queue_lines=0 presented=[]
+1792988548.505 turn=[busy 1792988548 78630 c35e8dd7-f82f-4cb3-b95a-2d3b3458e573] ledger=[epoch=5 owner_pid=30710 outcome=rewake updated_at=1792988445 session_pid=78630] queue_lines=0 presented=[]
+1792988556.493 turn=[busy 1792988548 78630 c35e8dd7-f82f-4cb3-b95a-2d3b3458e573] ledger=[epoch=5 owner_pid=30710 outcome=rewake updated_at=1792988445 session_pid=78630] queue_lines=1 presented=[]
+# notification that started the post-clear wake turn (source command named by Claude):
+Stop hook blocking error from command "SessionStart:clear": firstmate watcher wake - one supervision event needs a handling turn now.
+check: lab-preclear-1 live post-clear probe; no action needed beyond draining and acknowledging
+check: lab-preclear-2 live post-clear probe; no action needed beyond draining and acknowledging
+# digest line the SessionStart hook re-emit printed in that session:
+Queued wakes below are presented only: drain them with bin/fm-wake-drain.sh in a turn before handling them.
+
+# Run B: digest-only acknowledgement refused. Row lab-digestack-2 queued behind an interrupted turn, then /clear.
+APPENDED_AT=1792988653.189 ESCAPE_AT=1792988655.392
+CLEAR_SENT_AT=1792988666.948
+# ack typed the instant the digest finished (before main drained), using the recovery generation main last saw:
+DIGEST_COMPLETE_SEEN_AT=1792988671.616
+recovery_generation_used=5796.1792988653.QsH6eg
+presented_before_ack=[] queue_max_seq=16
+wake drain: row 16 was not presented to main in a turn, so this acknowledgement is refused; re-run bin/fm-wake-drain.sh in a turn and use the WAKE_ACK_REQUIRED command it prints
+ACK_RC=1
+ACK_DONE_AT=1792988671.857
+queue_lines_after_ack=1
+# observer:
+1792988653.261 turn=[busy 1792988645 78630 b14666cc-2899-4e96-b989-d35fda7a62a5] ledger=[epoch=6 owner_pid=76449 outcome=rewake updated_at=1792988577 session_pid=78630] queue_lines=1 presented=[]
+1792988668.618 turn=[idle 1792988668 78630 7692db3e-d9df-4f49-8358-dcf69214eabf] ledger=[epoch=6 owner_pid=76449 outcome=rewake updated_at=1792988577 session_pid=78630] queue_lines=1 presented=[]
+1792988671.837 turn=[idle 1792988668 78630 7692db3e-d9df-4f49-8358-dcf69214eabf] ledger=[epoch=7 owner_pid=11724 outcome=arming updated_at=1792988671] queue_lines=1 presented=[]
+1792988672.381 turn=[busy 1792988673 78630 7692db3e-d9df-4f49-8358-dcf69214eabf] ledger=[epoch=7 owner_pid=11724 outcome=rewake updated_at=1792988672 session_pid=78630] queue_lines=1 presented=[]
+1792988675.165 turn=[busy 1792988673 78630 7692db3e-d9df-4f49-8358-dcf69214eabf] ledger=[epoch=7 owner_pid=11724 outcome=rewake updated_at=1792988672 session_pid=78630] queue_lines=1 presented=[16,]
+1792988678.225 turn=[busy 1792988673 78630 7692db3e-d9df-4f49-8358-dcf69214eabf] ledger=[epoch=7 owner_pid=11724 outcome=rewake updated_at=1792988672 session_pid=78630] queue_lines=0 presented=[]
+1792988679.340 turn=[idle 1792988673 78630 7692db3e-d9df-4f49-8358-dcf69214eabf] ledger=[epoch=7 owner_pid=11724 outcome=rewake updated_at=1792988672 session_pid=78630] queue_lines=0 presented=[]
+# notification that started the post-clear wake turn:
+Stop hook blocking error from command "SessionStart:clear": firstmate watcher wake - one supervision event needs a handling turn now.
+check: lab-digestack-2 live digest-only ack probe; no action needed beyond draining and acknowledging
+# pane:
+ ▐▛███▛█   Claude Code v2.1.310
+▝▜██████▀  Sonnet 5.5 with medium effort · Claude Max                                                                                                                                                                       
+ ▝▝   ▝▝   /private/tmp/fmlab.jzmD02/home
+❯ /clear                                                                                                                                                                                                                    
+⏺ Stop hook feedback
+  Ran 2 shell commands        
+⏺ Captain, shipshape.
+✻ Cogitated for 7s · done 11:24 PM
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯                                                                                                                                                                          
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 3 agents                   

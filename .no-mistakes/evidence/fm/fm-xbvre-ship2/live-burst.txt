@@ -1,0 +1,20 @@
+# Live burst: ten check rows appended back to back (BURST_START=1792988272.923, BURST_END=1792988274.112) on the idle real Claude lab primary
+# observer: one ledger generation (epoch 3) and one wake turn, which drained all ten rows (presented 3..12) and acknowledged them
+1792988271.372 turn=[idle 1792988195 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=2 owner_pid=25866 outcome=rewake updated_at=1792988194 session_pid=78630] queue_lines=0 presented=[]
+1792988273.206 turn=[idle 1792988195 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=2 owner_pid=25866 outcome=rewake updated_at=1792988194 session_pid=78630] queue_lines=2 presented=[]
+1792988273.500 turn=[idle 1792988195 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=2 owner_pid=25866 outcome=rewake updated_at=1792988194 session_pid=78630] queue_lines=4 presented=[]
+1792988273.792 turn=[idle 1792988195 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=2 owner_pid=25866 outcome=rewake updated_at=1792988194 session_pid=78630] queue_lines=7 presented=[]
+1792988274.081 turn=[idle 1792988195 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=2 owner_pid=25866 outcome=rewake updated_at=1792988194 session_pid=78630] queue_lines=9 presented=[]
+1792988274.391 turn=[idle 1792988195 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=2 owner_pid=25866 outcome=rewake updated_at=1792988194 session_pid=78630] queue_lines=10 presented=[]
+1792988275.233 turn=[idle 1792988195 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=3 owner_pid=58097 outcome=arming updated_at=1792988275] queue_lines=10 presented=[]
+1792988275.525 turn=[busy 1792988276 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=3 owner_pid=58097 outcome=rewake updated_at=1792988275 session_pid=78630] queue_lines=10 presented=[]
+1792988278.405 turn=[busy 1792988276 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=3 owner_pid=58097 outcome=rewake updated_at=1792988275 session_pid=78630] queue_lines=10 presented=[3,4,5,6,7,8,9,10,11,12,]
+1792988282.027 turn=[busy 1792988276 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=3 owner_pid=58097 outcome=rewake updated_at=1792988275 session_pid=78630] queue_lines=0 presented=[]
+1792988283.144 turn=[idle 1792988276 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=3 owner_pid=58097 outcome=rewake updated_at=1792988275 session_pid=78630] queue_lines=0 presented=[]
+# 30 s after the wake turn ended, ledger head and turn record:
+epoch=3 owner_pid=58097 outcome=rewake updated_at=1792988275 session_pid=78630
+idle 1792988276 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5
+# all rewake notifications Claude delivered in this session (source command named by Claude):
+Stop hook blocking error from command "FileChanged": firstmate watcher wake - one supervision event needs a handling turn now.
+Stop hook blocking error from command "Stop": firstmate watcher wake - one supervision event needs a handling turn now.
+Stop hook blocking error from command "FileChanged": firstmate watcher wake - one supervision event needs a handling turn now.

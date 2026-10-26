@@ -1,0 +1,3 @@
+ok - under state/.afk a hook session open keeps the away daemon's presented set, so its acknowledgement consumes the rows
+ok - a hook session open without state/.afk empties main's presented set, presents only, and refuses a digest-only acknowledgement
+# targeted: both new session-start cases passed

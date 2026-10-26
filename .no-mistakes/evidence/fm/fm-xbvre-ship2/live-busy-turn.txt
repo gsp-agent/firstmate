@@ -1,0 +1,43 @@
+# Live busy turn: row lab-busy-1 appended mid-turn (during 'sleep 20') on the real Claude lab primary
+APPENDED_AT=1792988176.196
+# observer (turn record / ledger head / queue / presented); ledger stays at epoch 1 until the turn ends, then exactly one rewake (epoch 2)
+1792988167.662 turn=[idle 1792988115 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=1 owner_pid=97570 outcome=rewake updated_at=1792988114 session_pid=78630] queue_lines=0 presented=[]
+1792988169.069 turn=[busy 1792988169 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=1 owner_pid=97570 outcome=rewake updated_at=1792988114 session_pid=78630] queue_lines=0 presented=[]
+1792988176.321 turn=[busy 1792988169 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=1 owner_pid=97570 outcome=rewake updated_at=1792988114 session_pid=78630] queue_lines=1 presented=[]
+1792988193.632 turn=[idle 1792988169 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=1 owner_pid=97570 outcome=rewake updated_at=1792988114 session_pid=78630] queue_lines=1 presented=[]
+1792988193.920 turn=[idle 1792988169 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=2 owner_pid=25866 outcome=arming updated_at=1792988193] queue_lines=1 presented=[]
+1792988194.485 turn=[idle 1792988169 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=2 owner_pid=25866 outcome=rewake updated_at=1792988194 session_pid=78630] queue_lines=1 presented=[]
+1792988194.777 turn=[busy 1792988195 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=2 owner_pid=25866 outcome=rewake updated_at=1792988194 session_pid=78630] queue_lines=1 presented=[]
+1792988197.303 turn=[busy 1792988195 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=2 owner_pid=25866 outcome=rewake updated_at=1792988194 session_pid=78630] queue_lines=1 presented=[2,]
+1792988200.634 turn=[busy 1792988195 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=2 owner_pid=25866 outcome=rewake updated_at=1792988194 session_pid=78630] queue_lines=0 presented=[]
+1792988201.728 turn=[idle 1792988195 78630 7d7c1862-4d98-4050-91ad-479ee364b6b5] ledger=[epoch=2 owner_pid=25866 outcome=rewake updated_at=1792988194 session_pid=78630] queue_lines=0 presented=[]
+
+# rewake notifications Claude delivered so far, from the lab session transcript (source command named by Claude)
+Stop hook blocking error from command "FileChanged": firstmate watcher wake - one supervision event needs a handling turn now.
+Stop hook blocking error from command "Stop": firstmate watcher wake - one supervision event needs a handling turn now.
+
+# pane
+ ▐▛███▛█   Claude Code v2.1.310
+▝▜██████▀  Sonnet 5.5 with medium effort · Claude Max
+ ▝▝   ▝▝   /private/tmp/fmlab.jzmD02/home
+❯ Lab readiness probe from bin/fm-live-lab.sh. Run no tool or command for this message. Reply with only the word LABREADY, a hyphen, and then b8f5b9b7b0e8, with no spaces.                                                 
+⏺ LABREADY-b8f5b9b7b0e8
+✻ Worked for 3s · done 11:14 PM
+⏺ Stop hook feedback
+  Ran 1 shell command              
+⏺ The wake is a live waker probe with nothing to act on. Acknowledging.
+  Ran 1 shell command     
+⏺ Captain, shipshape.
+✻ Brewed for 10s · done 11:15 PM
+❯ Lab busy-turn probe: run exactly the shell command 'sleep 20' with your Bash tool (nothing else), then reply with only BUSYDONE.                                                                                          
+  Ran 1 shell command              
+⏺ BUSYDONE                                       
+✻ Worked for 24s · done 11:16 PM
+⏺ Stop hook feedback
+  Ran 2 shell commands        
+⏺ Captain, shipshape.
+✻ Churned for 7s · done 11:16 PM
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯                                                                                                                                                                          
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 3 agents                   

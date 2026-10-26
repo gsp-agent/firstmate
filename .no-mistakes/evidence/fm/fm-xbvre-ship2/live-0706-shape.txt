@@ -1,0 +1,56 @@
+# Live 07:06Z shape: /clear while main's Stop hook is parked, the parked hook dies undelivered, a note arrives later
+CLEAR_SENT_AT=1792988997.508
+# Step 1, Claude 2.1.310 keeps the old parked hook (29913) across /clear; note-1 appended at 1792989028.409 was delivered by that hook (source Stop), one rewake:
+1792988996.382 turn=[idle 1792988939 87152 01187be9-9cb1-4003-8e8b-fb3faa866e88] ledger=[epoch=2 owner_pid=29913 outcome=arming updated_at=1792988950] queue_lines=0 presented=[]
+1792988999.179 turn=[idle 1792988998 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=2 owner_pid=29913 outcome=arming updated_at=1792988950] queue_lines=0 presented=[]
+1792989028.589 turn=[idle 1792988998 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=2 owner_pid=29913 outcome=arming updated_at=1792988950] queue_lines=1 presented=[]
+1792989034.080 turn=[idle 1792988998 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=2 owner_pid=29913 outcome=rewake updated_at=1792989033 session_pid=87152] queue_lines=1 presented=[]
+1792989034.372 turn=[busy 1792989034 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=2 owner_pid=29913 outcome=rewake updated_at=1792989033 session_pid=87152] queue_lines=1 presented=[]
+1792989038.060 turn=[busy 1792989034 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=2 owner_pid=29913 outcome=rewake updated_at=1792989033 session_pid=87152] queue_lines=1 presented=[7,]
+1792989041.407 turn=[busy 1792989034 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=2 owner_pid=29913 outcome=rewake updated_at=1792989033 session_pid=87152] queue_lines=0 presented=[7,]
+1792989041.699 turn=[busy 1792989034 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=2 owner_pid=29913 outcome=rewake updated_at=1792989033 session_pid=87152] queue_lines=0 presented=[]
+1792989042.559 turn=[idle 1792989034 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=2 owner_pid=29913 outcome=rewake updated_at=1792989033 session_pid=87152] queue_lines=0 presented=[]
+1792989042.853 turn=[idle 1792989034 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=3 owner_pid=73049 outcome=arming updated_at=1792989042] queue_lines=0 presented=[]
+1792989124.773 turn=[idle 1792989034 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=3 owner_pid=73049 outcome=arming updated_at=1792989042] queue_lines=1 presented=[]
+1792989125.618 turn=[idle 1792989034 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=4 owner_pid=98521 outcome=arming updated_at=1792989125] queue_lines=1 presented=[]
+1792989125.900 turn=[idle 1792989034 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=4 owner_pid=98521 outcome=rewake updated_at=1792989125 session_pid=87152] queue_lines=1 presented=[]
+1792989126.189 turn=[busy 1792989126 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=4 owner_pid=98521 outcome=rewake updated_at=1792989125 session_pid=87152] queue_lines=1 presented=[]
+1792989128.415 turn=[busy 1792989126 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=4 owner_pid=98521 outcome=rewake updated_at=1792989125 session_pid=87152] queue_lines=1 presented=[8,]
+1792989131.956 turn=[busy 1792989126 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=4 owner_pid=98521 outcome=rewake updated_at=1792989125 session_pid=87152] queue_lines=0 presented=[]
+1792989132.794 turn=[idle 1792989126 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=5 owner_pid=2298 outcome=arming updated_at=1792989132] queue_lines=0 presented=[]
+
+# Step 2, the next parked hook (pid 73049, ledger epoch 3 arming) is SIGKILLed so it exits without delivering; its supervision-host child is left running as the covering watcher
+HOOK_KILLED_AT=1792989106.207
+APPENDED_AT=1792989124.710 (row lab-0706-note-2)
+# observer: the waker supersedes the dead owner's claim (epoch 4, owner 98521) and commits the rewake 1.19 s after the append; main is busy at +1.48 s; after the wake turn the Stop hook parks again (epoch 5)
+1792989105.082 turn=[idle 1792989034 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=3 owner_pid=73049 outcome=arming updated_at=1792989042] queue_lines=0 presented=[]
+1792989124.763 turn=[idle 1792989034 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=3 owner_pid=73049 outcome=arming updated_at=1792989042] queue_lines=1 presented=[]
+1792989125.619 turn=[idle 1792989034 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=4 owner_pid=98521 outcome=arming updated_at=1792989125] queue_lines=1 presented=[]
+1792989125.900 turn=[idle 1792989034 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=4 owner_pid=98521 outcome=rewake updated_at=1792989125 session_pid=87152] queue_lines=1 presented=[]
+1792989126.189 turn=[busy 1792989126 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=4 owner_pid=98521 outcome=rewake updated_at=1792989125 session_pid=87152] queue_lines=1 presented=[]
+1792989128.414 turn=[busy 1792989126 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=4 owner_pid=98521 outcome=rewake updated_at=1792989125 session_pid=87152] queue_lines=1 presented=[8,]
+1792989131.969 turn=[busy 1792989126 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=4 owner_pid=98521 outcome=rewake updated_at=1792989125 session_pid=87152] queue_lines=0 presented=[]
+1792989132.797 turn=[idle 1792989126 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=5 owner_pid=2298 outcome=arming updated_at=1792989132] queue_lines=0 presented=[]
+# notifications in the cleared session (source command named by Claude):
+Stop hook blocking error from command "Stop": firstmate watcher wake - one supervision event needs a handling turn now.
+check: lab-0706-note-1 live post-clear note; no action needed beyond draining and acknowledging
+--
+Stop hook blocking error from command "FileChanged": firstmate watcher wake - one supervision event needs a handling turn now.
+check: lab-0706-note-2 live note after the parked hook died undelivered; no action needed beyond draining and acknowledging
+# pane:
+ ▐▛███▛█   Claude Code v2.1.310
+▝▜██████▀  Sonnet 5.5 with medium effort · Claude Max
+ ▝▝   ▝▝   /private/tmp/fmlab.v60mqX/home
+❯ /clear                                                                                                                                                                                                                    
+⏺ Stop hook feedback
+  Ran 2 shell commands             
+⏺ Captain, shipshape.
+✻ Cooked for 8s · done 11:30 PM    
+⏺ Stop hook feedback
+  Ran 2 shell commands        
+⏺ Captain, shipshape.
+✻ Baked for 7s · done 11:32 PM
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯                                                                                                                                                                          
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 3 agents                   

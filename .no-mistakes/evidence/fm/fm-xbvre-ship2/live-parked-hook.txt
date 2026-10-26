@@ -1,0 +1,23 @@
+# Live parked hook present (lab with a real gated worker; supervision host on, the Claude default)
+# Before the append: ledger epoch=1 owner_pid=2473 outcome=arming; pid 2473 = bin/fm-claude-stop-autoarm.sh, child of the lab Claude 87152, running the supervision host
+APPENDED_AT=1792988911.755 (row lab-parked-1)
+# observer: no waker generation appears; the parked owner 2473 commits the rewake in its own generation when its watcher closes, then a fresh park (epoch 2)
+1792988910.426 turn=[idle 1792988883 87152 01187be9-9cb1-4003-8e8b-fb3faa866e88] ledger=[epoch=1 owner_pid=2473 outcome=arming updated_at=1792988887] queue_lines=0 presented=[]
+1792988911.857 turn=[idle 1792988883 87152 01187be9-9cb1-4003-8e8b-fb3faa866e88] ledger=[epoch=1 owner_pid=2473 outcome=arming updated_at=1792988887] queue_lines=1 presented=[]
+1792988920.304 turn=[idle 1792988883 87152 01187be9-9cb1-4003-8e8b-fb3faa866e88] ledger=[epoch=1 owner_pid=2473 outcome=arming updated_at=1792988887] queue_lines=2 presented=[]
+1792988920.594 turn=[idle 1792988883 87152 01187be9-9cb1-4003-8e8b-fb3faa866e88] ledger=[epoch=1 owner_pid=2473 outcome=arming updated_at=1792988887] queue_lines=5 presented=[]
+1792988934.707 turn=[idle 1792988883 87152 01187be9-9cb1-4003-8e8b-fb3faa866e88] ledger=[epoch=1 owner_pid=2473 outcome=arming updated_at=1792988887] queue_lines=1 presented=[]
+1792988938.311 turn=[idle 1792988883 87152 01187be9-9cb1-4003-8e8b-fb3faa866e88] ledger=[epoch=1 owner_pid=2473 outcome=rewake updated_at=1792988938 session_pid=87152] queue_lines=1 presented=[]
+1792988938.608 turn=[busy 1792988939 87152 01187be9-9cb1-4003-8e8b-fb3faa866e88] ledger=[epoch=1 owner_pid=2473 outcome=rewake updated_at=1792988938 session_pid=87152] queue_lines=1 presented=[]
+1792988945.118 turn=[busy 1792988939 87152 01187be9-9cb1-4003-8e8b-fb3faa866e88] ledger=[epoch=1 owner_pid=2473 outcome=rewake updated_at=1792988938 session_pid=87152] queue_lines=1 presented=[1,]
+1792988948.992 turn=[busy 1792988939 87152 01187be9-9cb1-4003-8e8b-fb3faa866e88] ledger=[epoch=1 owner_pid=2473 outcome=rewake updated_at=1792988938 session_pid=87152] queue_lines=0 presented=[]
+1792988950.099 turn=[idle 1792988939 87152 01187be9-9cb1-4003-8e8b-fb3faa866e88] ledger=[epoch=1 owner_pid=2473 outcome=rewake updated_at=1792988938 session_pid=87152] queue_lines=0 presented=[]
+1792988950.394 turn=[idle 1792988939 87152 01187be9-9cb1-4003-8e8b-fb3faa866e88] ledger=[epoch=2 owner_pid=29913 outcome=arming updated_at=1792988950] queue_lines=0 presented=[]
+1792988952.282 turn=[idle 1792988939 87152 01187be9-9cb1-4003-8e8b-fb3faa866e88] ledger=[epoch=2 owner_pid=29913 outcome=arming updated_at=1792988950] queue_lines=1 presented=[]
+1792988962.715 turn=[idle 1792988939 87152 01187be9-9cb1-4003-8e8b-fb3faa866e88] ledger=[epoch=2 owner_pid=29913 outcome=arming updated_at=1792988950] queue_lines=0 presented=[]
+1792988999.182 turn=[idle 1792988998 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=2 owner_pid=29913 outcome=arming updated_at=1792988950] queue_lines=0 presented=[]
+1792989028.576 turn=[idle 1792988998 87152 cf3e3fdd-48ef-40d8-a559-6f16c873a026] ledger=[epoch=2 owner_pid=29913 outcome=arming updated_at=1792988950] queue_lines=1 presented=[]
+# notification (source command named by Claude):
+Stop hook blocking error from command "Stop": firstmate watcher wake - one supervision event needs a handling turn now.
+supervision-host: the supervision session handled this wake, and a main-only wake is queued for you; run bin/fm-wake-drain.sh and handle it
+check: lab-parked-1 live parked-hook probe; no action needed beyond draining and acknowledging
