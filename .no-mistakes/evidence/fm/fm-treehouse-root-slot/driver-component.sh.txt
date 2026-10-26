@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# Drive fm_treehouse_free_own_slot (base vs change) against real Treehouse pools.
+# Usage: component.sh <worktree> <base-commit> <treehouse-v2.0.1-dir>
+set -u
+WTREE=$1 BASE=$2 TH201=$3
+R=$(mktemp -d /tmp/fmrs-comp.XXXXXX); R=$(cd -P "$R" && pwd -P)
+R_LINK=/tmp/${R#/private/tmp/}   # same dir through macOS's /tmp -> /private/tmp symlink
+mkdir -p "$R/base-tree" "$R/fmhome/state" "$R/user-home"
+git -C "$WTREE" archive "$BASE" bin | tar -x -C "$R/base-tree"
+export HOME="$R/user-home"
+unset TREEHOUSE_ROOT
+echo "lab root: $R (also reachable as $R_LINK)"
+echo "change lib: $WTREE/bin/fm-wake-lib.sh @ $(git -C "$WTREE" rev-parse --short HEAD)"
+echo "base lib:   base-tree/bin/fm-wake-lib.sh @ $(git -C "$WTREE" rev-parse --short "$BASE")"
+
+mkproj() {  # <name> -> project path
+  local n=$1 seed="$R/$1-seed" origin="$R/$1-origin.git" proj="$R/$1"
+  git init -q -b main "$seed"; echo "$n" > "$seed/README.md"
+  git -C "$seed" add -A; git -C "$seed" -c user.name=lab -c user.email=lab@example.invalid commit -qm seed
+  git clone -q --bare "$seed" "$origin"; rm -rf "$seed"
+  git clone -q "$origin" "$proj"
+  echo treehouse.toml >> "$proj/.git/info/exclude"
+  printf '%s\n' "$proj"
+}
+setroot() { printf 'max_trees = 16\nroot = "%s"\n' "$2" > "$1/treehouse.toml"; }
+lease() { (cd "$1" && { treehouse get --lease --no-fetch </dev/null 2>/dev/null || treehouse get --lease </dev/null 2>/dev/null; }); }
+giveback() { (cd "$1" && treehouse return "$2" </dev/null >/dev/null 2>&1); }
+claim() { printf 'task=other-task\nhome=%s\n' "$R/fmhome" > "$(dirname "$1")/.fm-slot-owner"; }
+pick() {  # <lib-bin-dir> <project>
+  FM_HOME="$R/fmhome" FM_ROOT_OVERRIDE='' bash -c '. "$1/fm-wake-lib.sh"; fm_treehouse_free_own_slot "$2" main' pick "$1" "$2" 2>/dev/null
+}
+show() {  # <label> <project>
+  local b c
+  b=$(pick "$R/base-tree/bin" "$2"); c=$(pick "$WTREE/bin" "$2")
+  echo "  [$1] base picks:   ${b:-<nothing>}"
+  echo "  [$1] change picks: ${c:-<nothing>}"
+}
+status_json() { (cd "$1" && treehouse status --json </dev/null 2>/dev/null) | jq -c '[.[] | {name, path, status}]' 2>/dev/null || echo '(status --json unavailable)'; }
+
+echo; echo "treehouse on PATH: $(treehouse --version 2>/dev/null | tail -1)"
+
+echo; echo "=== C1 incident replay: old pool keeps free own slot 3, configured root moved to a fresh pool ==="
+p=$(mkproj inc); setroot "$p" "$R/inc-rootA"
+s1=$(lease "$p"); s2=$(lease "$p"); s3=$(lease "$p")
+for s in "$s1" "$s2" "$s3"; do giveback "$p" "$s"; done
+claim "$s1"; claim "$s2"
+setroot "$p" "$R/inc-rootB"
+echo "  old pool slots: $s1 (claimed) $s2 (claimed) $s3 (free)"
+echo "  status --json in project: $(status_json "$p")"
+show C1 "$p"
+echo "  treehouse enter --print-path 3 (what base's choice would run): $(cd "$p" && treehouse enter --print-path 3 </dev/null 2>&1 | grep -v -e 'new version' -e 'treehouse update' -e '^$')"
+
+echo; echo "=== C2 configured pool's free slot 2 vs lower-named free slot 1 left in the old pool (root via /tmp symlink) ==="
+p=$(mkproj low); setroot "$p" "$R_LINK/low-rootA"
+a1=$(lease "$p"); giveback "$p" "$a1"
+setroot "$p" "$R_LINK/low-rootB"
+b1=$(lease "$p"); b2=$(lease "$p"); giveback "$p" "$b1"; giveback "$p" "$b2"; claim "$b1"
+echo "  old pool: $a1 (free); configured pool: $b1 (claimed by other-task) $b2 (free)"
+echo "  status --json in project: $(status_json "$p")"
+show C2 "$p"
+echo "  treehouse enter --print-path 1 (what base's choice would run): $(cd "$p" && treehouse enter --print-path 1 </dev/null 2>/dev/null)"
+
+echo; echo "=== C3 no root change: one pool, slot 1 claimed, slot 2 free ==="
+p=$(mkproj same); setroot "$p" "$R/same-root"
+x1=$(lease "$p"); x2=$(lease "$p"); giveback "$p" "$x1"; giveback "$p" "$x2"; claim "$x1"
+show C3 "$p"
+
+echo; echo "=== C4 configured root reached through a symlinked directory ==="
+p=$(mkproj sym); mkdir -p "$R/sym-real"; ln -s "$R/sym-real" "$R/sym-link"
+setroot "$p" "$R/sym-oldroot"; o1=$(lease "$p"); giveback "$p" "$o1"
+setroot "$p" "$R/sym-link"; n1=$(lease "$p"); n2=$(lease "$p"); giveback "$p" "$n1"; giveback "$p" "$n2"; claim "$n1"
+echo "  status --json path: $(status_json "$p" | jq -r '.[1].path' 2>/dev/null)"
+echo "  git worktree list:"; git -C "$p" worktree list | sed 's/^/    /'
+show C4 "$p"
+
+echo; echo "=== C5 configured pool exists but every slot is claimed or dirty, old pool has a free slot ==="
+p=$(mkproj full); setroot "$p" "$R/full-rootA"; f1=$(lease "$p"); giveback "$p" "$f1"
+setroot "$p" "$R/full-rootB"; g1=$(lease "$p"); g2=$(lease "$p"); giveback "$p" "$g1"; giveback "$p" "$g2"
+claim "$g1"; echo residue > "$g2/residue.txt"
+show C5 "$p"
+
+echo; echo "=== C6 adversarial: treehouse status cannot read the config (malformed treehouse.toml) ==="
+p=$(mkproj bad); setroot "$p" "$R/bad-root"; h1=$(lease "$p"); h2=$(lease "$p"); giveback "$p" "$h1"; giveback "$p" "$h2"; claim "$h1"
+printf 'max_trees = = broken\n' > "$p/treehouse.toml"
+echo "  treehouse status --json rc: $(cd "$p" && treehouse status --json </dev/null >/dev/null 2>&1; echo $?)"
+show C6 "$p"
+
+echo; echo "=== C7 Treehouse v2.0.1 (no status --json): selection as before ==="
+PATH="$TH201:$PATH"
+echo "  treehouse on PATH: $(treehouse --version 2>/dev/null | tail -1); status --json rc: $(cd "$R" && treehouse status --json </dev/null >/dev/null 2>&1; echo $?)"
+p=$(mkproj old); setroot "$p" "$R/old-root"
+y1=$(lease "$p"); y2=$(lease "$p"); giveback "$p" "$y1"; giveback "$p" "$y2"; claim "$y1"
+echo "  pool: $y1 (claimed) $y2 (free)"
+show C7 "$p"
+
+echo; echo "all Treehouse calls ran with HOME=$R/user-home and explicit pool roots under $R"
+echo "LABROOT=$R"

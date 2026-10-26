@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+# End-to-end: real bin/fm-spawn.sh (base tree vs change tree) on a private lab
+# tmux server, a marked lab FM_HOME, and real Treehouse v2.3.0 pools whose
+# configured root has been switched. Each spawn is stopped deterministically
+# right after slot selection + entry + claim by a planted conflict: the task's
+# ship branch is already checked out in a non-pool worktree, so
+# prepare_ship_branch refuses and names the slot it was about to use. Nothing
+# launches a model, and no trust store is written.
+# Usage: e2e.sh <worktree> <base-commit>
+set -u
+WTREE=$1 BASE=$2
+R=$(mktemp -d /tmp/fmrs-e2e.XXXXXX); R=$(cd -P "$R" && pwd -P)
+LAB="$R/home" UH="$R/user-home" BT="$R/base-tree"
+mkdir -p "$UH" "$BT" "$R/origins" "$R/blockers" "$R/out"
+git -C "$WTREE" archive "$BASE" | tar -x -C "$BT"
+"$WTREE/bin/fm-lab-home.sh" create "$LAB" >/dev/null || { echo "cannot create lab home"; exit 1; }
+TMUX_DIR=$("$WTREE/bin/fm-lab-home.sh" tmux-dir "$LAB") || { echo "cannot create tmux dir"; exit 1; }
+printf 'tmux\n' > "$LAB/config/backend"; printf 'codex\n' > "$LAB/config/crew-harness"
+touch "$LAB/state/.last-watcher-beat"
+: > "$LAB/data/projects.md"; printf '# Projects\n\n' > "$LAB/data/projects.md"
+echo "lab root: $R"; echo "lab FM_HOME: $LAB (marked: $([ -f "$LAB/.fm-lab-home" ] && echo yes || echo no))"
+echo "change tree: $WTREE @ $(git -C "$WTREE" rev-parse --short HEAD); base tree: $BT @ $(git -C "$WTREE" rev-parse --short "$BASE")"
+
+labenv() { env -i HOME="$UH" USER="${USER:-$(id -un)}" LOGNAME="${USER:-$(id -un)}" PATH="$PATH" SHELL=/bin/bash \
+  TERM=xterm-256color LANG=en_US.UTF-8 TMUX_TMPDIR="$TMUX_DIR" FM_BACKEND=tmux CODEX_HOME= "$@"; }
+ltmux() { labenv tmux "$@"; }
+ltmux -f /dev/null new-session -d -s firstmate -n lab -x 220 -y 60 -c "$R" || { echo "cannot start lab tmux"; exit 1; }
+echo "lab tmux server pid: $(ltmux display-message -p '#{pid}') socket dir: $TMUX_DIR"
+
+mkproj() {  # <name>: origin + clone at $LAB/projects/<name>, registered local-only
+  local n=$1 seed="$R/origins/$1-seed" origin="$R/origins/$1.git" proj="$LAB/projects/$1"
+  git init -q -b main "$seed"; printf '# %s\n' "$n" > "$seed/README.md"
+  git -C "$seed" add -A; git -C "$seed" -c user.name=lab -c user.email=lab@example.invalid commit -qm seed
+  git clone -q --bare "$seed" "$origin"; rm -rf "$seed"
+  git clone -q "$origin" "$proj"
+  echo treehouse.toml >> "$proj/.git/info/exclude"
+  printf -- '- %s [local-only +yolo] - lab project %s\n' "$n" "$n" >> "$LAB/data/projects.md"
+}
+setroot() { printf 'max_trees = 16\nroot = "%s"\n' "$2" > "$LAB/projects/$1/treehouse.toml"; }
+lease() { (cd "$LAB/projects/$1" && labenv treehouse get --lease --no-fetch </dev/null 2>/dev/null); }
+giveback() { (cd "$LAB/projects/$1" && labenv treehouse return "$2" </dev/null >/dev/null 2>&1); }
+claim() { printf 'task=other-task\nhome=%s\n' "$LAB" > "$(dirname "$1")/.fm-slot-owner"; }
+
+brief() {  # <id> <project>
+  local id=$1 b
+  (cd "$LAB" && labenv FM_HOME="$LAB" "$WTREE/bin/fm-brief.sh" "$id" "$2" --mode local-only) >/dev/null || return 1
+  b="$LAB/data/$id/brief.md"
+  TASK_TEXT="Lab spawn for Treehouse root-switch slot steering. Do nothing." \
+  SPEC_TEXT="End your turn immediately. Nothing is in scope." python3 - "$b" <<'PY'
+import os, sys
+p = sys.argv[1]; t = open(p, encoding="utf-8").read()
+t = t.replace("{TASK}", os.environ["TASK_TEXT"], 1).replace("{FIRSTMATE_SPEC}", os.environ["SPEC_TEXT"], 1)
+open(p, "w", encoding="utf-8").write(t)
+PY
+  (cd "$LAB" && labenv FM_HOME="$LAB" "$WTREE/bin/fm-tasks-axi.sh" add "$id" "lab root-switch spawn" --kind ship --repo "$2") >/dev/null 2>&1 || true
+}
+
+plant_stop() {  # <id> <project>: the ship branch is already checked out in a non-pool worktree
+  git -C "$LAB/projects/$2" worktree add --quiet -b "fm/$1" "$R/blockers/$1" 2>/dev/null
+}
+
+spawn_case() {  # <label> <tree> <id> <project>
+  local label=$1 tree=$2 id=$3 proj=$4 rc t0 t1 poller win
+  echo; echo "--- [$label] $(basename "$tree" | sed 's/^base-tree$/BASE/;s/^01M5.*/CHANGE/') fm-spawn.sh $id $proj"
+  ( while :; do
+      for w in $(ltmux list-windows -t firstmate -F '#{window_name}' 2>/dev/null); do
+        [ "$w" = "fm-$id" ] || continue
+        snap=$(ltmux capture-pane -p -t "firstmate:=$w" 2>/dev/null) || continue
+        [ -n "$(printf '%s' "$snap" | tr -d '[:space:]')" ] && printf '%s\n' "$snap" > "$R/out/$id.pane"
+        ltmux display-message -p -t "firstmate:=$w" '#{pane_current_path}' > "$R/out/$id.cwd" 2>/dev/null
+      done
+      sleep 0.5
+    done ) & poller=$!
+  t0=$(date +%s)
+  (cd "$LAB" && labenv FM_HOME="$LAB" FM_SPAWN_NO_GUARD=1 "$tree/bin/fm-spawn.sh" "$id" "$LAB/projects/$proj" \
+      --mode local-only --yolo on --harness codex) > "$R/out/$id.out" 2>&1
+  rc=$?; t1=$(date +%s)
+  sleep 1; kill "$poller" 2>/dev/null; wait "$poller" 2>/dev/null
+  echo "exit=$rc after $((t1 - t0))s"
+  echo "spawn said (error/notice lines):"; grep -E '^(error|notice|warning)' "$R/out/$id.out" | sed 's/^/  /'
+  echo "pane lines sent / treehouse output (last snapshot):"
+  grep -v '^[[:space:]]*$' "$R/out/$id.pane" 2>/dev/null | grep -v -e 'new version of treehouse' -e 'treehouse update' | sed 's/^/  | /' | head -14
+  echo "pane cwd at last snapshot: $(cat "$R/out/$id.cwd" 2>/dev/null)"
+  echo "treehouse status --json (configured pool) after spawn: $(cd "$LAB/projects/$proj" && labenv treehouse status --json </dev/null 2>/dev/null | jq -c '[.[] | {name, status, lease_holder}]')"
+}
+
+slot_claims() {  # <pool-dir>
+  local m
+  for m in "$1"/*/.fm-slot-owner; do [ -f "$m" ] && echo "  claim $(basename "$(dirname "$m")"): $(sed -n 's/^task=//p' "$m")"; done
+}
+
+# ---- E1: incident replay (old pool free slot 3, configured pool fresh) ----
+e1_setup() {  # <project>
+  local p=$1 s1 s2 s3
+  mkproj "$p"; setroot "$p" "$R/$p-rootA"
+  s1=$(lease "$p"); s2=$(lease "$p"); s3=$(lease "$p")
+  giveback "$p" "$s1"; giveback "$p" "$s2"; giveback "$p" "$s3"; claim "$s1"; claim "$s2"
+  setroot "$p" "$R/$p-rootB"
+  echo "setup $p: old pool $(dirname "$(dirname "$s3")") has free own slot 3 (1,2 claimed); configured root now $R/$p-rootB (no pool yet)"
+}
+# ---- E2: configured pool has a free slot 2; old pool has a lower-named free slot 1 ----
+e2_setup() {
+  local p=$1 a1 b1 b2
+  mkproj "$p"; setroot "$p" "$R/$p-rootA"; a1=$(lease "$p"); giveback "$p" "$a1"
+  setroot "$p" "$R/$p-rootB"; b1=$(lease "$p"); b2=$(lease "$p"); giveback "$p" "$b1"; giveback "$p" "$b2"; claim "$b1"
+  echo "setup $p: old pool free slot $a1; configured pool slot 1 claimed by other-task, slot 2 free"
+}
+# ---- E3: no root change; one pool, slot 1 claimed, slot 2 free ----
+e3_setup() {
+  local p=$1 x1 x2
+  mkproj "$p"; setroot "$p" "$R/$p-root"; x1=$(lease "$p"); x2=$(lease "$p"); giveback "$p" "$x1"; giveback "$p" "$x2"; claim "$x1"
+  echo "setup $p: single pool, slot 1 claimed by other-task, slot 2 free"
+}
+
+for spec in "E1 base e1base e1_setup" "E1 change e1chg e1_setup" "E2 base e2base e2_setup" "E2 change e2chg e2_setup" "E3 change e3chg e3_setup"; do
+  set -- $spec
+  label=$1 which=$2 proj=$3 setup=$4 id="rs-$3-z9"
+  echo; echo "================ $label ($which) ================"
+  $setup "$proj"
+  brief "$id" "$proj" || { echo "brief failed for $id"; continue; }
+  plant_stop "$id" "$proj"
+  if [ "$which" = base ]; then tree=$BT; else tree=$WTREE; fi
+  spawn_case "$label" "$tree" "$id" "$proj"
+  case "$label" in
+    E1|E2) echo "configured pool claims after spawn:"; for d in "$R/$proj-rootB"/.treehouse/*; do [ -d "$d" ] && slot_claims "$d"; done
+           echo "old pool claims after spawn:"; for d in "$R/$proj-rootA"/.treehouse/*; do [ -d "$d" ] && slot_claims "$d"; done ;;
+    E3) for d in "$R/$proj-root"/.treehouse/*; do [ -d "$d" ] && slot_claims "$d"; done ;;
+  esac
+done
+
+echo; echo "LABROOT=$R"; echo "TMUXDIR=$TMUX_DIR"

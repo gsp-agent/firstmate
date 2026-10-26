@@ -1,0 +1,119 @@
+lab root: /private/tmp/fmrs-e2e.JhGF51
+lab FM_HOME: /private/tmp/fmrs-e2e.JhGF51/home (marked: yes)
+change tree: /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5TSBQ7ZWDHPSF2SN9JQQX3W @ c811d7fc; base tree: /private/tmp/fmrs-e2e.JhGF51/base-tree @ cfd72172
+lab tmux server pid: 81044 socket dir: /tmp/fml.XX2qgr
+
+================ E1 (base) ================
+setup e1base: old pool /private/tmp/fmrs-e2e.JhGF51/e1base-rootA/.treehouse/e1base-b143d2 has free own slot 3 (1,2 claimed); configured root now /private/tmp/fmrs-e2e.JhGF51/e1base-rootB (no pool yet)
+
+--- [E1] BASE fm-spawn.sh rs-e1base-z9 e1base
+exit=1 after 75s
+spawn said (error/notice lines):
+  error: treehouse enter '3' did not enter an isolated worktree within 60s (last seen '/private/tmp/fmrs-e2e.JhGF51/home/projects/e1base': it is the spawning project itself; spawning project '/private/tmp/fmrs-e2e.JhGF51/home/projects/e1base'); inspect window firstmate:fm-rs-e1base-z9
+pane lines sent / treehouse output (last snapshot):
+  | The default interactive shell is now zsh.
+  | To update your account to use zsh, please run `chsh -s /bin/zsh`.
+  | For more details, please visit https://support.apple.com/kb/HT208050.
+  | Dales-MacBook-Pro-M4-7:e1base dalecarman$ treehouse enter '3'
+  | no worktree named "3": the pool is empty. Run 'treehouse get' to create one
+  | Dales-MacBook-Pro-M4-7:e1base dalecarman$
+pane cwd at last snapshot: /private/tmp/fmrs-e2e.JhGF51/home/projects/e1base
+treehouse status --json (configured pool) after spawn: []
+configured pool claims after spawn:
+old pool claims after spawn:
+  claim 1: other-task
+  claim 2: other-task
+
+================ E1 (change) ================
+setup e1chg: old pool /private/tmp/fmrs-e2e.JhGF51/e1chg-rootA/.treehouse/e1chg-ba6289 has free own slot 3 (1,2 claimed); configured root now /private/tmp/fmrs-e2e.JhGF51/e1chg-rootB (no pool yet)
+
+--- [E1] CHANGE fm-spawn.sh rs-e1chg-z9 e1chg
+exit=1 after 14s
+spawn said (error/notice lines):
+  error: could not check out ship branch 'fm/rs-e1chg-z9' in '/private/tmp/fmrs-e2e.JhGF51/e1chg-rootB/.treehouse/e1chg-ba6289/1/e1chg'; refusing to launch
+pane lines sent / treehouse output (last snapshot):
+  | The default interactive shell is now zsh.
+  | To update your account to use zsh, please run `chsh -s /bin/zsh`.
+  | For more details, please visit https://support.apple.com/kb/HT208050.
+  | Dales-MacBook-Pro-M4-7:e1chg dalecarman$ treehouse enter '1'
+  | 🌳 Entered worktree 1 at /private/tmp/fmrs-e2e.JhGF51/e1chg-rootB/.treehouse/e1chg-ba6289/1/e1chg. Type 'exit' to leave.
+  | The default interactive shell is now zsh.
+  | To update your account to use zsh, please run `chsh -s /bin/zsh`.
+  | For more details, please visit https://support.apple.com/kb/HT208050.
+  | bash-3.2$ 🌳 Left worktree. Pool state unchanged.
+  | Dales-MacBook-Pro-M4-7:e1chg dalecarman$
+pane cwd at last snapshot: /private/tmp/fmrs-e2e.JhGF51/home/projects/e1chg
+treehouse status --json (configured pool) after spawn: [{"name":"1","status":"available","lease_holder":""}]
+configured pool claims after spawn:
+old pool claims after spawn:
+  claim 1: other-task
+  claim 2: other-task
+
+================ E2 (base) ================
+setup e2base: old pool free slot /private/tmp/fmrs-e2e.JhGF51/e2base-rootA/.treehouse/e2base-4409ea/1/e2base; configured pool slot 1 claimed by other-task, slot 2 free
+
+--- [E2] BASE fm-spawn.sh rs-e2base-z9 e2base
+exit=1 after 8s
+spawn said (error/notice lines):
+  error: could not check out ship branch 'fm/rs-e2base-z9' in '/private/tmp/fmrs-e2e.JhGF51/e2base-rootB/.treehouse/e2base-4409ea/1/e2base'; refusing to launch
+pane lines sent / treehouse output (last snapshot):
+  | The default interactive shell is now zsh.
+  | To update your account to use zsh, please run `chsh -s /bin/zsh`.
+  | For more details, please visit https://support.apple.com/kb/HT208050.
+  | Dales-MacBook-Pro-M4-7:e2base dalecarman$ treehouse enter '1'
+  | 🌳 Entered worktree 1 at /private/tmp/fmrs-e2e.JhGF51/e2base-rootB/.treehouse/e2base-4409ea/1/e2base. Type 'exit' to leave.
+  | The default interactive shell is now zsh.
+  | To update your account to use zsh, please run `chsh -s /bin/zsh`.
+  | For more details, please visit https://support.apple.com/kb/HT208050.
+  | bash-3.2$
+pane cwd at last snapshot: /private/tmp/fmrs-e2e.JhGF51/e2base-rootB/.treehouse/e2base-4409ea/1/e2base
+treehouse status --json (configured pool) after spawn: [{"name":"1","status":"in-use","lease_holder":""},{"name":"2","status":"available","lease_holder":""}]
+configured pool claims after spawn:
+old pool claims after spawn:
+
+================ E2 (change) ================
+setup e2chg: old pool free slot /private/tmp/fmrs-e2e.JhGF51/e2chg-rootA/.treehouse/e2chg-e3834a/1/e2chg; configured pool slot 1 claimed by other-task, slot 2 free
+
+--- [E2] CHANGE fm-spawn.sh rs-e2chg-z9 e2chg
+exit=1 after 7s
+spawn said (error/notice lines):
+  error: could not check out ship branch 'fm/rs-e2chg-z9' in '/private/tmp/fmrs-e2e.JhGF51/e2chg-rootB/.treehouse/e2chg-e3834a/2/e2chg'; refusing to launch
+pane lines sent / treehouse output (last snapshot):
+  | The default interactive shell is now zsh.
+  | To update your account to use zsh, please run `chsh -s /bin/zsh`.
+  | For more details, please visit https://support.apple.com/kb/HT208050.
+  | Dales-MacBook-Pro-M4-7:e2chg dalecarman$ treehouse enter '2'
+  | 🌳 Entered worktree 2 at /private/tmp/fmrs-e2e.JhGF51/e2chg-rootB/.treehouse/e2chg-e3834a/2/e2chg. Type 'exit' to leave.
+  | The default interactive shell is now zsh.
+  | To update your account to use zsh, please run `chsh -s /bin/zsh`.
+  | For more details, please visit https://support.apple.com/kb/HT208050.
+  | bash-3.2$
+pane cwd at last snapshot: /private/tmp/fmrs-e2e.JhGF51/e2chg-rootB/.treehouse/e2chg-e3834a/2/e2chg
+treehouse status --json (configured pool) after spawn: [{"name":"1","status":"available","lease_holder":""},{"name":"2","status":"in-use","lease_holder":""}]
+configured pool claims after spawn:
+  claim 1: other-task
+old pool claims after spawn:
+
+================ E3 (change) ================
+setup e3chg: single pool, slot 1 claimed by other-task, slot 2 free
+
+--- [E3] CHANGE fm-spawn.sh rs-e3chg-z9 e3chg
+exit=1 after 7s
+spawn said (error/notice lines):
+  error: could not check out ship branch 'fm/rs-e3chg-z9' in '/private/tmp/fmrs-e2e.JhGF51/e3chg-root/.treehouse/e3chg-9a8584/2/e3chg'; refusing to launch
+pane lines sent / treehouse output (last snapshot):
+  | The default interactive shell is now zsh.
+  | To update your account to use zsh, please run `chsh -s /bin/zsh`.
+  | For more details, please visit https://support.apple.com/kb/HT208050.
+  | Dales-MacBook-Pro-M4-7:e3chg dalecarman$ treehouse enter '2'
+  | 🌳 Entered worktree 2 at /private/tmp/fmrs-e2e.JhGF51/e3chg-root/.treehouse/e3chg-9a8584/2/e3chg. Type 'exit' to leave.
+  | The default interactive shell is now zsh.
+  | To update your account to use zsh, please run `chsh -s /bin/zsh`.
+  | For more details, please visit https://support.apple.com/kb/HT208050.
+  | bash-3.2$
+pane cwd at last snapshot: /private/tmp/fmrs-e2e.JhGF51/e3chg-root/.treehouse/e3chg-9a8584/2/e3chg
+treehouse status --json (configured pool) after spawn: [{"name":"1","status":"available","lease_holder":""},{"name":"2","status":"in-use","lease_holder":""}]
+  claim 1: other-task
+
+LABROOT=/private/tmp/fmrs-e2e.JhGF51
+TMUXDIR=/tmp/fml.XX2qgr

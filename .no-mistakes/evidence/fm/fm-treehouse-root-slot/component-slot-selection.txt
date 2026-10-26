@@ -1,0 +1,51 @@
+lab root: /private/tmp/fmrs-comp.vlg7Z9 (also reachable as /tmp/fmrs-comp.vlg7Z9)
+change lib: /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5TSBQ7ZWDHPSF2SN9JQQX3W/bin/fm-wake-lib.sh @ c811d7fc
+base lib:   base-tree/bin/fm-wake-lib.sh @ cfd72172
+
+treehouse on PATH: v2.3.0
+
+=== C1 incident replay: old pool keeps free own slot 3, configured root moved to a fresh pool ===
+  old pool slots: /private/tmp/fmrs-comp.vlg7Z9/inc-rootA/.treehouse/inc-67fa8b/1/inc (claimed) /private/tmp/fmrs-comp.vlg7Z9/inc-rootA/.treehouse/inc-67fa8b/2/inc (claimed) /private/tmp/fmrs-comp.vlg7Z9/inc-rootA/.treehouse/inc-67fa8b/3/inc (free)
+  status --json in project: []
+  [C1] base picks:   /private/tmp/fmrs-comp.vlg7Z9/inc-rootA/.treehouse/inc-67fa8b/3/inc
+  [C1] change picks: <nothing>
+  treehouse enter --print-path 3 (what base's choice would run): no worktree named "3": the pool is empty. Run 'treehouse get' to create one
+
+=== C2 configured pool's free slot 2 vs lower-named free slot 1 left in the old pool (root via /tmp symlink) ===
+  old pool: /tmp/fmrs-comp.vlg7Z9/low-rootA/.treehouse/low-6eee32/1/low (free); configured pool: /tmp/fmrs-comp.vlg7Z9/low-rootB/.treehouse/low-6eee32/1/low (claimed by other-task) /tmp/fmrs-comp.vlg7Z9/low-rootB/.treehouse/low-6eee32/2/low (free)
+  status --json in project: [{"name":"1","path":"/tmp/fmrs-comp.vlg7Z9/low-rootB/.treehouse/low-6eee32/1/low","status":"available"},{"name":"2","path":"/tmp/fmrs-comp.vlg7Z9/low-rootB/.treehouse/low-6eee32/2/low","status":"available"}]
+  [C2] base picks:   /private/tmp/fmrs-comp.vlg7Z9/low-rootA/.treehouse/low-6eee32/1/low
+  [C2] change picks: /private/tmp/fmrs-comp.vlg7Z9/low-rootB/.treehouse/low-6eee32/2/low
+  treehouse enter --print-path 1 (what base's choice would run): /tmp/fmrs-comp.vlg7Z9/low-rootB/.treehouse/low-6eee32/1/low
+
+=== C3 no root change: one pool, slot 1 claimed, slot 2 free ===
+  [C3] base picks:   /private/tmp/fmrs-comp.vlg7Z9/same-root/.treehouse/same-d76d32/2/same
+  [C3] change picks: /private/tmp/fmrs-comp.vlg7Z9/same-root/.treehouse/same-d76d32/2/same
+
+=== C4 configured root reached through a symlinked directory ===
+  status --json path: /private/tmp/fmrs-comp.vlg7Z9/sym-link/.treehouse/sym-f1154d/2/sym
+  git worktree list:
+    /private/tmp/fmrs-comp.vlg7Z9/sym                                     d5a8f8a [main]
+    /private/tmp/fmrs-comp.vlg7Z9/sym-oldroot/.treehouse/sym-f1154d/1/sym d5a8f8a (detached HEAD)
+    /private/tmp/fmrs-comp.vlg7Z9/sym-real/.treehouse/sym-f1154d/1/sym    d5a8f8a (detached HEAD)
+    /private/tmp/fmrs-comp.vlg7Z9/sym-real/.treehouse/sym-f1154d/2/sym    d5a8f8a (detached HEAD)
+  [C4] base picks:   /private/tmp/fmrs-comp.vlg7Z9/sym-oldroot/.treehouse/sym-f1154d/1/sym
+  [C4] change picks: /private/tmp/fmrs-comp.vlg7Z9/sym-real/.treehouse/sym-f1154d/2/sym
+
+=== C5 configured pool exists but every slot is claimed or dirty, old pool has a free slot ===
+  [C5] base picks:   /private/tmp/fmrs-comp.vlg7Z9/full-rootA/.treehouse/full-e6e918/1/full
+  [C5] change picks: <nothing>
+
+=== C6 adversarial: treehouse status cannot read the config (malformed treehouse.toml) ===
+  treehouse status --json rc: 1
+  [C6] base picks:   /private/tmp/fmrs-comp.vlg7Z9/bad-root/.treehouse/bad-38a27f/2/bad
+  [C6] change picks: /private/tmp/fmrs-comp.vlg7Z9/bad-root/.treehouse/bad-38a27f/2/bad
+
+=== C7 Treehouse v2.0.1 (no status --json): selection as before ===
+  treehouse on PATH: v2.0.1; status --json rc: 1
+  pool: /private/tmp/fmrs-comp.vlg7Z9/old-root/.treehouse/old-f5acf1/1/old (claimed) /private/tmp/fmrs-comp.vlg7Z9/old-root/.treehouse/old-f5acf1/2/old (free)
+  [C7] base picks:   /private/tmp/fmrs-comp.vlg7Z9/old-root/.treehouse/old-f5acf1/2/old
+  [C7] change picks: /private/tmp/fmrs-comp.vlg7Z9/old-root/.treehouse/old-f5acf1/2/old
+
+all Treehouse calls ran with HOME=/private/tmp/fmrs-comp.vlg7Z9/user-home and explicit pool roots under /private/tmp/fmrs-comp.vlg7Z9
+LABROOT=/private/tmp/fmrs-comp.vlg7Z9
