@@ -1259,7 +1259,7 @@ This section is the single owner of the canonical schema and its per-field seman
 | Profile `harness` | Required in every profile. |
 | Profile `model` and `effort`; rule `why` | Optional. |
 
-[`fm-dispatch-resolve.sh --labels`](../bin/fm-dispatch-resolve.sh) uses `label_routes` without a brief or API key; its header owns label precedence, the quota-aware default-array walk, and conflict refusals.
+[`fm-dispatch-resolve.sh --labels`](../bin/fm-dispatch-resolve.sh) uses `label_routes` without a brief or API key; its header owns label precedence, the quota checks on label routes and the default-array walk, the fall-through or escalation for an exhausted label route, and conflict refusals.
 Crewmate and scout launches and relaunches follow the [launch-route guard](../bin/fm-cursor-guard.sh); [`fm-spawn.sh`](../bin/fm-spawn.sh) owns the substituted launch profile and the secondmate exclusion, and [transactional relaunch](agent-control.md#transactional-relaunch) covers control-plane ordering.
 Raw commands run the same guard and launch unchanged when it keeps their harness family; when it selects another family, the launch refuses before publishing a task record and requests the canonical `--harness` form.
 
@@ -1284,7 +1284,7 @@ Set it high when a wrong pick is costly and low when the rule is a safe runner-u
 **Provider identifiers and mappings**
 
 A profile `provider` optionally names the quota-axi provider family whose rows apply to that profile; when present, profile and rule-floor provider IDs must match the strict whole-string pattern `^[a-z0-9]+(-[a-z0-9]+)*\z`.
-The [label path's default walk](../bin/fm-dispatch-resolve.sh) also uses this declaration without a brief-mode API key.
+The [label path](../bin/fm-dispatch-resolve.sh) also uses this declaration for its label routes and default walk without a brief-mode API key.
 
 Typed resolution additively recognizes `gemini` because AGENTS.md section 4 verifies it for crewmate and scout dispatch.
 
