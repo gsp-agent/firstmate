@@ -10,17 +10,20 @@
 #   typesafe.ai call or key. After shared configuration validation and label
 #   conflict checks, attempt one quota-axi --json snapshot when available.
 #   The first matching label in the comma-separated input picks its
-#   `label_routes` profile independently of that snapshot. With no match,
-#   walk the `default` object or array in configured order: skip a rung
-#   only on concrete evidence it cannot start now (a known applicable row at
-#   0% or exhausted_now, unless Grok prepaid credits remain usable), and treat
-#   an unmeasured, missing, or unreadable quota row as eligible. This path
-#   does not rank arrays by spendPriority or apply rule approvals or floors.
+#   `label_routes` profile. With no match, walk the `default` object or array
+#   in configured order. Either way a profile is skipped only on concrete
+#   evidence it cannot start now (a known applicable row at 0% or
+#   exhausted_now, unless Grok prepaid credits remain usable); an unmeasured,
+#   missing, or unreadable quota row is eligible. A label route skipped that
+#   way falls through to the same default walk and names the skipped label in
+#   its source, except ep-opus, which means the work needs Opus, so it
+#   escalates instead of running on another model. This path does not rank
+#   arrays by spendPriority or apply rule approvals or floors.
 #   Prints "status: clear ... source: label|default" and the profile line, exit 0.
-#   Missing configuration, no matching route and no default, or every default
-#   rung concretely exhausted prints escalate, exit 0. Combining docs-only and
-#   ep-opus prints refused with no profile, exit 1. Usage and configuration
-#   errors exit 2, as in brief mode.
+#   Missing configuration, no matching route and no default, an exhausted
+#   ep-opus route, or every default rung concretely exhausted prints escalate,
+#   exit 0. Combining docs-only and ep-opus prints refused with no profile,
+#   exit 1. Usage and configuration errors exit 2, as in brief mode.
 #
 # Brief-mode opt-in gate: TYPESAFE_API_KEY non-empty in this environment, else a
 #   TYPESAFE_API_KEY= line in $FM_HOME/.env read with fmx_env_get, the same
@@ -254,7 +257,7 @@ if [ -n "$LABELS_SET" ]; then
     LABELS_PMAP=$(jq -c --arg h "$h" --arg p "$p" '. + {($h): (if $p == "" then null else $p end)}' <<<"$LABELS_PMAP")
   done < <(jq -r '
     def profiles($v): if ($v | type) == "array" then $v elif ($v | type) == "object" then [$v] else [] end;
-    profiles(.default // null) | map(.harness) | unique | .[]' "$RULES")
+    (profiles(.default // null) + [(.label_routes // {})[]]) | map(.harness) | unique | .[]' "$RULES")
   routed=$(jq -r --arg labels "$LABELS" --argjson pmap "$LABELS_PMAP" --argjson quota "$LABELS_QUOTA" "$FM_QUOTA_ROW_JQ"'
     def profiles($v): if ($v | type) == "array" then $v elif ($v | type) == "object" then [$v] else [] end;
     def flat: gsub("[\\r\\n]"; " ");
@@ -274,9 +277,14 @@ if [ -n "$LABELS_SET" ]; then
     ($labels | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(length > 0))) as $ls
     | (.label_routes // {}) as $routes
     | ([$ls[] | select($routes[.] != null)] | first // null) as $hit
-    | (if $hit != null then {src: "label", detail: $hit, p: $routes[$hit]}
-       else {src: "default", detail: "no label matched", p: (profiles(.default // null) | map(select(blocked(.) | not)) | first // null)} end)
-    | if .p == null then "NONE"
+    | (profiles(.default // null) | map(select(blocked(.) | not)) | first // null) as $walk
+    | (if $hit == null then {src: "default", detail: "no label matched", p: $walk}
+       elif (blocked($routes[$hit]) | not) then {src: "label", detail: $hit, p: $routes[$hit]}
+       elif $hit == "ep-opus" then {why: "label route ep-opus is exhausted and the work needs Opus"}
+       elif $walk == null then {why: "label route \($hit) is exhausted and no default rung is eligible"}
+       else {src: "default", detail: "label \($hit) exhausted", p: $walk} end)
+    | if .why then "ESCALATE\t\(.why)"
+      elif .p == null then "NONE"
       else ["dispatch-resolve:", "  status: clear", "  source: \(.src) (\(.detail | flat))",
             "  profile: --harness \(.p.harness | @sh)"
             + (if .p.model then " --model \(.p.model | @sh)" else "" end)
@@ -284,6 +292,8 @@ if [ -n "$LABELS_SET" ]; then
   ' "$RULES") || die "worker routing failed: $RULES_PATH"
   if [ "$routed" = NONE ]; then
     printf 'dispatch-resolve:\n  status: escalate\n  reason: no label route matched and no eligible default\n'
+  elif [ "${routed%%$'\t'*}" = ESCALATE ]; then
+    printf 'dispatch-resolve:\n  status: escalate\n  reason: %s\n' "${routed#*$'\t'}"
   else
     printf '%s\n' "$routed"
   fi
