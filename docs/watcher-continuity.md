@@ -288,7 +288,7 @@ The Pi branch extension injects its branch actor into its own bash tool calls.
 
 ### Claiming rows
 
-Every presented row is claimed to exactly one actor under the durable queue lock.
+Every row a claiming drain presents is claimed to exactly one actor under the durable queue lock.
 
 - Main records its presented set in `state/.main-eligible-rows`.
 - A branch grant is published through `bin/fm-wake-grant.sh` under that same lock in `state/.branch-eligible-rows`.
