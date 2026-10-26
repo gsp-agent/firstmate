@@ -285,6 +285,7 @@ Every presented row is claimed to exactly one actor under the durable queue lock
 - A main drain validates that owner evidence under the queue lock and reclaims the grant when its process is gone or its identity no longer matches.
 - A main drain claims every currently unclaimed row and excludes an active branch grant from both presentation and acknowledgement.
 - Session open empties main's presented set, because the context that read those rows is gone after a clear, a move, or a compaction.
+  Under `state/.afk` the set is kept: the away daemon drains and acknowledges as main, and its context survives a Claude session open.
   The session-start digest run from the SessionStart hook then presents main's rows without claiming them or beginning handling, so they stay unread until main drains them in a turn.
 
 ### Lock deadlines during presentation

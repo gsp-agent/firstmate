@@ -38,8 +38,10 @@
 #                       handoff retry, X-mode artifact writes, fleet sync) also run only when
 #                       locked; the four network sweeps run in the deferred
 #                       stage rather than this synchronous bootstrap section.
-#   3. wake-drain     - presents durable wakes and advances recovery handling
-#                       state, so it only runs when locked. The local bounded
+#   3. wake-drain     - presents durable wakes, so it only runs when locked.
+#                       Run by hand it claims them and advances recovery
+#                       handling state; run from the SessionStart hook it only
+#                       presents them, claiming none. The local bounded
 #                       inactive-outcome startup scan runs in the deferred worker.
 #                       First, on every harness and away posture, it seeds the
 #                       outcome store's display tail copy when that is absent
@@ -677,7 +679,11 @@ if [ "$REEMIT" -eq 1 ]; then
   printf 'reprinted, but the sweeps startup already reconciled - project clone refresh,\n'
   printf 'secondmate convergence and liveness, pending remote handoff\n'
   printf 'retry, X-mode artifact writes, and stale Herdr child cleanup - are NOT repeated.\n'
-  printf 'Queued wakes ARE still drained: they arrived after startup and are this turn work.\n'
+  if [ "${FM_SESSION_START_FROM_HOOK:-}" = 1 ]; then
+    printf 'Queued wakes below are presented only: drain them with bin/fm-wake-drain.sh in a turn before handling them.\n'
+  else
+    printf 'Queued wakes ARE still drained: they arrived after startup and are this turn work.\n'
+  fi
 else
   section "SESSION START - $FM_HOME"
 fi
@@ -806,8 +812,9 @@ else
   fi
   # Session open empties main's presented set: the context that read those
   # rows is gone after a clear, a move, or a compaction, so they stay unread
-  # until main drains them in a turn.
-  rm -f "$STATE/.main-eligible-rows" 2>/dev/null || true
+  # until main drains them in a turn. Under state/.afk the away daemon owns
+  # that set, and its context survives a Claude session open.
+  [ -e "$STATE/.afk" ] || rm -f "$STATE/.main-eligible-rows" 2>/dev/null || true
   if [ "${FM_SESSION_START_FROM_HOOK:-}" = 1 ]; then
     DRAIN_OUT=$(FM_WAKE_DRAIN_PRESENT_ONLY=1 "$SCRIPT_DIR/fm-wake-drain.sh" 2>&1)
   else

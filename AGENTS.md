@@ -268,7 +268,8 @@ For every actionable wake, follow the ordinary-wake continuation in the emitted 
 No turn ends blind while work is under way, including turns described as holding or waiting.
 
 - At the start of every wake-handling turn, drain the durable wake queue before peeking, reading beyond the reason line, steering, or starting work.
-- Session start is the only exception because its one-shot digest already presented the queue while locked or deliberately left it untouched in lock-refused read-only mode.
+- Session start is the only exception when its one-shot digest already claimed the queue while locked or deliberately left it untouched in lock-refused read-only mode.
+- A digest the SessionStart hook ran only presented the rows, claiming none and printing no acknowledgement for them, so drain first like any other turn.
 - Treat any `OPEN DECISIONS` section from the drain as actionable reconciliation input even when no wake record was queued.
 - Treat any `UNREAD STATUS` section as newly surfaced status that must be read this turn; those lines are not re-printed after this presentation.
 - Treat any `RECORD DIVERGENCE` section as a contradiction between two records of one captain call, never as proof the captain ruled; load `captain-hold-lifecycle` and reconcile it in whichever direction the evidence supports.
