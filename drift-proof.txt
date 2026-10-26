@@ -145,3 +145,5 @@ pr: 147
 pr: 149
 # Failing-first Claude self-wake replays in tests/fm-claude-wake.test.sh: on the base the suite fails because bin/fm-claude-turn.sh and bin/fm-claude-wake.sh are absent; after the fix all 16 cases pass, including the 07:06Z sequence, reset-followup expiry, rows queued before /clear, busy-turn Stop delivery, parked-hook deferral, single-rewake burst, foreign-host exits, and the present-only session-start drain.
 pr: 150
+# Failing-first review-wait rule in tests/fm-brief.test.sh: on 6c90cd9f the ship brief fails with "brief left a review wait outside the merge-only pause"; after the fix ship and scout briefs teach the review wait as part of [awaits=merge] under the configured pause verb.
+pr: 151
