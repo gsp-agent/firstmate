@@ -80,8 +80,13 @@ PER_LOG=0
 fifty=
 # The external reads the library falls back to, forced even where the builtin
 # exists: verdicts are the same, only the per-log cost differs.
+# shellcheck disable=SC2030 # Each forced answer stays inside its own subshell.
 (export FM_TEST_SEAM=1 FM_TEST_NO_STAT_BUILTIN=1; settled_per_log fallback) || exit 1
 pass "the external-stat fallback presents and settles as before"
+# A volume not proven APFS keeps the full identity read, verdicts unchanged.
+# shellcheck disable=SC2030,SC2031 # Each forced answer stays inside its own subshell.
+(export FM_TEST_SEAM=1 FM_TEST_STATUS_VOLUME=other; settled_per_log non-apfs) || exit 1
+pass "a volume not proven APFS presents and settles as before"
 settled_per_log builtin
 if [ "$STAT_BUILTIN" = 1 ]; then
   # Base 02ce380f: 53 per added log. Now 2: the open-decisions cursor is still
@@ -90,6 +95,112 @@ if [ "$STAT_BUILTIN" = 1 ]; then
   pass "a settled drain's cost does not grow with unchanged status logs"
 else
   echo "skip: no Bash stat loadable beside $BASH, so the per-log budget is not enforced here"
+fi
+
+# chip's review case on a volume that may recycle inode numbers: a log replaced
+# in place by same-size bytes whose recorded birth time (111.0) no longer matches
+# the file's own. Device, inode and size all still match, so only a forced
+# non-APFS answer can show it: the full read must see the new birth time, treat
+# the log as replaced, and present the new bytes.
+cat > "$TMP_ROOT/ident-probe.sh" <<'SH'
+. "$1/bin/fm-classify-lib.sh"
+f=$2
+real=$(_fm_open_decisions_file_ident "$f") || exit 1
+size=$(LC_ALL=C wc -c < "$f" | tr -d ' ')
+stale="strong:${real#strong:}"
+stale="${stale%:*}:111.0"
+_fm_open_decisions_file_ident_to got "$f" "$stale" "$size" || exit 1
+if [ "$got" = "$real" ]; then echo full; elif [ "$got" = "$stale" ]; then echo kept; else echo other; fi
+SH
+probe_log="$TMP_ROOT/ident-probe.status"
+printf 'note: twelve\n' > "$probe_log"
+if [ "$(uname -s)" = Darwin ] && [ "$STAT_BUILTIN" = 1 ]; then
+  verdict=$(FM_TEST_SEAM=1 FM_TEST_STATUS_VOLUME=other "$BASH" "$TMP_ROOT/ident-probe.sh" "$ROOT" "$probe_log")
+  assert_equals full "$verdict" "a non-APFS volume reads the current birth time instead of the recorded one"
+  verdict=$(FM_TEST_SEAM=1 FM_TEST_STATUS_VOLUME=apfs "$BASH" "$TMP_ROOT/ident-probe.sh" "$ROOT" "$probe_log")
+  assert_equals kept "$verdict" "a proven APFS volume keeps the recorded identity"
+  pass "the recorded strong identity is kept only on a proven APFS volume"
+
+  replaced=$(make_drain_home replaced 3)
+  drain_once "$replaced" replaced-first
+  drain_once "$replaced" replaced-settled
+  manifest="$replaced/state/.status-presentation-cursor"
+  awk -F '\t' 'BEGIN { OFS = "\t" } $1 == "task2" { sub(/:[0-9.]+$/, ":111.0", $2) } { print }' "$manifest" > "$manifest.new" \
+    || fail "replaced: could not age the recorded birth time"
+  mv "$manifest.new" "$manifest" || fail "replaced: could not replace the manifest"
+  cursor="$replaced/state/.task2.open-decisions-cursor"
+  sed 's/^\(ident=strong:.*:\)[0-9.]*$/\1111.0/' "$cursor" > "$cursor.new" \
+    || fail "replaced: could not age the open-decisions cursor"
+  mv "$cursor.new" "$cursor" || fail "replaced: could not replace the cursor"
+  log="$replaced/state/task2.status"
+  bytes=$(LC_ALL=C wc -c < "$log" | tr -d ' ')
+  printf 'working: step Y\nnote: shipped Z\n' > "$log"
+  [ "$(LC_ALL=C wc -c < "$log" | tr -d ' ')" = "$bytes" ] || fail "replaced: the rewrite changed the size"
+  # shellcheck disable=SC2031 # The forced answer stays inside this subshell.
+  (
+    export FM_TEST_SEAM=1 FM_TEST_STATUS_VOLUME=other
+    drain_once "$replaced" replaced-non-apfs
+    assert_contains "$DRAIN_OUT" "task2 note: shipped Z" "a same-size replacement on a non-APFS volume is presented"
+  ) || exit 1
+  pass "a same-size replacement with a new birth time is presented off APFS"
+fi
+
+# The latest-event read stays bounded to the captured endpoint: it reads exactly
+# that many bytes, only from a file of exactly that size, and otherwise defers
+# to the bounded perl reader, matching it byte for byte where it answers.
+cat > "$TMP_ROOT/latest-probe.sh" <<'SH'
+. "$1/bin/fm-classify-lib.sh"
+case "$2" in
+  shell)
+    _fm_status_latest_line_read "$3" "$4" 65536
+    rc=$?
+    printf '%s\t%s\t%s\n' "$rc" "$_FM_STATUS_LATEST_END" "$_FM_STATUS_LATEST_LINE"
+    ;;
+  span)
+    _fm_status_read_span "$3" 0 "$4" | LC_ALL=C wc -c | tr -d ' '
+    ;;
+  event)
+    ident=$(_fm_open_decisions_file_ident "$3") || exit 1
+    if status_snapshot_latest_event "$3" "$4" "$ident"; then
+      printf '0\t%s\t%s\n' "$FM_STATUS_SNAPSHOT_EVENT_ENDPOINT" "$FM_STATUS_SNAPSHOT_EVENT_LINE"
+    else
+      printf '1\t\t\n'
+    fi
+    ;;
+esac
+SH
+cat > "$TMP_ROOT/span-reader.sh" <<'SH'
+#!/usr/bin/env bash
+tail -c "+$(($2 + 1))" "$1" | head -c "$3"
+SH
+chmod +x "$TMP_ROOT/span-reader.sh"
+latest() { "$BASH" "$TMP_ROOT/latest-probe.sh" "$ROOT" "$@"; }
+if [ "$STAT_BUILTIN" = 1 ]; then
+  nul="$TMP_ROOT/nul-after.status"
+  printf 'note: x\n\000tail\n' > "$nul"
+  assert_equals "2" "$(latest shell "$nul" 8 | cut -f1)" "a file longer than its endpoint defers to the bounded reader"
+  assert_equals "8" "$(latest span "$nul" 8)" "the bounded span reader returns exactly the endpoint's bytes"
+  grown="$TMP_ROOT/grown.status"
+  printf 'note: before\n' > "$grown"
+  endpoint=$(LC_ALL=C wc -c < "$grown" | tr -d ' ')
+  printf 'note: appended after the size check\n' >> "$grown"
+  assert_equals "2" "$(latest shell "$grown" "$endpoint" | cut -f1)" "a file grown past its endpoint is not read by the shell"
+  assert_equals "1" "$(latest event "$grown" "$endpoint" | cut -f1)" "a grown file yields no event, as before"
+  inside="$TMP_ROOT/nul-inside.status"
+  printf 'no\000te: y\n' > "$inside"
+  assert_equals "2" "$(latest shell "$inside" 10 | cut -f1)" "a NUL inside the span defers to the bounded reader"
+  i=0
+  for body in 'note: a\n' 'note: a\n\n  \n' 'note: a\r\r\n' 'note: a\nworking: b' $'note: caf\xc3\xa9\n \t\n' 'x\n\f\v\n' ' lead\ttab \n'; do
+    i=$((i + 1))
+    f="$TMP_ROOT/same-$i.status"
+    printf '%b' "$body" > "$f"
+    size=$(LC_ALL=C wc -c < "$f" | tr -d ' ')
+    shell=$(latest event "$f" "$size")
+    perl=$(FM_STATUS_SPAN_READER="$TMP_ROOT/span-reader.sh" latest event "$f" "$size")
+    assert_equals "$perl" "$shell" "latest event of case $i matches the perl reader"
+    assert_equals "0" "$(latest shell "$f" "$size" | cut -f1)" "case $i is answered in the shell"
+  done
+  pass "the latest-event read is bounded to its endpoint and matches the perl reader"
 fi
 
 # A changed log still takes the full read and its new line is presented.

@@ -786,6 +786,9 @@ print_status_sections() {
 print_status_presentation() {  # [<deduped-raw-rows>]
   local rows=${1:-} lock="$STATE/.status-presentation-lock" snapshot annotation_manifest fully_presented='' rc=0
   local lock_rc holder_pid
+  # Learn once here whether the state volume is APFS, so the per-section
+  # subshells below inherit the answer instead of each probing it.
+  status_identity_volume_probe "$STATE"
   if fm_lock_acquire_wait_bounded "$lock" "$PRESENTATION_LOCK_TIMEOUT"; then
     :
   else

@@ -1383,19 +1383,44 @@ _fm_status_lstat() {  # <file>
   esac
 }
 
+# The device of <dir>'s volume when that volume is APFS, else "none", in
+# _FM_STATUS_APFS_DEV: one `df -T apfs` per directory per shell, so the drain
+# probes its state directory once before its subshells inherit the answer. Off
+# Darwin, on any other volume type, or when the probe fails, the answer is none.
+# FM_TEST_STATUS_VOLUME=apfs|<other>, honored only when FM_TEST_SEAM=1, stands
+# in for the probe's answer.
+_FM_STATUS_APFS_DIR=
+_FM_STATUS_APFS_DEV=none
+status_identity_volume_probe() {  # <dir>
+  [ "$_FM_STATUS_APFS_DIR" = "x$1" ] && return 0
+  _FM_STATUS_APFS_DIR="x$1"
+  _FM_STATUS_APFS_DEV=none
+  [ "$_FM_CLASSIFY_UNAME_S" = Darwin ] || return 0
+  if [ "${FM_TEST_SEAM:-}" = 1 ] && [ -n "${FM_TEST_STATUS_VOLUME:-}" ]; then
+    [ "$FM_TEST_STATUS_VOLUME" = apfs ] || return 0
+  else
+    LC_ALL=C df -P -T apfs "$1" >/dev/null 2>&1 || return 0
+  fi
+  _fm_status_lstat "$1" || return 0
+  _FM_STATUS_APFS_DEV=$_FM_STATUS_ST_DEV
+}
+
 # The identity _fm_open_decisions_file_ident prints, into <out-var>. Given the
 # identity and byte offset a cursor recorded for this file, a status file whose
 # lstat device, inode and size still equal them is that same file, unchanged
 # since the cursor was written, and keeps the recorded identity without the
-# birth-time read: a weak identity is device and inode alone, and on Darwin a
-# strong one's birth time belongs to that inode, which APFS never hands out
-# again within a volume (tests/fm-wake-drain-fork-budget.test.sh probes it).
+# birth-time read: a weak identity is device and inode alone, and a strong
+# one's birth time belongs to that inode, which APFS never hands out again
+# within a volume (tests/fm-wake-drain-fork-budget.test.sh probes it). A strong
+# identity is kept only when status_identity_volume_probe proved the file's own
+# device to be the APFS volume holding its directory; HFS+, network volumes and
+# anything unproven can recycle an inode number, so they take the full read.
 # Truncating and regrowing a file to the same size keeps its inode and birth
 # time, so the full read cannot tell that case apart either. Any mismatch,
-# another kernel for a strong identity, an identity or size reader seam, or no
-# builtin takes the full read.
+# a strong identity off a proven APFS volume, an identity or size reader seam,
+# or no builtin takes the full read.
 _fm_open_decisions_file_ident_to() {  # <out-var> <file> [<cursor-identity> <cursor-offset>]
-  local _fid_expect=${3:-} _fid_at=${4:-} _fid_birth _fid_print
+  local _fid_expect=${3:-} _fid_at=${4:-} _fid_birth _fid_print _fid_dev _fid_dir
   if [ -n "$_fid_expect" ] && [ -n "$_fid_at" ] && [ -z "${FM_STATUS_IDENTITY_READER:-}" ] \
     && [ -z "${FM_STATUS_SIZE_READER:-}" ] \
     && _fm_status_lstat "$2" && [ "$_FM_STATUS_ST_SIZE" = "$_fid_at" ]; then
@@ -1409,7 +1434,10 @@ _fm_open_decisions_file_ident_to() {  # <out-var> <file> [<cursor-identity> <cur
         case "$_fid_birth" in
           *[!0-9.]*|.*|*.|*.*.*) ;;
           *)
-            if [ "$_FM_CLASSIFY_UNAME_S" = Darwin ]; then
+            _fid_dev=$_FM_STATUS_ST_DEV
+            fm_dirname_to _fid_dir "$2"
+            status_identity_volume_probe "$_fid_dir"
+            if [ "$_FM_STATUS_APFS_DEV" = "$_fid_dev" ]; then
               printf -v "$1" '%s' "$_fid_expect"
               return 0
             fi
@@ -1694,20 +1722,28 @@ status_presentation_snapshot() {  # <state>
 # byte offset just past it, into _FM_STATUS_LATEST_LINE and _FM_STATUS_LATEST_END,
 # found in this shell exactly as status_snapshot_latest_event's perl reader finds
 # them: split on newline, skip lines holding only whitespace (the same ASCII set
-# as perl's \s on bytes), strip the trailing carriage returns. 1 when no such
-# line exists; 2 to let the perl reader run instead, for a span past <limit>
-# (where it skips a partial first line), a NUL byte, which read cannot carry, a
-# span reader seam, or a file shorter than <endpoint>.
+# as perl's \s on bytes), strip the trailing carriage returns. It reads exactly
+# <endpoint> bytes, and only from a file that is exactly <endpoint> bytes long
+# before and after the read, so bytes appended after the caller's size check
+# are never read and a NUL byte, which read drops, shows as a short read. 1 when
+# no such line exists; 2 to let the bounded perl reader run instead, for a span
+# past <limit> (where it skips a partial first line), any size other than
+# <endpoint>, a NUL byte, a span reader seam, no stat builtin, or a Bash
+# without read -N (before 4.1).
 _FM_STATUS_LATEST_LINE=
 _FM_STATUS_LATEST_END=
 _fm_status_latest_line_read() {  # <status-file> <endpoint> <limit>
-  local LC_ALL=C content rest line pos=0 latest='' end=''
-  [ "$2" -le "$3" ] || return 2
+  local LC_ALL=C content='' rest line pos=0 latest='' end=''
+  [ "$2" -gt 0 ] && [ "$2" -le "$3" ] || return 2
   [ -z "${FM_STATUS_SPAN_READER:-}" ] || return 2
+  [ "${BASH_VERSINFO[0]:-0}" -ge 5 ] \
+    || { [ "${BASH_VERSINFO[0]:-0}" -eq 4 ] && [ "${BASH_VERSINFO[1]:-0}" -ge 1 ]; } || return 2
   [ -f "$1" ] && [ -r "$1" ] && [ ! -L "$1" ] || return 2
-  if IFS= read -r -d '' content < "$1" 2>/dev/null; then return 2; fi
-  [ "${#content}" -ge "$2" ] || return 2
-  rest=${content:0:$2}
+  _fm_status_lstat "$1" && [ "$_FM_STATUS_ST_SIZE" = "$2" ] || return 2
+  IFS= read -r -N "$2" content < "$1" 2>/dev/null
+  [ "${#content}" = "$2" ] || return 2
+  _fm_status_lstat "$1" && [ "$_FM_STATUS_ST_SIZE" = "$2" ] || return 2
+  rest=$content
   while [ -n "$rest" ]; do
     case "$rest" in
       *$'\n'*)
