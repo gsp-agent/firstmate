@@ -202,6 +202,46 @@ SH
   chmod +x "$1/bin/fm-watch-arm.sh"
 }
 
+# Numbered parked arms, for a sequence with several parks. Foreground arm N
+# beats, writes state/arm-waiting.N, and waits for state/arm-release.N, which
+# holds its close: a wake line, or "vanish", which ends supervision need
+# (removes state/task.meta) and closes without an actionable reason. An arm
+# started once that need is gone closes the same way at once. A handling
+# successor confirms a started watcher and exits.
+install_numbered_arms() {
+  cat > "$1/bin/fm-watch-arm.sh" <<'SH'
+#!/usr/bin/env bash
+[ "${1:-}" != --cover-handoff ] || exit 0
+if [ -n "${FM_WATCH_PREDECESSOR_ARM_PID:-}" ]; then
+  printf 'watcher: started pid=%s (beacon fresh)\n' "$$"
+  exit 0
+fi
+if [ ! -e "$FM_HOME/state/task.meta" ]; then
+  printf 'watcher: FAILED - cycle ended without an actionable reason\n'
+  exit 1
+fi
+printf '%s\n' "$$" >> "$FM_HOME/state/arm-ran"
+n=$(wc -l < "$FM_HOME/state/arm-ran" | tr -d ' ')
+touch "$FM_HOME/state/.last-watcher-beat"
+printf 'watcher: started pid=%s (beacon fresh)\n' "$$"
+: > "$FM_HOME/state/arm-waiting.$n"
+i=0
+while [ ! -e "$FM_HOME/state/arm-release.$n" ] && [ "$i" -lt 600 ]; do
+  sleep 0.05
+  i=$((i + 1))
+done
+close=$(cat "$FM_HOME/state/arm-release.$n" 2>/dev/null || true)
+if [ "$close" = vanish ]; then
+  rm -f "$FM_HOME/state/task.meta"
+  printf 'watcher: FAILED - cycle ended without an actionable reason\n'
+  exit 1
+fi
+printf '%s\n' "$close"
+exit 0
+SH
+  chmod +x "$1/bin/fm-watch-arm.sh"
+}
+
 make_home() {
   local dir=$1
   mkdir -p "$dir/state" "$dir/config"
@@ -570,6 +610,68 @@ test_stop_admission_parks_while_rewake_pending() {
   pass "turn boundary: Stop admission parks while a rewake is pending"
 }
 
+# Intent item 5 across a whole park: a parked hook delivers rewake R during a
+# typed turn U, so U's Stop hook finds R pending and parks. R's own turn then
+# runs, and a later row arrives that the watcher does not close for. When the
+# park ends without an actionable reason, that row is still delivered.
+test_parked_rewake_then_later_row_still_delivered() {
+  local dir out
+  dir=$(make_home "$TMP_ROOT/rewaketurn")
+  install_numbered_arms "$dir"
+  : > "$dir/state/task.meta"
+  out=$(run_body "$dir" '
+    release() { printf "%s\n" "$2" > "$S/release.tmp"; mv -f "$S/release.tmp" "$S/arm-release.$1"; }
+    parked() {
+      i=0
+      while [ ! -e "$S/arm-waiting.$1" ] && [ "$i" -lt 200 ]; do sleep 0.05; i=$((i + 1)); done
+      [ -e "$S/arm-waiting.$1" ]
+    }
+    # An earlier turn ends and its Stop hook parks.
+    "$P" sess-1 UserPromptSubmit | "$FM_HOME/bin/fm-claude-turn.sh"
+    "$P" sess-1 Stop | "$FM_HOME/bin/fm-claude-turn.sh"
+    "$P" sess-1 Stop | "$FM_HOME/bin/fm-claude-stop-autoarm.sh" 2>"$S/first-err" &
+    first=$!
+    parked 1 || echo FIRST_NOT_PARKED
+    # Typed turn U starts a minute before its row arrives (injected epoch).
+    "$P" sess-1 UserPromptSubmit | "$FM_HOME/bin/fm-claude-turn.sh"
+    sed "s/^busy [0-9]* /busy $(( $(date +%s) - 60 )) /" "$S/.claude-turn" > "$S/turn.tmp" \
+      && mv -f "$S/turn.tmp" "$S/.claude-turn"
+    "$HELPERS/append" "$S" during-u
+    "$P" sess-1 FileChanged | "$FM_HOME/bin/fm-claude-wake.sh" 2>/dev/null; echo "DURING_U_WAKE_RC=$?"
+    # The parked hook delivers rewake R during U.
+    release 1 "check: during-u"
+    wait "$first"; echo "R_RC=$?"
+    # U ends; its Stop hook finds R pending and parks instead of delivering.
+    "$P" sess-1 Stop | "$FM_HOME/bin/fm-claude-turn.sh"
+    "$P" sess-1 Stop | "$FM_HOME/bin/fm-claude-stop-autoarm.sh" 2>"$S/park-err" &
+    park=$!
+    parked 2 && echo U_STOP_PARKED=yes
+    # Rewake R runs its own turn: main drains and acknowledges the row, and
+    # that turn ends with a Stop hook that defers to the park.
+    "$P" sess-1 UserPromptSubmit rewake | "$FM_HOME/bin/fm-claude-turn.sh"
+    ACK=$("$HELPERS/in-turn-drain" "$S")
+    [ -n "$ACK" ] && "$HELPERS/ack" "$S" $ACK || echo ACK_FAILED
+    "$P" sess-1 Stop | "$FM_HOME/bin/fm-claude-turn.sh"
+    "$P" sess-1 Stop | "$FM_HOME/bin/fm-claude-stop-autoarm.sh" 2>/dev/null; echo "R_STOP_RC=$?"
+    # A later row the watcher does not close for; the waker defers to the park.
+    "$HELPERS/append" "$S" after-r
+    "$P" sess-1 FileChanged | "$FM_HOME/bin/fm-claude-wake.sh" 2>/dev/null; echo "AFTER_R_WAKE_RC=$?"
+    # The park ends without an actionable reason once supervision need is gone.
+    release 2 vanish
+    wait "$park"; echo "PARK_RC=$?"
+    grep -qx "check: after-r" "$S/park-err" && echo DELIVERED=yes
+  ')
+  printf '%s\n' "$out" | grep -q 'FIRST_NOT_PARKED\|ACK_FAILED' && fail "rewake-turn setup failed, got: $out"
+  expect "$out" "DURING_U_WAKE_RC=0" "the waker must exit 0 during the typed turn"
+  expect "$out" "R_RC=2" "the parked hook must deliver rewake R during the typed turn"
+  expect "$out" "U_STOP_PARKED=yes" "the typed turn's Stop hook must park while R is pending"
+  expect "$out" "R_STOP_RC=0" "R's own Stop hook must defer to the park"
+  expect "$out" "AFTER_R_WAKE_RC=0" "the waker must defer to the parked hook"
+  expect "$out" "PARK_RC=2" "the park must deliver the later row once R's own turn has run"
+  expect "$out" "DELIVERED=yes" "the park's rewake must carry the later row"
+  pass "turn boundary across a park: after rewake R's own turn has run, the parked hook still delivers a later row"
+}
+
 test_rewake_from_an_earlier_claude_is_not_pending() {
   local dir out
   dir=$(make_home "$TMP_ROOT/restart")
@@ -666,6 +768,7 @@ test_burst_produces_exactly_one_rewake
 test_burst_waiter_never_supersedes_a_commit
 test_foreign_hosts_exit_at_once
 test_stop_admission_parks_while_rewake_pending
+test_parked_rewake_then_later_row_still_delivered
 test_rewake_from_an_earlier_claude_is_not_pending
 test_session_start_drain_presents_without_claiming
 test_session_start_drain_excludes_branch_grant

@@ -509,6 +509,7 @@ The timeout hook trapped `TERM`, backgrounded `sleep 300`, waited, and on `TERM`
 
 This supports the tracked `FileChanged` and `SessionStart` `asyncRewake` registration in `.claude/settings.json`, the turn record in `bin/fm-claude-turn.sh`, and the waker in `bin/fm-claude-wake.sh`.
 The Claude-side hook behavior it relies on was live-verified on Claude Code 2.1.310 in an isolated lab: a `FileChanged` hook with `asyncRewake` woke an idle session about one second after an append, before the first turn and after `/clear`, and an `asyncRewake` `SessionStart` entry woke a fresh and a cleared session.
+The same lab covered the watched file being replaced by rename, as every main acknowledgement and queue retirement does: an append, an atomic rename-replace of the watched file, and an append after the replace each fired `FileChanged` with `event=change` and woke the session within 0.1 s of the hook's exit, so the watch survives the replace.
 The portable replay suite runs every case in an isolated temporary home through the real scripts, with no live home or Claude session touched.
 
 ```sh
@@ -530,6 +531,7 @@ ok - burst: ten appends whose ten waker firings run concurrently produce exactly
 ok - burst race: a firing that waited on the ledger mutex never supersedes the rewake committed meanwhile
 ok - foreign hosts: Cursor and pi-code FileChanged and SessionStart payloads exit 0 at once and never wait
 ok - turn boundary: Stop admission parks while a rewake is pending
+ok - turn boundary across a park: after rewake R's own turn has run, the parked hook still delivers a later row
 ok - restart: a rewake committed by an earlier Claude process is not pending in the new one
 ok - session-start drain presents without claiming; digest-only ack refused
 ok - session-start drain presents only main's rows and names rows a live branch grant holds

@@ -2279,7 +2279,9 @@ fm_claude_turn_idle() {  # <state-dir> <claude-pid>
 # rewake bound to another Claude process belongs to a session that is gone.
 # With $2 = require-record, a missing turn record is not pending evidence:
 # the Stop hook's admission guard applies only once the turn wiring has
-# recorded a turn, so a pre-wiring session keeps ship 1's redelivery.
+# recorded a turn, so a pre-wiring session keeps ship 1's redelivery. A true
+# result with require-record leaves FM_CLAUDE_TURN_* describing the turn it
+# was judged against.
 fm_claude_rewake_pending() {  # <state-dir> [require-record]
   local state=$1 updated lock_pid turn_epoch=0
   fm_autoarm_ledger_read "$state" || return 1

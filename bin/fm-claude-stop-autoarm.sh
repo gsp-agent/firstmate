@@ -258,13 +258,19 @@ main_unread_scope() {  # [idle|needed]
 # Exit 2 when this generation delivers an unread record. Exit 0 when a record
 # was unread but the commit was refused. Return 1 when there is nothing to
 # deliver or this generation no longer owns the epoch. While a rewake is
-# pending (committed after the last turn start, captured before this firing
+# pending (committed after the last turn start, found before this firing
 # claimed its generation), delivery is skipped and the hook parks instead:
-# two rewakes never merge, and each costs its own turn.
-REWAKE_PENDING=0
+# two rewakes never merge, and each costs its own turn. That rewake stays
+# pending only until the turn record shows a newer turn start or a session
+# open, so every delivery attempt reads the record again.
+REWAKE_TURN=
+rewake_pending() {
+  [ -n "$REWAKE_TURN" ] && fm_claude_turn_read "$STATE" \
+    && [ "$FM_CLAUDE_TURN_EPOCH $FM_CLAUDE_TURN_PID $FM_CLAUDE_TURN_SESSION" = "$REWAKE_TURN" ]
+}
 deliver_unread_instead() {  # [idle|needed]
   local scope rows banner
-  [ "$REWAKE_PENDING" -eq 1 ] && return 1
+  rewake_pending && return 1
   if ! fm_autoarm_still_owner "$STATE" "$MY_GEN"; then
     return 1
   fi
@@ -320,7 +326,7 @@ fi
 # legacy shim defers to while genuinely deciding and reclaims once when proven
 # abandoned.
 if fm_claude_rewake_pending "$STATE" require-record; then
-  REWAKE_PENDING=1
+  REWAKE_TURN="$FM_CLAUDE_TURN_EPOCH $FM_CLAUDE_TURN_PID $FM_CLAUDE_TURN_SESSION"
 fi
 fm_autoarm_claim_open "$STATE" "$GRACE" && exit 0
 CLAIM_TRIES=0
@@ -509,7 +515,7 @@ fi
 # Rows already queued are delivered before the park. Routine rows on an
 # attended host home are not in this scope, so they still reach the park.
 # A home admitted only for an unread row arms nothing once no such row is left.
-if [ "$REWAKE_PENDING" -eq 0 ]; then
+if ! rewake_pending; then
   if ! need_supervision; then
     deliver_unread_instead idle || { autoarm_record clean; exit 0; }
   fi
