@@ -191,6 +191,10 @@ esac
 CONFIRM_TIMEOUT=${FM_ARM_CONFIRM_TIMEOUT:-$ARM_CONFIRM_DEFAULT}
 # Poll interval while attached to an existing healthy watcher.
 ATTACH_POLL=${FM_ARM_ATTACH_POLL:-0.5}
+# The arm waits ATTACH_POLL between checks for its whole cycle, so those waits
+# use fm-wake-lib.sh's fm_sleep: no process where Bash's sleep loadable exists,
+# sleep(1) as before elsewhere (.agent-config-ks05d.4: about two sleep processes
+# a second for each armed home; tests/fm-watch-arm-sleep-fork-budget.test.sh).
 # The beacon age at which the watcher's own re-arm evicts a live holder; an
 # attached arm follows a slow holder up to it (attach_and_wait).
 STALL_BOUND=$(fm_watcher_stall_bound)
@@ -475,13 +479,13 @@ attach_and_wait() {
         cycle_begin "$attached_pid" attached "$HEALTHY_IDENTITY"
         report_attached || return 1
       fi
-      sleep "$ATTACH_POLL"
+      fm_sleep "$ATTACH_POLL"
       continue
     fi
     if attached_holder_live "$attached_pid"; then
       age=$(fm_path_age "$BEAT")
       if [ "$age" -lt "$STALL_BOUND" ]; then
-        sleep "$ATTACH_POLL"
+        fm_sleep "$ATTACH_POLL"
         continue
       fi
       cycle_log_append unknown unknown attached-holder-stalled none
@@ -491,7 +495,7 @@ attach_and_wait() {
     if [ "$COVER" -eq 1 ] && cycle_delivered_reason; then
       if fm_pid_alive "$attached_pid" \
         && [ "$(fm_pid_identity "$attached_pid" 2>/dev/null || true)" = "$cycle_watcher_identity" ]; then
-        sleep "$ATTACH_POLL"
+        fm_sleep "$ATTACH_POLL"
         continue
       fi
     elif wait_for_healthy_successor; then
@@ -831,7 +835,7 @@ exit_if_caller_gone() {
 wait_for_owned_child() {
   while fm_pid_alive "$child"; do
     exit_if_caller_gone
-    sleep "$ATTACH_POLL"
+    fm_sleep "$ATTACH_POLL"
   done
   wait "$child"
 }
