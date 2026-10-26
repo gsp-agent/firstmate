@@ -158,7 +158,8 @@ assert_launch_context_discipline() {  # <brief> <launch-brief>
   assert_no_grep '# Worker context discipline' "$1" "the scaffold carries the Grok-only context discipline"
   discipline=$(section_of "$2" '# Worker context discipline')
   for line in 'Cap search and grep output near 50 lines' 'Tail or head long command output' \
-    'Do not read skills at session start' "the project's \`.agents/skills/<name>/SKILL.md\`"; do
+    'Do not read skills at session start' "the project's \`.agents/skills/<name>/SKILL.md\`" \
+    '`~/.agents/skills/<category>/<name>/SKILL.md`' '`~/.claude/skills/<name>/SKILL.md`'; do
     assert_contains "$discipline" "$line" "grok launch brief context discipline lacks: $line"
   done
 }

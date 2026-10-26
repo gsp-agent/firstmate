@@ -201,7 +201,7 @@ Cap search and grep output near 50 lines, and narrow the pattern or path when it
 Tail or head long command output instead of capturing all of it.
 Do not read skills at session start.
 Load a skill only when a step needs it, by reading that skill's SKILL.md at that point.
-A skill your session does not list is at the project's `.agents/skills/<name>/SKILL.md`, or at the path the instruction naming it gives.
+A skill your session does not list is at the project's `.agents/skills/<name>/SKILL.md`, in your user skill directories `~/.agents/skills/` (often inside a category folder, as `~/.agents/skills/<category>/<name>/SKILL.md`) or `~/.claude/skills/<name>/SKILL.md`, or at the path the instruction naming it gives.
 EOF
 }
 

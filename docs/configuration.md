@@ -946,7 +946,7 @@ It is not in the inherited configuration set, so create it in each home that wan
 Grok secondmates keep the operator's full Grok configuration and never read it.
 
 Every Grok ship and scout launch brief carries a short worker context discipline section: ranged file reads, search output capped near 50 lines, tailed command output, and skills loaded only when a step needs them.
-It tells a worker that a skill its session does not list is at the project's `.agents/skills/<name>/SKILL.md`, or at the path given by the instruction that names it.
+It tells a worker that a skill its session does not list is at the project's `.agents/skills/<name>/SKILL.md`, in the user skill directories `~/.agents/skills/` (often inside a category folder, as `~/.agents/skills/<category>/<name>/SKILL.md`) or `~/.claude/skills/<name>/SKILL.md`, or at the path given by the instruction that names it.
 Other harnesses' briefs do not carry that section.
 The worker home links the operator's sign-in, folder-trust store (`trusted_folders.toml`), global instructions (`AGENTS.md`, `rules/`), and policy files (`managed_config.toml`, `requirements.toml`) when they exist, so trust, hooks, and policy match the operator's own Grok sessions.
 Worker transcripts are written through a link to the operator's Grok `sessions` directory, so they stay there after teardown removes the task's Grok home.
