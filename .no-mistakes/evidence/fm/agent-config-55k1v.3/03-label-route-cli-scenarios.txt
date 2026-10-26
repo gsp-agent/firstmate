@@ -1,0 +1,208 @@
+# Real bin/fm-dispatch-resolve.sh --labels (changed tree and base 6a3e343a tree) against a marked lab FM_HOME; quota-axi on PATH serves one snapshot per scenario: the 2026-10-26T05:53:50Z replay, variants of it, and a read-only live quota-axi --json --no-credential-refresh --max-age 1h snapshot taken 2026-10-26T06:50:08Z.
+repo config (agent-config configs/firstmate/crew-dispatch.json): label_routes {"ep-opus":"claude/claude-opus-5-5[1m]","docs-only":"grok/grok-4.7"}; default ["claude/claude-opus-5-5[1m]","muse/muse-wonder-1.0","grok/grok-4.7","codex/gpt-6-astra"]
+
+=== S1 docs-only, grok weekly spent, no prepaid credits -> falls through
+  config: repo-config.json   labels: "docs-only"
+  quota:  2026-10-26T05:53:50.121Z: claude=unmeasured codex=0%/exhausted_now cursor=0%/exhausted_now grok=0%/exhausted_now+credits:0 muse=unmeasured
+  -- changed resolver (target 7c65d917):
+    dispatch-resolve:
+      status: clear
+      source: default (label docs-only exhausted)
+      profile: --harness 'claude' --model 'claude-opus-5-5[1m]' --effort 'xhigh'
+    exit: 0
+  -- base resolver (6a3e343a), same inputs:
+    dispatch-resolve:
+      status: clear
+      source: label (docs-only)
+      profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'
+    exit: 0
+
+=== S2 docs-only, grok weekly spent but 18407 prepaid credits (05:53:50Z replay) -> stays on grok
+  config: repo-config.json   labels: "docs-only"
+  quota:  2026-10-26T05:53:50.121Z: claude=unmeasured codex=0%/exhausted_now cursor=0%/exhausted_now grok=0%/exhausted_now+credits:18407 muse=unmeasured
+  -- changed resolver (target 7c65d917):
+    dispatch-resolve:
+      status: clear
+      source: label (docs-only)
+      profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'
+    exit: 0
+  -- base resolver (6a3e343a), same inputs:
+    dispatch-resolve:
+      status: clear
+      source: label (docs-only)
+      profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'
+    exit: 0
+
+=== S2b docs-only against today's live quota snapshot
+  config: repo-config.json   labels: "docs-only"
+  quota:  2026-10-26T06:50:08.571Z: claude=unmeasured codex=100%/through_reset cursor=0%/exhausted_now grok=0%/exhausted_now+credits:18407 muse=unmeasured
+  -- changed resolver (target 7c65d917):
+    dispatch-resolve:
+      status: clear
+      source: label (docs-only)
+      profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'
+    exit: 0
+  -- base resolver (6a3e343a), same inputs:
+    dispatch-resolve:
+      status: clear
+      source: label (docs-only)
+      profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'
+    exit: 0
+
+=== S3 docs-only routed to codex, codex exhausted (05:53:50Z replay) -> falls through
+  config: config-codex-docs-only.json   labels: "docs-only"
+  quota:  2026-10-26T05:53:50.121Z: claude=unmeasured codex=0%/exhausted_now cursor=0%/exhausted_now grok=0%/exhausted_now+credits:18407 muse=unmeasured
+  -- changed resolver (target 7c65d917):
+    dispatch-resolve:
+      status: clear
+      source: default (label docs-only exhausted)
+      profile: --harness 'claude' --model 'claude-opus-5-5[1m]' --effort 'xhigh'
+    exit: 0
+  -- base resolver (6a3e343a), same inputs:
+    dispatch-resolve:
+      status: clear
+      source: label (docs-only)
+      profile: --harness 'codex' --model 'gpt-6.1-sol' --effort 'medium'
+    exit: 0
+
+=== S4 ep-opus with claude exhausted -> escalate, no profile
+  config: repo-config.json   labels: "ep-opus"
+  quota:  2026-10-26T05:53:50.121Z: claude=0%/exhausted_now codex=0%/exhausted_now cursor=0%/exhausted_now grok=0%/exhausted_now+credits:18407 muse=unmeasured
+  -- changed resolver (target 7c65d917):
+    dispatch-resolve:
+      status: escalate
+      reason: label route ep-opus is exhausted and the work needs Opus
+    exit: 0
+  -- base resolver (6a3e343a), same inputs:
+    dispatch-resolve:
+      status: clear
+      source: label (ep-opus)
+      profile: --harness 'claude' --model 'claude-opus-5-5[1m]' --effort 'xhigh'
+    exit: 0
+
+=== S4b ep-opus with claude unmeasured (05:53:50Z replay) -> label kept
+  config: repo-config.json   labels: "ep-opus"
+  quota:  2026-10-26T05:53:50.121Z: claude=unmeasured codex=0%/exhausted_now cursor=0%/exhausted_now grok=0%/exhausted_now+credits:18407 muse=unmeasured
+  -- changed resolver (target 7c65d917):
+    dispatch-resolve:
+      status: clear
+      source: label (ep-opus)
+      profile: --harness 'claude' --model 'claude-opus-5-5[1m]' --effort 'xhigh'
+    exit: 0
+  -- base resolver (6a3e343a), same inputs:
+    dispatch-resolve:
+      status: clear
+      source: label (ep-opus)
+      profile: --harness 'claude' --model 'claude-opus-5-5[1m]' --effort 'xhigh'
+    exit: 0
+
+=== S5 docs-only exhausted and every default rung exhausted -> escalate naming the label
+  config: repo-config.json   labels: "docs-only"
+  quota:  2026-10-26T05:53:50.121Z: claude=0%/exhausted_now codex=0%/exhausted_now cursor=0%/exhausted_now grok=0%/exhausted_now+credits:0 muse=0%/exhausted_now
+  -- changed resolver (target 7c65d917):
+    dispatch-resolve:
+      status: escalate
+      reason: label route docs-only is exhausted and no default rung is eligible
+    exit: 0
+  -- base resolver (6a3e343a), same inputs:
+    dispatch-resolve:
+      status: clear
+      source: label (docs-only)
+      profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'
+    exit: 0
+
+=== S6 label harness (cursor) absent from the default chain still quota-checked
+  config: config-cursor-label-not-in-default.json   labels: "docs-only"
+  quota:  2026-10-26T05:53:50.121Z: claude=unmeasured codex=0%/exhausted_now cursor=0%/exhausted_now grok=0%/exhausted_now+credits:18407 muse=unmeasured
+  -- changed resolver (target 7c65d917):
+    dispatch-resolve:
+      status: clear
+      source: default (label docs-only exhausted)
+      profile: --harness 'claude' --model 'claude-opus-5-5[1m]' --effort 'xhigh'
+    exit: 0
+  -- base resolver (6a3e343a), same inputs:
+    dispatch-resolve:
+      status: clear
+      source: label (docs-only)
+      profile: --harness 'cursor' --model 'grok-4.7-xhigh'
+    exit: 0
+
+=== S7a quota-axi unavailable -> docs-only label kept (unmeasured is eligible)
+  config: repo-config.json   labels: "docs-only"
+  quota:  quota-axi unavailable (exits 1)
+  -- changed resolver (target 7c65d917):
+    dispatch-resolve:
+      status: clear
+      source: label (docs-only)
+      profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'
+    exit: 0
+  -- base resolver (6a3e343a), same inputs:
+    dispatch-resolve:
+      status: clear
+      source: label (docs-only)
+      profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'
+    exit: 0
+
+=== S7b quota-axi output unreadable -> docs-only label kept
+  config: repo-config.json   labels: "docs-only"
+  quota:  quota-axi prints unparseable output
+  -- changed resolver (target 7c65d917):
+    dispatch-resolve:
+      status: clear
+      source: label (docs-only)
+      profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'
+    exit: 0
+  -- base resolver (6a3e343a), same inputs:
+    dispatch-resolve:
+      status: clear
+      source: label (docs-only)
+      profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'
+    exit: 0
+
+=== S8 docs-only + ep-opus conflict still refused
+  config: repo-config.json   labels: "docs-only,ep-opus"
+  quota:  2026-10-26T05:53:50.121Z: claude=unmeasured codex=0%/exhausted_now cursor=0%/exhausted_now grok=0%/exhausted_now+credits:0 muse=unmeasured
+  -- changed resolver (target 7c65d917):
+    dispatch-resolve:
+      status: refused
+      reason: labels docs-only and ep-opus conflict
+    stderr: dispatch-resolve: refused (labels docs-only and ep-opus conflict; the EP must relabel the bead)
+    exit: 1
+  -- base resolver (6a3e343a), same inputs:
+    dispatch-resolve:
+      status: refused
+      reason: labels docs-only and ep-opus conflict
+    stderr: dispatch-resolve: refused (labels docs-only and ep-opus conflict; the EP must relabel the bead)
+    exit: 1
+
+=== S9a unlabelled bead keeps the default walk
+  config: repo-config.json   labels: ""
+  quota:  2026-10-26T05:53:50.121Z: claude=unmeasured codex=0%/exhausted_now cursor=0%/exhausted_now grok=0%/exhausted_now+credits:0 muse=unmeasured
+  -- changed resolver (target 7c65d917):
+    dispatch-resolve:
+      status: clear
+      source: default (no label matched)
+      profile: --harness 'claude' --model 'claude-opus-5-5[1m]' --effort 'xhigh'
+    exit: 0
+  -- base resolver (6a3e343a), same inputs:
+    dispatch-resolve:
+      status: clear
+      source: default (no label matched)
+      profile: --harness 'claude' --model 'claude-opus-5-5[1m]' --effort 'xhigh'
+    exit: 0
+
+=== S9b unrouted label then docs-only: first matching label wins and falls through
+  config: repo-config.json   labels: "comms, docs-only"
+  quota:  2026-10-26T05:53:50.121Z: claude=unmeasured codex=0%/exhausted_now cursor=0%/exhausted_now grok=0%/exhausted_now+credits:0 muse=unmeasured
+  -- changed resolver (target 7c65d917):
+    dispatch-resolve:
+      status: clear
+      source: default (label docs-only exhausted)
+      profile: --harness 'claude' --model 'claude-opus-5-5[1m]' --effort 'xhigh'
+    exit: 0
+  -- base resolver (6a3e343a), same inputs:
+    dispatch-resolve:
+      status: clear
+      source: label (docs-only)
+      profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'
+    exit: 0

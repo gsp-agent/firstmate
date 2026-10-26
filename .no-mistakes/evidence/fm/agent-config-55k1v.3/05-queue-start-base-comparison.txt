@@ -1,0 +1,35 @@
+# Real bin/fm-spawn.sh --queue-start (with real tasks-axi markdown backlog, fm-brief.sh, fm-dispatch-resolve.sh), one marked lab home per case from bin/fm-lab-home.sh, config = agent-config configs/firstmate/crew-dispatch.json (docs-only -> grok, ep-opus -> claude opus; default claude, muse, grok, codex).
+# tmux, treehouse, gh and no-mistakes are recording stubs so no real crewmate is launched; quota-axi serves the named replay of the 2026-10-26T05:53:50Z snapshot.
+
+
+=== Q1 queued docs-only ship, grok spent with no prepaid credits [base 6a3e343a]
+  note: pm-demo inbox 1792550000-AbCd12; done on the bead. no-mistakes, yolo off; merge on the PM's word. Default route (labels docs-only).
+  quota snapshot: replay-0553-grok-nocredits.json
+  fm-spawn --queue-start exit: 0
+  | spawned qs-docs-only harness=grok kind=ship mode=no-mistakes yolo=off window=firstmate:fm-qs-docs-only worktree=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-qs.LYs7KU/q1-base/wt
+  backlog state: in_flight
+  state/qs-docs-only.meta routing:
+    harness=grok
+    mode=no-mistakes
+    yolo=off
+    branch=fm/qs-docs-only
+    model=grok-4.7
+    effort=xhigh
+  brief present: yes
+  windows opened: 1
+
+=== Q2 queued ep-opus ship, claude exhausted [base 6a3e343a]
+  note: pm-demo inbox 1792550000-AbCd12; done on the bead. no-mistakes, yolo off; merge on the PM's word. Default route (labels ep-opus).
+  quota snapshot: replay-0553-claude-spent.json
+  fm-spawn --queue-start exit: 0
+  | spawned qs-ep-opus harness=claude kind=ship mode=no-mistakes yolo=off window=firstmate:fm-qs-ep-opus worktree=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-qs.LYs7KU/q2-base/wt
+  backlog state: in_flight
+  state/qs-ep-opus.meta routing:
+    harness=claude
+    mode=no-mistakes
+    yolo=off
+    branch=fm/qs-ep-opus
+    model=claude-opus-5-5[1m]
+    effort=xhigh
+  brief present: yes
+  windows opened: 1
