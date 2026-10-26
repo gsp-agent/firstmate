@@ -1,0 +1,103 @@
+# Live queue-start transcript: real bin/fm-spawn.sh --queue-start -> fm-dispatch-resolve.sh --labels -> fm-brief.sh, real tasks-axi markdown backlog,
+# each case in its own marked lab home (bin/fm-lab-home.sh create, no FM_*_OVERRIDE, no gate bypass). tmux/treehouse/gh/no-mistakes are recording
+# stand-ins so no real agent launches; quota-axi serves the replayed 2026-10-26T05:53:50Z snapshot or the named variant.
+
+=== Q1 docs-only bead, label route on spent codex (hand-edited live shape), replay snapshot
+$ fm-spawn.sh qs-q1-base <project> --queue-start   [base 2c55278e]
+  note: pm-demo inbox 1792550000-AbCd12; done on the bead. no-mistakes, yolo off; merge on the PM's word. Default route (labels docs-only).
+  | fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.l85sYX/qs-run.1793003255/q1-base/home
+  | error: codex-cli 0.164.0 showed neither its folder-access prompt nor a started turn on the brief in window firstmate:fm-qs-q1-base; inspect window firstmate:fm-qs-q1-base
+  exit 1
+  backlog state: queued
+  task record: none
+  brief: data/qs-q1-base/brief.md created
+  windows opened: 1
+
+$ fm-spawn.sh qs-q1-branch <project> --queue-start   [this branch]
+  note: pm-demo inbox 1792550000-AbCd12; done on the bead. no-mistakes, yolo off; merge on the PM's word. Default route (labels docs-only).
+  | fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.l85sYX/qs-run.1793003255/q1-branch/home
+  | spawned qs-q1-branch harness=claude kind=ship mode=no-mistakes yolo=off window=firstmate:fm-qs-q1-branch worktree=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.l85sYX/qs-run.1793003255/q1-branch/wt
+  exit 0
+  backlog state: in_flight
+  task record state/qs-q1-branch.meta:
+    harness=claude
+    mode=no-mistakes
+    yolo=off
+    branch=fm/qs-q1-branch
+    model=claude-opus-5-5[1m]
+    effort=xhigh
+  brief: data/qs-q1-branch/brief.md created
+  windows opened: 1
+
+=== Q2 docs-only bead, agent-config rules (docs-only -> grok), replay: grok weekly pool spent but 18407 prepaid credits
+$ fm-spawn.sh qs-q2-branch <project> --queue-start   [this branch]
+  note: pm-demo inbox 1792550000-AbCd12; done on the bead. no-mistakes, yolo off; merge on the PM's word. Default route (labels docs-only).
+  | fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.l85sYX/qs-run.1793003255/q2-branch/home
+  | spawned qs-q2-branch harness=grok kind=ship mode=no-mistakes yolo=off window=firstmate:fm-qs-q2-branch worktree=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.l85sYX/qs-run.1793003255/q2-branch/wt
+  exit 0
+  backlog state: in_flight
+  task record state/qs-q2-branch.meta:
+    harness=grok
+    mode=no-mistakes
+    yolo=off
+    branch=fm/qs-q2-branch
+    model=grok-4.7
+    effort=xhigh
+  brief: data/qs-q2-branch/brief.md created
+  windows opened: 1
+
+=== Q3 docs-only bead, label route on spent codex; claude and muse rungs spent, grok rung has 18407 prepaid credits: walks to the grok rung
+$ fm-spawn.sh qs-q3-branch <project> --queue-start   [this branch]
+  note: pm-demo inbox 1792550000-AbCd12; done on the bead. no-mistakes, yolo off; merge on the PM's word. Default route (labels docs-only).
+  | fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.l85sYX/qs-run.1793003255/q3-branch/home
+  | spawned qs-q3-branch harness=grok kind=ship mode=no-mistakes yolo=off window=firstmate:fm-qs-q3-branch worktree=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.l85sYX/qs-run.1793003255/q3-branch/wt
+  exit 0
+  backlog state: in_flight
+  task record state/qs-q3-branch.meta:
+    harness=grok
+    mode=no-mistakes
+    yolo=off
+    branch=fm/qs-q3-branch
+    model=grok-4.7
+    effort=xhigh
+  brief: data/qs-q3-branch/brief.md created
+  windows opened: 1
+
+=== Q4 ep-opus bead while claude is spent: the queue start refuses and leaves it to the captain
+$ fm-spawn.sh qs-q4-base <project> --queue-start   [base 2c55278e]
+  note: pm-demo inbox 1792550000-AbCd12; done on the bead. no-mistakes, yolo off; merge on the PM's word. Default route (labels ep-opus).
+  | fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.l85sYX/qs-run.1793003255/q4-base/home
+  | spawned qs-q4-base harness=claude kind=ship mode=no-mistakes yolo=off window=firstmate:fm-qs-q4-base worktree=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.l85sYX/qs-run.1793003255/q4-base/wt
+  exit 0
+  backlog state: in_flight
+  task record state/qs-q4-base.meta:
+    harness=claude
+    mode=no-mistakes
+    yolo=off
+    branch=fm/qs-q4-base
+    model=claude-opus-5-5[1m]
+    effort=xhigh
+  brief: data/qs-q4-base/brief.md created
+  windows opened: 1
+
+$ fm-spawn.sh qs-q4-branch <project> --queue-start   [this branch]
+  note: pm-demo inbox 1792550000-AbCd12; done on the bead. no-mistakes, yolo off; merge on the PM's word. Default route (labels ep-opus).
+  | fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.l85sYX/qs-run.1793003255/q4-branch/home
+  | queue start refused: task qs-q4-branch: its route resolves escalate, not clear; left to the captain
+  exit 1
+  backlog state: queued
+  task record: none
+  brief: none
+  windows opened: 0
+
+=== Q5 docs-only bead with every pool spent: refused, nothing launched
+$ fm-spawn.sh qs-q5-branch <project> --queue-start   [this branch]
+  note: pm-demo inbox 1792550000-AbCd12; done on the bead. no-mistakes, yolo off; merge on the PM's word. Default route (labels docs-only).
+  | fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.l85sYX/qs-run.1793003255/q5-branch/home
+  | queue start refused: task qs-q5-branch: its route resolves escalate, not clear; left to the captain
+  exit 1
+  backlog state: queued
+  task record: none
+  brief: none
+  windows opened: 0
+
