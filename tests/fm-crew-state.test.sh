@@ -2060,6 +2060,108 @@ daemon shutting down"
   pass "a second failed step disqualifies the orphaned-monitor reclassification"
 }
 
+test_terminal_failed_ci_orphan_merged_marker_no_forge_reads_done() {
+  reset_fakes
+  local d out url
+  d=$(new_case failed-ci-merged-marker)
+  url=https://github.com/o/r/pull/203
+  make_repo_on_branch "$d/wt" fm/feat-ci-merged-marker
+  make_fakebin "$d" >/dev/null
+  fm_write_meta "$d/state/feat-ci-merged-marker.meta" "window=fm:fm-feat-ci-merged-marker" "worktree=$d/wt" "kind=ship" "pr=$url"
+  FM_FAKE_AXI_STATUS="$(run_failed_ci_orphan fm/feat-ci-merged-marker)"
+  FM_FAKE_CI_LOGS="all CI checks passed - still monitoring until merged or closed
+daemon shutting down"
+  fm_pr_poll_merge_mark_notified "$d/state" feat-ci-merged-marker github github.com o/r 203 \
+    || fail "could not record the merge poll marker"
+  out=$(FM_CREW_STATE_NO_FORGE=1 run_crew_state "$d" feat-ci-merged-marker)
+  assert_contains "$out" "state: done" "recorded merged PR under no-forge must read done, not failed"
+  assert_contains "$out" "checks green: PR merged (ci monitor ended)" "recorded merge must name the merged PR"
+  assert_contains "$out" "$url" "merged detail must carry the run PR"
+  assert_not_contains "$out" "state: failed" "recorded merged PR must not read failed with the forge off"
+  pass "orphaned ci monitor with a recorded merge reads done under no-forge"
+}
+
+test_terminal_failed_ci_orphan_merged_marker_reconciler_queues_no_failed() {
+  reset_fakes
+  local d url old stamp queue outcomes
+  d=$(new_case failed-ci-merged-marker-reconcile)
+  url=https://github.com/o/r/pull/203
+  mkdir -p "$d/data" "$d/config"
+  make_repo_on_branch "$d/wt" fm/feat-ci-merged-recon
+  make_fakebin "$d" >/dev/null
+  fm_write_meta "$d/state/feat-ci-merged-recon.meta" "window=fm:fm-feat-ci-merged-recon" "worktree=$d/wt" "kind=ship" "pr=$url" "spawn_gen=test-merged-recon"
+  printf 'done: PR %s checks green\n' "$url" > "$d/state/feat-ci-merged-recon.status"
+  : > "$d/state/feat-ci-merged-recon.turn-ended"
+  FM_FAKE_AXI_STATUS="$(run_failed_ci_orphan fm/feat-ci-merged-recon)"
+  FM_FAKE_CI_LOGS="all CI checks passed - still monitoring until merged or closed
+daemon shutting down"
+  fm_pr_poll_merge_mark_notified "$d/state" feat-ci-merged-recon github github.com o/r 203 \
+    || fail "could not record the merge poll marker for reconcile"
+  old=$(( $(date +%s) - 120 ))
+  if stamp=$(date -r "$old" +%Y%m%d%H%M.%S 2>/dev/null); then
+    touch -t "$stamp" "$d/state/feat-ci-merged-recon.meta" "$d/state/feat-ci-merged-recon.status" "$d/state/feat-ci-merged-recon.turn-ended" "$d/state/feat-ci-merged-recon.pr-poll-merge-notified"
+  else
+    stamp=$(date -d "@$old" +%Y%m%d%H%M.%S)
+    touch -t "$stamp" "$d/state/feat-ci-merged-recon.meta" "$d/state/feat-ci-merged-recon.status" "$d/state/feat-ci-merged-recon.turn-ended" "$d/state/feat-ci-merged-recon.pr-poll-merge-notified"
+  fi
+  PATH="$d/fakebin:$PATH" FM_HOME="$d" FM_STATE_OVERRIDE="$d/state" FM_DATA_OVERRIDE="$d/data" FM_CONFIG_OVERRIDE="$d/config" \
+    FM_INACTIVE_RECONCILE_SECS=60 FM_INACTIVE_RECONCILE_BUDGET_SECS=10 \
+    "$ROOT/bin/fm-inactive-reconcile.sh" scan --startup >/dev/null 2>&1 \
+    || fail "inactive reconciler scan failed for a recorded merge"
+  queue=""
+  [ ! -f "$d/state/.wake-queue" ] || queue=$(cat "$d/state/.wake-queue")
+  outcomes=""
+  if [ -d "$d/state/terminal-outcomes" ]; then
+    outcomes=$(cat "$d/state/terminal-outcomes"/* 2>/dev/null || true)
+  fi
+  assert_not_contains "$queue" "state=failed" "reconciler must not queue a failed outcome for a recorded merge"
+  assert_not_contains "$outcomes" "state=failed" "reconciler must not record a failed outcome for a recorded merge"
+  assert_contains "$queue" "state=done" "reconciler must queue the recorded merge as done"
+  pass "inactive reconciler queues no failed outcome for a recorded merge"
+}
+
+test_terminal_failed_ci_orphan_no_marker_no_forge_stays_failed() {
+  reset_fakes
+  local d out url
+  d=$(new_case failed-ci-no-marker)
+  url=https://github.com/o/r/pull/203
+  make_repo_on_branch "$d/wt" fm/feat-ci-no-marker
+  make_fakebin "$d" >/dev/null
+  fm_write_meta "$d/state/feat-ci-no-marker.meta" "window=fm:fm-feat-ci-no-marker" "worktree=$d/wt" "kind=ship" "pr=$url"
+  FM_FAKE_AXI_STATUS="$(run_failed_ci_orphan fm/feat-ci-no-marker)"
+  FM_FAKE_CI_LOGS="all CI checks passed - still monitoring until merged or closed
+daemon shutting down"
+  out=$(FM_CREW_STATE_NO_FORGE=1 run_crew_state "$d" feat-ci-no-marker)
+  assert_contains "$out" "state: failed" "same failed run with no recorded merge must stay failed with the forge off"
+  assert_not_contains "$out" "PR merged" "no recorded merge must not read merged with the forge off"
+  pass "orphaned ci monitor with no recorded merge stays failed under no-forge"
+}
+
+test_terminal_failed_ci_orphan_closed_unmerged_never_reads_merged() {
+  reset_fakes
+  local d out url
+  d=$(new_case failed-ci-closed-unmerged)
+  url=https://github.com/o/r/pull/203
+  make_repo_on_branch "$d/wt" fm/feat-ci-closed
+  make_fakebin "$d" >/dev/null
+  fm_write_meta "$d/state/feat-ci-closed.meta" "window=fm:fm-feat-ci-closed" "worktree=$d/wt" "kind=ship" "pr=$url"
+  FM_FAKE_AXI_STATUS="$(run_failed_ci_orphan fm/feat-ci-closed)"
+  FM_FAKE_CI_LOGS="all CI checks passed - still monitoring until merged or closed
+daemon shutting down"
+  FM_FAKE_PR_STATE=CLOSED
+  FM_FAKE_PR_MERGED=false
+  FM_FAKE_PR_STATE_AXI=closed
+  out=$(run_crew_state "$d" feat-ci-closed)
+  assert_contains "$out" "state: failed" "a closed-unmerged PR must keep the run failed"
+  assert_not_contains "$out" "PR merged" "a closed-unmerged PR must never read merged"
+  fm_pr_poll_merge_mark_notified "$d/state" feat-ci-closed github github.com o/r 999 \
+    || fail "could not record a mismatched merge marker"
+  out=$(FM_CREW_STATE_NO_FORGE=1 run_crew_state "$d" feat-ci-closed)
+  assert_contains "$out" "state: failed" "a marker for a different PR must keep the run failed"
+  assert_not_contains "$out" "PR merged" "a marker for a different PR must never read merged for this PR"
+  pass "closed-unmerged and mismatched-marker PRs never read merged"
+}
+
 # (e) cross-branch attribution: `axi status` returns ANOTHER branch's run (the
 # routine case once more than one crew validates the same underlying repo
 # concurrently - they share ONE no-mistakes repo registration), so the helper
@@ -5616,6 +5718,10 @@ test_terminal_failed_ci_orphan_after_green_reads_done
 test_terminal_failed_ci_orphan_status_only_reads_done
 test_terminal_failed_ci_genuine_red_stays_failed
 test_terminal_failed_ci_orphan_second_failed_step_stays_failed
+test_terminal_failed_ci_orphan_merged_marker_no_forge_reads_done
+test_terminal_failed_ci_orphan_merged_marker_reconciler_queues_no_failed
+test_terminal_failed_ci_orphan_no_marker_no_forge_stays_failed
+test_terminal_failed_ci_orphan_closed_unmerged_never_reads_merged
 test_cross_branch_attribution_via_runs_list
 test_coarse_socket_refusal_reports_blocked
 test_coarse_failed_ledger_with_daemon_down_reports_unknown
