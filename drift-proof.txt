@@ -149,3 +149,5 @@ pr: 150
 pr: 151
 # Key-passthrough regressions in tests/fm-backend.test.sh, tests/fm-backend-herdr.test.sh and tests/fm-backend-orca.test.sh: X reaches the tmux and Herdr panes unchanged, Escape, Enter and C-c still pass, and Orca refuses X; the pipeline mutation-checked each test failing when its backend key path is broken.
 pr: 152
+# Failing-first label-route quota cases in tests/fm-dispatch-resolve.test.sh: on the base resolver a docs-only label route on a spent pool (grok with no prepaid credits, codex, cursor) still routes there and a label-only harness is never quota-checked; after the fix it falls to the first eligible default rung with source "default (label docs-only exhausted)", ep-opus escalates, and the replay of the real 2026-10-26T05:53:50Z quota-axi snapshot routes docs-only on spent codex to claude.
+pr: 153
