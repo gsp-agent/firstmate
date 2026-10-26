@@ -10,8 +10,9 @@
 
 # Parse an exact ATX heading outside fenced blocks. Body mode prints through
 # the next unfenced heading at the same or a higher level; present mode reports
-# whether the heading exists.
-fm_brief_heading_parse() {  # <file|-> <heading> <body|present>
+# whether the heading exists; omit mode prints everything except that heading
+# and its body.
+fm_brief_heading_parse() {  # <file|-> <heading> <body|present|omit>
   local file=$1 heading=$2 mode=$3 input=$1
   if [ "$file" = - ]; then
     input=/dev/stdin
@@ -56,16 +57,25 @@ fm_brief_heading_parse() {  # <file|-> <heading> <body|present>
         grab = 1
         next
       }
-      if (mode == "present" || !grab) next
+      if (mode == "present") next
+      if (!grab) {
+        if (mode == "omit") print line
+        next
+      }
       if (is_fence || was_fenced) {
-        print line
+        if (mode == "body") print line
         next
       }
 
       level = 0
       while (substr(scan, level + 1, 1) == "#") level++
-      if (level > 0 && level <= target_level && substr(scan, level + 1, 1) ~ /^[[:space:]]?$/) exit
-      print line
+      if (level > 0 && level <= target_level && substr(scan, level + 1, 1) ~ /^[[:space:]]?$/) {
+        if (mode == "body") exit
+        grab = 0
+        print line
+        next
+      }
+      if (mode == "body") print line
     }
     END {
       if (mode == "present" && !found) exit 1
@@ -79,6 +89,10 @@ fm_brief_heading_body() {  # <file> <heading>
 
 fm_brief_heading_present() {  # <file> <heading>
   fm_brief_heading_parse "$1" "$2" present >/dev/null
+}
+
+fm_brief_heading_omit() {  # <file> <heading>
+  fm_brief_heading_parse "$1" "$2" omit
 }
 
 fm_brief_task_heading_body() {  # <file> <heading>

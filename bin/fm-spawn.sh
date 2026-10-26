@@ -577,9 +577,10 @@
 # plus a gitignored .fm-grok-turnend worktree pointer and a state token.
 # A grok crewmate or scout additionally runs under a per-task worker home
 # (state/<id>.grok-home, bin/fm-grok-worker-lib.sh) that trims its skills
-# index, MCP servers, and media tools, and receives a slim launch brief
-# that links the full brief instead of inlining it; a grok secondmate
-# keeps the operator configuration and the full charter launch.
+# index, MCP servers, and media tools; a fresh one also receives a slim
+# launch brief that links the brief's later-read sections instead of
+# inlining them. A grok secondmate keeps the operator configuration and the
+# full charter launch.
 # muse installs no hook at all - its plugin engine is off in the default build - so
 # it writes state/<id>.muse-session to bind the pane to muse's own session event
 # log; muse, gemini, agy, and devin are crewmate/scout only and are refused for --secondmate.
@@ -4217,17 +4218,17 @@ if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
   BRIEF="$DATA/$ID/launch-brief.md"
   BRIEF_TMP="$DATA/$ID/.launch-brief.md.${BASHPID:-$$}"
   {
-    if [ "$HARNESS" = grok ] && [ "$KIND" != secondmate ] &&
-      fm_grok_slim_launch_brief "$SOURCE_BRIEF" "$STATE" "$ID" "$FM_ROOT" "$KIND" "$DECISION_OWNER"; then
+    if [ "$HARNESS" = grok ] && [ "$KIND" != secondmate ] && [ "$RELAUNCH" -eq 0 ] &&
+      fm_grok_slim_launch_brief "$SOURCE_BRIEF" "$STATE" "$ID" "$FM_ROOT" "$DECISION_OWNER"; then
       true
     else
       fm_brief_worker_role "$STATE" "$ID" "$FM_ROOT" &&
         printf '\nDecision owner for this dispatch: %s\n\n' "$DECISION_OWNER" &&
-        cat "$SOURCE_BRIEF" &&
-        if [ "$KIND" = ship ] && [ "$MODE" = no-mistakes ]; then
-          fm_brief_intent_overlay "$CAPTAIN_INTENT"
-        fi
-    fi
+        cat "$SOURCE_BRIEF"
+    fi &&
+      if [ "$KIND" = ship ] && [ "$MODE" = no-mistakes ]; then
+        fm_brief_intent_overlay "$CAPTAIN_INTENT"
+      fi
   } >"$BRIEF_TMP" || {
     rm -f -- "$BRIEF_TMP"
     echo "error: could not render current launch contract for $SOURCE_BRIEF" >&2

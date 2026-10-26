@@ -153,9 +153,8 @@ EOF
 
 # Short tool-output and skill-loading discipline every crewmate and scout
 # brief carries, so exploration before the first edit stays small.
-# bin/fm-brief.sh renders it into ship and scout scaffolds, and
-# bin/fm-grok-worker-lib.sh renders the identical text into the slim Grok
-# launch brief, so this function is the one owner of the wording.
+# bin/fm-brief.sh renders it into ship and scout scaffolds, and the slim Grok
+# launch brief (bin/fm-grok-worker-lib.sh) carries that section verbatim.
 fm_worker_context_rules() {
   cat <<'EOF'
 # Worker context discipline

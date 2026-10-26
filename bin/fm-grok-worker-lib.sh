@@ -18,13 +18,18 @@
 # config still carries the compat, media, and output-cap sections.
 #
 # fm_grok_slim_launch_brief <source-brief> <state> <task-id> <code-root>
-#   <kind> <decision-owner>
-# prints a short launch brief: the worker role, the task intent and spec,
-# the delivery lines, the Herdr contract when the source carries one, the
-# context discipline, and a pointer to the full brief for the sections a
-# worker needs only later (rules, waiting, definition of done).
-# It returns 1 when the source has no filled intent or spec subsection, so
-# the caller falls back to the full launch brief rather than guessing.
+#   <decision-owner>
+# prints the launch brief the full path prints, minus the source brief's
+# Rules, Waiting, Project memory, and Definition of done sections. It carries
+# the rule-4 status lines and the Definition of done's delivery lines, and
+# names each left-out section with the point at which the worker reads it
+# from the full brief. Every other section (Task, the Herdr declaration or
+# contract, Setup, the instruction inbox, the context discipline, and home
+# brief additions) is carried verbatim.
+# It returns 1 without printing when the source has no rule-4 status lines
+# or none of those sections, so the caller falls back to the full launch
+# brief. bin/fm-spawn.sh also takes the full launch brief on a relaunch,
+# because the progress note bin/fm-control.sh appends ends the source brief.
 # Secondmate charters never take either path: fm-spawn.sh gates both on
 # KIND != secondmate, so a supervisor seat keeps its full configuration.
 
@@ -139,47 +144,36 @@ EOF
   return 0
 }
 
-fm_grok_slim_launch_brief() {  # <source-brief> <state> <task-id> <code-root> <kind> <decision-owner>
-  local source_brief=$1 state=$2 task_id=$3 root=$4 kind=$5 decision_owner=$6
-  local intent spec delivery ship_branch base_branch herdr_section status_file report_line
-  intent=$(fm_brief_task_heading_body "$source_brief" "## Captain's intent") || intent=
-  spec=$(fm_brief_task_heading_body "$source_brief" "## Firstmate spec") || spec=
-  [ -n "$(printf '%s' "$intent" | tr -d '[:space:]')" ] || return 1
-  [ -n "$(printf '%s' "$spec" | tr -d '[:space:]')" ] || return 1
-  delivery=$(sed -n 's/^Delivery contract: .*/&/p' "$source_brief" | head -n 1)
-  ship_branch=$(sed -n 's/^Ship branch: .*/&/p' "$source_brief" | head -n 1)
-  base_branch=$(sed -n 's/^Base branch: .*/&/p' "$source_brief" | head -n 1)
-  herdr_section=$(fm_brief_heading_body "$source_brief" "# Herdr isolation - HARD SAFETY CONTRACT") || herdr_section=
-  status_file="$state/$task_id.status"
+fm_grok_slim_launch_brief() {  # <source-brief> <state> <task-id> <code-root> <decision-owner>
+  local source_brief=$1 state=$2 task_id=$3 root=$4 decision_owner=$5
+  local body status_lines done_lines pointer='' heading when
+  body=$(cat "$source_brief") || return 1
+  status_lines=$(awk '
+    /^4\. Report status by appending one line:$/ { grab = 1 }
+    grab { sub(/^4\. /, ""); sub(/^   /, ""); out = out $0 "\n" }
+    grab && /^Substitute `<epoch>`/ { printf "%s", out; exit }
+  ' "$source_brief")
+  [ -n "$status_lines" ] || return 1
+  done_lines=$(fm_brief_heading_body "$source_brief" "# Definition of done" |
+    grep -E '^(Delivery contract: |Ship branch: |Write your findings to )')
+  while IFS='|' read -r heading when; do
+    fm_brief_heading_present - "$heading" <<<"$body" || continue
+    body=$(fm_brief_heading_omit - "$heading" <<<"$body") || return 1
+    pointer+="- \`$heading\` $when"$'\n'
+  done <<'SECTIONS'
+# Rules|before you act beyond the Setup section above.
+# Waiting|before you wait on anything.
+# Project memory|before you edit a project's AGENTS.md or CLAUDE.md.
+# Definition of done|before you report done.
+SECTIONS
+  [ -n "$pointer" ] || return 1
   fm_brief_worker_role "$state" "$task_id" "$root" || return 1
   printf '\nDecision owner for this dispatch: %s\n\n' "$decision_owner"
-  printf '# Task\n## Captain'\''s intent\n%s\n\n## Firstmate spec\n%s\n' "$intent" "$spec"
-  if [ -n "$delivery" ] || [ -n "$ship_branch" ] || [ -n "$base_branch" ]; then
-    printf '\n'
-    [ -z "$delivery" ] || printf '%s\n' "$delivery"
-    [ -z "$ship_branch" ] || printf '%s\n' "$ship_branch"
-    [ -z "$base_branch" ] || printf '%s\n' "$base_branch"
-  fi
-  if [ -n "$herdr_section" ]; then
-    printf '\n# Herdr isolation - HARD SAFETY CONTRACT\n%s\n' "$herdr_section"
-  fi
-  printf '\n# Start here\n'
-  if [ "$kind" = scout ]; then
-    report_line=$(sed -n 's/^Write your findings to //p' "$source_brief" | head -n 1)
-    [ -z "$report_line" ] || printf 'This is a scout task: the deliverable is a written report, not a PR. Write your findings to %s\n' "$report_line"
-    printf 'Work in your disposable worktree; the report is the only thing that survives.\n'
-  else
-    printf 'Run `pwd -P` and `git rev-parse --show-toplevel`; both must resolve to the disposable task worktree you were launched in, not the primary checkout.\n'
-    printf 'If they do not, append `blocked [at=<epoch>]: launched in primary checkout, not an isolated worktree` to `%s` and stop.\n' "$status_file"
-    printf 'Confirm you are on your ship branch before editing; the full Setup section of the brief below names it.\n'
-  fi
-  printf 'Report status by appending one line `echo "{state} [at=<epoch>]: {one short line}" >> %s` with a numeric `date +%%s` stamp; states are working, needs-decision, blocked, paused, done, failed.\n' "'$status_file'"
-  printf 'Your steering inbox is `%s/%s.inbox`; move each handled `NNN.msg` to its `handled/` directory.\n' "$state" "$task_id"
-  printf '\n'
-  fm_worker_context_rules || return 1
+  printf '%s\n' "$body"
+  printf '\n# Status\n%s\n' "$status_lines"
   printf '\n# Full brief\n'
   printf 'The complete brief is at `%s`.\n' "$source_brief"
-  printf 'Read the section you need when you reach it: Rules before acting beyond setup, Waiting before waiting, and Definition of done before reporting done.\n'
-  printf 'Those sections remain the contract; this launch text only defers them.\n'
+  printf 'This launch text leaves out the sections below; they remain the contract, so read each one from that file at the point named:\n%s' "$pointer"
+  [ -z "$done_lines" ] || printf 'Its Definition of done opens with:\n%s\n' "$done_lines"
   return 0
 }
