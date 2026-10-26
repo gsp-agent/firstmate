@@ -167,3 +167,5 @@ pr: 160
 pr: 161
 # Failing-first arm sleep budget in tests/fm-watch-arm-sleep-fork-budget.test.sh: on f9fab1d4 an owned arm starts 30 sleep processes in 2s of 0.05s waits (budget 0) and fails; fm_sleep starts none, owned or attached, and the forced sleep(1) fallback still waits (31 and 21).
 pr: 162
+# Failing-first pool-tree, freed-place and captain-row replays: tests/fm-project-capacity.test.sh (a full worktree pool beside free places defers 75 and names the pool; base launches), tests/fm-dispatch-ready.test.sh (full pool, captain row, --freed-by), tests/fm-supervision-host.test.sh (a paused worker hands main its Dispatch line) and tests/fm-teardown.test.sh (an out-of-root slot is destroyed with the safe default); each fails on its base and passes here.
+pr: 164
