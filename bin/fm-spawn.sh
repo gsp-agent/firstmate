@@ -2979,10 +2979,12 @@ launch_template() {
   # lifecycle-hook layer off for CREWMATE and SCOUT launches only.
   # Without it a crewmate launch parks forever on codex's hook-trust modal
   # ("N hooks are new or changed"), whose selection sits on "Review hooks" -
-  # neither trusting nor declining. Firstmate's key plane carries Enter, Escape
-  # and Ctrl-C with no arrow navigation, so the selection cannot be moved, and
-  # pre-accepting the prompt by writing codex's own trust store would manufacture
-  # an operator consent that was never given. The hooks it asks about are the
+  # neither trusting nor declining. Arrow navigation of that modal is not
+  # verified live and is not supported on every backend (Orca accepts only Enter
+  # and C-c; bin/fm-send.sh's header owns which keys each backend passes
+  # through), so firstmate does not move the selection, and pre-accepting the
+  # prompt by writing codex's own trust store would manufacture an operator
+  # consent that was never given. The hooks it asks about are the
   # OPERATOR's machine-level ~/.codex/hooks.json plus any project-local
   # .codex/hooks.json, and a crewmate needs none of them: its turn-end signal is
   # the -c notify= program on this same launch (verified still firing with hooks
