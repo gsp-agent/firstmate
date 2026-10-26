@@ -2844,8 +2844,13 @@ resurface_row_main_only() {  # <kind> <key> <payload>
 # Return 0 when at least one payload is printed, 1 when none, 2 on a bad scope.
 # A queue lock that cannot be taken returns 0 and prints one stable check line.
 # Restores STATE, FM_WAKE_QUEUE, and FM_WAKE_QUEUE_LOCK before returning.
+# Sets FM_WAKE_MAIN_UNREAD_OLDEST_EPOCH to the epoch of the oldest printed
+# row, or empty when no row carries one, so a caller that discards the
+# payloads can still read the oldest unread row's age from the same pass.
+FM_WAKE_MAIN_UNREAD_OLDEST_EPOCH=
 fm_wake_main_unread() {  # <state> <scope>
   local state=$1 scope=$2
+  FM_WAKE_MAIN_UNREAD_OLDEST_EPOCH=
   local saved_state saved_queue saved_lock
   local presented='' grant='' snapshot=''
   local epoch seq kind key payload rest
@@ -2908,6 +2913,7 @@ $seq
       if [ "$scope" = main-only ] && [ "$main" -eq 0 ]; then
         continue
       fi
+      [ -n "$FM_WAKE_MAIN_UNREAD_OLDEST_EPOCH" ] || FM_WAKE_MAIN_UNREAD_OLDEST_EPOCH=$epoch
       printf '%s\n' "$payload"
       matched=1
     done <<FM_UNREAD_ROWS
