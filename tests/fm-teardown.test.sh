@@ -1600,6 +1600,56 @@ EOF
   pass "ship copy with a nested clone is refused and its bytes stay"
 }
 
+# A treehouse root switch leaves a task's slot in the old pool, which the spawn
+# never enters again (fm_treehouse_free_own_slot takes only the configured
+# pool). Teardown destroys that slot with Treehouse's safe default instead of
+# returning it to sit on disk; a slot inside the configured pool is returned as
+# before and never destroyed. <configured> is new (another pool) or same.
+add_treehouse_root_switch() {  # <case-dir> <new|same>
+  local case_dir=$1 which=$2 listed
+  if [ "$which" = new ]; then
+    mkdir -p "$case_dir/newpool/1/repo"
+    listed="$case_dir/newpool/1/repo"
+  else
+    listed="$case_dir/pool/6/repo"
+  fi
+  cat > "$case_dir/fakebin/treehouse" <<SH
+#!/usr/bin/env bash
+case "\${1:-}" in
+  status) printf '[{"name":"1","path":"%s","status":"in-use"}]\n' "$listed" ;;
+  destroy) printf '%s\n' "\$*" >> "$case_dir/destroy.log" ;;
+esac
+exit 0
+SH
+  chmod +x "$case_dir/fakebin/treehouse"
+}
+
+test_out_of_root_slot_is_destroyed_not_returned() {
+  local case_dir wt rc slot
+  for which in new same; do
+    case_dir=$(make_case "root-switch-$which")
+    wt=$(move_case_to_pool_slot "$case_dir" 6)
+    write_meta "$case_dir" no-mistakes scout "$wt"
+    prepare_scout_teardown "$case_dir"
+    add_treehouse_root_switch "$case_dir" "$which"
+    slot=$(CDPATH='' cd -- "$wt" && pwd -P)
+    set +e
+    FM_HOME="$case_dir" run_teardown "$case_dir" > "$case_dir/stdout" 2> "$case_dir/stderr"
+    rc=$?
+    set -e
+    expect_code 0 "$rc" "root-switch-$which: teardown should finish: $(cat "$case_dir/stderr")"
+    assert_absent "$case_dir/state/task-x1.meta" "root-switch-$which: task record was not removed"
+    if [ "$which" = new ]; then
+      assert_grep "destroy $slot --yes" "$case_dir/destroy.log" "root-switch-new: the out-of-root slot was not destroyed"
+      assert_no_grep "--include" "$case_dir/destroy.log" "root-switch-new: destroy went past Treehouse's safe default"
+      assert_grep "outside the configured pool" "$case_dir/stdout" "root-switch-new: teardown did not say why it destroyed the slot"
+    else
+      assert_absent "$case_dir/destroy.log" "root-switch-same: a slot in the configured pool was destroyed"
+    fi
+  done
+  pass "a slot left outside the configured treehouse pool is destroyed with the safe default; one inside it is only returned"
+}
+
 test_dirty_return_warns_which_slot_was_lost() {
   local case_dir wt rc
   case_dir=$(make_case dirty-return)
@@ -10221,6 +10271,7 @@ test_tracked_edit_refusal_diagnostic
 test_mixed_refusal_diagnostic
 test_scout_nested_clone_returns_with_no_untracked_entries
 test_ship_nested_clone_is_refused_and_bytes_stay
+test_out_of_root_slot_is_destroyed_not_returned
 test_dirty_return_warns_which_slot_was_lost
 test_dirty_return_warns_even_when_a_later_step_refuses
 test_forced_secondmate_child_scout_nested_clone_returns_clean
