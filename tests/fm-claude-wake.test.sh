@@ -91,6 +91,18 @@ while [ "$i" -lt 200 ]; do
 done
 exit 1
 SH
+# wait-gated <gate-dir> <pid>: return once <pid>'s gated sleep holds; fail
+# when it exits first or never waits.
+cat > "$HELPERS/wait-gated" <<'SH'
+#!/usr/bin/env bash
+i=0
+while [ ! -e "$1/sleeping" ]; do
+  kill -0 "$2" 2>/dev/null || exit 1
+  [ "$i" -lt 2400 ] || exit 1
+  sleep 0.05
+  i=$((i + 1))
+done
+SH
 # digest <state> [lock-pid]: the session-start digest's effects the waker
 # depends on. A fresh startup first takes the lock for [lock-pid]; then the
 # presented set is emptied, and on finishing the completion record naming
@@ -153,6 +165,29 @@ shift
 FM_STATE_OVERRIDE="$state" "$DRAIN" $* >/dev/null 2>&1
 SH
 chmod +x "$HELPERS"/*
+
+# A sleep(1) stand-in put first on PATH for a Stop hook under test only. With
+# FM_SLEEP_GATE set, its claim retry's `sleep 0.2` marks
+# $FM_SLEEP_GATE/sleeping and holds until the test creates
+# $FM_SLEEP_GATE/released, so a race replay lands its ledger write inside the
+# retry whatever the host load; every other sleep runs as before.
+SLEEP_GATE_BIN=$(fm_fakebin "$TMP_ROOT/sleep-gate")
+REAL_SLEEP=$(command -v sleep) || fail "this host has no sleep to gate"
+cat > "$SLEEP_GATE_BIN/sleep" <<SH
+#!/usr/bin/env bash
+if [ "\${1:-}" = 0.2 ] && [ -n "\${FM_SLEEP_GATE:-}" ] && [ ! -e "\$FM_SLEEP_GATE/released" ]; then
+  : > "\$FM_SLEEP_GATE/sleeping"
+  i=0
+  while [ ! -e "\$FM_SLEEP_GATE/released" ] && [ "\$i" -lt 2400 ]; do
+    "$REAL_SLEEP" 0.05
+    i=\$((i + 1))
+  done
+  exit 0
+fi
+exec "$REAL_SLEEP" "\$@"
+SH
+chmod +x "$SLEEP_GATE_BIN/sleep"
+export SLEEP_GATE_BIN
 
 install_wake_scripts() {
   local dir=$1 f
@@ -701,11 +736,14 @@ test_stop_claim_loses_to_waker_rewake_committed_after_pending_read() {
     printf "epoch=2 owner_pid=%s outcome=rewake updated_at=%s session_pid=%s\n%s\n" \
       "$$" "$(date +%s)" "$LOCK_PID" "$(fm_pid_identity "$$")" > "$S/.late-rewake"
     fm_lock_try_acquire "$S/.claude-autoarm.lock" || echo MUTEX_FAILED
-    "$P" sess-1 Stop | "$FM_HOME/bin/fm-claude-stop-autoarm.sh" 2>"$S/stop-err" &
+    mkdir -p "$S/gate"
+    "$P" sess-1 Stop | FM_SLEEP_GATE="$S/gate" PATH="$SLEEP_GATE_BIN:$PATH" \
+      "$FM_HOME/bin/fm-claude-stop-autoarm.sh" 2>"$S/stop-err" &
     h=$!
-    "$HELPERS/wait-sleeping" "$h" || echo STOP_DID_NOT_WAIT
+    "$HELPERS/wait-gated" "$S/gate" "$h" || echo STOP_DID_NOT_WAIT
     mv -f "$S/.late-rewake" "$S/.claude-autoarm-epoch"
     fm_lock_release "$S/.claude-autoarm.lock"
+    : > "$S/gate/released"
     wait "$h"; echo "STOP_RC=$?"
     sed -n "1s/^epoch=\([0-9]*\) .*outcome=\([a-z-]*\).*/LEDGER=\1 \2/p" "$S/.claude-autoarm-epoch"
     "$P" sess-1 FileChanged | "$FM_HOME/bin/fm-claude-wake.sh" 2>/dev/null; echo "LATE_RC=$?"
@@ -731,11 +769,14 @@ test_stop_claim_loses_to_inflight_waker_rewake() {
       "$FM_AUTOARM_MY_GEN" "$$" "$(date +%s)" "$LOCK_PID" "$(sed -n 2p "$S/.claude-autoarm-epoch")" > "$S/.inflight-rewake"
     "$HELPERS/set-mtime" "$S/.claude-autoarm-epoch" "$(( $(date +%s) - 1000 ))"
     fm_lock_try_acquire "$S/.claude-autoarm.lock" || echo MUTEX_FAILED
-    "$P" sess-1 Stop | "$FM_HOME/bin/fm-claude-stop-autoarm.sh" 2>"$S/stop-err" &
+    mkdir -p "$S/gate"
+    "$P" sess-1 Stop | FM_SLEEP_GATE="$S/gate" PATH="$SLEEP_GATE_BIN:$PATH" \
+      "$FM_HOME/bin/fm-claude-stop-autoarm.sh" 2>"$S/stop-err" &
     h=$!
-    "$HELPERS/wait-sleeping" "$h" || echo STOP_DID_NOT_WAIT
+    "$HELPERS/wait-gated" "$S/gate" "$h" || echo STOP_DID_NOT_WAIT
     mv -f "$S/.inflight-rewake" "$S/.claude-autoarm-epoch"
     fm_lock_release "$S/.claude-autoarm.lock"
+    : > "$S/gate/released"
     wait "$h"; echo "STOP_RC=$?"
     sed -n "1s/^epoch=\([0-9]*\) .*outcome=\([a-z-]*\).*/LEDGER=\1 \2/p" "$S/.claude-autoarm-epoch"
     "$P" sess-1 FileChanged | "$FM_HOME/bin/fm-claude-wake.sh" 2>/dev/null; echo "LATE_RC=$?"
