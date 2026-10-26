@@ -74,11 +74,13 @@
 # stale-beacon mid-turn allowance does not apply.
 # After that verdict, one delivery rule reads the record itself: when the
 # lock holder's own Claude turn record reads idle and the oldest unread wake
-# row has waited longer than the same grace, `can_receive` is false with
-# reason `delivery-stalled`, whatever the beat says. The `delivery` object
-# carries the oldest unread age and the turn state, so a sender can tell a
-# busy main from a blocked one; a busy main, an empty queue, and a holder with
-# no turn record of its own (`unknown`) keep their prior answer.
+# row, in the scope the Stop hook reads (fm_wake_main_unread_scope), has waited
+# longer than the same grace, `can_receive` is false with reason
+# `delivery-stalled`, whatever the beat says. With no scope it never fires.
+# The `delivery` object carries the oldest unread age and the turn state, so
+# a sender can tell a busy main from a blocked one; a busy main, an empty
+# queue, and a holder with no turn record of its own (`unknown`) keep their
+# prior answer.
 #
 # Configuration. A region, a model id and an AWS profile name somebody's account
 # and somebody's choices, so this file carries no default for any of them. Each is
@@ -879,6 +881,12 @@ cmd_ready() {
   # shellcheck source=bin/fm-session-lock-lib.sh
   . "$SELF_DIR/fm-session-lock-lib.sh"
   load_wake_lib || true
+  # shellcheck source=bin/fm-supervision-lib.sh
+  . "$SELF_DIR/fm-supervision-lib.sh"
+  # shellcheck source=bin/fm-supervision-engine-lib.sh
+  . "$SELF_DIR/fm-supervision-engine-lib.sh"
+  # shellcheck source=bin/fm-afk-contract.sh
+  FM_ROOT_OVERRIDE="$FM_ROOT" FM_STATE_OVERRIDE="$STATE" . "$SELF_DIR/fm-afk-contract.sh"
   local lock_state=unknown lock_pid="" live_harness=unknown
   local consumer_state=unknown consumer_reason="" beacon_age=""
   local posture=unknown can_receive=unknown observed
@@ -951,7 +959,7 @@ cmd_ready() {
   # Delivery reads the record, not the beat: an idle main whose oldest
   # unread row has outwaited the grace cannot receive, even while a
   # backstop arm keeps the beacon fresh. A busy main keeps its answer.
-  local turn_state=unknown oldest_age=""
+  local turn_state=unknown oldest_age="" unread_scope
   if [ "$lock_state" = held ] && [ -n "$lock_pid" ] \
     && command -v fm_claude_turn_read >/dev/null 2>&1; then
     if fm_claude_turn_read "$STATE" \
@@ -959,8 +967,9 @@ cmd_ready() {
       turn_state=$FM_CLAUDE_TURN_STATE
     fi
   fi
-  if command -v fm_wake_main_unread >/dev/null 2>&1 \
-    && fm_wake_main_unread "$STATE" any >/dev/null; then
+  if command -v fm_wake_main_unread_scope >/dev/null 2>&1 \
+    && unread_scope=$(fm_wake_main_unread_scope "$STATE" "$CONFIG" "$grace") \
+    && fm_wake_main_unread "$STATE" "$unread_scope" >/dev/null; then
     case "${FM_WAKE_MAIN_UNREAD_OLDEST_EPOCH:-}" in
       ''|*[!0-9]*) ;;
       *)

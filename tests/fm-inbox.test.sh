@@ -687,6 +687,46 @@ assert_equals "supervised" "$(printf '%s' "$busy" | json_get wake_consumer reaso
 assert_equals "busy" "$(printf '%s' "$busy" | json_get delivery turn_state)" \
   "the busy delivery shows the busy turn state"
 
+# A long busy turn whose row has outwaited the grace still keeps its answer.
+home=$(make_home ready-delivery-long-busy)
+printf '%s\n' "$holder_pid" > "$home/state/.lock"
+touch "$home/state/.last-watcher-beat"
+now=$(date +%s)
+printf 'busy %s %s %s\n' "$((now - 7200))" "$holder_pid" "delivery-session" \
+  > "$home/state/.claude-turn"
+printf '%s\t%s\t%s\t%s\t%s\n' "$((now - 7200))" 1 check "inbox:delivery-note" \
+  "check: captain inbox note delivery-note - long busy" \
+  > "$home/state/.wake-queue"
+long_busy=$(FM_WATCHER_STALE_GRACE=300 run_inbox "$home" ready) \
+  || fail "ready should succeed for a long busy home"
+assert_equals "True" "$(printf '%s' "$long_busy" | json_get can_receive)" \
+  "a busy main with a two-hour unread row can still receive"
+assert_equals "supervised" "$(printf '%s' "$long_busy" | json_get wake_consumer reason)" \
+  "a long busy main keeps the consumer reason"
+assert_equals "busy" "$(printf '%s' "$long_busy" | json_get delivery turn_state)" \
+  "the long busy delivery shows the busy turn state"
+
+# On a host home that needs supervision the parked engine owns routine rows,
+# so an old heartbeat row is no stall, exactly as the Stop hook reads it.
+home=$(make_home ready-delivery-host-heartbeat)
+printf '%s\n' "$holder_pid" > "$home/state/.lock"
+touch "$home/state/.last-watcher-beat" "$home/state/host-task.meta"
+now=$(date +%s)
+printf 'idle %s %s %s\n' "$now" "$holder_pid" "delivery-session" \
+  > "$home/state/.claude-turn"
+printf '%s\t%s\t%s\t%s\t%s\n' "$((now - 7200))" 1 heartbeat heartbeat heartbeat \
+  > "$home/state/.wake-queue"
+host_beat=$(FM_WATCHER_STALE_GRACE=300 run_inbox "$home" ready) \
+  || fail "ready should succeed for a host home with a heartbeat row"
+assert_equals "True" "$(printf '%s' "$host_beat" | json_get can_receive)" \
+  "a host-owned heartbeat row cannot stall delivery"
+assert_equals "supervised" "$(printf '%s' "$host_beat" | json_get wake_consumer reason)" \
+  "a host-owned heartbeat row keeps the consumer reason"
+assert_equals "idle" "$(printf '%s' "$host_beat" | json_get delivery turn_state)" \
+  "the host home still shows the idle turn state"
+assert_equals "None" "$(printf '%s' "$host_beat" | json_get delivery oldest_unread_age_seconds)" \
+  "a host-owned heartbeat row is not main's unread row"
+
 # An empty queue reads as today, with no unread age to report.
 home=$(make_home ready-delivery-empty)
 printf '%s\n' "$holder_pid" > "$home/state/.lock"
