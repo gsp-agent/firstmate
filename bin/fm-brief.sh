@@ -187,7 +187,8 @@ IFS= read -r -d '' CREWMATE_PAUSE_INSTRUCTIONS <<EOF || true
    Firstmate may still raise one first-sight alert; the declared wait then uses the existing long recheck cadence instead of repeated possible-wedge alarms.
    When you know when the wait clears, include \`until <YYYY-MM-DDTHH:MMZ>\` (UTC) for a recheck at that time.
    When the only thing you wait on is your own PR's merge, append \`$PAUSED_VERB [at=<epoch>] [awaits=merge]: {PR url and the step that follows the merge}\` instead.
-   That marker means merge it now: you will push nothing more to that PR and your next step starts after the merge, so never write it while more commits or any other wait remain.
+   That marker means merge it once approved: you will push nothing more to that PR and your next step starts after the merge, so never write it while more commits or any other wait remain.
+   The reviewer's verdict on your pushed head is part of the merge wait, not another one: write the marker while you wait for review, because a plain \`$PAUSED_VERB:\` holds the merge even after the approval, and a change request reaches you as a new instruction.
    Follow the resolution rule below when the wait clears, then resume the task.
    Use \`blocked:\` when you are stuck and need help.
 EOF

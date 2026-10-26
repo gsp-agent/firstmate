@@ -772,6 +772,18 @@ test_send_tmux_contract() {
   assert_contains "$(cat "$log")" $'\x1f''Escape' "fm-send --key did not send the named key"
   assert_not_contains "$(cat "$log")" $'\x1f''-l'$'\x1f' "fm-send --key must not type literal text"
 
+  # Case 1b: an unlisted key name passes through unchanged, and the other
+  # documented keys still pass. X is the Grok weekly-limit dialog's
+  # Shift+x dismiss key; tmux receives every name verbatim.
+  local k
+  for k in X Enter C-c; do
+    run_send_case "$ROOT" "$fb" "$log" "$home" -- "sess:win" --key "$k"
+    rc=$?
+    expect_code 0 "$rc" "fm-send --key $k should succeed against a live fake pane"
+    assert_contains "$(cat "$log")" $'\x1f'"$k" "fm-send --key did not pass $k through to the tmux pane unchanged"
+    assert_not_contains "$(cat "$log")" $'\x1f''-l'$'\x1f' "fm-send --key $k must not type literal text"
+  done
+
   # Case 2: plain text - typed literally exactly once, submitted with Enter,
   # confirmed against the bordered-empty fake composer.
   run_send_case "$ROOT" "$fb" "$log" "$home" -- "sess:win" hello captain
