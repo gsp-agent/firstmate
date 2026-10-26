@@ -797,10 +797,12 @@ test_teardown_closes_the_backlog_item_itself() {
     "closed backlog item did not record the task's PR"
   assert_absent "$case_dir/state/task-x1.backlog-close" \
     "a landed close left its pending-close record behind"
-  printf '%s\n' "$out" | grep -F 'bin/fm-tasks-axi.sh ready' >/dev/null \
-    || fail "teardown dropped the dependency-cleared follow-up: $out"
-  printf '%s\n' "$out" | grep -F 'check date gates' >/dev/null \
-    || fail "teardown did not preserve date-gate check: $out"
+  printf '%s\n' "$out" | grep -F 'What its freed place can start is the Dispatch line below.' >/dev/null \
+    || fail "teardown dropped the follow-up pointing at its Dispatch line: $out"
+  # The place the removed record freed is named by bin/fm-spawn.sh's own count
+  # (bin/fm-dispatch-ready.sh), never left for a later turn to count rows.
+  printf '%s\n' "$out" | grep -E '^Dispatch: project (has [0-9]+ of [0-9]+ places free|declares no place limit)' >/dev/null \
+    || fail "teardown did not print the Dispatch line for the place it freed: $out"
   printf '%s\n' "$out" | grep -F 'Run tasks-axi done' >/dev/null \
     && fail "teardown still asked a later turn to close the item it already closed: $out"
   pass "teardown closes its own backlog item before reporting success"
@@ -925,8 +927,8 @@ test_no_mistakes_origin_remote_allows() {
 
   expect_code 0 "$rc" "nm-origin: teardown should succeed when HEAD is on origin"
   ! grep -q REFUSED "$case_dir/stderr" || fail "nm-origin: teardown printed a REFUSED line"
-  grep -F 'blockers are gone and date is due' "$case_dir/stdout" >/dev/null \
-    || fail "nm-origin: teardown manual prompt did not preserve date-gate check"
+  grep -F -i 'what its freed place can start is the Dispatch line below' "$case_dir/stdout" >/dev/null \
+    || fail "nm-origin: teardown did not point at its Dispatch line"
   pass "no-mistakes worktree with HEAD on origin is torn down (no regression)"
 }
 

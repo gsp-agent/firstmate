@@ -161,3 +161,5 @@ pr: 157
 pr: 158
 # Failing-first replays in tests/fm-claude-wake.test.sh: test_stop_claim_loses_to_waker_rewake_committed_after_pending_read commits a second rewake on the base (STOP_RC=2, ledger epoch 3), test_stop_claim_loses_to_inflight_waker_rewake commits a second rewake on the base (STOP_RC=2, ledger epoch 2), and test_waker_banner_carries_away_line_on_host_home misses the away-posture line on the base; all three pass after the fix.
 pr: 159
+# Failing-first Dispatch line replays in tests/fm-dispatch-ready.test.sh: on the base the suite exits at its first case (the helper is absent, exit 127); after the fix all 9 cases pass, including 4 in-flight rows against a cap of 2 reading 1 of 2 places free by fm-spawn's own count.
+pr: 160

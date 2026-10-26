@@ -18,7 +18,8 @@
 # bin/fm-pr-merge.sh records through this script with FM_PR_CHECK_MERGE=1 and
 # skips this refusal, because its own merge-time draft refusal is authoritative.
 # The recorded pr= also frees the task's place in a declared project capacity
-# (bin/fm-project-capacity-lib.sh).
+# (bin/fm-project-capacity-lib.sh), and the output then ends with
+# bin/fm-dispatch-ready.sh's Dispatch lines saying what that place can start.
 # A registered GitHub pull request is also stamped with the engines that wrote
 # it through bin/fm-pr-made-with.sh, except on the merge-time re-record.
 # Before registration, bin/fm-pr-bead.sh carries the verified owning bead into
@@ -328,3 +329,11 @@ case "$READY_RC" in
   *) printf 'actionable: PR %s is registered but its ready line did not reach the parent channel (rc=%s)\n' "$URL" "$READY_RC" >&2 ;;
 esac
 printf 'armed: state/%s.check.sh\n' "$ID"
+# The recorded pr= freed the task's place when its project declares a limit,
+# so the handoff itself says what that place can start
+# (bin/fm-dispatch-ready.sh, silent for an unlimited project). The merge-time
+# re-record frees nothing new.
+PR_PROJECT=$(grep '^project=' "$META" | tail -1 | cut -d= -f2- || true)
+if [ "${FM_PR_CHECK_MERGE:-}" != 1 ] && [ -n "$PR_PROJECT" ] && [ -d "$PR_PROJECT" ]; then
+  FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE "$SCRIPT_DIR/fm-dispatch-ready.sh" --if-capped "$PR_PROJECT" || true
+fi

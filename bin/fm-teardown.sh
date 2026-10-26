@@ -4,7 +4,8 @@
 # clear volatile state, and transition this home's backlog item for ship and
 # scout tasks before reporting success (a secondmate teardown transitions none,
 # since secondmates are not backlog items), then refresh/prune the project's
-# clone for PR-based ship tasks.
+# clone for PR-based ship tasks, and finally print bin/fm-dispatch-ready.sh's
+# Dispatch line for the place the removed record freed.
 # An endpoint whose close could not do its job REFUSES before any record naming
 # it is removed: those records are the only thing that names what survived, so
 # reporting such a close as a completed cleanup strands the endpoint instead of
@@ -1771,9 +1772,9 @@ backlog_refresh_reminder() {
   if [ "$BACKLOG_CLOSED" = 1 ] && [ "$BACKLOG_TRANSITION" = retain ]; then
     printf '%s\n' "Backlog: $ID stays open in $backlog_display, still held for the captain with its deliverable recorded. Relay the question and follow .agents/skills/captain-hold-lifecycle/SKILL.md for resolution authority."
   elif [ "$BACKLOG_CLOSED" = 1 ]; then
-    printf '%s\n' "Backlog: $ID is closed in $backlog_display. Run bin/fm-tasks-axi.sh ready for dependency-cleared candidates, check date gates, and dispatch only work whose blockers are gone and date is due."
+    printf '%s\n' "Backlog: $ID is closed in $backlog_display. What its freed place can start is the Dispatch line below."
   else
-    printf '%s\n' "Backlog: $ID just finished ($BACKLOG_SKIP_REASON). Update $backlog_display - move $ID to Done, keep Done to the 10 most recent, then re-scan Queued and dispatch only work whose blockers are gone and date is due."
+    printf '%s\n' "Backlog: $ID just finished ($BACKLOG_SKIP_REASON). Update $backlog_display - move $ID to Done, keep Done to the 10 most recent; what its freed place can start is the Dispatch line below."
   fi
 }
 
@@ -3891,6 +3892,14 @@ backlog_refresh_reminder
 # Expiring other tasks' holds reads their references, which can be slow, so it
 # runs only after every lock above is released (bin/fm-task-data-lib.sh).
 teardown_release_locks || true
+# Removing the record freed the task's place, so the cleanup itself says what
+# that place can start: the project's free places by bin/fm-spawn.sh's own
+# count and its ready rows (bin/fm-dispatch-ready.sh). It counts without the
+# locks released above and changes nothing.
+if [ "$KIND" != secondmate ] && [ -n "$PROJ" ] && [ -d "$PROJ" ]; then
+  FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE FM_DATA_OVERRIDE=$DATA FM_CONFIG_OVERRIDE=$CONFIG \
+    "$SCRIPT_DIR/fm-dispatch-ready.sh" "$PROJ" || true
+fi
 if [ "$KIND" != secondmate ]; then
   fm_task_data_expire_others "$DATA" "$STATE" "$ID" \
     || echo "warning: $ID teardown completed, but expiring other tasks' held data needs a retry" >&2
