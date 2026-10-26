@@ -163,3 +163,5 @@ pr: 158
 pr: 159
 # Failing-first Dispatch line replays in tests/fm-dispatch-ready.test.sh: on the base the suite exits at its first case (the helper is absent, exit 127); after the fix all 9 cases pass, including 4 in-flight rows against a cap of 2 reading 1 of 2 places free by fm-spawn's own count.
 pr: 160
+# Failing-first per-log budget in tests/fm-wake-drain-fork-budget.test.sh: on 02ce380f a settled drain starts 53 processes per added unchanged status log (1 vs 50 logs, budget 3) and fails; built-in reads, out-var cursor helpers and the unchanged-file fast path start 2 and pass, an appended or recreated log is still presented, and a settled drain on a live-state copy drops from 21,698 to 3,049 processes.
+pr: 161

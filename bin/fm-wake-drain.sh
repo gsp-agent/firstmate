@@ -361,7 +361,7 @@ print_status_outcome_backstop_section() {  # <task-and-endpoint-snapshot>
   STATUS_OUTCOME_BACKSTOP_ACKNOWLEDGED=
   while IFS=$'\t' read -r task endpoint ident; do
     [ -n "$task" ] || continue
-    receipt=$(status_outcome_backstop_cursor_offset "$STATE/$task.status") || { rc=1; break; }
+    status_outcome_backstop_cursor_offset_to receipt "$STATE/$task.status" || { rc=1; break; }
     [ "$receipt" -lt "$endpoint" ] || continue
     status_snapshot_latest_event "$STATE/$task.status" "$endpoint" "$ident" || continue
     event=$FM_STATUS_SNAPSHOT_EVENT_LINE
@@ -786,6 +786,9 @@ print_status_sections() {
 print_status_presentation() {  # [<deduped-raw-rows>]
   local rows=${1:-} lock="$STATE/.status-presentation-lock" snapshot annotation_manifest fully_presented='' rc=0
   local lock_rc holder_pid
+  # Learn once here whether the state volume is APFS, so the per-section
+  # subshells below inherit the answer instead of each probing it.
+  status_identity_volume_probe "$STATE"
   if fm_lock_acquire_wait_bounded "$lock" "$PRESENTATION_LOCK_TIMEOUT"; then
     :
   else
