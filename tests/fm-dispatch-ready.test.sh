@@ -142,6 +142,37 @@ test_full_project_names_its_ready_rows_and_waits() {
   pass "a full project names its ready rows and says nothing starts until a place frees"
 }
 
+# At the declared count bin/fm-spawn.sh can still admit one extra start through
+# a configured headroom reading, once per window, so the line must leave that
+# verdict to the spawn instead of saying nothing starts (chip, PR 160).
+test_full_project_with_headroom_leaves_the_extra_start_to_spawn() {
+  local case_dir out identity
+  case_dir=$(make_case headroom)
+  declare_capacity "$case_dir" "proj 1"
+  write_worker "$case_dir" busy-1 'working [at=1790000000]: building'
+  axi "$case_dir" add ready-a "first ready" --kind ship --repo proj
+  printf '%s\n' '#!/usr/bin/env bash' 'echo cpu_idle_pct=40' > "$case_dir/reading"
+  chmod +x "$case_dir/reading"
+  printf '%s\n' "$case_dir/reading" > "$case_dir/home/config/project-capacity-headroom"
+  out=$(run_helper "$case_dir") || fail "headroom: helper failed"
+  assert_contains "$out" "proj has 0 of 1 places free" "headroom: count"
+  assert_contains "$out" "its headroom reading may admit one start past that count" "headroom: open window not offered"
+  assert_contains "$out" "start it now with bin/fm-spawn.sh, which runs the reading and decides" "headroom: not left to the spawn"
+  assert_not_contains "$out" "Nothing starts" "headroom: withheld a start the spawn would allow"
+  assert_absent "$case_dir/home/state/project-capacity-overshare" "headroom: the helper wrote an extra-start record"
+  # The window's one extra start already taken: nothing starts until it passes.
+  identity=$(FM_HOME="$case_dir/home" bash -c '. "$1/bin/fm-wake-lib.sh" && . "$1/bin/fm-secondmate-registry-lib.sh" &&
+    . "$1/bin/fm-backend.sh" && . "$1/bin/fm-project-capacity-lib.sh" &&
+    fm_project_capacity_overshare_identity "$(fm_treehouse_project_lock_path "$2")"' _ "$ROOT" "$case_dir/proj") ||
+    fail "headroom: fixture could not name the extra-start record"
+  mkdir -p "$case_dir/home/state/project-capacity-overshare"
+  date +%s > "$case_dir/home/state/project-capacity-overshare/$identity"
+  out=$(run_helper "$case_dir") || fail "headroom: helper failed with a spent window"
+  assert_contains "$out" "its one extra start for this window is taken (the window passes in about" "headroom: spent window"
+  assert_contains "$out" "Nothing starts until a place frees or that window passes" "headroom: spent wording"
+  pass "a full project with a headroom reading leaves its extra start to bin/fm-spawn.sh and names a spent window"
+}
+
 test_uncapped_project_starts_everything_and_if_capped_is_silent() {
   local case_dir out
   case_dir=$(make_case uncapped)
@@ -255,6 +286,7 @@ test_instructions_carry_the_dispatch_and_merge_cleanup_rules() {
 
 test_free_places_are_counted_by_spawns_rule_not_backlog_rows
 test_full_project_names_its_ready_rows_and_waits
+test_full_project_with_headroom_leaves_the_extra_start_to_spawn
 test_uncapped_project_starts_everything_and_if_capped_is_silent
 test_zero_places_hold_ready_work_back
 test_no_ready_rows_skips_the_count

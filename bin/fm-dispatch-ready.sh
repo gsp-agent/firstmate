@@ -181,8 +181,31 @@ if [ -z "$MINE" ]; then
 elif [ "$CAP" = 0 ]; then
   printf 'Dispatch: %s. Ready for it, held back by that declaration: %s.\n' "$places" "$(short_list "$MINE" "$DISPATCH_LIST_MAX")"
 elif [ -z "$COUNT_ERROR" ] && [ -n "$CAP" ] && [ "$FREE" -le 0 ]; then
-  printf 'Dispatch: %s. Ready for it, in backlog order: %s. Nothing starts until a place frees; the next cleanup or recorded PR in %s prints this line again.\n' \
-    "$places" "$(short_list "$MINE" "$DISPATCH_LIST_MAX")" "$NAME"
+  # At the declared count bin/fm-spawn.sh can still admit one extra start
+  # through config/project-capacity-headroom, once per window. Read the same
+  # verdict it starts from (fm_project_capacity_overshare_prepare, read-only)
+  # so the line never withholds a start the spawn would allow.
+  fm_project_capacity_overshare_prepare "$CAP_CONFIG" "$LOCK" >/dev/null 2>&1 || FM_PROJECT_CAPACITY_OVERSHARE=no
+  case "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" in
+    open)
+      printf 'Dispatch: %s, but its headroom reading may admit one start past that count. Ready for it, in backlog order: %s. Write the first brief and start it now with bin/fm-spawn.sh, which runs the reading and decides; a deferral with exit 75 leaves the row queued.\n' \
+        "$places" "$(short_list "$MINE" "$DISPATCH_LIST_MAX")"
+      ;;
+    spent)
+      left=
+      if IFS= read -r spent_at < "$FM_PROJECT_CAPACITY_OVERSHARE_DIR/$FM_PROJECT_CAPACITY_OVERSHARE_IDENTITY" 2>/dev/null &&
+        case "$spent_at" in '' | *[!0-9]* | 0?*) false ;; *) true ;; esac; then
+        left=$((spent_at + FM_PROJECT_CAPACITY_OVERSHARE_WINDOW - $(date +%s)))
+        [ "$left" -gt 0 ] || left=0
+      fi
+      printf 'Dispatch: %s, and its one extra start for this window is taken%s. Ready for it, in backlog order: %s. Nothing starts until a place frees or that window passes; the next cleanup, recorded PR or heartbeat line in %s says which.\n' \
+        "$places" "${left:+ (the window passes in about ${left}s)}" "$(short_list "$MINE" "$DISPATCH_LIST_MAX")" "$NAME"
+      ;;
+    *)
+      printf 'Dispatch: %s. Ready for it, in backlog order: %s. Nothing starts until a place frees; the next cleanup, recorded PR or heartbeat line in %s says when.\n' \
+        "$places" "$(short_list "$MINE" "$DISPATCH_LIST_MAX")" "$NAME"
+      ;;
+  esac
 else
   printf 'Dispatch: %s. Ready for it, in backlog order: %s. %s\n' "$places" "$(short_list "$MINE" "$DISPATCH_LIST_MAX")" "$START"
 fi
