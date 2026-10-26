@@ -25,20 +25,22 @@
 # non-interactive mode (-p, or a non-TTY stdout), and a spawned pane is
 # interactive. Every fresh task worktree therefore hits it, and so does every
 # secondmate home the operator has not opened by hand. The dialog renders
-# with the cursor on "No, exit" and firstmate's steering plane carries only
-# Enter, Escape and C-c with no arrow navigation, so firstmate cannot answer it
-# and must not try - pressing Enter would select exit. The agent wedges before
-# it ever reads the brief. Registering the trust before launch is the only
-# control that reaches an interactive pane. The same reasoning covers Claude
-# Code's separate "Allow external CLAUDE.md file imports?" dialog, which
-# `--setting-sources project,local` (firstmate PR 10's minimal worker tool
-# surface) stopped suppressing: it renders whenever a loaded CLAUDE.md chain
-# reaches outside the project tree - which every crewmate's does, through the
-# captain's own `~/.claude/CLAUDE.md` importing `~/.claude/RTK.md` - and it is
-# gated the same fail-closed way as trust: cursor on "No, disable", no arrow
-# navigation from firstmate's steering plane. Only worktree mode reaches this
-# second dialog's flags: a secondmate home has no separate "project" entry to
-# carry consent forward from, so its registration stays trust-only.
+# with the cursor on "No, exit". Arrow navigation of it is not verified live
+# and is not supported on every backend (Orca accepts only Enter and C-c;
+# bin/fm-send.sh's header owns which keys each backend passes through), so
+# firstmate does not answer it and must not try - pressing Enter would select
+# exit. The agent wedges before it ever reads the brief. Registering the trust
+# before launch is the only control that reaches an interactive pane. The same
+# reasoning covers Claude Code's separate "Allow external CLAUDE.md file
+# imports?" dialog, which `--setting-sources project,local` (firstmate PR 10's
+# minimal worker tool surface) stopped suppressing: it renders whenever a
+# loaded CLAUDE.md chain reaches outside the project tree - which every
+# crewmate's does, through the captain's own `~/.claude/CLAUDE.md` importing
+# `~/.claude/RTK.md` - and it is gated the same fail-closed way as trust:
+# cursor on "No, disable", and firstmate does not move its selection either.
+# Only worktree mode reaches this second dialog's flags: a secondmate home has
+# no separate "project" entry to carry consent forward from, so its
+# registration stays trust-only.
 #
 # TWO PROJECT-CONFIG ENTRIES IN WORKTREE MODE, NOT ONE. Registering both flags
 # on the worktree entry alone (the original trust-only design) leaves the
