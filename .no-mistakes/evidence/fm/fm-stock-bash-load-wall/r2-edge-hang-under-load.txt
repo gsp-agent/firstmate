@@ -1,0 +1,25 @@
+
+--- hung bearings step under real load
+host now: hw.ncpu=16 vm.loadavg={ 156.22 119.33 110.65 }
+$ env FM_STOCK_BASH_STEP_SECONDS=3 <fixture>/bin/fm-stock-bash-check.sh
+fm-stock-bash-check.sh: /bin/bash (Bash 3.2.57(1)-release); per step: 3s wall at idle load, grown with load up to 6 times, 2097152 KiB tree RSS
+parse-sweep: 3s, load factor 6, peak tree RSS 4880 KiB
+ok - parse-sweep: 2 files parse under stock Bash 3.2.57(1)-release
+snapshot-view: 2s, load factor 6, peak tree RSS 1920 KiB
+ok - stand-in 1
+bearings: 18s, load factor 6, peak tree RSS 14032 KiB
+# hanging
+FAIL bearings: stopped at the 18s wall bound (load factor 6 times 3s at idle load)
+public-followup-empty-lock: 1s, load factor 6, peak tree RSS 4768 KiB
+ok - stand-in 1
+watch-churn-deferral: 2s, load factor 6, peak tree RSS 5392 KiB
+ok - stand-in 1
+fork-free-helpers: 1s, load factor 6, peak tree RSS 256 KiB
+ok - stand-in 1
+backend-adapter-file: 1s, load factor 6, peak tree RSS 7440 KiB
+ok - stand-in 1
+
+fm-stock-bash-check.sh: stock Bash 3.2.57(1)-release check FAILED:
+bearings: stopped at the 18s wall bound (load factor 6 times 3s at idle load)
+exit status: 1, elapsed 30s
+leftover sleep 6173 processes from the hung step: 0

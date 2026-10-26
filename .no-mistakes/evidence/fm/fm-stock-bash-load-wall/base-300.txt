@@ -1,0 +1,53 @@
+fm-stock-bash-check.sh: /bin/bash (Bash 3.2.57(1)-release); per step: 300s wall, 2097152 KiB tree RSS
+parse-sweep: 36s, peak tree RSS 15776 KiB
+ok - parse-sweep: 512 files parse under stock Bash 3.2.57(1)-release
+snapshot-view: 303s, peak tree RSS 121312 KiB
+ok - empty fleet snapshot and view use explicit absence markers
+ok - fixture snapshot covers task rows, backlog rows, pointers, stable ordering, and emission-time event age
+ok - home-summary excludes kind=secondmate from unowned_current and terminal_in_flight
+ok - undated captain holds age after a configurable threshold, decided only from structured fields
+ok - captain-hold buckets are total, mutually exclusive, and never decided by prose
+ok - main_inventory discloses orphan/unstructured and clears when inventory is consistent
+ok - backlog normalization preserves strict roles and resolves every blocker compatibly
+ok - a blocker archived to done-archive.md resolves; queued and in-flight blockers stay unresolved
+ok - snapshot event hints follow reconciled current state
+ok - durable fold keeps an open decision past a later unrelated event
+ok - a live secondmate endpoint preserves unrelated open decisions
+ok - durable captain-held transfer closes the duplicate live status decision
+ok - durable fold clears a decision only on a keyed resolution
+FAIL snapshot-view: stopped at the 300s wall bound
+bearings: 219s, peak tree RSS 211728 KiB
+ok - task teardown during metadata capture is omitted without aborting the snapshot
+ok - current state and decision hints share one captured status observation
+ok - reused live state is discarded when task generation changes
+ok - large local snapshot overlaps local reads with byte-identical serial and concurrent projections
+not ok - a healthy snapshot did not issue exactly one remote file read per home
+FAIL bearings: expected 62 passing tests from tests/fm-bearings-snapshot.test.sh, got 4 (exit 1)
+public-followup-empty-lock: 40s, peak tree RSS 78352 KiB
+ok - first register succeeds with an empty lock list under /bin/bash
+watch-churn-deferral: 46s, peak tree RSS 55584 KiB
+ok - a churning turn-end inside an already-open deferral window is absorbed without re-marking
+fork-free-helpers: 204s, peak tree RSS 34784 KiB
+ok - fm_dirname_to and fm_basename_to match dirname and basename on every edge case
+ok - fm_epoch_seconds_to reads the clock like date +%s and forks date at most as often
+ok - signal seen paths and absolute lock paths are byte-identical to the dirname/basename/tr forms
+ok - recovery marker reads accept exactly the one-line records wc -l accepted
+ok - window_to_task resolves every recorded window exactly as the grep/tail/cut pipeline did
+ok - classify stat helpers resolve the kernel name once per process
+ok - fm_read_text_to reads every file exactly as $(cat file 2>/dev/null || true) does
+ok - fm_sleep waits the requested time, returns at once for 0, and starts no process where the sleep builtin exists
+ok - TERM completes cleanup even beyond the interrupted wait, with builtin and external sleep
+ok - fm_touch_empty moves an empty marker's mtime and leaves content and symlink targets alone
+ok - one stat of every scanned file yields the signatures, turn-ended stamps, and mtimes the per-file reads print
+ok - fm_backend_target_of_meta_to reads every meta's target as the printing form does
+ok - watch reads preserve metadata, visit order, inbox bookkeeping and changed status/pane results
+ok - status reads notice same-size rewrites even when the recorded timestamp is unchanged
+ok - only a known idle main-home scan is skipped; due scans, secondmates and uncertain state keep the existing path
+ok - pending directory reads and the conservative process-event precheck preserve results
+backend-adapter-file: 18s, peak tree RSS 23104 KiB
+ok - fm_backend_source: missing adapter fails before lifecycle continuation
+ok - fm_backend_source: unreadable adapter fails before lifecycle continuation
+
+fm-stock-bash-check.sh: stock Bash 3.2.57(1)-release check FAILED:
+snapshot-view: stopped at the 300s wall bound
+bearings: expected 62 passing tests from tests/fm-bearings-snapshot.test.sh, got 4 (exit 1)

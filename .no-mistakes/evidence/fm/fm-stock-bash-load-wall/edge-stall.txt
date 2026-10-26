@@ -1,0 +1,57 @@
+== stall ==
+host now: hw.ncpu=16 vm.loadavg={ 145.49 116.24 86.15 }
+$ env PATH=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-sbc-test.mwfeuC/edges/stall-bin:/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-sbc-test.mwfeuC/edges/tools:/Users/dalecarman/.agent-config/tools-bin/shims:/Users/dalecarman/.unity/bin:/Users/dalecarman/.agent-config/tools-bin/codex-orchestrator/bin:/Users/dalecarman/.config/opencode/tool:/Users/dalecarman/.opencode/bin:/Users/dalecarman/.antigravity/antigravity/bin:/Users/dalecarman/Library/pnpm:/Users/dalecarman/.gem/ruby/2.6.0/bin:/Users/dalecarman/.gem/ruby/2.6/bin:/opt/homebrew/opt/grep/libexec/gnubin:/opt/anaconda3/condabin:/Users/dalecarman/.bun/bin:/Users/dalecarman/.agent-config/tools-bin/nm-daemon:/usr/bin/poppler-utils:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin://Applications/Topaz Gigapixel AI.app/Contents/Resources/bin:/Library/Apple/usr/bin:/Users/dalecarman/.agent-config/tools-bin/shims:/Users/dalecarman/.local/bin:/Users/dalecarman/.agent-config/tools-bin:/Users/dalecarman/bin:/opt/homebrew/opt/trash/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/dalecarman/go/bin:/Users/dalecarman/.cargo/bin:/usr/local/sbin:/Users/dalecarman/.local/bin:/Users/dalecarman/go/bin FM_STOCK_BASH_STEP_SECONDS=5 FM_STOCK_BASH_LOAD_FACTOR=1 FM_TEST_STALL=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-sbc-test.mwfeuC/edges/stall-marker <fixture>/bin/fm-stock-bash-check.sh
+fm-stock-bash-check.sh: /bin/bash (Bash 3.2.57(1)-release); per step: 5s wall at idle load, grown with load up to 6 times, 2097152 KiB tree RSS
+parse-sweep: 1s, load factor 1, peak tree RSS 13072 KiB
+ok - parse-sweep: 2 files parse under stock Bash 3.2.57(1)-release
+snapshot-view: 2s, load factor 1, peak tree RSS 7552 KiB
+ok - stand-in 1
+ok - stand-in 2
+ok - stand-in 3
+ok - stand-in 4
+ok - stand-in 5
+ok - stand-in 6
+ok - stand-in 7
+ok - stand-in 8
+ok - stand-in 9
+ok - stand-in 10
+ok - stand-in 11
+ok - stand-in 12
+ok - stand-in 13
+ok - stand-in 14
+ok - stand-in 15
+ok - stand-in 16
+ok - stand-in 17
+ok - stand-in 18
+ok - stand-in 19
+bearings: 43s, load factor 1, peak tree RSS 13408 KiB
+FAIL bearings: stopped at the 5s wall bound (load factor 1 times 5s at idle load)
+public-followup-empty-lock: 2s, load factor 1, peak tree RSS 8240 KiB
+ok - stand-in 1
+watch-churn-deferral: 5s, load factor 1, peak tree RSS 10672 KiB
+ok - stand-in 1
+fork-free-helpers: 3s, load factor 1, peak tree RSS 7056 KiB
+ok - stand-in 1
+ok - stand-in 2
+ok - stand-in 3
+ok - stand-in 4
+ok - stand-in 5
+ok - stand-in 6
+ok - stand-in 7
+ok - stand-in 8
+ok - stand-in 9
+ok - stand-in 10
+ok - stand-in 11
+ok - stand-in 12
+ok - stand-in 13
+ok - stand-in 14
+ok - stand-in 15
+ok - stand-in 16
+backend-adapter-file: 2s, load factor 1, peak tree RSS 5936 KiB
+ok - stand-in 1
+ok - stand-in 2
+
+fm-stock-bash-check.sh: stock Bash 3.2.57(1)-release check FAILED:
+bearings: stopped at the 5s wall bound (load factor 1 times 5s at idle load)
+[exit 1, 61s]
+hung step started at 1792996515, received TERM at 1792996545: 30s after it started

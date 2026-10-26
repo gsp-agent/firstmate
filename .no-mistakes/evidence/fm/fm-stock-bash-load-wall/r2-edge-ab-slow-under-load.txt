@@ -1,0 +1,60 @@
+
+--- BASE commit 6c90cd9f77e1c4c63199c994fc3b76827401cc6c (fixed wall)
+host now: hw.ncpu=16 vm.loadavg={ 94.59 99.69 104.34 }
+$ env FM_STOCK_BASH_STEP_SECONDS=3 <fixture>/bin/fm-stock-bash-check.sh
+fm-stock-bash-check.sh: /bin/bash (Bash 3.2.57(1)-release); per step: 3s wall, 2097152 KiB tree RSS
+parse-sweep: 1s, peak tree RSS 1728 KiB
+ok - parse-sweep: 2 files parse under stock Bash 3.2.57(1)-release
+snapshot-view: 1s, peak tree RSS 4752 KiB
+ok - stand-in 1
+bearings: 4s, peak tree RSS 14320 KiB
+# working, second 1
+# working, second 2
+# working, second 3
+FAIL bearings: stopped at the 3s wall bound
+public-followup-empty-lock: 2s, peak tree RSS 5264 KiB
+ok - stand-in 1
+watch-churn-deferral: 1s, peak tree RSS 6192 KiB
+ok - stand-in 1
+fork-free-helpers: 2s, peak tree RSS 640 KiB
+ok - stand-in 1
+backend-adapter-file: 1s, peak tree RSS 3984 KiB
+ok - stand-in 1
+
+fm-stock-bash-check.sh: stock Bash 3.2.57(1)-release check FAILED:
+bearings: stopped at the 3s wall bound
+exit status: 1, elapsed 13s
+
+--- TARGET commit (wall grown with real load)
+host now: hw.ncpu=16 vm.loadavg={ 91.03 98.66 103.89 }
+$ env FM_STOCK_BASH_STEP_SECONDS=3 <fixture>/bin/fm-stock-bash-check.sh
+fm-stock-bash-check.sh: /bin/bash (Bash 3.2.57(1)-release); per step: 3s wall at idle load, grown with load up to 6 times, 2097152 KiB tree RSS
+parse-sweep: 1s, load factor 6, peak tree RSS 6112 KiB
+ok - parse-sweep: 2 files parse under stock Bash 3.2.57(1)-release
+snapshot-view: 5s, load factor 6, peak tree RSS 0 KiB
+ok - stand-in 1
+bearings: 17s, load factor 6, peak tree RSS 14192 KiB
+# working, second 1
+# working, second 2
+# working, second 3
+# working, second 4
+# working, second 5
+# working, second 6
+# working, second 7
+# working, second 8
+# working, second 9
+# working, second 10
+# working, second 11
+# working, second 12
+ok - stand-in 1
+public-followup-empty-lock: 1s, load factor 6, peak tree RSS 4896 KiB
+ok - stand-in 1
+watch-churn-deferral: 1s, load factor 6, peak tree RSS 4064 KiB
+ok - stand-in 1
+fork-free-helpers: 1s, load factor 6, peak tree RSS 1728 KiB
+ok - stand-in 1
+backend-adapter-file: 1s, load factor 6, peak tree RSS 4864 KiB
+ok - stand-in 1
+
+fm-stock-bash-check.sh: every stock Bash 3.2.57(1)-release check passed
+exit status: 0, elapsed 29s

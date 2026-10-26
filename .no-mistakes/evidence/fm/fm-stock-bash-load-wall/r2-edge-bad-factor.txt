@@ -1,0 +1,54 @@
+
+--- FM_STOCK_BASH_LOAD_FACTOR=abc is refused
+host now: hw.ncpu=16 vm.loadavg={ 120.08 103.99 106.02 }
+$ env FM_STOCK_BASH_STEP_SECONDS=3 FM_STOCK_BASH_LOAD_FACTOR=abc <fixture>/bin/fm-stock-bash-check.sh
+fm-stock-bash-check.sh: FM_STOCK_BASH_LOAD_FACTOR must be a positive integer
+exit status: 2, elapsed 0s
+
+--- FM_STOCK_BASH_LOAD_FACTOR=0 is refused
+host now: hw.ncpu=16 vm.loadavg={ 120.08 103.99 106.02 }
+$ env FM_STOCK_BASH_STEP_SECONDS=3 FM_STOCK_BASH_LOAD_FACTOR=0 <fixture>/bin/fm-stock-bash-check.sh
+fm-stock-bash-check.sh: FM_STOCK_BASH_LOAD_FACTOR must be a positive integer
+exit status: 2, elapsed 0s
+
+--- FM_STOCK_BASH_LOAD_FACTOR=-2 is refused
+host now: hw.ncpu=16 vm.loadavg={ 119.67 104.17 106.07 }
+$ env FM_STOCK_BASH_STEP_SECONDS=3 FM_STOCK_BASH_LOAD_FACTOR=-2 <fixture>/bin/fm-stock-bash-check.sh
+fm-stock-bash-check.sh: FM_STOCK_BASH_LOAD_FACTOR must be a positive integer
+exit status: 2, elapsed 0s
+
+--- FM_STOCK_BASH_LOAD_FACTOR=07 is refused
+host now: hw.ncpu=16 vm.loadavg={ 119.67 104.17 106.07 }
+$ env FM_STOCK_BASH_STEP_SECONDS=3 FM_STOCK_BASH_LOAD_FACTOR=07 <fixture>/bin/fm-stock-bash-check.sh
+fm-stock-bash-check.sh: FM_STOCK_BASH_LOAD_FACTOR must be a positive integer
+exit status: 2, elapsed 0s
+
+--- FM_STOCK_BASH_LOAD_FACTOR=1.5 is refused
+host now: hw.ncpu=16 vm.loadavg={ 119.67 104.17 106.07 }
+$ env FM_STOCK_BASH_STEP_SECONDS=3 FM_STOCK_BASH_LOAD_FACTOR=1.5 <fixture>/bin/fm-stock-bash-check.sh
+fm-stock-bash-check.sh: FM_STOCK_BASH_LOAD_FACTOR must be a positive integer
+exit status: 2, elapsed 0s
+
+--- FM_STOCK_BASH_LOAD_FACTOR=50 is capped at 6 (hung bearings step)
+host now: hw.ncpu=16 vm.loadavg={ 119.67 104.17 106.07 }
+$ env FM_STOCK_BASH_STEP_SECONDS=3 FM_STOCK_BASH_LOAD_FACTOR=50 <fixture>/bin/fm-stock-bash-check.sh
+fm-stock-bash-check.sh: /bin/bash (Bash 3.2.57(1)-release); per step: 3s wall at idle load, grown with load up to 6 times, 2097152 KiB tree RSS
+parse-sweep: 1s, load factor 6, peak tree RSS 5376 KiB
+ok - parse-sweep: 2 files parse under stock Bash 3.2.57(1)-release
+snapshot-view: 1s, load factor 6, peak tree RSS 256 KiB
+ok - stand-in 1
+bearings: 19s, load factor 6, peak tree RSS 14224 KiB
+# hanging
+FAIL bearings: stopped at the 18s wall bound (load factor 6 times 3s at idle load)
+public-followup-empty-lock: 1s, load factor 6, peak tree RSS 6448 KiB
+ok - stand-in 1
+watch-churn-deferral: 2s, load factor 6, peak tree RSS 7072 KiB
+ok - stand-in 1
+fork-free-helpers: 1s, load factor 6, peak tree RSS 4736 KiB
+ok - stand-in 1
+backend-adapter-file: 1s, load factor 6, peak tree RSS 256 KiB
+ok - stand-in 1
+
+fm-stock-bash-check.sh: stock Bash 3.2.57(1)-release check FAILED:
+bearings: stopped at the 18s wall bound (load factor 6 times 3s at idle load)
+exit status: 1, elapsed 27s

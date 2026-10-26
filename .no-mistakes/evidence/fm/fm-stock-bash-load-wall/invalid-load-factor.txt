@@ -1,0 +1,18 @@
+$ FM_STOCK_BASH_LOAD_FACTOR='0' bin/fm-stock-bash-check.sh
+fm-stock-bash-check.sh: FM_STOCK_BASH_LOAD_FACTOR must be a positive integer
+[exit 2]
+$ FM_STOCK_BASH_LOAD_FACTOR='abc' bin/fm-stock-bash-check.sh
+fm-stock-bash-check.sh: FM_STOCK_BASH_LOAD_FACTOR must be a positive integer
+[exit 2]
+$ FM_STOCK_BASH_LOAD_FACTOR='-1' bin/fm-stock-bash-check.sh
+fm-stock-bash-check.sh: FM_STOCK_BASH_LOAD_FACTOR must be a positive integer
+[exit 2]
+$ FM_STOCK_BASH_LOAD_FACTOR='07' bin/fm-stock-bash-check.sh
+fm-stock-bash-check.sh: FM_STOCK_BASH_LOAD_FACTOR must be a positive integer
+[exit 2]
+$ FM_STOCK_BASH_LOAD_FACTOR='1.5' bin/fm-stock-bash-check.sh
+fm-stock-bash-check.sh: FM_STOCK_BASH_LOAD_FACTOR must be a positive integer
+[exit 2]
+$ FM_STOCK_BASH_LOAD_FACTOR=' 3' bin/fm-stock-bash-check.sh
+fm-stock-bash-check.sh: FM_STOCK_BASH_LOAD_FACTOR must be a positive integer
+[exit 2]

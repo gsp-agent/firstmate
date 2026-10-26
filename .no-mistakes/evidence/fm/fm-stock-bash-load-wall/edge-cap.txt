@@ -1,0 +1,56 @@
+== cap ==
+host now: hw.ncpu=16 vm.loadavg={ 147.54 109.36 81.52 }
+$ env FM_STOCK_BASH_STEP_SECONDS=3 FM_STOCK_BASH_LOAD_FACTOR=50 <fixture>/bin/fm-stock-bash-check.sh
+fm-stock-bash-check.sh: /bin/bash (Bash 3.2.57(1)-release); per step: 3s wall at idle load, grown with load up to 6 times, 2097152 KiB tree RSS
+parse-sweep: 3s, load factor 6, peak tree RSS 6064 KiB
+ok - parse-sweep: 2 files parse under stock Bash 3.2.57(1)-release
+snapshot-view: 2s, load factor 6, peak tree RSS 6720 KiB
+ok - stand-in 1
+ok - stand-in 2
+ok - stand-in 3
+ok - stand-in 4
+ok - stand-in 5
+ok - stand-in 6
+ok - stand-in 7
+ok - stand-in 8
+ok - stand-in 9
+ok - stand-in 10
+ok - stand-in 11
+ok - stand-in 12
+ok - stand-in 13
+ok - stand-in 14
+ok - stand-in 15
+ok - stand-in 16
+ok - stand-in 17
+ok - stand-in 18
+ok - stand-in 19
+bearings: 20s, load factor 6, peak tree RSS 14224 KiB
+FAIL bearings: stopped at the 18s wall bound (load factor 6 times 3s at idle load)
+public-followup-empty-lock: 2s, load factor 6, peak tree RSS 6784 KiB
+ok - stand-in 1
+watch-churn-deferral: 3s, load factor 6, peak tree RSS 7184 KiB
+ok - stand-in 1
+fork-free-helpers: 3s, load factor 6, peak tree RSS 6240 KiB
+ok - stand-in 1
+ok - stand-in 2
+ok - stand-in 3
+ok - stand-in 4
+ok - stand-in 5
+ok - stand-in 6
+ok - stand-in 7
+ok - stand-in 8
+ok - stand-in 9
+ok - stand-in 10
+ok - stand-in 11
+ok - stand-in 12
+ok - stand-in 13
+ok - stand-in 14
+ok - stand-in 15
+ok - stand-in 16
+backend-adapter-file: 2s, load factor 6, peak tree RSS 5920 KiB
+ok - stand-in 1
+ok - stand-in 2
+
+fm-stock-bash-check.sh: stock Bash 3.2.57(1)-release check FAILED:
+bearings: stopped at the 18s wall bound (load factor 6 times 3s at idle load)
+[exit 1, 39s]
