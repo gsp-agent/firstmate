@@ -141,3 +141,5 @@ pr: 144
 pr: 146
 # Failing-first root-switch replays in tests/fm-spawn-worktree-settle.test.sh: test_root_switched_pool_enters_configured_pool_slot and test_root_switched_empty_pool_uses_treehouse_get fail on the base, and test_mixed_pool_without_status_json_uses_treehouse_get and test_root_switched_pool_without_status_json_uses_treehouse_get keep an unreadable status from entering any slot by name.
 pr: 147
+# Failing-first Grok mode-suffixed title replays in tests/fm-composer-lib.test.sh: on the base an idle empty composer titled Grok 4.7 (xhigh) · always-approve reads unknown; after the fix it reads empty, typed text reads pending, and a bad suffix or generic dotted title stays unknown.
+pr: 149

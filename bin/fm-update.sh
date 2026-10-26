@@ -57,10 +57,12 @@
 # A fast-forward that lands changes bytes under bin/ in place, which desyncs
 # the trust binding of any locally armed fm-procevent-when watch whose action
 # executable lives in the updated repo; left alone, the watch's next fire
-# would be wrongly refused. After each home's own update (primary and every
-# local secondmate), this script best-effort runs that home's own
-# fm-procevent-when.sh rebind-all to republish those bindings against the new
-# bytes; a failure there is swallowed rather than failing the update.
+# would be wrongly refused. The primary runs fm-procevent-when.sh rebind-all
+# after an advance and when already current, so a failed binding can recover
+# without another commit. A primary rebind failure makes this command fail;
+# the source advance is retained and the normal summary still prints. This
+# verifies watch bindings, not every running agent's loaded behavior. Local
+# secondmates retain their best-effort rebind after an advance.
 #
 # A home checked out on upstream-lean follows origin/upstream-lean (bin/fm-ff-lib.sh owns
 # the rule). --primary-only updates just this firstmate repo and prints the same summary
@@ -97,11 +99,14 @@ done
 # --- main firstmate repo ---------------------------------------------------
 
 reread_firstmate="no"
+primary_rebind_rc=0
 ff_target "$FM_ROOT" "firstmate" origin no no
 if [ "$FF_STATUS" = "updated" ]; then
   if [ -n "$FF_INSTR" ]; then
     reread_firstmate="yes"
   fi
+fi
+if [ "$FF_STATUS" = "updated" ] || [ "$FF_STATUS" = "current" ]; then
   # A fast-forward changes bin/'s bytes out from under any locally armed
   # fm-procevent-when watch's trust binding, with no tampering involved; left
   # alone, the very next fire is refused and the watch dies silently. Refresh
@@ -110,7 +115,10 @@ if [ "$FF_STATUS" = "updated" ]; then
   # process's own FM_ROOT is the repo that was just updated, which is not
   # always where this very script file happens to live (FM_ROOT_OVERRIDE, as
   # this test suite uses to point fm-update.sh at a fixture checkout).
-  FM_HOME="$FM_HOME" FM_ROOT_OVERRIDE="$FM_ROOT" "$SCRIPT_DIR/fm-procevent-when.sh" rebind-all || true
+  FM_HOME="$FM_HOME" FM_ROOT_OVERRIDE="$FM_ROOT" "$SCRIPT_DIR/fm-procevent-when.sh" rebind-all || primary_rebind_rc=$?
+  if [ "$primary_rebind_rc" -ne 0 ]; then
+    echo "firstmate: watch rebind failed; source update retained; retry fm-update.sh to rebind the current head" >&2
+  fi
 fi
 
 print_summary() {
@@ -123,7 +131,7 @@ if [ "$primary_only" = yes ]; then
   FF_RESTART_WINDOWS=""
   FF_STEER_WINDOWS=""
   print_summary
-  exit 0
+  exit "$primary_rebind_rc"
 fi
 
 # --- secondmates -----------------------------------------------------------
@@ -264,3 +272,4 @@ fi
 # then also steered about the instructions it just relaunched on.
 
 print_summary
+exit "$primary_rebind_rc"

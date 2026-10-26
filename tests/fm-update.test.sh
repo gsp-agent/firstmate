@@ -138,7 +138,7 @@ run_update() {
   shift
   PATH="$w/fakebin:$PATH" FM_FAKE_DIR="$w/fake" \
     FM_SSH_BIN="${FM_TEST_SSH_BIN:-ssh}" \
-    FM_ROOT_OVERRIDE="$w/main" FM_HOME="$w/home" "$UPDATE" "$@" 2>/dev/null
+    FM_ROOT_OVERRIDE="$w/main" FM_HOME="$w/home" FM_STATE_OVERRIDE="$w/home/state" "$UPDATE" "$@" 2>/dev/null
 }
 
 # --- T1: main + secondmate behind, instruction change; FF, not a merge ------
@@ -536,7 +536,7 @@ test_primary_update_rebinds_local_watch() {
   git -C "$w/seed" push -q origin main
   git -C "$w/main" pull -q origin main
 
-  FM_ROOT_OVERRIDE="$w/main" FM_HOME="$w/home" "$ROOT/bin/fm-procevent-when.sh" \
+  FM_ROOT_OVERRIDE="$w/main" FM_HOME="$w/home" FM_STATE_OVERRIDE="$w/home/state" "$ROOT/bin/fm-procevent-when.sh" \
     arm rebind-primary --interval 60 --stable 1 \
     --condition true --action "$w/main/bin/watched-action.sh" "$w/rebind.log" >/dev/null
   spec="$w/home/state/when/when-rebind-primary.spec"
@@ -555,6 +555,71 @@ test_primary_update_rebinds_local_watch() {
   [ "$before_hash" != "$after_hash" ] \
     || fail "the watch's trust binding was not refreshed to match the updated action bytes"
   pass "T12 a self-update rebinds a locally armed watch on the primary"
+}
+
+test_primary_rebind_failure_retries_at_same_head() {
+  local w spec before_hash advanced out rc=0
+  w=$(new_world t12-retry)
+  printf '#!/usr/bin/env bash\necho original\n' > "$w/seed/bin/action.sh"
+  chmod +x "$w/seed/bin/action.sh"
+  git -C "$w/seed" add bin/action.sh
+  git -C "$w/seed" commit -qm add-action
+  git -C "$w/seed" push -q origin main
+  git -C "$w/main" pull -q origin main
+  add_sm "$w" sm1
+  FM_ROOT_OVERRIDE="$w/main" FM_HOME="$w/home" FM_STATE_OVERRIDE="$w/home/state" \
+    "$ROOT/bin/fm-procevent-when.sh" arm retry-primary --interval 60 --stable 1 \
+    --condition true --action "$w/main/bin/action.sh" >/dev/null
+  spec="$w/home/state/when/when-retry-primary.spec"
+  before_hash=$(grep '^action_sha256=' "$spec")
+  cp "$spec" "$w/saved-spec"
+  printf 'unreadable binding\n' > "$spec"
+  printf '#!/usr/bin/env bash\necho updated\n' > "$w/seed/bin/action.sh"
+  git -C "$w/seed" commit -qam update-action
+  git -C "$w/seed" push -q origin main
+
+  out=$(run_update "$w" --primary-only) || rc=$?
+  [ "$rc" -ne 0 ] || fail "a failed rebind was hidden behind a successful source advance"
+  assert_contains "$out" "firstmate: updated " "source advancement remains reported"
+  assert_contains "$out" "reread-firstmate: yes" "failure retains the instruction reread summary"
+  advanced=$(git -C "$w/main" rev-parse HEAD)
+  [ "$advanced" = "$(git -C "$w/seed" rev-parse HEAD)" ] || fail "source did not advance before binding failure"
+
+  rc=0
+  out=$(run_update "$w") || rc=$?
+  [ "$rc" -ne 0 ] || fail "full update hid the primary rebind failure"
+  assert_contains "$out" "secondmate sm1: updated " "full mode preserves secondmate update semantics"
+  assert_contains "$out" "restart-secondmates: fm-sm1" "full mode retains the normal secondmate action summary"
+
+  cp "$w/saved-spec" "$spec"
+  rc=0
+  out=$(run_update "$w" --primary-only) || rc=$?
+  [ "$rc" -eq 0 ] || fail "same-head retry failed after repairing the binding"
+  assert_contains "$out" "firstmate: already current" "retry needs no source advance"
+  assert_contains "$out" "rebound: when-retry-primary" "retry refreshes the existing watch binding"
+  [ "$(git -C "$w/main" rev-parse HEAD)" = "$advanced" ] || fail "retry changed the source head"
+  [ "$(grep '^action_sha256=' "$spec")" != "$before_hash" ] || fail "retry left the old action digest"
+  pass "T12b source advance with failed rebind fails, and the same-head retry repairs it"
+}
+
+test_skipped_primary_does_not_rebind() {
+  local mode w out rc
+  for mode in dirty wrong-branch offline; do
+    w=$(new_world "t12-skip-$mode")
+    mkdir -p "$w/home/state/when"
+    printf 'unreadable binding\n' > "$w/home/state/when/when-failed.spec"
+    case "$mode" in
+      dirty) printf 'local edit\n' >> "$w/main/README.md" ;;
+      wrong-branch) git -C "$w/main" switch -q -c feature/held ;;
+      offline) git -C "$w/main" remote set-url origin "$w/absent-origin.git" ;;
+    esac
+    rc=0
+    out=$(run_update "$w" --primary-only) || rc=$?
+    [ "$rc" -eq 0 ] || fail "$mode primary tried to rebind despite being skipped"
+    assert_contains "$out" "firstmate: skipped:" "$mode primary remains skipped"
+    assert_not_contains "$out" "rebind-all:" "$mode primary did not invoke rebinding"
+  done
+  pass "T12c dirty, wrong-branch and offline primary skips retain their existing behavior"
 }
 
 # --- A home that rides upstream-lean ----------------------------------------
@@ -715,6 +780,8 @@ test_firstmate_wrong_branch_skipped
 test_firstmate_detached_head_skipped
 test_unsafe_secondmate_home_skipped_before_git_update
 test_primary_update_rebinds_local_watch
+test_primary_rebind_failure_retries_at_same_head
+test_skipped_primary_does_not_rebind
 test_lean_home_follows_upstream_lean
 test_lean_home_untracked_files_do_not_block
 test_lean_home_dirty_tracked_file_refuses
