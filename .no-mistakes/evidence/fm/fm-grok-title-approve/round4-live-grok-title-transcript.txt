@@ -1,0 +1,569 @@
+# Live validation, round 4: Grok composer title with a mode suffix, and the weekly-limit dialog facts in grok.md
+date: 2026-10-26T01:47Z (20:47 CT)
+target: ca351cca (run worktree bin/)   base: cfd72172 (git archive of bin/)
+grok 1.0.70 (f50904eaee6c) [stable]   tmux 3.8   herdr 0.9.1
+lab: disposable marked FM_HOME from bin/fm-lab-home.sh create; private tmux server under the fm-lab-home.sh tmux-dir socket dir (tmux -f /dev/null, 160x45);
+     lab-private git project and origin; tasks recorded with a spawn-shaped scout meta (harness=grok, effort=xhigh) and an in-flight backlog row (bin/fm-tasks-axi.sh add + start);
+     fm-control.sh / fm-send.sh run from the run worktree with the gate marker still set (the lab home's marker permits lifecycle, no bypass);
+     GROK_HOME=$LAB/grokhome for firstmate's own scripts only; Grok itself runs on the machine's normal login; GROK_FOLDER_TRUST=0 in the pane env.
+worker launch: fm-spawn.sh's Grok launch shape, grok --always-approve --reasoning-effort xhigh "<brief>", typed into the window's login shell.
+
+## T1 tmux gtk1: weekly-limit dialog on launch  (firstmate:fm-gtk1)
+  |   fm/gtk1 worktree /p/v/f/2/3/T/f/wt/gtk1                                                                                            1.3K / 256K │ [Dashboard]
+  |      ❯ Say hi in one word.                                                                                                                           8:46 PM
+  |   Help improve Grok                                                                                                                         [Opt out] [Opt in]
+  |   Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, & metrics, for training and debugging purposes.
+  |   Change anytime via settings.
+  |   Read Terms and Privacy Policy.
+  |   ┃
+  |   ┃  You hit your weekly limit.
+  |   ┃
+  |   ┃
+  |   ┃  1 (○) Buy more credits  Purchase credits to keep using Grok Build
+  |   ┃  2 (○) Try Again         Resubmit the last prompt once you have usage again
+  |   ┃
+  |   ┃  ↑/↓ navigate · y copy                                                                                                                    Enter:submit
+  |   ┃
+  |   Tab:next answer  │  Esc:scrollback  │  Shift+x:dismiss
+geometry: no complete box on screen
+weekly-limit dialog rows: 1
+classifier: target utf8=unknown LC_ALL=C=unknown | base utf8=unknown LC_ALL=C=unknown
+
+### fm-control.sh gtk1 exit (target) while the dialog is up
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  error: task gtk1's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'exit'
+  rc=1
+
+### fm-send.sh gtk1 --key Escape #1
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ●  WATCHER DOWN - SUPERVISION IS OFF
+  ●  2 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+  ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+  ●  This is a supervision warning only; the requested message WILL still be sent.
+  ●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  rc=0
+
+## T2a tmux gtk1: after Escape #1  (firstmate:fm-gtk1)
+  |  │                                                                                                                                                            │
+  |  └                                                                                                                                                            ┘
+  |   Help improve Grok                                                                                                                         [Opt out] [Opt in]
+  |   Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, & metrics, for training and debugging purposes.
+  |   Change anytime via settings.
+  |   Read Terms and Privacy Policy.
+  |   ┃
+  |   ┃  You hit your weekly limit.
+  |   ┃
+  |   ┃
+  |   ┃  1 (○) Buy more credits  Purchase credits to keep using Grok Build
+  |   ┃  2 (○) Try Again         Resubmit the last prompt once you have usage again
+  |   ┃
+  |   ┃  ↑/↓ navigate · y copy                                                                                                                    Enter:submit
+  |   ┃
+  |   Tab/Space:question  │  Ctrl+e:collapse thinking  │  Ctrl+x:shortcuts
+geometry: no complete box on screen
+weekly-limit dialog rows: 1
+classifier: target utf8=unknown LC_ALL=C=unknown | base utf8=unknown LC_ALL=C=unknown
+
+### fm-send.sh gtk1 --key Escape #2
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+  rc=0
+
+## T2b tmux gtk1: after Escape #2  (firstmate:fm-gtk1)
+  |  │                                                                                                                                                            │
+  |  └                                                                                                                                                            ┘
+  |   Help improve Grok                                                                                                                         [Opt out] [Opt in]
+  |   Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, & metrics, for training and debugging purposes.
+  |   Change anytime via settings.
+  |   Read Terms and Privacy Policy.
+  |   ┃
+  |   ┃  You hit your weekly limit.
+  |   ┃
+  |   ┃
+  |   ┃  1 (○) Buy more credits  Purchase credits to keep using Grok Build
+  |   ┃  2 (○) Try Again         Resubmit the last prompt once you have usage again
+  |   ┃
+  |   ┃  ↑/↓ navigate · y copy                                                                                                                    Enter:submit
+  |   ┃
+  |   Tab/Space:question  │  Ctrl+e:collapse thinking  │  Ctrl+x:shortcuts
+geometry: no complete box on screen
+weekly-limit dialog rows: 1
+classifier: target utf8=unknown LC_ALL=C=unknown | base utf8=unknown LC_ALL=C=unknown
+
+### fm-send.sh gtk1 --key C-c
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+  rc=0
+
+## T2c tmux gtk1: after C-c  (firstmate:fm-gtk1)
+  |  │                                                                                                                                                            │
+  |  └                                                                                                                                                            ┘
+  |   Help improve Grok                                                                                                                         [Opt out] [Opt in]
+  |   Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, & metrics, for training and debugging purposes.
+  |   Change anytime via settings.
+  |   Read Terms and Privacy Policy.
+  |   ┃
+  |   ┃  You hit your weekly limit.
+  |   ┃
+  |   ┃
+  |   ┃  1 (○) Buy more credits  Purchase credits to keep using Grok Build
+  |   ┃  2 (○) Try Again         Resubmit the last prompt once you have usage again
+  |   ┃
+  |   ┃  ↑/↓ navigate · y copy                                                                                                                    Enter:submit
+  |   ┃
+  |   Ctrl+c:press again to quit
+geometry: no complete box on screen
+weekly-limit dialog rows: 1
+classifier: target utf8=unknown LC_ALL=C=unknown | base utf8=unknown LC_ALL=C=unknown
+
+### fm-control.sh gtk1 exit (target) after Escape x2 and C-c
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  error: task gtk1's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'exit'
+  rc=1
+
+### fm-send.sh gtk1 --key X (Shift+x, focus in scrollback)
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+  rc=0
+
+## T3 tmux gtk1: after fm-send --key X  (firstmate:fm-gtk1)
+  |   fm/gtk1 worktree /p/v/f/2/3/T/f/wt/gtk1                                                                                            1.4K / 256K │ [Dashboard]
+  |      ❯ Say hi in one word.                                                                                                                           8:46 PM
+  |   Help improve Grok                                                                                                                         [Opt out] [Opt in]
+  |   Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, & metrics, for training and debugging purposes.
+  |   Change anytime via settings.
+  |   Read Terms and Privacy Policy.
+  |   ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  |   │ ❯                                                                                                                                                        │
+  |   ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+  |   Shift+Tab:mode  │  Ctrl+x:shortcuts
+geometry: top_cols=156 bottom_cols=156 overhang=0 title='Grok 4.7 (xhigh) · always-approve'
+weekly-limit dialog rows: 0
+classifier: target utf8=empty LC_ALL=C=empty | base utf8=unknown LC_ALL=C=unknown
+
+## T4 tmux gtk1: typed, unsent text in the suffixed composer  (firstmate:fm-gtk1)
+  |   fm/gtk1 worktree /p/v/f/2/3/T/f/wt/gtk1                                                                                            1.4K / 256K │ [Dashboard]
+  |      ❯ Say hi in one word.                                                                                                                           8:46 PM
+  |   Help improve Grok                                                                                                                         [Opt out] [Opt in]
+  |   Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, & metrics, for training and debugging purposes.
+  |   Change anytime via settings.
+  |   Read Terms and Privacy Policy.
+  |   ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  |   │ ❯ deploy the fix                                                                                                                                         │
+  |   ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+  |   Enter:send  │  Opt+Enter:newline  │  Shift+Tab:mode  │  Ctrl+x:shortcuts
+geometry: top_cols=156 bottom_cols=156 overhang=0 title='Grok 4.7 (xhigh) · always-approve'
+weekly-limit dialog rows: 0
+classifier: target utf8=pending LC_ALL=C=pending | base utf8=pending-unproven LC_ALL=C=pending-unproven
+
+### fm-control.sh gtk1 exit (target) with typed text
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  error: task gtk1's composer visibly holds pending text; refusing to type the /exit exit command because it would concatenate onto that text. Clear or submit the pending text, then retry 'exit'
+  rc=1
+
+## T5 tmux gtk1: text cleared with 14 BSpace  (firstmate:fm-gtk1)
+  |   fm/gtk1 worktree /p/v/f/2/3/T/f/wt/gtk1                                                                                            1.4K / 256K │ [Dashboard]
+  |      ❯ Say hi in one word.                                                                                                                           8:46 PM
+  |   Help improve Grok                                                                                                                         [Opt out] [Opt in]
+  |   Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, & metrics, for training and debugging purposes.
+  |   Change anytime via settings.
+  |   Read Terms and Privacy Policy.
+  |   ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  |   │ ❯                                                                                                                                                        │
+  |   ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+  |   Shift+Tab:mode  │  Ctrl+x:shortcuts
+geometry: top_cols=156 bottom_cols=156 overhang=0 title='Grok 4.7 (xhigh) · always-approve'
+weekly-limit dialog rows: 0
+classifier: target utf8=empty LC_ALL=C=empty | base utf8=unknown LC_ALL=C=unknown
+
+### fm-control.sh gtk1 exit (BASE cfd72172) on the idle suffixed composer
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  error: task gtk1's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'exit'
+  rc=1
+
+### fm-control.sh gtk1 exit (target) on the idle suffixed composer
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  stopped gtk1 harness=grok backend=tmux endpoint=firstmate:fm-gtk1 worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH/wt/gtk1
+  rc=0
+
+## T6 tmux gtk2: weekly-limit dialog on launch  (firstmate:fm-gtk2)
+  |   fm/gtk2 worktree /p/v/f/2/3/T/f/wt/gtk2                                                                                                          [Dashboard]
+  |    ⠙ Starting session… 0.1s
+  |   Help improve Grok                                                                                                                         [Opt out] [Opt in]
+  |   Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, & metrics, for training and debugging purposes.
+  |   Change anytime via settings.
+  |   Read Terms and Privacy Policy.
+  |    ▾ Queued 1
+  |      #1 Say hi in one word.
+  |   ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  |   │ ❯                                                                                                                                                        │
+  |   ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+  |   Shift+Tab:mode  │  Ctrl+;:queue  │  Ctrl+x:shortcuts
+geometry: top_cols=156 bottom_cols=156 overhang=0 title='Grok 4.7 (xhigh) · always-approve'
+weekly-limit dialog rows: 0
+classifier: target utf8=empty LC_ALL=C=empty | base utf8=unknown LC_ALL=C=unknown
+
+(note: T6 was taken 1s after launch, before Grok submitted the positional prompt: a fresh idle suffixed composer. T6b below is the dialog.)
+
+## T6b tmux gtk2: weekly-limit dialog after the prompt  (firstmate:fm-gtk2)
+  |   fm/gtk2 worktree /p/v/f/2/3/T/f/wt/gtk2                                                                                            1.3K / 256K │ [Dashboard]
+  |      ❯ Say hi in one word.                                                                                                                           8:49 PM
+  |   Help improve Grok                                                                                                                         [Opt out] [Opt in]
+  |   Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, & metrics, for training and debugging purposes.
+  |   Change anytime via settings.
+  |   Read Terms and Privacy Policy.
+  |   ┃
+  |   ┃  You hit your weekly limit.
+  |   ┃
+  |   ┃
+  |   ┃  1 (○) Buy more credits  Purchase credits to keep using Grok Build
+  |   ┃  2 (○) Try Again         Resubmit the last prompt once you have usage again
+  |   ┃
+  |   ┃  ↑/↓ navigate · y copy                                                                                                                    Enter:submit
+  |   ┃
+  |   Tab:next answer  │  Esc:scrollback  │  Shift+x:dismiss
+geometry: no complete box on screen
+weekly-limit dialog rows: 1
+classifier: target utf8=unknown LC_ALL=C=unknown | base utf8=unknown LC_ALL=C=unknown
+
+### fm-control.sh gtk2 relaunch --harness grok (target) while the dialog is up
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  error: task gtk2's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'relaunch'
+  error: relaunch of gtk2 failed while stopping the old agent, which is still running; its original instructions were restored
+  rc=1
+
+### fm-send.sh gtk2 --key X (Shift+x, focus on the dialog)
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+  rc=0
+
+## T7 tmux gtk2: after fm-send --key X  (firstmate:fm-gtk2)
+  |   fm/gtk2 worktree /p/v/f/2/3/T/f/wt/gtk2                                                                                            1.3K / 256K │ [Dashboard]
+  |      ❯ Say hi in one word.                                                                                                                           8:49 PM
+  |   Help improve Grok                                                                                                                         [Opt out] [Opt in]
+  |   Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, & metrics, for training and debugging purposes.
+  |   Change anytime via settings.
+  |   Read Terms and Privacy Policy.
+  |   ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  |   │ ❯                                                                                                                                                        │
+  |   ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+  |   Shift+Tab:mode  │  Ctrl+x:shortcuts
+geometry: top_cols=156 bottom_cols=156 overhang=0 title='Grok 4.7 (xhigh) · always-approve'
+weekly-limit dialog rows: 0
+classifier: target utf8=empty LC_ALL=C=empty | base utf8=unknown LC_ALL=C=unknown
+
+### fm-control.sh gtk2 relaunch --harness grok (BASE cfd72172) on the idle suffixed composer
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  error: task gtk2's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'relaunch'
+  error: relaunch of gtk2 failed while stopping the old agent, which is still running; its original instructions were restored
+  rc=1
+
+### fm-control.sh gtk2 relaunch --harness grok (target) on the idle suffixed composer
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  relaunched gtk2 harness=grok from=grok model=default effort=xhigh backend=tmux endpoint=firstmate:fm-gtk2 worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH/wt/gtk2
+  rc=0
+  journal: phase=complete
+  journal: from_harness=grok
+  journal: to_harness=grok
+  journal: exit_result=stopped
+
+## T8 tmux gtk2: the relaunched Grok in the same window  (firstmate:fm-gtk2)
+  |        You are a crewmate: an autonomous worker agent managed by firstmate.
+  |        This section establishes your current identity before every project or task instruction below and supersedes any conflicting role …
+  |   Help improve Grok                                                                                                                         [Opt out] [Opt in]
+  |   Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, & metrics, for training and debugging purposes.
+  |   Change anytime via settings.
+  |   Read Terms and Privacy Policy.
+  |   ┃
+  |   ┃  You hit your weekly limit.
+  |   ┃
+  |   ┃
+  |   ┃  1 (○) Buy more credits  Purchase credits to keep using Grok Build
+  |   ┃  2 (○) Try Again         Resubmit the last prompt once you have usage again
+  |   ┃
+  |   ┃  ↑/↓ navigate · y copy                                                                                                                    Enter:submit
+  |   ┃
+  |   Tab:next answer  │  Esc:scrollback  │  Shift+x:dismiss
+geometry: no complete box on screen
+weekly-limit dialog rows: 1
+classifier: target utf8=unknown LC_ALL=C=unknown | base utf8=unknown LC_ALL=C=unknown
+
+### fm-send.sh gtk2 --key X on the relaunched Grok's dialog
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+  rc=0
+
+## T9 tmux gtk2: relaunched Grok, dialog dismissed  (firstmate:fm-gtk2)
+  |   fm/gtk2 worktree /p/v/f/2/3/T/f/wt/gtk2                                                                                            1.3K / 256K │ [Dashboard]
+  |      ❯ FIRSTMATE_OP: v1 launch-brief: # Current worker role contract                                                                                 8:49 PM
+  |        You are a crewmate: an autonomous worker agent managed by firstmate.
+  |        This section establishes your current identity before every project or task instruction below and supersedes any conflicting role …
+  |   Help improve Grok                                                                                                                         [Opt out] [Opt in]
+  |   Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, & metrics, for training and debugging purposes.
+  |   Change anytime via settings.
+  |   Read Terms and Privacy Policy.
+  |   ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  |   │ ❯                                                                                                                                                        │
+  |   ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+  |   Shift+Tab:mode  │  Ctrl+x:shortcuts
+geometry: top_cols=156 bottom_cols=156 overhang=0 title='Grok 4.7 (xhigh) · always-approve'
+weekly-limit dialog rows: 0
+classifier: target utf8=empty LC_ALL=C=empty | base utf8=unknown LC_ALL=C=unknown
+
+### fm-control.sh gtk2 exit (target) on the relaunched idle suffixed composer
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  stopped gtk2 harness=grok backend=tmux endpoint=firstmate:fm-gtk2 worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH/wt/gtk2
+  rc=0
+
+## V-tmux. Staged in a real lab tmux pane: the live box with only the bottom title rewritten (cursor on the content row)
+  live-unmodified        title='Grok 4.7 (xhigh) · always-approve'         want=empty    target utf8=empty LC_ALL=C=empty          base utf8=unknown LC_ALL=C=unknown  ok
+  title-rebuilt          title='Grok 4.7 (xhigh) · always-approve'         want=empty    target utf8=empty LC_ALL=C=empty          base utf8=unknown LC_ALL=C=unknown  ok
+  no-title               title=''                                           want=empty    target utf8=empty LC_ALL=C=empty          base utf8=empty LC_ALL=C=empty  ok
+  no-suffix              title='Grok 4.7 (xhigh)'                           want=empty    target utf8=empty LC_ALL=C=empty          base utf8=empty LC_ALL=C=empty  ok
+  suffix-3col-overhang   title='Grok 4.7 (xhigh) · always-approve'         want=empty    target utf8=unknown LC_ALL=C=unknown      base utf8=unknown LC_ALL=C=unknown  MISMATCH
+  typed-text             title='Grok 4.7 (xhigh) · always-approve'         want=pending  target utf8=pending LC_ALL=C=pending      base utf8=pending-unproven LC_ALL=C=pending-unproven  ok
+  generic-middot         title='foo · bar'                                 want=unknown  target utf8=unknown LC_ALL=C=unknown      base utf8=unknown LC_ALL=C=unknown  ok
+  bad-mode               title='Grok 4.7 (xhigh) · bad mode!'              want=unknown  target utf8=unknown LC_ALL=C=unknown      base utf8=unknown LC_ALL=C=unknown  ok
+  two-suffixes           title='Grok 4.7 (xhigh) · always-approve · plan' want=unknown  target utf8=unknown LC_ALL=C=unknown      base utf8=unknown LC_ALL=C=unknown  ok
+  non-grok-model         title='Claude 4.7 (xhigh) · always-approve'       want=unknown  target utf8=unknown LC_ALL=C=unknown      base utf8=unknown LC_ALL=C=unknown  ok
+  unknown-effort         title='Grok 4.7 (max) · always-approve'           want=unknown  target utf8=unknown LC_ALL=C=unknown      base utf8=unknown LC_ALL=C=unknown  ok
+  empty-mode             title='Grok 4.7 (xhigh) ·'                        want=unknown  target utf8=unknown LC_ALL=C=unknown      base utf8=unknown LC_ALL=C=unknown  ok
+  suffix-1col-overhang   title='Grok 4.7 (xhigh) · always-approve'         want=unknown  target utf8=unknown LC_ALL=C=unknown      base utf8=unknown LC_ALL=C=unknown  ok
+  suffix-2col-short      title='Grok 4.7 (xhigh) · always-approve'         want=unknown  target utf8=unknown LC_ALL=C=unknown      base utf8=unknown LC_ALL=C=unknown  ok
+  (target: 13 as expected, 1 mismatched)
+
+## V-tmux re-stage: suffix-3col-overhang in a 170-column pane (the 160-column pane clipped the overhanging corner)  (firstmate:stage-oh)
+  |   ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  |   │ ❯                                                                                                                                                        │
+  |   ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+  |   Shift+Tab:mode  │  Ctrl+x:shortcuts
+geometry: top_cols=156 bottom_cols=159 overhang=3 title='Grok 4.7 (xhigh) · always-approve'
+weekly-limit dialog rows: 0
+classifier: target utf8=empty LC_ALL=C=empty | base utf8=unknown LC_ALL=C=unknown
+
+(note: the one V-tmux MISMATCH, suffix-3col-overhang, is a staging clip: the 156-column box at indent 2 plus a 3-column overhang needs 161 columns, so the 160-column pane cut off the corner. Re-staged at 170 columns below, it reads empty.)
+
+## H1 herdr gth1: weekly-limit dialog on launch  (herdr fm-lab-grok-r4-92838-9287:w1:p2)
+  |   fm/gth1 worktree /p/v/f/2/3/T/f/wt/gth1                                                    1.3K / 256K │ [Dashboard]
+  |      ❯ Say hi in one word.                                                                                   8:53 PM
+  |   Help improve Grok                                                                                 [Opt out] [Opt in]
+  |   Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, & metrics,
+  |   for training and debugging purposes. Change anytime via settings.
+  |   Read Terms and Privacy Policy.
+  |   ┃
+  |   ┃  You hit your weekly limit.
+  |   ┃
+  |   ┃
+  |   ┃  1 (○) Buy more credits  Purchase credits to keep using Grok Build
+  |   ┃  2 (○) Try Again         Resubmit the last prompt once you have usage again
+  |   ┃
+  |   ┃  ↑/↓ navigate · y copy                                                                            Enter:submit
+  |   ┃
+  |   Tab:next answer  │  Esc:scrollback  │  Shift+x:dismiss
+geometry: no complete box on screen
+weekly-limit dialog rows: 1
+classifier: target utf8=pending LC_ALL=C=pending | base utf8=pending LC_ALL=C=pending
+
+### fm-control.sh gth1 exit (target) on Herdr while the dialog is up
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  error: task gth1's composer visibly holds pending text; refusing to type the /exit exit command because it would concatenate onto that text. Clear or submit the pending text, then retry 'exit'
+  rc=1
+
+### fm-send.sh gth1 --key Escape #1
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+  rc=0
+
+### fm-send.sh gth1 --key Escape #2
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+  rc=0
+
+### fm-send.sh gth1 --key C-c
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+  rc=0
+
+## H2 herdr gth1: after Escape x2 and C-c  (herdr fm-lab-grok-r4-92838-9287:w1:p2)
+  |  │                                                                                                                    │
+  |  └                                                                                                                    ┘
+  |   Help improve Grok                                                                                 [Opt out] [Opt in]
+  |   Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, & metrics,
+  |   for training and debugging purposes. Change anytime via settings.
+  |   Read Terms and Privacy Policy.
+  |   ┃
+  |   ┃  You hit your weekly limit.
+  |   ┃
+  |   ┃
+  |   ┃  1 (○) Buy more credits  Purchase credits to keep using Grok Build
+  |   ┃  2 (○) Try Again         Resubmit the last prompt once you have usage again
+  |   ┃
+  |   ┃  ↑/↓ navigate · y copy                                                                            Enter:submit
+  |   ┃
+  |   Ctrl+c:press again to quit
+geometry: no complete box on screen
+weekly-limit dialog rows: 1
+classifier: target utf8=pending LC_ALL=C=pending | base utf8=pending LC_ALL=C=pending
+
+### fm-send.sh gth1 --key X (Shift+x) on Herdr
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+  rc=0
+
+## H3 herdr gth1: after fm-send --key X  (herdr fm-lab-grok-r4-92838-9287:w1:p2)
+  |   fm/gth1 worktree /p/v/f/2/3/T/f/wt/gth1                                                    1.4K / 256K │ [Dashboard]
+  |      ❯ Say hi in one word.                                                                                   8:53 PM
+  |   Help improve Grok                                                                                 [Opt out] [Opt in]
+  |   Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, & metrics,
+  |   for training and debugging purposes. Change anytime via settings.
+  |   Read Terms and Privacy Policy.
+  |   ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  |   │ ❯                                                                                                                │
+  |   ╰────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+  |   Shift+Tab:mode  │  Ctrl+.:shortcuts
+geometry: top_cols=116 bottom_cols=116 overhang=0 title='Grok 4.7 (xhigh) · always-approve'
+weekly-limit dialog rows: 0
+classifier: target utf8=empty LC_ALL=C=empty | base utf8=unknown LC_ALL=C=unknown
+
+## H4 herdr gth1: typed, unsent text  (herdr fm-lab-grok-r4-92838-9287:w1:p2)
+  |   fm/gth1 worktree /p/v/f/2/3/T/f/wt/gth1                                                    1.4K / 256K │ [Dashboard]
+  |      ❯ Say hi in one word.                                                                                   8:53 PM
+  |   Help improve Grok                                                                                 [Opt out] [Opt in]
+  |   Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, & metrics,
+  |   for training and debugging purposes. Change anytime via settings.
+  |   Read Terms and Privacy Policy.
+  |   ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  |   │ ❯ deploy the fix                                                                                                 │
+  |   ╰────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+  |   Enter:send  │  Shift+Enter/Opt+Enter:newline  │  Shift+Tab:mode  │  Ctrl+.:shortcuts
+geometry: top_cols=116 bottom_cols=116 overhang=0 title='Grok 4.7 (xhigh) · always-approve'
+weekly-limit dialog rows: 0
+classifier: target utf8=pending LC_ALL=C=pending | base utf8=pending-unproven LC_ALL=C=pending-unproven
+
+### fm-control.sh gth1 exit (target) with typed text on Herdr
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  error: task gth1's composer visibly holds pending text; refusing to type the /exit exit command because it would concatenate onto that text. Clear or submit the pending text, then retry 'exit'
+  rc=1
+
+## H5 herdr gth1: text cleared with 14 Backspace  (herdr fm-lab-grok-r4-92838-9287:w1:p2)
+  |   fm/gth1 worktree /p/v/f/2/3/T/f/wt/gth1                                                    1.4K / 256K │ [Dashboard]
+  |      ❯ Say hi in one word.                                                                                   8:53 PM
+  |   Help improve Grok                                                                                 [Opt out] [Opt in]
+  |   Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, & metrics,
+  |   for training and debugging purposes. Change anytime via settings.
+  |   Read Terms and Privacy Policy.
+  |   ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  |   │ ❯                                                                                                                │
+  |   ╰────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+  |   Shift+Tab:mode  │  Ctrl+.:shortcuts
+geometry: top_cols=116 bottom_cols=116 overhang=0 title='Grok 4.7 (xhigh) · always-approve'
+weekly-limit dialog rows: 0
+classifier: target utf8=empty LC_ALL=C=empty | base utf8=unknown LC_ALL=C=unknown
+
+### fm-control.sh gth1 exit (BASE cfd72172) on the idle suffixed Herdr composer
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  error: task gth1's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'exit'
+  rc=1
+
+### fm-control.sh gth1 relaunch --harness grok (BASE cfd72172) on the idle suffixed Herdr composer
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  error: task gth1's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'relaunch'
+  error: relaunch of gth1 failed while stopping the old agent, which is still running; its original instructions were restored
+  rc=1
+
+### fm-control.sh gth1 relaunch --harness grok (target) on the idle suffixed Herdr composer
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  relaunched gth1 harness=grok from=grok model=default effort=xhigh backend=herdr endpoint=fm-lab-grok-r4-92838-9287:w1:p2 worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH/wt/gth1
+  rc=0
+  journal: phase=complete
+  journal: from_harness=grok
+  journal: to_harness=grok
+  journal: exit_result=stopped
+
+## H6 herdr gth1: relaunched Grok in the same pane  (herdr fm-lab-grok-r4-92838-9287:w1:p2)
+  |        You are a crewmate: an autonomous worker agent managed by firstmate.
+  |        This section establishes your current identity before every project or task instruction below and …
+  |   Help improve Grok                                                                                 [Opt out] [Opt in]
+  |   Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, & metrics,
+  |   for training and debugging purposes. Change anytime via settings.
+  |   Read Terms and Privacy Policy.
+  |   ┃
+  |   ┃  You hit your weekly limit.
+  |   ┃
+  |   ┃
+  |   ┃  1 (○) Buy more credits  Purchase credits to keep using Grok Build
+  |   ┃  2 (○) Try Again         Resubmit the last prompt once you have usage again
+  |   ┃
+  |   ┃  ↑/↓ navigate · y copy                                                                            Enter:submit
+  |   ┃
+  |   Tab:next answer  │  Esc:scrollback  │  Shift+x:dismiss
+geometry: no complete box on screen
+weekly-limit dialog rows: 1
+classifier: target utf8=pending LC_ALL=C=pending | base utf8=pending LC_ALL=C=pending
+
+### fm-send.sh gth1 --key X on the relaunched Herdr Grok
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+  rc=0
+
+## H7 herdr gth1: relaunched Grok, dialog dismissed  (herdr fm-lab-grok-r4-92838-9287:w1:p2)
+  |   fm/gth1 worktree /p/v/f/2/3/T/f/wt/gth1                                                    1.3K / 256K │ [Dashboard]
+  |      ❯ FIRSTMATE_OP: v1 launch-brief: # Current worker role contract                                         8:54 PM
+  |        You are a crewmate: an autonomous worker agent managed by firstmate.
+  |        This section establishes your current identity before every project or task instruction below and …
+  |   Help improve Grok                                                                                 [Opt out] [Opt in]
+  |   Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, & metrics,
+  |   for training and debugging purposes. Change anytime via settings.
+  |   Read Terms and Privacy Policy.
+  |   ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  |   │ ❯                                                                                                                │
+  |   ╰────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+  |   Shift+Tab:mode  │  Ctrl+.:shortcuts
+geometry: top_cols=116 bottom_cols=116 overhang=0 title='Grok 4.7 (xhigh) · always-approve'
+weekly-limit dialog rows: 0
+classifier: target utf8=empty LC_ALL=C=empty | base utf8=unknown LC_ALL=C=unknown
+
+### fm-control.sh gth1 exit (target) on the idle suffixed Herdr composer
+  fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH
+  stopped gth1 harness=grok backend=herdr endpoint=fm-lab-grok-r4-92838-9287:w1:p2 worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.9I5nDH/wt/gth1
+  rc=0
+
+## V-herdr. Staged in the real Herdr lab pane: the live Herdr box with only the bottom title rewritten (cursorless read)
+  live-unmodified        title='Grok 4.7 (xhigh) · always-approve'         want=empty    target utf8=empty LC_ALL=C=empty          base utf8=unknown LC_ALL=C=unknown  ok
+  title-rebuilt          title='Grok 4.7 (xhigh) · always-approve'         want=empty    target utf8=empty LC_ALL=C=empty          base utf8=unknown LC_ALL=C=unknown  ok
+  no-title               title=''                                           want=empty    target utf8=empty LC_ALL=C=empty          base utf8=empty LC_ALL=C=empty  ok
+  no-suffix              title='Grok 4.7 (xhigh)'                           want=empty    target utf8=empty LC_ALL=C=empty          base utf8=empty LC_ALL=C=empty  ok
+  suffix-3col-overhang   title='Grok 4.7 (xhigh) · always-approve'         want=empty    target utf8=unknown LC_ALL=C=unknown      base utf8=unknown LC_ALL=C=unknown  MISMATCH
+  typed-text             title='Grok 4.7 (xhigh) · always-approve'         want=pending  target utf8=pending LC_ALL=C=pending      base utf8=pending-unproven LC_ALL=C=pending-unproven  ok
+  generic-middot         title='foo · bar'                                 want=unknown  target utf8=unknown LC_ALL=C=unknown      base utf8=unknown LC_ALL=C=unknown  ok
+  bad-mode               title='Grok 4.7 (xhigh) · bad mode!'              want=unknown  target utf8=unknown LC_ALL=C=unknown      base utf8=unknown LC_ALL=C=unknown  ok
+  two-suffixes           title='Grok 4.7 (xhigh) · always-approve · plan' want=unknown  target utf8=unknown LC_ALL=C=unknown      base utf8=unknown LC_ALL=C=unknown  ok
+  non-grok-model         title='Claude 4.7 (xhigh) · always-approve'       want=unknown  target utf8=unknown LC_ALL=C=unknown      base utf8=unknown LC_ALL=C=unknown  ok
+  unknown-effort         title='Grok 4.7 (max) · always-approve'           want=unknown  target utf8=unknown LC_ALL=C=unknown      base utf8=unknown LC_ALL=C=unknown  ok
+  empty-mode             title='Grok 4.7 (xhigh) ·'                        want=unknown  target utf8=unknown LC_ALL=C=unknown      base utf8=unknown LC_ALL=C=unknown  ok
+  suffix-1col-overhang   title='Grok 4.7 (xhigh) · always-approve'         want=unknown  target utf8=unknown LC_ALL=C=unknown      base utf8=unknown LC_ALL=C=unknown  ok
+  suffix-2col-short      title='Grok 4.7 (xhigh) · always-approve'         want=unknown  target utf8=unknown LC_ALL=C=unknown      base utf8=unknown LC_ALL=C=unknown  ok
+  (target: 13 as expected, 1 mismatched)
+
+(note: the one V-herdr MISMATCH, suffix-3col-overhang, is the same staging clip: the Herdr box spans columns 3 to 118 of a 120-column pane, so a 3-column overhang needs 121 columns and the pane drops the corner. Measured staged rows:
+   118 cols, ends with '──╮'
+   120 cols, ends with 'e ─'
+ The live Grok 1.0.70 box never overhangs; the overhang path is covered by the hand-built unit fixtures.)
+
+## Targeted unit test
+  bash tests/fm-composer-lib.test.sh: rc=0, all cases ok, including "matrix: grok's real oversized titled bottom is empty while typed and unproved panes stay safe"
+  (scrubbed output: round4-composer-lib-unit-test.txt)
+
+## Isolation and teardown checks (20:58 CT)
+  ~/.grok/config.toml sha256 prefix 3791024382a43e15 before and after
+  ~/.grok/trusted_folders.toml sha256 prefix b10727d5dc889831 before and after; lab paths in it: 0
+  ~/.grok/hooks/fm-turn-end.sh 3340c45922ab1d3b and fm-turn-end.json 4a19ce448f3c1652 before and after; fm-turn-end.d entries 46 before and after
+  relaunch turn-end hooks landed in $LAB/grokhome/hooks only
+  Herdr default session running before and after; bin/fm-herdr-lab.sh teardown rc=0 (its fleet-state tripwire passed)
+  lab tmux server killed through its private socket dir; bin/fm-lab-home.sh teardown rc=0; lab home and driver dir removed
+  no process left naming the lab; no Grok process left with a lab working directory
+  the "Help improve Grok" banner was left untouched (never opted in); "Buy more credits" was never selected and Enter was never pressed on the dialog

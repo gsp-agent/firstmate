@@ -1,0 +1,150 @@
+<!doctype html><html><head><meta charset='utf-8'><title>Live Grok composer title check, round 2</title>
+<style>body{font-family:-apple-system,Helvetica,sans-serif;background:#111;color:#ddd;margin:24px}h1{font-size:18px}h2{font-size:14px;margin:28px 0 4px;color:#9cf}p{margin:2px 0 8px;font-size:13px;color:#bbb}pre{background:#000;color:#e6e6e6;padding:10px;border:1px solid #333;font:12px/1.25 Menlo,monospace;overflow-x:auto}</style></head><body>
+<h1>Live Grok composer title check, round 2: target 2b85cb8e vs round-1 684d0ee2 vs base cfd72172</h1>
+<p>Real panes captured from Grok 1.0.70 in a disposable lab (private tmux server; Herdr fm-lab-* session). Bottom rows of each screen; blank rows dropped.</p>
+<h2>tmux · Grok 1.0.70 stops at its weekly limit (spawn-shaped worker)</h2><p>Classifier: unknown on target, round-1 and base. fm-control exit and relaunch refuse; the dialog is untouched.</p><pre>  scout/gtk1 worktree /p/v/f/2/3/T/f/wt/gtk1                                                                                         1.3K / 256K │ [Dashboard]
+     ❯ Reply with the single word ready, then end your turn. Do not use any tool.                                                                    7:56 PM
+  Help improve Grok                                                                                                                         [Opt out] [Opt in]
+  Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, &amp; metrics, for training and debugging purposes.
+  Change anytime via settings.
+  Read Terms and Privacy Policy.
+  ┃
+  ┃  You hit your weekly limit.
+  ┃
+  ┃
+  ┃  1 (○) Buy more credits  Purchase credits to keep using Grok Build
+  ┃  2 (○) Try Again         Resubmit the last prompt once you have usage again
+  ┃
+  ┃  ↑/↓ navigate · y copy                                                                                                                    Enter:submit
+  ┃
+  Tab:next answer  │  Esc:scrollback  │  Shift+x:dismiss</pre>
+<h2>tmux · after one Escape</h2><p>Escape moved focus to scrollback (footer &#x27;Tab/Space:question&#x27;); the dialog stayed. Its own dismiss key is Shift+x.</p><pre> │                                                                                                                                                            │
+ │   ❯ Reply with the single word ready, then end your turn. Do not use any tool.                                                                    7:56 PM  │
+ │                                                                                                                                                            │
+ └                                                                                                                                                            ┘
+  Help improve Grok                                                                                                                         [Opt out] [Opt in]
+  Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, &amp; metrics, for training and debugging purposes.
+  Change anytime via settings.
+  Read Terms and Privacy Policy.
+  ┃
+  ┃  You hit your weekly limit.
+  ┃
+  ┃
+  ┃  1 (○) Buy more credits  Purchase credits to keep using Grok Build
+  ┃  2 (○) Try Again         Resubmit the last prompt once you have usage again
+  ┃
+  ┃  ↑/↓ navigate · y copy                                                                                                                    Enter:submit
+  ┃
+  Tab/Space:question  │  Ctrl+e:collapse thinking  │  Ctrl+x:shortcuts</pre>
+<h2>tmux · after Shift+x: idle, empty composer titled &#x27;Grok 4.7 (xhigh) · always-approve&#x27;</h2><p>Box is 158 columns top and bottom (no overhang). Classifier: target empty; round-1 684d0ee2 and base unknown. Target exit printed &#x27;stopped gtk1&#x27;; base exit refused with the 10-25 message.</p><pre>  scout/gtk1 worktree /p/v/f/2/3/T/f/wt/gtk1                                                                                         1.3K / 256K │ [Dashboard]
+     ❯ Reply with the single word ready, then end your turn. Do not use any tool.                                                                    7:56 PM
+  Help improve Grok                                                                                                                         [Opt out] [Opt in]
+  Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, &amp; metrics, for training and debugging purposes.
+  Change anytime via settings.
+  Read Terms and Privacy Policy.
+  ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  │ ❯                                                                                                                                                        │
+  ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+  Shift+Tab:mode  │  Ctrl+x:shortcuts</pre>
+<h2>tmux · typed, unsent text in the same composer</h2><p>Classifier: target pending (base pending-unproven). exit and relaunch refuse; the text stays.</p><pre>  scout/gtk2 worktree /p/v/f/2/3/T/f/wt/gtk2                                                                                         1.3K / 256K │ [Dashboard]
+     ❯ Reply with the single word ready, then end your turn. Do not use any tool.                                                                    8:01 PM
+  Help improve Grok                                                                                                                         [Opt out] [Opt in]
+  Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, &amp; metrics, for training and debugging purposes.
+  Change anytime via settings.
+  Read Terms and Privacy Policy.
+  ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  │ ❯ deploy the fix                                                                                                                                         │
+  ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+  Enter:send  │  Opt+Enter:newline  │  Shift+Tab:mode  │  Ctrl+x:shortcuts</pre>
+<h2>tmux · after target fm-control exit</h2><p>Grok exited through /exit; the window survives at a shell in the same worktree.</p><pre>╭─gtk1 on 🌱 scout/gtk1
+╰─❯ cd &#x27;$LAB/wt/gtk1&#x27; &amp;&amp; GROK_FOLDER_TRUST=0 grok --always-approve  --reasoning-effort xhigh &#x27;Reply wi
+th the single word ready, then end your turn. Do not use any tool.&#x27;
+Reply with the single word ready, then end your turn.
+&gt; Reply with the single word ready, then end your turn. Do not use any tool.
+Resume this session with:
+  grok --resume &lt;session-id&gt;
+╭─gtk1 on 🌱 scout/gtk1
+╰─❯</pre>
+<h2>tmux · after target fm-control relaunch --harness gemini</h2><p>Relaunch stopped Grok and launched Gemini in the same window (journal phase=complete). Gemini then shows its own sign-in failure: this machine&#x27;s Gemini login, not this change.</p><pre>│ ? Get started                                                                                                                                                │
+│                                                                                                                                                              │
+│   How would you like to authenticate for this project?                                                                                                       │
+│                                                                                                                                                              │
+│   ● 1. Sign in with Google                                                                                                                                   │
+│     2. Use Gemini API Key                                                                                                                                    │
+│     3. Vertex AI                                                                                                                                             │
+│                                                                                                                                                              │
+│   Failed to sign in. Message: This client is no longer supported for Gemini Code Assist for individuals. To continue using Gemini, please migrate to the     │
+│   Antigravity suite of products: https://antigravity.google                                                                                                  │
+│                                                                                                                                                              │
+│   (Use Enter to select)                                                                                                                                      │
+│                                                                                                                                                              │
+│   Terms of Services and Privacy Notice for Gemini CLI                                                                                                        │
+│                                                                                                                                                              │
+│   https://geminicli.com/docs/resources/tos-privacy/                                                                                                          │
+│                                                                                                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</pre>
+<h2>tmux · live sweep: --permission-mode auto</h2><p>Title suffix &#x27;· auto-review&#x27;. Target empty, base unknown.</p><pre>                    │  ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀                                                                                                      │
+                    │  ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀   New /learn skill!                                                                                  │
+                    │  ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀   Ask Grok to /learn from your past traces and tune Grok Build to how you work.                      │
+                    │  ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀                                                                                                      │
+                    │  ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀   Resume session                                                                             ctrl+r  │
+                    │  ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   New worktree                                                                               ctrl+w  │
+                    │                   Changelog                                                                                          │
+                    │                   Quit                                                                                       ctrl+q  │
+                    │                                                                                                                      │
+                    ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+  Help improve Grok                                                                                                                         [Opt out] [Opt in]
+  Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, &amp; metrics, for training and debugging purposes.
+  Change anytime via settings.
+  Read Terms and Privacy Policy.
+  ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  │ ❯                                                                                                                                                        │
+  ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · auto-review ─╯
+                                                                                                                                                      [stable]</pre>
+<h2>tmux · live sweep: --permission-mode plan</h2><p>Title suffix &#x27;· plan&#x27;. Target empty, base unknown.</p><pre>                    │  ⠀⠀⠀⣠⣾⠿⠛⠛⠛⠛⢀⡴⠁⠀                                                                                                      │
+                    │  ⠀⠀⣼⡟⠁⠀⠀⠀⢀⡴⠻⣿⡀⠀   Grok 4.7 is here!                                                                                  │
+                    │  ⠀⠀⣿⡇⠀⠀⠀⠔⠁⠀⠀⣿⡇⠀   Select &#x27;Grok 4.7&#x27; under /model.                                                                    │
+                    │  ⠀⠀⢹⣷⠀⠀⠀⠀⠀⢀⣴⡿⠀⠀                                                                                                      │
+                    │  ⠀⢀⠞⠁⠠⢶⣶⣶⣶⠿⠋⠀⠀⠀   Resume session                                                                             ctrl+r  │
+                    │  ⠐⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   New worktree                                                                               ctrl+w  │
+                    │                   Changelog                                                                                          │
+                    │                   Quit                                                                                       ctrl+q  │
+                    │                                                                                                                      │
+                    ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+  Help improve Grok                                                                                                                         [Opt out] [Opt in]
+  Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, &amp; metrics, for training and debugging purposes.
+  Change anytime via settings.
+  Read Terms and Privacy Policy.
+  ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  │ ❯                                                                                                                                                        │
+  ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · plan ─╯
+                                                                                                                                                      [stable]</pre>
+<h2>Herdr 0.9.1 · fm-lab-* session · weekly-limit dialog</h2><p>Classifier: pending on target, round-1 and base (unchanged by this change). exit refuses.</p><pre>                                                                                                                       █
+                                                                                                                       █
+                                                                                                                       █
+                                                                                                                       █
+  Help improve Grok                                                                                 [Opt out] [Opt in]
+  Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, &amp; metrics,
+  for training and debugging purposes. Change anytime via settings.
+  Read Terms and Privacy Policy.
+  ┃
+  ┃  You hit your weekly limit.
+  ┃
+  ┃
+  ┃  1 (○) Buy more credits  Purchase credits to keep using Grok Build
+  ┃  2 (○) Try Again         Resubmit the last prompt once you have usage again
+  ┃
+  ┃  ↑/↓ navigate · y copy                                                                            Enter:submit
+  ┃
+  Tab:next answer  │  Esc:scrollback  │  Shift+x:dismiss</pre>
+<h2>Herdr 0.9.1 · idle, empty suffixed composer after Shift+x</h2><p>Box is 118 columns top and bottom (no overhang). Target empty; round-1 and base unknown. Target exit printed &#x27;stopped gth1&#x27;.</p><pre>  scout/gth1 worktree /p/v/f/2/3/T/f/wt/gth1                                                 1.3K / 256K │ [Dashboard]
+     ❯ Reply with the single word ready, then end your turn. Do not use any tool.                            8:05 PM
+  Help improve Grok                                                                                 [Opt out] [Opt in]
+  Off by default. Opt-in to allow SpaceXAI to retain coding data, e.g., prompts, traces, &amp; metrics,
+  for training and debugging purposes. Change anytime via settings.
+  Read Terms and Privacy Policy.
+  ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  │ ❯                                                                                                                │
+  ╰────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+  Shift+Tab:mode  │  Ctrl+.:shortcuts</pre>
+</body></html>

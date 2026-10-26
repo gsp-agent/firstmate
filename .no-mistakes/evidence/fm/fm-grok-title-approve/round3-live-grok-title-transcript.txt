@@ -1,0 +1,173 @@
+# Live validation, round 3: Grok composer title with a mode suffix, and the weekly-limit dialog facts in grok.md
+date: 2026-10-26T01:24Z-01:40Z (20:24-20:40 CDT)
+target: e5a6342a (run worktree bin/; bin/ identical to round-2 2b85cb8e, only grok.md changed since)   base: cfd72172 (git archive of bin/)
+grok: grok 1.0.70 (f50904eaee6c) [stable]   tmux: tmux 3.8   herdr: herdr 0.9.1
+lab: disposable marked FM_HOME from bin/fm-lab-home.sh; private tmux server (TMUX_TMPDIR from fm-lab-home.sh tmux-dir, tmux -f /dev/null);
+     Herdr via bin/fm-herdr-lab.sh provision/teardown in named session fm-lab-grok-r3-29438-6265; lab-private git origin;
+     fm-control.sh and fm-send.sh run from the run worktree with the gate marker still set (lab marker permits lifecycle, no bypass);
+     GROK_HOME=$LAB/grokhome for firstmate's own scripts so a grok relaunch writes its turn-end hook inside the lab, not ~/.grok/hooks.
+worker shape: fm-spawn.sh's Grok launch, grok --always-approve --reasoning-effort xhigh "<brief>", in a login shell in window fm-<task>,
+     with a spawn-shaped scout task record (state/<task>.meta) and in-flight backlog row (tasks-axi). GROK_FOLDER_TRUST=0 in the
+     pane environment only, so ~/.grok/trusted_folders.toml is never written.
+grok account state: at its weekly limit, so the one-word brief reproduced the 10-25 stop for real on every launch.
+
+## T1. tmux: weekly-limit dialog on spawn-shaped worker gtk1
+  ┃  You hit your weekly limit.
+  ┃  1 (○) Buy more credits  Purchase credits to keep using Grok Build
+  ┃  2 (○) Try Again         Resubmit the last prompt once you have usage again
+  ┃  ↑/↓ navigate · y copy                                                     Enter:submit
+  Tab:next answer  │  Esc:scrollback  │  Shift+x:dismiss
+classifier on the dialog: target utf8=unknown LC_ALL=C=unknown | base utf8=unknown LC_ALL=C=unknown
+fm-control.sh gtk1 exit (target) on the dialog:
+  error: task gtk1's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'exit'
+  rc=1; pane still running grok-1.0.70-mac; dialog still on screen
+
+## T2. tmux: Escape and C-c on the dialog (grok.md "Escape only moved focus to scrollback ... C-c left it too")
+raw tmux Escape:                  dialog rows 1; footer -> Tab/Space:question │ →:expand │ Ctrl+e:collapse thinking │ Ctrl+x:shortcuts
+fm-send.sh gtk1 --key Escape #1:  rc=0; dialog rows 1; footer unchanged (scrollback focus)
+fm-send.sh gtk1 --key Escape #2:  rc=0; dialog rows 1
+fm-send.sh gtk1 --key C-c:        rc=0; dialog rows 1; grok still running
+classifier after them: target utf8=unknown LC_ALL=C=unknown
+fm-control.sh gtk1 exit (target): error: task gtk1's composer state is 'unknown', not proven empty; ... retry 'exit'   (refused)
+
+## T3. tmux: fm-send.sh --key X (Shift+x) on the dialog  <-- contradicts grok.md "fm-send.sh has no key for that"
+fm-send.sh gtk1 --key X (focus in scrollback after the Escapes): rc=0; dialog rows 0; footer -> Shift+Tab:mode │ Ctrl+x:shortcuts
+    ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+    │ ❯                                                                                                                                                        │
+    ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+fm-send.sh gtk2 --key X (fresh dialog, focus on the dialog):     rc=0; dialog rows 0; same empty suffixed composer
+(bin/backends/tmux.sh fm_backend_tmux_send_key passes the key name verbatim to `tmux send-keys`; fm-send.sh's header documents only Escape, Enter, C-c.)
+
+## T4. tmux: idle, empty composer titled 'Grok 4.7 (xhigh) · always-approve' (gtk1)
+  geometry: top_cols=156 bottom_cols=156 overhang=0 title='Grok 4.7 (xhigh) · always-approve'
+classifier: target utf8=empty LC_ALL=C=empty | base utf8=unknown LC_ALL=C=unknown
+
+## T5. tmux: typed, unsent text in the same composer (gtk1)
+    │ ❯ deploy the fix                                                                                                                                         │
+    ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+  Enter:send  │  Opt+Enter:newline  │  Shift+Tab:mode  │  Ctrl+x:shortcuts
+classifier: target utf8=pending LC_ALL=C=pending | base utf8=pending-unproven LC_ALL=C=pending-unproven
+fm-control.sh gtk1 exit (target):
+  error: task gtk1's composer visibly holds pending text; refusing to type the /exit exit command because it would concatenate onto that text. Clear or submit the pending text, then retry 'exit'
+  typed text still in the composer afterwards: 1 row
+
+## T6. tmux: exit on the idle suffixed composer (gtk1, text cleared with 14 BSpace)
+classifier after clearing: target utf8=empty LC_ALL=C=empty
+fm-control.sh gtk1 exit (BASE cfd72172), the 10-25 refusal:
+  error: task gtk1's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'exit'
+  pane still running grok-1.0.70-mac
+fm-control.sh gtk1 exit (target):
+  stopped gtk1 harness=grok backend=tmux endpoint=firstmate:fm-gtk1 worktree=$LAB/wt/gtk1
+  rc=0; pane now running zsh in the worktree; Grok printed "Resume this session with: grok --resume <session-id>"
+
+## T7. tmux: relaunch on the idle suffixed composer (gtk2; dialog dismissed with fm-send.sh --key X)
+  geometry: top_cols=156 bottom_cols=156 overhang=0 title='Grok 4.7 (xhigh) · always-approve'
+classifier: target utf8=empty LC_ALL=C=empty | base utf8=unknown LC_ALL=C=unknown
+fm-control.sh gtk2 relaunch --harness grok --note ... (BASE cfd72172):
+  error: task gtk2's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'relaunch'
+  error: relaunch of gtk2 failed while stopping the old agent, which is still running; its original instructions were restored
+  rc=1; journal phase=failed:stopping to_harness=grok rollback=instructions-restored-agent-alive
+fm-control.sh gtk2 relaunch --harness grok --note ... (target):
+  relaunched gtk2 harness=grok from=grok model=default effort=xhigh backend=tmux endpoint=firstmate:fm-gtk2 worktree=$LAB/wt/gtk2
+  rc=0; journal phase=complete to_harness=grok exit_result=stopped; state/gtk2.meta window=firstmate:fm-gtk2 harness=grok kind=scout
+  replacement: a fresh grok-1.0.70-mac in the same window, which hit the weekly-limit dialog again
+  (replacement runtime chosen as grok, with GROK_HOME redirected into the lab, so no third-party installer or fleet-shared hook ran;
+   round 2 already drove the cross-runtime grok -> gemini relaunch on identical bin/ code)
+
+## T8. tmux: full-colour sequence on the relaunched gtk2 (rendered in round3-live-grok-tmux-panes.html)
+  1-dialog: target utf8=unknown LC_ALL=C=unknown | base utf8=unknown LC_ALL=C=unknown | weekly-limit dialog rows 1
+  2-after-escape: target utf8=unknown LC_ALL=C=unknown | base utf8=unknown LC_ALL=C=unknown | weekly-limit dialog rows 1
+  fm-send gtk2 --key X rc=0
+  3-after-fm-send-key-X: target utf8=empty LC_ALL=C=empty | base utf8=unknown LC_ALL=C=unknown | weekly-limit dialog rows 0
+  4-typed: target utf8=pending LC_ALL=C=pending | base utf8=pending-unproven LC_ALL=C=pending-unproven | weekly-limit dialog rows 0
+  5-cleared: target utf8=empty LC_ALL=C=empty | base utf8=unknown LC_ALL=C=unknown | weekly-limit dialog rows 0
+fm-control.sh gtk2 exit (target): stopped gtk2 harness=grok backend=tmux endpoint=firstmate:fm-gtk2 worktree=$LAB/wt/gtk2   rc=0, pane now zsh
+
+## H1. Herdr 0.9.1 (fm-lab-grok-r3-29438-6265, pane w1:p2 made by fm_backend_herdr_create_task): weekly-limit dialog on gth1
+  ┃  You hit your weekly limit. / 1 (○) Buy more credits / 2 (○) Try Again
+  Tab:next answer  │  Esc:scrollback  │  Shift+x:dismiss
+classifier on the dialog: target utf8=pending LC_ALL=C=pending
+fm-control.sh gth1 exit (target): error: task gth1's composer visibly holds pending text; ... retry 'exit'   (refused)
+fm-send.sh gth1 --key Escape #1, #2: rc=0; dialog rows 1; footer -> Tab/Space:question │ →:expand │ Ctrl+e:collapse thinking │ Ctrl+.:shortcuts
+classifier after the Escapes: target utf8=pending LC_ALL=C=pending
+fm-send.sh gth1 --key X: rc=0; dialog rows 0; footer -> Shift+Tab:mode │ Ctrl+.:shortcuts   <-- dismissed on Herdr too
+
+## H2. Herdr: idle, empty suffixed composer
+    ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+    │ ❯                                                                                                                │
+    ╰────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+  geometry: top_cols=116 bottom_cols=116 overhang=0 title='Grok 4.7 (xhigh) · always-approve'
+classifier: target utf8=empty LC_ALL=C=empty | base utf8=unknown LC_ALL=C=unknown
+
+## H3. Herdr: typed, unsent text
+    │ ❯ deploy the fix                                                                                                 │
+classifier: target utf8=pending LC_ALL=C=pending | base utf8=pending-unproven LC_ALL=C=pending-unproven
+fm-control.sh gth1 exit (target): error: task gth1's composer visibly holds pending text; ... retry 'exit'   (refused; text still there)
+
+## H4. Herdr: exit on the idle suffixed composer (text cleared with 14 backspace keys)
+classifier after clearing: target utf8=empty LC_ALL=C=empty
+fm-control.sh gth1 exit (BASE cfd72172): error: task gth1's composer state is 'unknown', not proven empty; ... retry 'exit'   (the 10-25 refusal)
+fm-control.sh gth1 exit (target):
+  stopped gth1 harness=grok backend=herdr endpoint=fm-lab-grok-r3-29438-6265:w1:p2 worktree=$LAB/wt/gth1
+  rc=0; pane shell back in the worktree; Grok printed its resume hint
+
+## V. Guard: this run's live idle captures with only the bottom-border title rewritten, classified with each backend's own profile
+## (fm_tmux_composer_caps with the live cursor row; Herdr's unstyled cursorless profile)
+tmux capture (gtk1), target e5a6342a:
+  unmodified live capture                  want=empty   utf8=empty    LC_ALL=C=empty    ok
+  same title rebuilt (control)             want=empty   utf8=empty    LC_ALL=C=empty    ok
+  no title (plain dashed bottom)           want=empty   utf8=empty    LC_ALL=C=empty    ok
+  no mode suffix                           want=empty   utf8=empty    LC_ALL=C=empty    ok
+  real mode suffix · plan                 want=empty   utf8=empty    LC_ALL=C=empty    ok
+  real mode suffix · auto-review          want=empty   utf8=empty    LC_ALL=C=empty    ok
+  suffixed title, 3-col overhang           want=empty   utf8=empty    LC_ALL=C=empty    ok
+  generic middle-dot title foo · bar      want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  bad mode suffix (space, !)               want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  two suffixes                             want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  non-Grok model title                     want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  unknown effort (max)                     want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  empty mode after dot                     want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  suffixed title, 1-col overhang           want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  suffixed title, bottom 2 cols short      want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  (15 as expected, 0 mismatched)
+Herdr capture (gth1), target e5a6342a:
+  unmodified live capture                  want=empty   utf8=empty    LC_ALL=C=empty    ok
+  same title rebuilt (control)             want=empty   utf8=empty    LC_ALL=C=empty    ok
+  no title (plain dashed bottom)           want=empty   utf8=empty    LC_ALL=C=empty    ok
+  no mode suffix                           want=empty   utf8=empty    LC_ALL=C=empty    ok
+  real mode suffix · plan                 want=empty   utf8=empty    LC_ALL=C=empty    ok
+  real mode suffix · auto-review          want=empty   utf8=empty    LC_ALL=C=empty    ok
+  suffixed title, 3-col overhang           want=empty   utf8=empty    LC_ALL=C=empty    ok
+  generic middle-dot title foo · bar      want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  bad mode suffix (space, !)               want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  two suffixes                             want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  non-Grok model title                     want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  unknown effort (max)                     want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  empty mode after dot                     want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  suffixed title, 1-col overhang           want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  suffixed title, bottom 2 cols short      want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  (15 as expected, 0 mismatched)
+Herdr capture (gth1), base cfd72172 (want column is the target expectation):
+  unmodified live capture                  want=empty   utf8=unknown  LC_ALL=C=unknown  MISMATCH
+  same title rebuilt (control)             want=empty   utf8=unknown  LC_ALL=C=unknown  MISMATCH
+  no title (plain dashed bottom)           want=empty   utf8=empty    LC_ALL=C=empty    ok
+  no mode suffix                           want=empty   utf8=empty    LC_ALL=C=empty    ok
+  real mode suffix · plan                 want=empty   utf8=unknown  LC_ALL=C=unknown  MISMATCH
+  real mode suffix · auto-review          want=empty   utf8=unknown  LC_ALL=C=unknown  MISMATCH
+  suffixed title, 3-col overhang           want=empty   utf8=unknown  LC_ALL=C=unknown  MISMATCH
+  generic middle-dot title foo · bar      want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  bad mode suffix (space, !)               want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  two suffixes                             want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  non-Grok model title                     want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  unknown effort (max)                     want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  empty mode after dot                     want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  suffixed title, 1-col overhang           want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  suffixed title, bottom 2 cols short      want=unknown utf8=unknown  LC_ALL=C=unknown  ok
+  (10 as expected, 5 mismatched)
+
+## Isolation checks
+  ~/.grok/config.toml sha256 prefix 3791024382a43e15 (mtime Oct 23 23:16:13 2026), unchanged
+  ~/.grok/trusted_folders.toml sha256 prefix b10727d5dc889831 (mtime Oct 23 23:42:46 2026), unchanged; lab paths in it: 0
+  ~/.grok/hooks/fm-turn-end.sh 3340c45922ab1d3b and fm-turn-end.json 4a19ce448f3c1652, unchanged; fm-turn-end.d entries 46 before and after
+  the relaunch's turn-end hook landed in $LAB/grokhome/hooks only
+  Herdr default session running before and after; bin/fm-herdr-lab.sh teardown rc=0 (its fleet-state tripwire passed)

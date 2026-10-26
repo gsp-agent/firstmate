@@ -1,0 +1,85 @@
+# Live validation: Grok composer title with a mode suffix
+date_utc: 2026-10-26T00:41:06Z
+target: 684d0ee2 (run worktree bin/)   base: cfd72172 (git archive of bin/)
+grok: grok 1.0.70 (f50904eaee6c) [stable]
+tmux: tmux 3.8   herdr: herdr 0.9.1
+lab: disposable FM_HOME from bin/fm-lab-home.sh, private tmux server via TMUX_TMPDIR
+grok launched in the task worktree; GROK_FOLDER_TRUST=0 skips the folder-trust dialog for that process only, so Grok's trust store is never written
+
+## S1. Spawn-shaped Grok worker (grok --always-approve --reasoning-effort xhigh), idle and empty, tmux 160 cols
+  ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  │ ❯                                                                                                                                                        │
+  ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+geometry: top_cols=158 bottom_cols=158 overhang=0
+classifier (fm_backend_composer_state tmux) target: utf8=unknown LC_ALL=C=unknown 
+classifier (fm_backend_composer_state tmux) base:   utf8=unknown LC_ALL=C=unknown 
+
+### Root-cause isolation: the same live capture with only the bottom-border title rewritten (same columns)
+target:
+  cursor_row=40
+  live capture: unknown
+  same capture, title dashes: empty
+  same capture, title nosuffix: empty
+  same capture, title overhang3: empty
+base:
+  cursor_row=40
+  live capture: unknown
+  same capture, title dashes: empty
+  same capture, title nosuffix: empty
+  same capture, title overhang3: unknown
+
+### Width sweep (target): does Grok 1.0.70 ever overhang the suffixed title?
+width=80 top_cols=78 bottom_cols=78 overhang=0 title='Grok 4.7 (xhigh) · always-approve' verdict: utf8=unknown LC_ALL=C=unknown 
+width=120 top_cols=118 bottom_cols=118 overhang=0 title='Grok 4.7 (xhigh) · always-approve' verdict: utf8=unknown LC_ALL=C=unknown 
+width=160 top_cols=158 bottom_cols=158 overhang=0 title='Grok 4.7 (xhigh) · always-approve' verdict: utf8=unknown LC_ALL=C=unknown 
+width=200 top_cols=198 bottom_cols=198 overhang=0 title='Grok 4.7 (xhigh) · always-approve' verdict: utf8=unknown LC_ALL=C=unknown 
+width=240 top_cols=238 bottom_cols=238 overhang=0 title='Grok 4.7 (xhigh) · always-approve' verdict: utf8=unknown LC_ALL=C=unknown 
+
+## S2. fm-control.sh gt1 exit on that idle worker
+target:
+  error: task gt1's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'exit'
+base:
+  error: task gt1's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'exit'
+  pane after: fm-gt1 grok-1.0.70-mac
+
+## S3. fm-control.sh gt1 relaunch --harness gemini (move to another runtime) on that idle worker
+target:
+  error: task gt1's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'relaunch'
+  error: relaunch of gt1 failed while stopping the old agent, which is still running; its original instructions were restored
+  pane after: fm-gt1 grok-1.0.70-mac
+relaunch journal state/gt1.control-relaunch (phase and rollback rows):
+  phase=failed:stopping
+  to_harness=gemini
+  rollback=instructions-restored-agent-alive
+
+## S4. Typed, unsent text in the same live suffixed composer
+  │ ❯ deploy the fix
+classifier target: utf8=pending-unproven LC_ALL=C=pending-unproven 
+classifier base:   utf8=pending-unproven LC_ALL=C=pending-unproven 
+fm-control exit target:
+  error: task gt1's composer state is 'pending-unproven', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'exit'
+typed text still on screen after the refusal: 1 row(s)
+
+## S5. Positive control: same lab, same worker shape, session-only --permission-mode default (title has no mode suffix)
+  ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  │ ❯                                                                                                                                                        │
+  ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) ─╯
+classifier target: utf8=empty LC_ALL=C=empty 
+fm-control exit target:
+  stopped gt2 harness=grok backend=tmux endpoint=lab:fm-gt2 worktree=$LAB/wt/gt2
+  pane after: fm-gt2 zsh
+  Resume this session with:
+    grok --resume <session-id>
+
+## S6. Herdr lab (bin/fm-herdr-lab.sh, named fm-lab-* session), same Grok launch, real fm_backend_herdr_composer_state
+herdr: herdr 0.9.1
+grok: grok 1.0.70 (f50904eaee6c) [stable]
+session: fm-lab-grok-title-64068-21065
+--- herdr visible screen (composer rows) ---
+  ╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  │ ❯                                                                                                               │
+  ╰───────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+geometry: top_cols=117 bottom_cols=117 overhang=0 title='Grok 4.7 (xhigh) · always-approve'
+fm_backend_herdr_composer_state (target): utf8=unknown LC_ALL=C=unknown
+fm_backend_herdr_composer_state (base): utf8=unknown LC_ALL=C=unknown
+teardown: ok (fm-lab-grok-title-64068-21065)

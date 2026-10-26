@@ -1,0 +1,261 @@
+# Live validation, round 2: Grok composer title with a mode suffix
+date: 2026-10-26T01:14:59Z (20:14 CDT)
+target: 2b85cb8e (run worktree bin/)   round-1: 684d0ee2   base: cfd72172 (git archive of bin/)
+grok: grok 1.0.70 (f50904eaee6c) [stable]   tmux: tmux 3.8   herdr: herdr 0.9.1   gemini: 0.65.0
+lab: disposable marked FM_HOME from bin/fm-lab-home.sh; private tmux server via TMUX_TMPDIR=$LAB/tmux (no user tmux config);
+     Herdr through bin/fm-herdr-lab.sh in a named fm-lab-* session; lab-private git origin; fm-control.sh run from the
+     run worktree with the gate marker still set (the lab marker permits lifecycle, no bypass).
+worker shape: fm-spawn.sh's Grok launch, grok --always-approve --reasoning-effort xhigh "<prompt>", in a login shell in
+     window fm-<task>, with a spawn-shaped scout task record (state/<task>.meta), brief (fm-brief.sh --scout) and backlog row.
+     GROK_FOLDER_TRUST=0 skips the folder-trust dialog for that process only, so ~/.grok/trusted_folders.toml is never written.
+grok account state: at its weekly limit, so every prompt reproduced the 10-25 stop for real.
+
+## T1. Weekly-limit dialog on the spawn-shaped worker (the 10-25 stop)
+  ┃
+  ┃  You hit your weekly limit.
+  ┃
+  ┃
+  ┃  1 (○) Buy more credits  Purchase credits to keep using Grok Build
+  ┃  2 (○) Try Again         Resubmit the last prompt once you have usage again
+  ┃
+  ┃  ↑/↓ navigate · y copy                                                                                                                    Enter:submit
+  ┃
+  Tab:next answer  │  Esc:scrollback  │  Shift+x:dismiss
+classifier on the dialog screen:
+  target 2b85cb8e:  utf8=unknown LC_ALL=C=unknown
+  round-1 684d0ee2: utf8=unknown LC_ALL=C=unknown
+  base cfd72172:    utf8=unknown LC_ALL=C=unknown
+fm-control.sh gtk2 exit (target) on the dialog:
+  error: task gtk2's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'exit'
+  rc=1
+fm-control.sh gtk2 relaunch --harness gemini (target) on the dialog:
+  error: task gtk2's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'relaunch'
+  error: relaunch of gtk2 failed while stopping the old agent, which is still running; its original instructions were restored
+  rc=1
+  journal: phase=failed:stopping
+  journal: to_harness=gemini
+  journal: rollback=instructions-restored-agent-alive
+  pane: fm-gtk2 running grok-1.0.70-mac
+dialog still on screen after both refusals: 1 row(s)
+
+## T2. Escape on the dialog (Grok 1.0.70)
+after one Escape (footer and dialog rows):
+  ┃  ↑/↓ navigate · y copy                                                                                                                    Enter:submit
+  ┃
+  Tab/Space:question  │  Ctrl+e:collapse thinking  │  Ctrl+x:shortcuts
+dialog still on screen: 1 row(s)
+after Tab (focus back on the dialog):
+  Tab:next answer  │  Esc:scrollback  │  Shift+x:dismiss
+after Shift+x (dialog's own dismiss; neither Buy more credits nor Try Again):
+  ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  │ ❯                                                                                                                                                        │
+  ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+  Shift+Tab:mode  │  Ctrl+x:shortcuts
+
+## T3. Idle, empty composer titled 'Grok 4.7 (xhigh) · always-approve'
+  geometry: top_cols=158 bottom_cols=158 overhang=0 title='Grok 4.7 (xhigh) · always-approve'
+classifier on the idle composer:
+  target 2b85cb8e:  utf8=empty LC_ALL=C=empty
+  round-1 684d0ee2: utf8=unknown LC_ALL=C=unknown
+  base cfd72172:    utf8=unknown LC_ALL=C=unknown
+fm-control.sh gtk2 exit (BASE cfd72172), the 10-25 refusal:
+  error: task gtk2's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'exit'
+  rc=1
+fm-control.sh gtk2 relaunch --harness gemini (BASE cfd72172):
+  error: task gtk2's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'relaunch'
+  error: relaunch of gtk2 failed while stopping the old agent, which is still running; its original instructions were restored
+  rc=1
+  journal: phase=failed:stopping
+  journal: to_harness=gemini
+  journal: rollback=instructions-restored-agent-alive
+  pane: fm-gtk2 running grok-1.0.70-mac
+
+## T4. Root-cause isolation: this same live capture, only the bottom-border title rewritten
+target 2b85cb8e:
+  unmodified live capture                        utf8=empty LC_ALL=C=empty
+  same title rebuilt (control)                   utf8=empty LC_ALL=C=empty
+  no title (plain dashed bottom)                 utf8=empty LC_ALL=C=empty
+  no mode suffix                                 utf8=empty LC_ALL=C=empty
+  suffixed title, 3-col overhang                 utf8=empty LC_ALL=C=empty
+  generic middle-dot title foo · bar            utf8=unknown LC_ALL=C=unknown
+  bad mode suffix (space, !)                     utf8=unknown LC_ALL=C=unknown
+  two suffixes                                   utf8=unknown LC_ALL=C=unknown
+  non-Grok model title                           utf8=unknown LC_ALL=C=unknown
+  unknown effort (max)                           utf8=unknown LC_ALL=C=unknown
+  empty mode after dot                           utf8=unknown LC_ALL=C=unknown
+  suffixed title, 1-col overhang                 utf8=unknown LC_ALL=C=unknown
+  suffixed title, bottom 2 cols short            utf8=unknown LC_ALL=C=unknown
+base cfd72172:
+  unmodified live capture                        utf8=unknown LC_ALL=C=unknown
+  suffixed title, exact width                    utf8=unknown LC_ALL=C=unknown
+  no mode suffix                                 utf8=empty LC_ALL=C=empty
+
+## T5. Typed, unsent text in the same suffixed composer
+  ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  │ ❯ deploy the fix                                                                                                                                         │
+  ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+  Enter:send  │  Opt+Enter:newline  │  Shift+Tab:mode  │  Ctrl+x:shortcuts
+classifier:
+  target 2b85cb8e:  utf8=pending LC_ALL=C=pending
+  round-1 684d0ee2: utf8=pending-unproven LC_ALL=C=pending-unproven
+  base cfd72172:    utf8=pending-unproven LC_ALL=C=pending-unproven
+fm-control.sh gtk2 exit (target):
+  error: task gtk2's composer visibly holds pending text; refusing to type the /exit exit command because it would concatenate onto that text. Clear or submit the pending text, then retry 'exit'
+  rc=1
+fm-control.sh gtk2 relaunch --harness gemini (target):
+  error: task gtk2's composer visibly holds pending text; refusing to type the /exit exit command because it would concatenate onto that text. Clear or submit the pending text, then retry 'relaunch'
+  error: relaunch of gtk2 failed while stopping the old agent, which is still running; its original instructions were restored
+  rc=1
+  journal: phase=failed:stopping
+  journal: to_harness=gemini
+  journal: rollback=instructions-restored-agent-alive
+  pane: fm-gtk2 running grok-1.0.70-mac
+typed text still in the composer: 1 row(s)
+
+## T6. fm-control.sh gtk2 exit (target) on the idle suffixed composer
+classifier after clearing the text:
+  target 2b85cb8e:  utf8=empty LC_ALL=C=empty
+  round-1 684d0ee2: utf8=unknown LC_ALL=C=unknown
+  base cfd72172:    utf8=unknown LC_ALL=C=unknown
+  stopped gtk2 harness=grok backend=tmux endpoint=firstmate:fm-gtk2 worktree=$LAB/wt/gtk2
+  rc=0
+  pane: fm-gtk2 running zsh
+Resume this session with:
+  grok --resume <session-id>
+╭─gtk2 on 🌱 scout/gtk2
+╰─❯
+
+## T7. fm-control.sh gtk1 relaunch --harness gemini (target) on the idle suffixed composer (tmux)
+(gtk1: same spawn-shaped worker; weekly-limit dialog dismissed with Shift+x; target classifier read utf8=empty LC_ALL=C=empty;
+ base relaunch had just refused with the 10-25 message, journal phase=failed:stopping)
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ●  WATCHER DOWN - SUPERVISION IS OFF
+  ●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+  ●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+  ●  This is a supervision warning only; the guarded operation WILL still run.
+  ●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+  ●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  relaunched gtk1 harness=gemini from=grok model=default effort=default backend=tmux endpoint=firstmate:fm-gtk1 worktree=$LAB/wt/gtk1
+  journal: phase=complete
+  journal: to_harness=gemini
+  journal: exit_result=stopped
+  state/gtk1.meta: window=firstmate:fm-gtk1
+  state/gtk1.meta: harness=gemini
+  state/gtk1.meta: kind=scout
+  replacement pane now (Gemini's own sign-in screen; this machine's Gemini login is refused by Google, unrelated to this change):
+    │   ● 1. Sign in with Google                                                                                                                                   │
+    │   Failed to sign in. Message: This client is no longer supported for Gemini Code Assist for individuals. To continue using Gemini, please migrate to the     │
+    │   Antigravity suite of products: https://antigravity.google                                                                                                  │
+
+## T8. Live permission-mode sweep: idle Grok (no prompt, no model call) under each session-only --permission-mode
+--permission-mode default: top=158 bottom=158 overhang=0 title='Grok 4.7 (xhigh)'
+    target: utf8=empty LC_ALL=C=empty
+    base:   utf8=empty LC_ALL=C=empty
+--permission-mode acceptEdits: top=158 bottom=158 overhang=0 title='Grok 4.7 (xhigh)'
+    target: utf8=empty LC_ALL=C=empty
+    base:   utf8=empty LC_ALL=C=empty
+--permission-mode auto: top=158 bottom=158 overhang=0 title='Grok 4.7 (xhigh) · auto-review'
+    target: utf8=empty LC_ALL=C=empty
+    base:   utf8=unknown LC_ALL=C=unknown
+--permission-mode dontAsk: top=158 bottom=158 overhang=0 title='Grok 4.7 (xhigh)'
+    target: utf8=empty LC_ALL=C=empty
+    base:   utf8=empty LC_ALL=C=empty
+--permission-mode bypassPermissions: top=158 bottom=158 overhang=0 title='Grok 4.7 (xhigh) · always-approve'
+    target: utf8=empty LC_ALL=C=empty
+    base:   utf8=unknown LC_ALL=C=unknown
+--permission-mode plan: top=158 bottom=158 overhang=0 title='Grok 4.7 (xhigh) · plan'
+    target: utf8=empty LC_ALL=C=empty
+    base:   utf8=unknown LC_ALL=C=unknown
+
+herdr: herdr 0.9.1   session: fm-lab-grok-title-69877-8542 (bin/fm-herdr-lab.sh, non-default)   pane: w1:p2
+## H1. Weekly-limit dialog
+  ┃
+  ┃
+  ┃  1 (○) Buy more credits  Purchase credits to keep using Grok Build
+  ┃  2 (○) Try Again         Resubmit the last prompt once you have usage again
+  ┃
+  ┃  ↑/↓ navigate · y copy                                                                            Enter:submit
+  ┃
+  Tab:next answer  │  Esc:scrollback  │  Shift+x:dismiss
+classifier on the dialog screen:
+  target 2b85cb8e:  utf8=pending LC_ALL=C=pending
+  round-1 684d0ee2: utf8=pending LC_ALL=C=pending
+  base cfd72172:    utf8=pending LC_ALL=C=pending
+fm-control.sh gth1 exit (target) on the dialog:
+  error: task gth1's composer visibly holds pending text; refusing to type the /exit exit command because it would concatenate onto that text. Clear or submit the pending text, then retry 'exit'
+  rc=1
+dialog still on screen: 1 row(s)
+
+## H2. Idle, empty suffixed composer after Shift+x
+  ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  │ ❯                                                                                                                │
+  ╰────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+  Shift+Tab:mode  │  Ctrl+.:shortcuts
+  geometry: top_cols=118 bottom_cols=118 overhang=0 title='Grok 4.7 (xhigh) · always-approve'
+classifier:
+  target 2b85cb8e:  utf8=empty LC_ALL=C=empty
+  round-1 684d0ee2: utf8=unknown LC_ALL=C=unknown
+  base cfd72172:    utf8=unknown LC_ALL=C=unknown
+fm-control.sh gth1 exit (BASE cfd72172):
+  error: task gth1's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'exit'
+  rc=1
+
+## H3. Typed, unsent text
+  │ ❯ deploy the fix                                                                                                 │
+  ╰────────────────────────────────────────────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯
+  Enter:send  │  Shift+Enter/Opt+Enter:newline  │  Shift+Tab:mode  │  Ctrl+.:shortcuts
+classifier:
+  target 2b85cb8e:  utf8=pending LC_ALL=C=pending
+  round-1 684d0ee2: utf8=pending-unproven LC_ALL=C=pending-unproven
+  base cfd72172:    utf8=pending-unproven LC_ALL=C=pending-unproven
+fm-control.sh gth1 exit (target):
+  error: task gth1's composer visibly holds pending text; refusing to type the /exit exit command because it would concatenate onto that text. Clear or submit the pending text, then retry 'exit'
+  rc=1
+typed text still in the composer: 1 row(s)
+
+## H4. fm-control.sh gth1 exit (target) on the idle suffixed composer
+classifier after clearing:
+  target 2b85cb8e:  utf8=empty LC_ALL=C=empty
+  round-1 684d0ee2: utf8=unknown LC_ALL=C=unknown
+  base cfd72172:    utf8=unknown LC_ALL=C=unknown
+  stopped gth1 harness=grok backend=herdr endpoint=fm-lab-grok-title-69877-8542:w1:p2 worktree=$LAB/wt/gth1
+  rc=0
+Resume this session with:
+  grok --resume <session-id>
+╭─gth1 on 🌱 scout/gth1
+╰─❯
+
+## E. Clearing the weekly-limit dialog with firstmate's sanctioned key route (fm-send.sh --key), fresh worker per backend
+## E1. tmux: fm-send.sh --key Escape on the weekly-limit dialog (gtk2, Grok 1.0.70)
+before: dialog rows=1  footer: Tab:next answer  │  Esc:scrollback  │  Shift+x:dismiss
+fm-send.sh gtk2 --key Escape #1: rc=0 (WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode. )
+  after: dialog rows=1  footer: Tab/Space:question  │  Ctrl+e:collapse thinking  │  Ctrl+x:shortcuts
+fm-send.sh gtk2 --key Escape #2: rc=0 (WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode. )
+  after: dialog rows=1  footer: Tab/Space:question  │  Ctrl+e:collapse thinking  │  Ctrl+x:shortcuts
+fm-send.sh gtk2 --key Escape #3: rc=0 (WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode. )
+  after: dialog rows=1  footer: Tab/Space:question  │  Ctrl+e:collapse thinking  │  Ctrl+x:shortcuts
+  classifier after the Escapes: utf8=unknown LC_ALL=C=unknown
+  fm-control.sh gtk2 exit: error: task gtk2's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'exit'
+
+## E2. Herdr 0.9.1 (fm-lab-grok-esc-19924-27484): fm-send.sh --key Escape on the weekly-limit dialog (gth1)
+before: dialog rows=1  footer: Tab:next answer  │  Esc:scrollback  │  Shift+x:dismiss
+fm-send.sh gth1 --key Escape #1: rc=0 (WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode. )
+  after: dialog rows=1  footer: Tab/Space:question  │  Ctrl+e:collapse thinking  │  Ctrl+.:shortcuts
+fm-send.sh gth1 --key Escape #2: rc=0 (WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode. )
+  after: dialog rows=1  footer: Tab/Space:question  │  Ctrl+e:collapse thinking  │  Ctrl+.:shortcuts
+fm-send.sh gth1 --key Escape #3: rc=0 (WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode. )
+  after: dialog rows=1  footer: Tab/Space:question  │  Ctrl+e:collapse thinking  │  Ctrl+.:shortcuts
+  classifier after the Escapes: utf8=pending LC_ALL=C=pending
+  fm-control.sh gth1 exit: error: task gth1's composer visibly holds pending text; refusing to type the /exit exit command because it would concatenate onto that text. Clear or submit the pending text, then retry 'exit'
+## E3. Herdr: fm-send.sh --key C-c on the dialog (from the scrollback focus Escape left)
+fm-send.sh gth1 --key C-c: rc=0
+  after: dialog rows=1  footer: Tab/Space:question  │  Ctrl+e:collapse thinking  │  Ctrl+.:shortcuts
+  classifier: utf8=pending LC_ALL=C=pending
+  (Enter was not tried: no option is preselected and Enter:submit could choose Buy more credits.)
+
+## Isolation checks
+  ~/.grok/config.toml sha256 prefix: 3791024382a43e15 (mtime Oct 23 23:16:13 2026) - unchanged during the run
+  ~/.grok/trusted_folders.toml sha256 prefix: b10727d5dc889831 (mtime Oct 23 23:42:46 2026); lab paths in it: 0
+  ~/.gemini/oauth_creds.json mtime Oct 25 20:00:08 2026: Gemini CLI itself rewrote its login file when the relaunched replacement started; not edited by this run
+  gemini CLI: read 0.64.0 at 19:59 CDT before the relaunch; the relaunched replacement (fm-spawn's gemini launch) let Gemini's own
+    auto-updater rewrite /opt/homebrew/lib/node_modules/@google/gemini-cli at Oct 25 20:00:14 2026, now 0.65.0. No install command was run by this test; not reverted.
