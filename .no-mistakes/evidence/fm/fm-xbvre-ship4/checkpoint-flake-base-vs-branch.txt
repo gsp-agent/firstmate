@@ -1,0 +1,16 @@
+round 1 base   test_real_host_checkpoint_ends_quietly_at_its_bound rc=1 load1=51.31 not ok - a host checkpoint left its watcher running
+round 1 base   test_queue_append_during_checkpoint_still_resurfaces rc=1 load1=52.32 not ok - queue-append checkpoint exit: expected exit 0, got 124
+round 1 branch test_real_host_checkpoint_ends_quietly_at_its_bound rc=1 load1=52.79 not ok - a host checkpoint left its watcher running
+round 1 branch test_queue_append_during_checkpoint_still_resurfaces rc=1 load1=52.57 not ok - queue-append checkpoint exit: expected exit 0, got 124
+round 2 base   test_real_host_checkpoint_ends_quietly_at_its_bound rc=1 load1=60.81 not ok - a host checkpoint left its watcher running
+round 2 base   test_queue_append_during_checkpoint_still_resurfaces rc=1 load1=59.18 not ok - queue-append checkpoint exit: expected exit 0, got 124
+round 2 branch test_real_host_checkpoint_ends_quietly_at_its_bound rc=1 load1=63.01 not ok - a host checkpoint left its watcher running
+round 2 branch test_queue_append_during_checkpoint_still_resurfaces rc=1 load1=65.27 not ok - queue-append checkpoint exit: expected exit 0, got 124
+round 3 base   test_real_host_checkpoint_ends_quietly_at_its_bound rc=1 load1=64.02 not ok - a host checkpoint left its watcher running
+round 3 base   test_queue_append_during_checkpoint_still_resurfaces rc=1 load1=61.94 not ok - queue append during checkpoint did not resurface (missing: 'check: rearm-resurface')
+round 3 branch test_real_host_checkpoint_ends_quietly_at_its_bound rc=1 load1=58.00 not ok - a host checkpoint left its watcher running
+round 3 branch test_queue_append_during_checkpoint_still_resurfaces rc=1 load1=54.79 not ok - queue append during checkpoint did not resurface (missing: 'check: rearm-resurface')
+round 4 base   test_real_host_checkpoint_ends_quietly_at_its_bound rc=1 load1=52.16 not ok - a host checkpoint left its watcher running
+round 4 base   test_queue_append_during_checkpoint_still_resurfaces rc=1 load1=49.91 not ok - queue append during checkpoint did not resurface (missing: 'check: rearm-resurface')
+round 4 branch test_real_host_checkpoint_ends_quietly_at_its_bound rc=1 load1=45.01 not ok - a host checkpoint left its watcher running
+round 4 branch test_queue_append_during_checkpoint_still_resurfaces rc=1 load1=41.52 not ok - queue append during checkpoint did not resurface (missing: 'check: rearm-resurface')

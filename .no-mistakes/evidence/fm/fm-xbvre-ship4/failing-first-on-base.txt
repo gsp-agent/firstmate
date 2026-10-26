@@ -1,0 +1,8 @@
+== base bin with this branch's case: test_default_turn_timeout_is_540_seconds
+--- test_default_turn_timeout_is_540_seconds
+not ok - a park with room for the default cap plus its grace must run the turn
+case exit=
+== base bin with this branch's case: test_turn_past_the_default_cap_is_cut_at_540_seconds
+--- test_turn_past_the_default_cap_is_cut_at_540_seconds
+not ok - default-turn-cut: the engine turn never started: 1793025952	start	gen=host-15308-1793025950	primary=claude
+case exit=

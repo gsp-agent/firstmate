@@ -1,0 +1,11 @@
+--- test_default_turn_timeout_is_540_seconds
+ok - host: the default turn bound is 540 seconds, so a park with room for it runs the turn and a park without is refused at the boundary
+--- test_turn_past_the_default_cap_is_cut_at_540_seconds
+ok - host: a running turn is cut when it reaches the default 540-second cap, not before, and its wake goes to main
+--- test_park_seconds_at_or_beyond_the_hook_registration_fall_back_to_the_default
+ok - host: a park at or beyond the Stop-hook registration falls back to the default boundary
+--- test_engine_turn_is_bounded_and_its_descendants_reaped
+ok - host: an engine turn is bounded, and tool processes outside its process group are reaped
+--- test_park_limit_lets_a_turn_outlive_the_boundary
+ok - host: an owner's later park limit lets a turn outlive the boundary, and no other limit does
+all named cases passed

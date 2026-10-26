@@ -1,0 +1,11 @@
+env: FM_SUPERVISION_HOST_TURN_TIMEOUT=<unset> FM_SUPERVISION_ENGINE_GRACE=<unset> FM_TEST_SEAM=<unset>
+engine turn started (stub pid recorded)
+engine last seen alive at 539.7s after its turn started
+engine gone by 540.9s; host exited at 546.9s with rc=0
+--- host output ---
+watcher: started pid=90009 (beacon fresh)
+signal: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-supervision-host.bAHIFV/tmp/fm-lab.L0ZcpX/state/demo.status
+supervision-host: the away session could not take this wake: the engine turn hit its 540s bound; this wake is yours
+--- host ledger (turn and close lines) ---
+1793025776	failed	turn=host-88326-1793025213.1	posture=away	rc=124	reports=0	unacked=1 2	no-result		signal: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-supervision-host.bAHIFV/tmp/fm-lab.L0ZcpX/state/demo.status
+RESULT: PASS (turn alive >= 535 s, cut in [539, 560] s, wake handed to main naming 540s, ledger rc=124)

@@ -1,0 +1,52 @@
+=== proof line as committed on the branch ===
+branch drift-proof.txt tail:
+# Failing-first default-cap tests in tests/fm-supervision-host.test.sh: on the base a 571-second park refuses the turn under the old default; after the fix the park pair pins 540 seconds and a running hung turn is cut at 540 seconds.
+pr: 165
+behind: 0
+ahead: 1
+path-ok: bin/fm-supervision-engine-lib.sh
+path-ok: bin/fm-supervision-host.sh
+path-ok: bin/fm-watch-checkpoint.sh
+path-ok: docs/configuration.md
+path-ok: drift-proof.txt
+path-ok: tests/fm-supervision-host.test.sh
+path-ok: tests/fm-watch-checkpoint.test.sh
+keep: fab929b58c3e2c33f668ced9bc9e3898723ab0e5 fix(bin): lower the supervision host turn bound to 540 seconds (#165)
+(unmatched lines for earlier PRs outside this range: 90)
+exit=0
+
+=== adversarial: the proof line removed ===
+behind: 0
+ahead: 1
+path-drift: bin/fm-supervision-engine-lib.sh
+path-drift: bin/fm-supervision-host.sh
+path-drift: bin/fm-watch-checkpoint.sh
+path-drift: docs/configuration.md
+path-drift: tests/fm-supervision-host.test.sh
+path-drift: tests/fm-watch-checkpoint.test.sh
+unproven: 11e138c3bcd68e11788ad568faa081cbbb7cbf90 fix(bin): lower the supervision host turn bound to 540 seconds (#165)
+error: missing manifest entry for PR 165
+(unmatched lines for earlier PRs outside this range: 90)
+exit=1
+
+=== adversarial: the proof line names the wrong PR (164) ===
+behind: 0
+ahead: 1
+path-drift: bin/fm-supervision-engine-lib.sh
+path-drift: bin/fm-supervision-host.sh
+path-drift: bin/fm-watch-checkpoint.sh
+path-drift: docs/configuration.md
+path-drift: drift-proof.txt
+path-drift: tests/fm-supervision-host.test.sh
+path-drift: tests/fm-watch-checkpoint.test.sh
+unproven: eb43c5e21d9b79409727ca484651acd4f3a8eb40 fix(bin): lower the supervision host turn bound to 540 seconds (#165)
+error: missing manifest entry for PR 165
+(unmatched lines for earlier PRs outside this range: 91)
+exit=1
+
+=== adversarial: the proof line duplicated ===
+error: duplicate proof entry for PR 165
+(unmatched lines for earlier PRs outside this range: 0)
+exit=2
+
+RESULT: PASS

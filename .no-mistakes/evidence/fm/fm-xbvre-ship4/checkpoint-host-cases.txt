@@ -1,4 +1,8 @@
+--- test_host_checkpoint_bounds_the_park_by_posture
 ok - checkpoint: an opted-in home runs the host for the checkpoint's bound, raised only while away
+--- test_host_checkpoint_passes_a_handback_and_reports_a_stand_down
 ok - checkpoint: a handed-back wake passes through, and a host stand-down is a failure
+--- test_host_checkpoint_needs_the_file_and_honors_off
 ok - checkpoint: a Codex home without config/supervision-host, or with an off file, never runs the host
+--- test_real_host_checkpoint_ends_quietly_at_its_bound
 not ok - a host checkpoint left its watcher running

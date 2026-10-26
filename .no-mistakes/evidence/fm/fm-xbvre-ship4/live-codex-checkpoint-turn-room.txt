@@ -1,0 +1,12 @@
+env: FM_SUPERVISION_HOST_TURN_TIMEOUT=<unset> FM_SUPERVISION_ENGINE_GRACE=<unset> FM_TEST_SEAM=<unset>
+checkpoint exit: 124
+--- checkpoint stdout ---
+checkpoint: no actionable wake within 20s
+--- checkpoint stderr ---
+--- host ledger ---
+start	gen=host-76840-1793025867	primary=codex
+handled	turn=host-76840-1793025867.1	posture=away	rc=0	reports=1
+boundary	after 22s
+to-main	cycle boundary - the host ended its park at its bound; drain, acknowledge, and end the turn, and the next park starts on its own
+engine turns started: 1
+RESULT: PASS (the early close got an engine turn under the checkpoint's park limit)
