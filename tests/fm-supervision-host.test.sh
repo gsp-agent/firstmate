@@ -2154,14 +2154,19 @@ test_a_park_stopped_mid_take_over_leaves_the_take_over_to_the_next_park() {
   local home holder host
   home=$(make_primary_home hook-takeover-interrupted)
   leave_a_cycle_for_main_and_restart "$home"
+  # The lock holder is registered for the suite cleanup as soon as it starts,
+  # so a failed assertion before its release still stops it, and it ends on
+  # its own once its home is gone: one outlived every run of this case
+  # (.agent-config-ks05d.5).
   FM_STATE_OVERRIDE="$home/state" bash -c '
     . "$1"
     fm_lock_acquire_wait "$2" || exit 1
     : > "$3"
-    while [ ! -e "$4" ]; do sleep 0.1; done
+    while [ ! -e "$4" ] && [ -d "$5" ]; do sleep 0.1; done
     fm_lock_release "$2"
-  ' _ "$ROOT/bin/fm-wake-lib.sh" "$home/state/.watcher-down.lock" "$home/marker-lock-held" "$home/marker-lock-release" &
+  ' _ "$ROOT/bin/fm-wake-lib.sh" "$home/state/.watcher-down.lock" "$home/marker-lock-held" "$home/marker-lock-release" "$home" &
   holder=$!
+  printf '%s\n' "$holder" >> "$home/orphan-pid"
   wait_until 100 test -e "$home/marker-lock-held" || fail "fixture: could not hold the recovery-marker lock"
   turn_end "$home"
   wait_until 150 grep -q "	take-over	arm=$LEFT_ARM\$" "$home/state/.supervision-host.log" \
@@ -2173,6 +2178,9 @@ test_a_park_stopped_mid_take_over_leaves_the_take_over_to_the_next_park() {
   wait_until 150 sh -c '! kill -0 "$1" 2>/dev/null' _ "$host" || fail "fixture: the park host did not stop"
   : > "$home/marker-lock-release"
   wait "$holder" 2>/dev/null || true
+  # Reaped: the cleanup must not signal its pid once it is reused.
+  grep -vx "$holder" "$home/orphan-pid" > "$home/orphan-pid.next" || true
+  mv -f "$home/orphan-pid.next" "$home/orphan-pid"
   # The Stop hook runs the next park in place of the one stopped by a signal.
   wait_until 150 host_owns_the_only_cycle "$home" \
     || fail "interrupted takeover: the next park did not own the home's only watcher cycle (left arm $LEFT_ARM):"$'\n'"$(home_arms "$home")"$'\n'"$(cat "$home/state/.supervision-host.log")"
