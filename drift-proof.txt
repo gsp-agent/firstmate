@@ -145,3 +145,5 @@ pr: 147
 pr: 149
 # Failing-first Claude self-wake replays in tests/fm-claude-wake.test.sh: on the base the suite fails because bin/fm-claude-turn.sh and bin/fm-claude-wake.sh are absent; after the fix all 16 cases pass, including the 07:06Z sequence, reset-followup expiry, rows queued before /clear, busy-turn Stop delivery, parked-hook deferral, single-rewake burst, foreign-host exits, and the present-only session-start drain.
 pr: 150
+# Key-passthrough regressions in tests/fm-backend.test.sh, tests/fm-backend-herdr.test.sh and tests/fm-backend-orca.test.sh: X reaches the tmux and Herdr panes unchanged, Escape, Enter and C-c still pass, and Orca refuses X; the pipeline mutation-checked each test failing when its backend key path is broken.
+pr: 152
