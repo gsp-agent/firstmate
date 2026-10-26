@@ -668,28 +668,51 @@ test_mixed_pool_enters_free_own_slot() {
 }
 
 # A Treehouse that cannot report its pool (one older than `status --json`)
-# keeps the selection as it was: the free own-clone slot is still entered
-# by exact slot name.
-test_mixed_pool_without_status_json_enters_free_own_slot() {
-  local rec id out status pool own_slot pane_log
+# establishes no pool, so no slot is entered by name: entering a name
+# whose pool was never established could resolve to a same-named slot in
+# the configured pool, even one another task holds. The spawn keeps the
+# plain `treehouse get` path instead.
+test_mixed_pool_without_status_json_uses_treehouse_get() {
+  local rec id out status pane_log
   id=settle-pool-own-nostatus-z16
   rec=$(make_pool_case settle-pool-own-nostatus "$id")
   read_settle_record "$rec"
-  pool="$TMP_ROOT/settle-pool-own-nostatus/pool"
-  own_slot="$pool/2/repo"
   pane_log="$TMP_ROOT/settle-pool-own-nostatus/pane.log"
-  WT_DIR="$own_slot"
 
   out=$(FM_FAKE_PANE_LOG="$pane_log" run_settle_spawn "$id")
   status=$?
-  expect_code 0 "$status" "spawn should succeed in the pool's own-clone slot without status --json"$'\n'"$out"
-  assert_grep "worktree=$own_slot" "$HOME_DIR/state/$id.meta" \
-    "meta did not record the pool's own-clone slot"
-  assert_grep "treehouse enter '2'" "$pane_log" \
-    "spawn did not enter the free own-clone slot by name without status --json"
-  assert_no_grep 'treehouse get' "$pane_log" \
-    "spawn used treehouse get despite a free own-clone slot"
-  pass "a Treehouse without status --json still enters the free own-clone slot"
+  expect_code 0 "$status" "spawn should succeed through treehouse get without status --json"$'\n'"$out"
+  assert_grep "worktree=$WT_DIR" "$HOME_DIR/state/$id.meta" \
+    "meta did not record the settled worktree"
+  assert_grep 'treehouse get' "$pane_log" \
+    "spawn did not fall back to treehouse get without status --json"
+  assert_no_grep 'treehouse enter' "$pane_log" \
+    "spawn entered a slot whose pool was never established"
+  pass "a Treehouse without status --json uses treehouse get, never a direct enter"
+}
+
+# The supported-version root switch with an unreadable status: the old
+# pool's free slot 1 must not be entered, because on a Treehouse without
+# `status --json` that name resolves in the configured pool, where slot 1
+# can be a different, held worktree. The plain `treehouse get` path,
+# which resolves the configured pool itself, owns the spawn.
+test_root_switched_pool_without_status_json_uses_treehouse_get() {
+  local rec id out status pane_log
+  id=settle-pool-root-switch-nostatus-z17
+  rec=$(make_pool_root_switch_case settle-pool-root-switch-nostatus "$id" yes)
+  read_settle_record "$rec"
+  pane_log="$TMP_ROOT/settle-pool-root-switch-nostatus/pane.log"
+
+  out=$(FM_FAKE_PANE_LOG="$pane_log" run_settle_spawn "$id")
+  status=$?
+  expect_code 0 "$status" "spawn should succeed through treehouse get when a root switch cannot be read"$'\n'"$out"
+  assert_grep "worktree=$WT_DIR" "$HOME_DIR/state/$id.meta" \
+    "meta did not record the settled worktree"
+  assert_grep 'treehouse get' "$pane_log" \
+    "spawn did not fall back to treehouse get when a root switch could not be read"
+  assert_no_grep 'treehouse enter' "$pane_log" \
+    "spawn entered a slot from an unestablished pool after a root switch"
+  pass "a root switch with an unreadable status uses treehouse get, never the old pool's slot"
 }
 
 # When the pool's own-clone slot is already claimed by another task, the
@@ -985,7 +1008,8 @@ test_foreign_clone_slot_is_never_accepted
 test_root_switched_pool_enters_configured_pool_slot
 test_root_switched_empty_pool_uses_treehouse_get
 test_mixed_pool_enters_free_own_slot
-test_mixed_pool_without_status_json_enters_free_own_slot
+test_mixed_pool_without_status_json_uses_treehouse_get
+test_root_switched_pool_without_status_json_uses_treehouse_get
 test_mixed_pool_claimed_own_slot_uses_treehouse_get
 test_mixed_pool_makes_new_own_slot_when_none_free
 test_allocator_claimed_slot_is_never_returned

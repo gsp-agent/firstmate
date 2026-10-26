@@ -1759,21 +1759,25 @@ fm_treehouse_slot_owner_marker() {  # <worktree>
 # change would be entered nowhere and the spawn would refuse. A reported
 # empty pool leaves no candidate. When the pool cannot be read - a
 # Treehouse older than `status --json`, a failed call, or output that is
-# not a JSON array naming a slot path - the selection above is unchanged.
+# not a JSON array naming a slot path - there is also no candidate:
+# entering a name whose pool was never established could resolve to a
+# same-named slot in the configured pool, even one another task holds,
+# so the direct enter is only ever issued for an established pool.
 # Any doubt - no jq, no pool layout, a live owner, an existing claim,
 # residue, or an unverifiable reset target - prints nothing, and the
 # caller keeps the plain `treehouse get` path, whose candidate screening
 # still refuses a foreign-clone slot.
 fm_treehouse_free_own_slot() {  # <project-dir> [<base-branch>]
-  local project=$1 base=${2:-} listed line wt slot pool state owner_pid marker name best="" best_key=""
+  local project=$1 base=${2:-} listed line wt slot pool state owner_pid lease_line marker name best="" best_key=""
   local target_branch="" target_ref="" target_ready=0 status candidate status_json="" configured=""
   command -v jq >/dev/null 2>&1 || return 0
-  if status_json=$(cd "$project" 2>/dev/null && treehouse status --json </dev/null 2>/dev/null) &&
+  if status_json=$(CDPATH='' cd -- "$project" 2>/dev/null && treehouse status --json </dev/null 2>/dev/null) &&
     configured=$(printf '%s\n' "$status_json" | jq -er 'arrays | if . == [] then "" else .[0].path end' 2>/dev/null); then
     [ -n "$configured" ] || return 0
-    configured=$(CDPATH='' cd -- "$(dirname "$(dirname "$configured")")" 2>/dev/null && pwd -P) || configured=""
+    configured=$(CDPATH='' cd -- "$(dirname "$(dirname "$configured")")" 2>/dev/null && pwd -P) || return 0
+    [ -n "$configured" ] || return 0
   else
-    configured=""
+    return 0
   fi
   listed=$(git -C "$project" -c core.quotePath=false worktree list --porcelain 2>/dev/null) || return 0
   while IFS= read -r line; do
@@ -1784,7 +1788,7 @@ fm_treehouse_free_own_slot() {  # <project-dir> [<base-branch>]
     fm_treehouse_pool_slot "$project" "$wt" || continue
     slot=$(CDPATH='' cd -- "$wt" 2>/dev/null && pwd -P) || continue
     pool=$(dirname "$(dirname "$slot")")
-    [ -z "$configured" ] || [ "$pool" = "$configured" ] || continue
+    [ "$pool" = "$configured" ] || continue
     state="$pool/treehouse-state.json"
     name=$(basename "$(dirname "$slot")")
     lease_line=$(jq -r --arg p "$slot" --arg n "$name" \
