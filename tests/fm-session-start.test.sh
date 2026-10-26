@@ -2393,7 +2393,7 @@ SH
 # --- context re-emit (--reemit) ----------------------------------------------
 
 test_reemit_skips_startup_sweeps_but_keeps_the_wake_drain() {
-  local rec root home fakebin network_report reemit sequence generation
+  local rec root home fakebin network_report reemit sequence generation completion_before
   rec=$(new_world reemit)
   IFS='|' read -r root home fakebin <<EOF
 $rec
@@ -2413,10 +2413,19 @@ EOF
     "the full startup fixture did not exercise a mutating sweep"
 
   append_wake "$home/state" signal task-r "done: queued after the re-emit too" || fail "seed second wake failed"
+  completion_before="${home%/*}/completion-before-reemit"
+  ln "$home/state/.session-start-complete" "$completion_before" \
+    || fail "the full startup fixture recorded no completion"
   reemit=$(FM_HOME="$home" FM_ROOT_OVERRIDE="$root" FM_FAKE_HARNESS_PID=$$ PATH="$fakebin:$BASE_PATH" \
     env -u CLAUDECODE -u PI_CODING_AGENT -u FM_PI_HARNESS -u GROK_AGENT \
     "$SESSION_START" --reemit)
 
+  if [ ! -f "$home/state/.session-start-complete" ] \
+    || [ "$home/state/.session-start-complete" -ef "$completion_before" ]; then
+    fail "--reemit did not rewrite the completion record when it finished"
+  fi
+  [ "$(cat "$home/state/.session-start-complete")" = "$(cat "$home/state/.lock")" ] \
+    || fail "--reemit's completion record does not name the lock owner"
   assert_contains "$reemit" "SESSION START (CONTEXT RE-EMIT) - $home" "--reemit did not label itself"
   assert_not_contains "$reemit" "SECONDMATE_LIVENESS" "--reemit repeated a mutating sweep startup already ran"
   assert_contains "$reemit" "done: queued after the re-emit too" "--reemit did not drain the wake queue"

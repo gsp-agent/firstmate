@@ -284,6 +284,8 @@ Every presented row is claimed to exactly one actor under the durable queue lock
   Publication is refused if main already claimed any requested row.
 - A main drain validates that owner evidence under the queue lock and reclaims the grant when its process is gone or its identity no longer matches.
 - A main drain claims every currently unclaimed row and excludes an active branch grant from both presentation and acknowledgement.
+- Session open empties main's presented set, because the context that read those rows is gone after a clear, a move, or a compaction.
+  The session-start digest run from the SessionStart hook then presents main's rows without claiming them or beginning handling, so they stay unread until main drains them in a turn.
 
 ### Lock deadlines during presentation
 
@@ -327,8 +329,9 @@ Failing the whole drain would strand the usable rows too.
 | Main `--ack-through <SEQ>` | Only claimed main rows at or below the cutoff. |
 | Branch | Only claimed branch rows at or below its cutoff. |
 
-A main acknowledgement first claims every unreserved row at or below its cutoff, so none is stranded.
-It leaves a row above the cutoff that arrived after presentation unowned, so an away-session grant can still take it rather than handing every later wake back to main.
+A main acknowledgement claims nothing.
+It is refused while any unreserved row at or below its cutoff was not presented to main by a claiming drain, such as a row read only from the session-start digest, so main drains again in its turn.
+A row above the cutoff that arrived after presentation stays unowned, so an away-session grant can still take it rather than handing every later wake back to main.
 
 Every settled branch prompt releases any residual grant.
 So an omitted or failed acknowledgement leaves the durable row available to a later main drain.
@@ -336,7 +339,7 @@ A successful acknowledgement has already removed it.
 
 An acknowledgement can remove none of the actor's rows while a presented row above the cutoff still waits.
 Such an acknowledgement is reported as having acknowledged nothing, together with the exact `--ack-through` and `--recovery-generation` command for that presented row.
-The presented set is read before any re-claim, so a row that arrived after presentation is never named for unseen acknowledgement.
+The presented set is read as the drain recorded it, so a row that arrived after presentation is never named for unseen acknowledgement.
 
 If a branch offer loses the claim race to main, it rejects its settlement so the watcher retains the actionable close until Pi accepts its main follow-up.
 

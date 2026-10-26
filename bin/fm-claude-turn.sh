@@ -2,13 +2,21 @@
 # Claude turn record writer.
 #
 # Registered in tracked .claude/settings.json for UserPromptSubmit (writes
-# busy) and for Stop and StopFailure (write idle). StopFailure matters
-# because an API error such as a full context fires it instead of Stop.
+# busy), for Stop and StopFailure (write idle), and as a synchronous
+# SessionStart entry. StopFailure matters because an API error such as a
+# full context fires it instead of Stop. A session open with source clear,
+# startup, or resume proves no turn is running, so it writes idle before any
+# turn can start; a compact can happen mid-turn, so it writes nothing.
 # It records state/.claude-turn as one atomically replaced line:
 #   <busy|idle> <turn-start-epoch> <claude-pid> <session-id>
+# Only the session that holds the fleet lock writes, and the pid is the lock
+# pid. The session id comes from the payload, or is '-' when absent.
 # bin/fm-wake-lib.sh owns the record contract and its readers.
 # The idle write keeps the busy write's turn-start epoch, so a rewake
-# committed mid-turn stays pending until a newer turn starts.
+# committed mid-turn stays pending until a newer turn starts. A turn Claude
+# started itself (its prompt opens with <task-notification>, the wrapper
+# around a rewake) records an epoch after the ledger's latest rewake commit,
+# so a rewake's own turn always orders after that rewake.
 # Always exits 0: a turn-record failure must never block a turn.
 set -u
 
@@ -31,39 +39,43 @@ fm_primary_scope_matches "$FM_ROOT" "$STATE" || exit 0
 
 PAYLOAD=$(cat 2>/dev/null || true)
 fm_hook_payload_is_foreign_host "$PAYLOAD" && exit 0
-if [ -n "$PAYLOAD" ] && command -v jq >/dev/null 2>&1; then
-  printf '%s' "$PAYLOAD" | jq -e '(.transcript_path // "") | type == "string" and contains("/.pi/")' >/dev/null 2>&1 && exit 0
-fi
+[ -n "$PAYLOAD" ] && command -v jq >/dev/null 2>&1 || exit 0
+printf '%s' "$PAYLOAD" | jq -e '(.transcript_path // "") | type == "string" and contains("/.pi/")' >/dev/null 2>&1 && exit 0
 
-EVENT=
-SESSION_ID=
-if [ -n "$PAYLOAD" ] && command -v jq >/dev/null 2>&1; then
-  EVENT=$(printf '%s' "$PAYLOAD" | jq -r '.hook_event_name // empty' 2>/dev/null || true)
-  SESSION_ID=$(printf '%s' "$PAYLOAD" | jq -r '.session_id // empty' 2>/dev/null || true)
-fi
-[ -n "$SESSION_ID" ] || SESSION_ID=${CLAUDE_CODE_SESSION_ID:-}
-[ -n "$SESSION_ID" ] || SESSION_ID=$(fm_session_lock_recorded_session_id "$STATE" 2>/dev/null || true)
-[ -n "$SESSION_ID" ] || SESSION_ID=-
-case "$SESSION_ID" in *[!A-Za-z0-9._-]*) SESSION_ID=- ;; esac
-
+EVENT=$(printf '%s' "$PAYLOAD" | jq -r '.hook_event_name // empty' 2>/dev/null || true)
 case "$EVENT" in
-  UserPromptSubmit|busy) NEW_STATE=busy ;;
-  Stop|StopFailure|idle) NEW_STATE=idle ;;
+  UserPromptSubmit) NEW_STATE=busy ;;
+  Stop|StopFailure) NEW_STATE=idle ;;
+  SessionStart)
+    case "$(printf '%s' "$PAYLOAD" | jq -r '.source // empty' 2>/dev/null || true)" in
+      clear|startup|resume) NEW_STATE=idle ;;
+      *) exit 0 ;;
+    esac
+    ;;
   *) exit 0 ;;
 esac
 
-ENV_CLAUDE_PID=${CLAUDE_PID:-}
+fm_session_lock_owned_by_self "$STATE" || exit 0
 CLAUDE_PID=$(sed -n '1p' "$STATE/.lock" 2>/dev/null || true)
-case "$CLAUDE_PID" in
-  ''|*[!0-9]*) CLAUDE_PID=$ENV_CLAUDE_PID ;;
-esac
 case "$CLAUDE_PID" in ''|*[!0-9]*) exit 0 ;; esac
 
+SESSION_ID=$(printf '%s' "$PAYLOAD" | jq -r '.session_id // empty' 2>/dev/null || true)
+case "$SESSION_ID" in ''|*[!A-Za-z0-9._-]*) SESSION_ID=- ;; esac
+
 EPOCH=$(date +%s)
-if [ "$NEW_STATE" = idle ] && fm_claude_turn_read "$STATE" \
-  && [ "$FM_CLAUDE_TURN_PID" = "$CLAUDE_PID" ] \
-  && [ "$FM_CLAUDE_TURN_SESSION" = "$SESSION_ID" ]; then
-  EPOCH=$FM_CLAUDE_TURN_EPOCH
+if [ "$NEW_STATE" = idle ]; then
+  if fm_claude_turn_read "$STATE" \
+    && [ "$FM_CLAUDE_TURN_PID" = "$CLAUDE_PID" ] \
+    && [ "$FM_CLAUDE_TURN_SESSION" = "$SESSION_ID" ]; then
+    EPOCH=$FM_CLAUDE_TURN_EPOCH
+  fi
+elif printf '%s' "$PAYLOAD" | jq -e '(.prompt // "") | type == "string" and test("^\\s*<task-notification>")' >/dev/null 2>&1 \
+  && fm_autoarm_ledger_read "$STATE" && [ "$FM_AUTOARM_OUTCOME" = rewake ]; then
+  REWAKE_AT=$(_fm_autoarm_epoch_field "$STATE/.claude-autoarm-epoch" updated_at 2>/dev/null || true)
+  case "$REWAKE_AT" in
+    ''|*[!0-9]*) ;;
+    *) [ "$REWAKE_AT" -lt "$EPOCH" ] || EPOCH=$((REWAKE_AT + 1)) ;;
+  esac
 fi
 
 TMP="$STATE/.claude-turn.tmp.$$"

@@ -518,17 +518,25 @@ bash tests/fm-claude-wake.test.sh
 Observed output:
 
 ```text
-ok - 07:06Z replay: waker exits 2 within a second of the first append, no stall nudge
-ok - turn record from another pid reads as idle
-ok - busy turn: waker exits 0, Stop hook delivers at turn end, exactly one rewake
-ok - parked hook present: waker exits 0 and the parked hook delivers
-ok - post-reset rows already queued: session-open check exits 2 after the digest
-ok - reset-followup expiry: waker exits 2 at the undelivered close append
-ok - burst: ten appends within a second produce exactly one rewake
-ok - foreign hosts: Cursor and pi-code payloads exit 0 at once and never wait
+ok - turn record: real UserPromptSubmit, Stop, and StopFailure payloads; only the lock owner writes
+ok - 07:06Z replay: after /clear and a covering watcher close, the waker exits 2 within a second of the +150 s and +330 s appends
+ok - reset-followup expiry: the waker exits 2 at the +350 s undelivered close append
+ok - post-reset rows already queued: the /clear session-open check exits 2 once the digest completes
+ok - fresh startup: the session-open check waits for its own lock and digest, then exits 2
+ok - interrupt then /clear: session open records idle, so the session-open check exits 2
+ok - busy turn: the waker exits 0, the Stop hook delivers at turn end, exactly one rewake follows
+ok - parked hook present: the waker exits 0 and the parked hook delivers
+ok - burst: ten appends whose ten waker firings run concurrently produce exactly one rewake
+ok - burst race: a firing that waited on the ledger mutex never supersedes the rewake committed meanwhile
+ok - foreign hosts: Cursor and pi-code FileChanged and SessionStart payloads exit 0 at once and never wait
 ok - turn boundary: Stop admission parks while a rewake is pending
+ok - restart: a rewake committed by an earlier Claude process is not pending in the new one
 ok - session-start drain presents without claiming; digest-only ack refused
+ok - session-start drain presents only main's rows and names rows a live branch grant holds
 ```
+
+Known limitation: Claude fires no hook for a manual interrupt, so a turn interrupted with Escape keeps its turn record busy, and the waker stays inert, until the next prompt or a clear, startup, or resume session open records idle.
+A busy record has no age bound; closing that window is follow-up work.
 
 ## Watcher continuity
 

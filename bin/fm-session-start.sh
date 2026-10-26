@@ -221,7 +221,11 @@
 #             already treats a lock owned through shared ancestry or a trusted
 #             same-session Claude id as its own, so the re-emit proceeds, while
 #             a lock another live session took meanwhile still produces the
-#             ordinary read-only path.
+#             ordinary read-only path. When it finishes, it rewrites the
+#             completion record only while that record names the current lock
+#             pid, so bin/fm-claude-wake.sh sees this session open's digest
+#             finish without the record ever claiming a startup that did not
+#             complete.
 #
 #   --source  The native session-open source, supplied only by
 #             fm-sessionstart-run.sh. A genuine `startup` that owns the active
@@ -1079,12 +1083,15 @@ The digest above is complete for this session start. The READ-ONCE CONTRACT
 section near the top of it governs what may still be read from disk.
 EOF
 
-if [ "$READ_ONLY" -eq 0 ] && [ "$REEMIT" -eq 0 ]; then
+if [ "$READ_ONLY" -eq 0 ]; then
   COMPLETION_RECORDED=0
   COMPLETION_PID=$(cat "$STATE/.lock" 2>/dev/null || true)
   case "$COMPLETION_PID" in
     ''|*[!0-9]*) COMPLETION_PID= ;;
   esac
+  if [ "$REEMIT" -eq 1 ] && [ "$(cat "$COMPLETION_FILE" 2>/dev/null || true)" != "$COMPLETION_PID" ]; then
+    COMPLETION_PID=
+  fi
   COMPLETION_TMP=$(mktemp "$STATE/.session-start-complete.XXXXXX" 2>/dev/null || true)
   if [ -n "$COMPLETION_PID" ] && [ -n "$COMPLETION_TMP" ] \
     && printf '%s\n' "$COMPLETION_PID" > "$COMPLETION_TMP" 2>/dev/null \

@@ -854,10 +854,15 @@ if [ -n "$ACK_THROUGH" ]; then
     PRESENTED_MAX=$(presented_max_row "$MAIN_ROWS_FILE") || exit 1
   fi
   if [ "$ACTOR" = main ] && [ "$ACK_THROUGH" -gt 0 ]; then
-    # Refuse an acknowledgement that would consume a row main was never
-    # presented in a turn (for example one typed from the session-start
-    # digest alone). A stale acknowledgement naming no queued row at or
-    # below its cutoff still degrades safely below.
+    # A main acknowledgement consumes only rows main already owns: every
+    # unreserved queued row at or below its cutoff must have been presented
+    # to main by a claiming drain in a turn. A row main was never presented
+    # that way (for example one read only from the session-start digest,
+    # which claims nothing) refuses the acknowledgement, so main drains again
+    # in its turn. A row above the cutoff stays unowned for whichever actor
+    # presents it next, and a live branch grant stays excluded. A stale
+    # acknowledgement naming no queued row at or below its cutoff still
+    # degrades safely below.
     GRANT_ROWS=/dev/null
     if fm_wake_branch_grant_live "$ELIGIBLE_ROWS_FILE" "$ELIGIBLE_OWNER_FILE"; then
       GRANT_ROWS=$ELIGIBLE_ROWS_FILE
@@ -873,17 +878,6 @@ if [ -n "$ACK_THROUGH" ]; then
       echo "wake drain: row $UNPRESENTED was not presented to main in a turn, so this acknowledgement is refused; re-run bin/fm-wake-drain.sh in a turn and use the WAKE_ACK_REQUIRED command it prints" >&2
       exit 1
     fi
-  fi
-  if [ "$ACTOR" = main ]; then
-    # Preserve main's original whole-cutoff acknowledgement contract: a direct
-    # or replayed main ack still owns every unreserved row through its cutoff,
-    # so claim those again under the queue lock and none is stranded merely
-    # because it was not present during the earlier drain. A row above the
-    # cutoff arrived after presentation and was never shown to main, so it
-    # stays unowned for whichever actor presents it next; claiming it here
-    # would hand every later away-session wake back to main. A live branch
-    # grant remains excluded by claim_main_rows_locked.
-    claim_main_rows_locked "$ACK_THROUGH" || exit 1
   fi
   if [ "$ACTOR" = branch ]; then
     # An away-posture grant can name check-kind rows - the attended
@@ -1021,15 +1015,25 @@ if [ ! -s "$FM_WAKE_QUEUE" ]; then
 fi
 
 if [ "$PRESENT_ONLY" -eq 1 ]; then
-  # Session-start presentation: print the rows, but claim nothing and begin
-  # no handling. The rows stay unread until main drains them in a turn.
+  # Session-start presentation: print the rows a claiming main drain would
+  # present, but claim nothing and begin no handling. The rows stay unread
+  # until main drains them in a turn.
+  GRANT_ROWS=/dev/null
+  if fm_wake_branch_grant_live "$ELIGIBLE_ROWS_FILE" "$ELIGIBLE_OWNER_FILE"; then
+    GRANT_ROWS=$ELIGIBLE_ROWS_FILE
+  fi
   DRAIN_VIEW_TMP=$(mktemp "$STATE/.wake-queue.actor-view.XXXXXX") || exit 1
-  awk -F '\t' 'NF >= 5 && $2 ~ /^[0-9]+$/' "$FM_WAKE_QUEUE" > "$DRAIN_VIEW_TMP" || exit 1
+  awk -F '\t' -v grant="$GRANT_ROWS" '
+    BEGIN { while ((getline line < grant) > 0) reserved[line]=1 }
+    NF >= 5 && $2 ~ /^[0-9]+$/ && !($2 in reserved)
+  ' "$FM_WAKE_QUEUE" > "$DRAIN_VIEW_TMP" || exit 1
   RAW_ROWS=$(fm_wake_print_deduped "$DRAIN_VIEW_TMP") || exit "$?"
   rm -f -- "$DRAIN_VIEW_TMP" || exit 1
   DRAIN_VIEW_TMP=
   if [ -n "$RAW_ROWS" ]; then
     printf '%s\n' "$RAW_ROWS" || exit "$?"
+  else
+    print_branch_held_notice
   fi
   fm_lock_release "$FM_WAKE_QUEUE_LOCK"
   DRAIN_LOCK_HELD=false
