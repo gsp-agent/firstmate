@@ -1006,6 +1006,13 @@ SIGNALS
     FM_CLASSIFY_PAUSED_VERB=awaiting bash -c '. "$1"; status_awaits_merge "$2"' _ \
       "$ROOT/bin/fm-classify-lib.sh" "$line" \
       || fail "$kind brief taught a merge-only pause the classifier does not read: $line"
+    # A worker waiting on review wrote a plain pause, the merge job held it
+    # after the approval and a person relayed the approval (obs-7bdvc round 2).
+    assert_grep "verdict on your pushed head is part of the merge wait" "$brief" \
+      "$kind brief left a review wait outside the merge-only pause"
+    # shellcheck disable=SC2016 # Match literal backticks in the generated interface.
+    assert_grep 'a plain `awaiting:` holds the merge even after the approval' "$brief" \
+      "$kind brief did not render the configured pause verb in the review-wait rule"
   done
   pass "fm-brief.sh: custom pause verb renders in every scaffold"
 }
