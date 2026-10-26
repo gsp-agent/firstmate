@@ -63,8 +63,8 @@
 # is a strict total order and two replies recorded in the same second are both
 # readable. One reply per note: a second one is refused.
 # `ready` is the read-only primary-readiness projection (lock, wake-consumer
-# health, away posture, observation time). It never acquires the session lock
-# and never infers liveness from a lock file, a session, or a pane.
+# health, delivery, away posture, observation time). It never acquires the
+# session lock and never infers liveness from a lock file, a session, or a pane.
 # A healthy consumer is the model-aware supervision verdict
 # (fm_watcher_supervision_verdict in fm-wake-lib.sh) with a beacon within
 # FM_WATCHER_STALE_GRACE, else FM_GUARD_GRACE, else the poll-derived grace, or
@@ -72,6 +72,18 @@
 # inspected home's: the lock holder's harness ancestry, else the PID-strict
 # persistent model, never the caller's FM_SUPERVISION_MODEL. The verdict's
 # stale-beacon mid-turn allowance does not apply.
+# After that verdict, one delivery rule reads the record itself: when the
+# lock holder's own Claude turn record reads idle and the oldest unread wake
+# row, in the scope the holder's Stop hook reads (fm_wake_main_unread_scope,
+# with the holder's harness), has waited longer than the same grace,
+# `can_receive` is false with reason `delivery-stalled`, whatever the beat
+# says. With no scope it never fires, nor while a supervision-host branch
+# grant is live (fm_wake_branch_grant_live): the Stop hook is then parked in
+# a host whose post-turn check hands main its rows when the engine turn ends.
+# The `delivery` object carries the oldest unread age and the turn state, so
+# a sender can tell a busy main from a blocked one; a busy main, an empty
+# queue, and a holder with no turn record of its own (`unknown`) keep their
+# prior answer.
 #
 # Configuration. A region, a model id and an AWS profile name somebody's account
 # and somebody's choices, so this file carries no default for any of them. Each is
@@ -872,6 +884,12 @@ cmd_ready() {
   # shellcheck source=bin/fm-session-lock-lib.sh
   . "$SELF_DIR/fm-session-lock-lib.sh"
   load_wake_lib || true
+  # shellcheck source=bin/fm-supervision-lib.sh
+  . "$SELF_DIR/fm-supervision-lib.sh"
+  # shellcheck source=bin/fm-supervision-engine-lib.sh
+  . "$SELF_DIR/fm-supervision-engine-lib.sh"
+  # shellcheck source=bin/fm-afk-contract.sh
+  FM_ROOT_OVERRIDE="$FM_ROOT" FM_STATE_OVERRIDE="$STATE" . "$SELF_DIR/fm-afk-contract.sh"
   local lock_state=unknown lock_pid="" live_harness=unknown
   local consumer_state=unknown consumer_reason="" beacon_age=""
   local posture=unknown can_receive=unknown observed
@@ -941,17 +959,51 @@ cmd_ready() {
     *) can_receive=unknown ;;
   esac
 
+  # Delivery reads the record, not the beat: an idle main whose oldest
+  # unread row has outwaited the grace cannot receive, even while a
+  # backstop arm keeps the beacon fresh. A busy main keeps its answer.
+  local turn_state=unknown oldest_age="" unread_scope
+  if [ "$lock_state" = held ] && [ -n "$lock_pid" ] \
+    && command -v fm_claude_turn_read >/dev/null 2>&1; then
+    if fm_claude_turn_read "$STATE" \
+      && [ "$FM_CLAUDE_TURN_PID" = "$lock_pid" ]; then
+      turn_state=$FM_CLAUDE_TURN_STATE
+    fi
+  fi
+  if command -v fm_wake_main_unread_scope >/dev/null 2>&1 \
+    && unread_scope=$(fm_wake_main_unread_scope "$STATE" "$CONFIG" "$grace" '' \
+      "${holder_harness:-unknown}") \
+    && fm_wake_main_unread "$STATE" "$unread_scope" >/dev/null; then
+    case "${FM_WAKE_MAIN_UNREAD_OLDEST_EPOCH:-}" in
+      ''|*[!0-9]*) ;;
+      *)
+        oldest_age=$(( $(date +%s) - FM_WAKE_MAIN_UNREAD_OLDEST_EPOCH ))
+        [ "$oldest_age" -ge 0 ] || oldest_age=0
+        ;;
+    esac
+  fi
+  if [ "$can_receive" = true ] && [ "$turn_state" = idle ] \
+    && [ -n "$oldest_age" ] && [ -n "$grace" ] \
+    && [ "$oldest_age" -gt "$grace" ] \
+    && ! fm_wake_branch_grant_live "$STATE/.branch-eligible-rows" "$STATE/.branch-eligible-owner"; then
+    can_receive=false
+    consumer_reason="delivery-stalled"
+  fi
+
   python3 - "$lock_state" "$lock_pid" "$live_harness" \
     "$consumer_state" "$consumer_reason" "$beacon_age" \
-    "$posture" "$can_receive" "$observed" "$FM_HOME" <<'PY'
+    "$posture" "$can_receive" "$observed" "$FM_HOME" \
+    "$turn_state" "$oldest_age" <<'PY'
 import json, sys
 from pathlib import Path
 (lock_state, lock_pid, live_harness, consumer_state, consumer_reason,
- beacon_age, posture, can_receive, observed, home) = sys.argv[1:11]
+ beacon_age, posture, can_receive, observed, home,
+ turn_state, oldest_age) = sys.argv[1:13]
 live_val = True if live_harness == "true" else False if live_harness == "false" else None
 recv = True if can_receive == "true" else False if can_receive == "false" else "unknown"
 pid_val = int(lock_pid) if lock_pid.isdigit() else None
 age_val = int(beacon_age) if beacon_age.isdigit() else None
+oldest_val = int(oldest_age) if oldest_age.isdigit() else None
 home_label = "/".join(Path(home).parts[-2:]) if home else home
 json.dump({
     "schema": "fm-primary-ready.v1",
@@ -968,6 +1020,10 @@ json.dump({
         "beacon_age_seconds": age_val,
     },
     "posture": {"state": posture},
+    "delivery": {
+        "turn_state": turn_state,
+        "oldest_unread_age_seconds": oldest_val,
+    },
     "can_receive": recv,
 }, sys.stdout, separators=(",", ":"))
 sys.stdout.write("\n")

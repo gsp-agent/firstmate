@@ -1221,4 +1221,68 @@ cp "$BASE_RULES" "$RULES"
 write_quota "$QUOTA" 0.7597
 pass "default chain walks rungs on quota evidence and grok prepaid credits stay usable"
 
+# ---- a label route whose pool is exhausted falls through the default walk ----------
+write_grok_quota 0
+printf '%s\n' '{"label_routes":{"docs-only":{"harness":"grok","model":"grok-4.7","effort":"xhigh"},"ep-opus":{"harness":"claude","model":"claude-opus-5-5[1m]","effort":"xhigh"}},"default":[{"harness":"claude","model":"opus"},{"harness":"muse","model":"spark"},{"harness":"codex","model":"gpt-6-astra"}]}' > "$RULES"
+run code out err --labels "docs-only"
+expect_code 0 "$code" "an exhausted label route still exits 0"
+assert_contains "$out" "status: clear" "an exhausted label route with an eligible default is clear"
+assert_contains "$out" "source: default (label docs-only exhausted)" "the fall-through names the exhausted label"
+assert_contains "$out" "profile: --harness 'codex' --model 'gpt-6-astra'" "docs-only on spent grok walks past exhausted claude and muse to codex"
+write_grok_quota 48082
+run code out err --labels "docs-only"
+assert_contains "$out" "source: label (docs-only)" "grok prepaid credits keep the docs-only label route"
+assert_contains "$out" "profile: --harness 'grok' --model 'grok-4.7' --effort 'xhigh'" "docs-only stays on grok while prepaid credits are usable"
+run code out err --labels "ep-opus"
+expect_code 0 "$code" "an exhausted ep-opus exits 0"
+assert_contains "$out" "status: escalate" "ep-opus escalates when claude is exhausted"
+assert_contains "$out" "reason: label route ep-opus is exhausted and the work needs Opus" "the ep-opus escalation says why"
+assert_not_contains "$out" "profile:" "an escalated ep-opus gets no profile"
+jq '(.providers[] | select(.provider == "codex") | .quotaSemantics.effectiveAvailability[0]) |= (.effectivePercentRemaining = 0 | .runway.status = "exhausted_now")
+    | (.providers[] | select(.provider == "grok") | .credits.remaining) = 0' "$QUOTA" > "$QUOTA.tmp" && mv "$QUOTA.tmp" "$QUOTA"
+run code out err --labels "docs-only"
+assert_contains "$out" "status: escalate" "an exhausted label route with no eligible default escalates"
+assert_contains "$out" "reason: label route docs-only is exhausted and no default rung is eligible" "that escalation names the label"
+printf '%s\n' '{"label_routes":{"docs-only":{"harness":"grok","model":"grok-4.7","effort":"xhigh"}},"default":[{"harness":"claude","model":"opus"}]}' > "$RULES"
+jq '(.providers[] | select(.provider == "claude") | .quotaSemantics.effectiveAvailability[0]) |= (.effectivePercentRemaining = 40 | .runway.status = "through_reset")' "$QUOTA" > "$QUOTA.tmp" && mv "$QUOTA.tmp" "$QUOTA"
+run code out err --labels "docs-only"
+assert_contains "$out" "profile: --harness 'claude' --model 'opus'" "a label harness absent from the default chain still has its quota checked"
+
+# Replay of a real quota-axi --json snapshot taken 2026-10-26T05:53:50Z, cut to the
+# fields this resolver reads: codex and cursor exhausted with no prepaid credits,
+# grok's weekly pool spent with 18407 prepaid credits, claude and muse unmeasured.
+cat > "$QUOTA" <<'JSON'
+{
+  "schemaVersion": 5,
+  "generatedAt": "2026-10-26T05:53:50.121Z",
+  "providers": [
+    {"provider":"claude","quotaSemantics":{"status":"unknown","effectiveAvailability":[]}},
+    {"provider":"codex","quotaSemantics":{"status":"known","effectiveAvailability":[{"scope":"all_models","status":"known","effectivePercentRemaining":0,"runway":{"status":"exhausted_now"},"selection":{"spendPriority":-9.468}}]}},
+    {"provider":"cursor","quotaSemantics":{"status":"known","effectiveAvailability":[{"scope":"all_models","status":"known","effectivePercentRemaining":0,"runway":{"status":"exhausted_now"},"selection":{"spendPriority":null}},{"scope":"grok_bot","status":"known","effectivePercentRemaining":0,"runway":{"status":"exhausted_now"},"selection":{"spendPriority":-1.2551}}]}},
+    {"provider":"grok","credits":{"remaining":18407,"unit":"credits"},"quotaSemantics":{"status":"known","effectiveAvailability":[{"scope":"all_products","status":"known","effectivePercentRemaining":0,"runway":{"status":"exhausted_now"},"selection":{"spendPriority":-1.2551}},{"scope":"product:grok_build","status":"known","effectivePercentRemaining":0,"runway":{"status":"exhausted_now"},"selection":{"spendPriority":-1.0698}},{"scope":"product:unknown_9","status":"known","effectivePercentRemaining":0,"runway":{"status":"exhausted_now"},"selection":{"spendPriority":1.6475}}]}},
+    {"provider":"muse","quotaSemantics":{"status":"unknown","effectiveAvailability":[]}}
+  ]
+}
+JSON
+REPLAY_DEFAULT='[{"harness":"claude","model":"claude-opus-5-5[1m]","effort":"xhigh"},{"harness":"muse","model":"muse-wonder-1.0","effort":"xhigh"},{"harness":"codex","model":"gpt-6-astra","effort":"medium"}]'
+jq -n --argjson d "$REPLAY_DEFAULT" '{label_routes: {"docs-only": {harness: "codex", model: "gpt-6.1-sol", effort: "medium"}}, default: $d}' > "$RULES"
+run code out err --labels "docs-only"
+assert_contains "$out" "source: default (label docs-only exhausted)" "replay: docs-only on spent codex falls through"
+assert_contains "$out" "profile: --harness 'claude' --model 'claude-opus-5-5[1m]' --effort 'xhigh'" "replay: docs-only on spent codex runs on the unmeasured claude rung"
+jq -n --argjson d "$REPLAY_DEFAULT" '{label_routes: {"docs-only": {harness: "cursor", model: "grok-4.7-xhigh"}}, default: $d}' > "$RULES"
+run code out err --labels "docs-only"
+assert_contains "$out" "source: default (label docs-only exhausted)" "replay: docs-only on spent cursor falls through"
+jq -n --argjson d "$REPLAY_DEFAULT" '{label_routes: {"docs-only": {harness: "grok", model: "grok-4.7", effort: "xhigh"}}, default: $d}' > "$RULES"
+run code out err --labels "docs-only"
+assert_contains "$out" "source: label (docs-only)" "replay: grok's 18407 prepaid credits keep the docs-only route on grok"
+jq '(.providers[] | select(.provider == "grok") | .credits.remaining) = 0' "$QUOTA" > "$QUOTA.tmp" && mv "$QUOTA.tmp" "$QUOTA"
+run code out err --labels "docs-only"
+assert_contains "$out" "source: default (label docs-only exhausted)" "replay: grok with no prepaid credits falls through"
+run code out err --labels ""
+assert_contains "$out" "profile: --harness 'claude'" "replay: an unlabelled bead keeps the claude default"
+
+cp "$BASE_RULES" "$RULES"
+write_quota "$QUOTA" 0.7597
+pass "an exhausted label route falls through the default walk, and ep-opus escalates"
+
 printf '# all fm-dispatch-resolve tests passed\n'

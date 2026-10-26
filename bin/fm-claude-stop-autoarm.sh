@@ -230,31 +230,6 @@ need_supervision() {
   fm_supervision_needed "$STATE" "$GRACE"
 }
 
-# main-only while an attended host home needs supervision, because the park
-# runs the engine that owns routine rows. Every row on a plain home, with the
-# host off, or on a host home with no supervision need, where no park will run
-# that engine. No scope (return 1) while the away daemon's flag or, on a host
-# home, the away record is present: the daemon or the host then takes every
-# close. A caller that has just read need passes idle or needed, so need is
-# not probed twice at one decision point.
-main_unread_scope() {  # [idle|needed]
-  [ -e "$STATE/.afk" ] && return 1
-  if fm_supervision_host_enabled "$CONFIG" claude; then
-    fm_afk_contract_away_present "$STATE" && return 1
-    case "${1:-}" in
-      needed) printf 'main-only\n'; return 0 ;;
-      idle) ;;
-      *)
-        if need_supervision; then
-          printf 'main-only\n'
-          return 0
-        fi
-        ;;
-    esac
-  fi
-  printf 'any\n'
-}
-
 # Exit 2 when this generation delivers an unread record. Exit 0 when a record
 # was unread but the commit was refused. Return 1 when there is nothing to
 # deliver or this generation no longer owns the epoch. While a rewake is
@@ -274,7 +249,7 @@ deliver_unread_instead() {  # [idle|needed]
   if ! fm_autoarm_still_owner "$STATE" "$MY_GEN"; then
     return 1
   fi
-  scope=$(main_unread_scope "${1:-}") || return 1
+  scope=$(fm_wake_main_unread_scope "$STATE" "$CONFIG" "$GRACE" "${1:-}") || return 1
   rows=$(fm_wake_main_unread "$STATE" "$scope") || return 1
   [ -n "$rows" ] || return 1
   if ! fm_autoarm_still_owner "$STATE" "$MY_GEN"; then
@@ -298,7 +273,7 @@ deliver_unread_instead() {  # [idle|needed]
 # The probe's own output is discarded. Delivery after the claim prints it.
 if ! need_supervision; then
   [ -s "$STATE/.wake-queue" ] || exit 0
-  UNREAD_SCOPE=$(main_unread_scope idle) || exit 0
+  UNREAD_SCOPE=$(fm_wake_main_unread_scope "$STATE" "$CONFIG" "$GRACE" idle) || exit 0
   fm_wake_main_unread "$STATE" "$UNREAD_SCOPE" >/dev/null || exit 0
 fi
 
@@ -638,7 +613,7 @@ if [ "$ACTIONABLE" -eq 1 ]; then
     start_handling_successor "$CLOSED_ARM_PID" || true
   fi
   unread_rows=
-  if UNREAD_SCOPE=$(main_unread_scope); then
+  if UNREAD_SCOPE=$(fm_wake_main_unread_scope "$STATE" "$CONFIG" "$GRACE"); then
     unread_rows=$(fm_wake_main_unread "$STATE" "$UNREAD_SCOPE" || true)
   fi
   BANNER=$(
