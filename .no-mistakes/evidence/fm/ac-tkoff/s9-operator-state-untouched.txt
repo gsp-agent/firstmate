@@ -1,0 +1,5 @@
+~/.treehouse: unchanged (183 entries)
+real ~/.grok/config.toml: unchanged
+real ~/.grok/trusted_folders.toml: unchanged
+real ~/.grok/auth.json: unchanged
+real ~/.grok/hooks listing: unchanged

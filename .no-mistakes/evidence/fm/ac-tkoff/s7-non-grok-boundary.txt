@@ -1,0 +1,8 @@
+WARNING: watcher still down (same stale episode; last beat: 733s ago, grace 300s) - full banner already printed this episode.
+spawned labgk3494d262-raw harness=sleep kind=ship mode=local-only yolo=on window=firstmate:fm-labgk3494d262-raw worktree=/private/tmp/fmgk.XL07uy/treehouse/.treehouse/notes-a46470/4/notes
+spawn exit=0
+launch brief sections: # Current worker role contract|# Task|# Herdr lifecycle declaration - NOT ENABLED|# Setup|# Rules|# Firstmate instruction inbox|# Project memory|# Definition of done|
+context discipline sections: 0
+full-brief pointer sections: 0
+no Grok worker home for labgk3494d262-raw
+recorded harness: sleep

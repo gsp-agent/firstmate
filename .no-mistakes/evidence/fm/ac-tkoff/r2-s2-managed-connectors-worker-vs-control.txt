@@ -1,0 +1,93 @@
+# Round 2: account-managed MCP connectors, real worker session vs matched control
+## Treatment: the spawned Grok worker labmc-refuse (generated config with [managed_mcps] enabled=false, gateway_tools_enabled=false), interactive TUI, ran its task for 1m24s
+session: 01a179b8-e0cb-7b82-9735-53e4e506c624
+tool definitions: 45878 chars ~11469 tokens; 23 tools
+  tools: ask_user_question, enter_plan_mode, exit_plan_mode, get_command_or_subagent_output, grep, image_edit, kill_command_or_subagent, list_dir, monitor, read_file, run_terminal_command, scheduler_create, scheduler_delete, scheduler_list, search_replace, search_tool, send_feedback, spawn_subagent, todo_write, use_tool, web_fetch, workflow, write
+  MCP gateway tools (search_tool/use_tool): ['search_tool', 'use_tool']
+  image/video tools: ['image_edit']
+first edit at chat_history row: 16
+  user: 23584 chars ~5896 tokens
+  user (system_reminder): 10646 chars ~2661 tokens
+  reasoning: 10591 chars ~2647 tokens
+  system: 5496 chars ~1374 tokens
+  tool_result: 3250 chars ~812 tokens
+  assistant: 3025 chars ~756 tokens
+PRE-EDIT CONTEXT (rows to first edit + tool definitions): 102470 chars ~25617 tokens (chars/4)
+tool calls before/at first edit: run_terminal_command, grep, grep, read_file, read_file, search_replace, run_terminal_command
+'MCP servers connected' banners found: 0
+  connector cursor            listed: no
+  connector gmail             listed: no
+  connector google_calendar   listed: no
+  connector google_drive      listed: no
+  connector notion            listed: no
+  connector outlook_calendar  listed: no
+  connector outlook           listed: no
+  connector tasks             listed: no
+
+## Control: the same generated worker config with only [managed_mcps] removed, same sign-in, same lab worktree, interactive TUI (16s session)
+session: 01a179c0-edf6-77d2-a7f4-22d445d3349a
+tool definitions: 45862 chars ~11465 tokens; 23 tools
+  MCP gateway tools (search_tool/use_tool): ['search_tool', 'use_tool']
+announcement_state.json mcp fingerprints: {'outlook_calendar': {'tool_count': 6, 'description_hash': 12161962213042174405, 'tool_names_hash': 2870948101652391430}, 'google_drive': {'tool_count': 5, 'description_hash': 12161962213042174405, 'tool_names_hash': 557047746971134345}, 'notion': {'tool_count': 65, 'description_hash': 12161962213042174405, 'tool_names_hash': 14451920596997009429}, 'cursor': {'tool_count': 225, 'description_hash': 12161962213042174405, 'tool_names_hash': 9989320086767363618}, 'google_calendar': {'tool_count': 8, 'description_hash': 12161962213042174405, 'tool_names_hash': 3544364040361401282}, 'gmail': {'tool_count': 17, 'description_hash': 12161962213042174405, 'tool_names_hash': 6622098044885646615}, 'tasks': {'tool_count': 10, 'description_hash': 12161962213042174405, 'tool_names_hash': 1201970730436553412}}
+'MCP servers connected' banners found: 1
+    - cursor (225 tools)
+    - gmail (17 tools)
+    - google_calendar (8 tools)
+    - google_drive (5 tools)
+    - notion (65 tools)
+    - outlook_calendar (6 tools)
+    - tasks (10 tools)
+  connector cursor            listed: yes (chat_history.jsonl)
+  connector gmail             listed: yes (chat_history.jsonl)
+  connector google_calendar   listed: yes (chat_history.jsonl)
+  connector google_drive      listed: yes (chat_history.jsonl)
+  connector notion            listed: yes (chat_history.jsonl)
+  connector outlook_calendar  listed: yes (chat_history.jsonl)
+  connector outlook           listed: no
+  connector tasks             listed: yes (chat_history.jsonl)
+
+## Headless (grok -p) pair, for the record: headless sessions never announce connectors, so they cannot distinguish the arms
+treatment config managed_mcps: {'enabled': False, 'gateway_tools_enabled': False}; other sections identical to worker config
+treatment headless exit=0 reply=OK
+--- treatment session
+tool definitions: 45864 chars ~11466 tokens; 23 tools
+  MCP gateway tools (search_tool/use_tool): ['search_tool', 'use_tool']
+'MCP servers connected' banners found: 0
+  connector cursor            listed: no
+  connector gmail             listed: no
+  connector google_calendar   listed: no
+  connector google_drive      listed: no
+  connector notion            listed: no
+  connector outlook_calendar  listed: no
+  connector outlook           listed: no
+  connector tasks             listed: no
+control config managed_mcps: absent; other sections identical to worker config
+control headless exit=0 reply=OK
+--- control session
+tool definitions: 45862 chars ~11465 tokens; 23 tools
+  MCP gateway tools (search_tool/use_tool): ['search_tool', 'use_tool']
+'MCP servers connected' banners found: 0
+  connector cursor            listed: no
+  connector gmail             listed: no
+  connector google_calendar   listed: no
+  connector google_drive      listed: no
+  connector notion            listed: no
+  connector outlook_calendar  listed: no
+  connector outlook           listed: no
+  connector tasks             listed: no
+
+## Worker pane at the end of its task
+       This section establishes your current identity before every project or task instruction below and supersedes any conflicting role identity in those instructions. …
+     ◆ session_start hook (global/settings) failed, ignored: timed out after 5000ms
+     ◆ Thought for 2.5s
+     I'll confirm this worktree is isolated and on fm/labmc-refuse before editing notes.md.                                                                                                                      2:38 PM
+     ◈ Ran verify worktree isolation, branch, and inbox
+     Isolation and the ship branch check out. Next I’ll read the definition of done and the status line in notes.md.                                                                                             2:39 PM
+     ◈ Edited notes.md, explored 2 files, 2 searches, ran 3 commands +1 -1
+     Ready on fm/labmc-refuse at fc33ea4.                                                                                                                                                                        2:40 PM
+     notes.md now has status: reviewed. That is the only change, committed as notes: mark reviewed. The branch is a fast-forward from local main, and the worktree is clean. Nothing was pushed.
+     Worked for 1m24s
+  ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+  │ ❯                                                                                                                                                                                                                    │
+  ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── Grok 4.7 (high) · always-approve ─╯
+  Shift+Tab:mode  │  Ctrl+x:shortcuts

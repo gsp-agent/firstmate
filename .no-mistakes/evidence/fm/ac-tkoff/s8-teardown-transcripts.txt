@@ -1,0 +1,43 @@
+transcripts before teardown: 2
+--- teardown labgk3494d262-worker (no --force)
+WARNING: watcher still down (same stale episode; last beat: 769s ago, grace 300s) - full banner already printed this episode.
+REFUSED: local-only worktree /private/tmp/fmgk.XL07uy/treehouse/.treehouse/notes-a46470/1/notes has work not yet merged into main and not on any remote.
+commits not yet on main:
+ce73e8d add count_notes
+Merge the branch into local main first (bin/fm-merge-local.sh after the captain approves), or push to a fork/remote, or get the captain's explicit OK to discard, then --force.
+exit=1
+--- teardown labgk3494d262-worker --force
+
+🌳 Worktree returned to pool.
+teardown labgk3494d262-worker complete (window firstmate:fm-labgk3494d262-worker, worktree /private/tmp/fmgk.XL07uy/treehouse/.treehouse/notes-a46470/1/notes)
+Backlog: labgk3494d262-worker is closed in /private/tmp/fmgk.XL07uy/home/data/backlog.md. What its freed place can start is the Dispatch line below.
+Dispatch: notes declares no place limit. Ready for it, in backlog order: labgk3494d262-refuse. Write each brief and start it now with bin/fm-spawn.sh, in that order, until a spawn defers with exit 75 (its row stays queued); the spawn alone decides capacity, never a count of backlog rows.
+exit=0
+--- teardown labgk3494d262-nm --force
+teardown labgk3494d262-nm complete (window firstmate:fm-labgk3494d262-nm, worktree /private/tmp/fmgk.XL07uy/treehouse/.treehouse/notes-a46470/2/notes)
+Backlog: labgk3494d262-nm is closed in /private/tmp/fmgk.XL07uy/home/data/backlog.md. What its freed place can start is the Dispatch line below.
+Dispatch: notes declares no place limit. Ready for it, in backlog order: labgk3494d262-refuse. Write each brief and start it now with bin/fm-spawn.sh, in that order, until a spawn defers with exit 75 (its row stays queued); the spawn alone decides capacity, never a count of backlog rows.
+exit=0
+--- teardown labgk3494d262-restore --force
+teardown labgk3494d262-restore complete (window firstmate:fm-labgk3494d262-restore, worktree /private/tmp/fmgk.XL07uy/treehouse/.treehouse/notes-a46470/3/notes)
+Backlog: labgk3494d262-restore is closed in /private/tmp/fmgk.XL07uy/home/data/backlog.md. What its freed place can start is the Dispatch line below.
+Dispatch: notes declares no place limit. Ready for it, in backlog order: labgk3494d262-refuse. Write each brief and start it now with bin/fm-spawn.sh, in that order, until a spawn defers with exit 75 (its row stays queued); the spawn alone decides capacity, never a count of backlog rows.
+exit=0
+--- teardown labgk3494d262-raw --force
+teardown labgk3494d262-raw complete (window firstmate:fm-labgk3494d262-raw, worktree /private/tmp/fmgk.XL07uy/treehouse/.treehouse/notes-a46470/4/notes)
+Backlog: labgk3494d262-raw is closed in /private/tmp/fmgk.XL07uy/home/data/backlog.md. What its freed place can start is the Dispatch line below.
+Dispatch: notes declares no place limit. Ready for it, in backlog order: labgk3494d262-refuse. Write each brief and start it now with bin/fm-spawn.sh, in that order, until a spawn defers with exit 75 (its row stays queued); the spawn alone decides capacity, never a count of backlog rows.
+exit=0
+--- teardown labgk3494d262-refuse --force
+error: teardown refused: task record is not a regular file at /private/tmp/fmgk.XL07uy/home/state/labgk3494d262-refuse.meta
+exit=1
+=== after teardown
+labgk3494d262-worker worker home: removed
+labgk3494d262-nm worker home: removed
+labgk3494d262-restore worker home: removed
+transcripts after teardown: 2
+62387 <lab-operator-grok-home>/sessions/%2Fprivate%2Ftmp%2Ffmgk.XL07uy%2Ftreehouse%2F.treehouse%2Fnotes-a46470%2F1%2Fnotes/01a1799d-8d2c-7721-98e5-16ac1a01babc/chat_history.jsonl
+70662 <lab-operator-grok-home>/sessions/%2Fprivate%2Ftmp%2Ffmgk.XL07uy%2Ftreehouse%2F.treehouse%2Fnotes-a46470%2F1%2Fnotes/01a17995-52c3-7482-bfb8-4e89bd322e85/chat_history.jsonl
+lab windows left: lab fm-labgk3494d262-refuse 
+turn-end tokens left in the operator hooks registry: 1
+refuse-task state left: labgk3494d262-refuse.grok-turnend-token

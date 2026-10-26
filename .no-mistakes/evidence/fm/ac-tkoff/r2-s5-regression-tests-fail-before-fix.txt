@@ -1,0 +1,9 @@
+=== HEAD tests against pre-fix bin/fm-spawn.sh + bin/fm-grok-worker-lib.sh (921d652c)
+test_grok_worker_unreadable_skills_file_refuses_before_wiring: not ok - a refused grok spawn left its turn-end token 
+test_grok_worker_home_trims_launch_context: KeyError: 'managed_mcps' not ok - grok worker config does not trim the discovered launch context 
+test_grok_worker_discovery_failure_warns_and_launches: KeyError: 'managed_mcps' not ok - a failed grok discovery did not leave the untrimmed worker config with managed connectors off 
+=== HEAD tests against HEAD
+test_grok_worker_unreadable_skills_file_refuses_before_wiring: ok - an unreadable grok skills file refuses the spawn before any wiring, and a retry succeeds 
+test_grok_worker_home_trims_launch_context: ok - grok worker home trims the discovered launch context and the launch runs under it 
+test_grok_worker_discovery_failure_warns_and_launches: ok - a failed grok discovery warns that the worker is untrimmed and still launches it 
+=== worktree status after restore: 0 changed paths

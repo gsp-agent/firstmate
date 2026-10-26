@@ -1,0 +1,9 @@
+# Round 2: a non-Grok (raw launch) spawn with the same unreadable Grok skills file
+=== config/grok-worker-skills holds non-UTF-8 bytes again
+=== fm-spawn.sh labmc-raw <notes> --mode local-only --yolo on --harness 'sleep 900' (raw, non-Grok launch)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Sg83nc
+spawned labmc-raw harness=sleep kind=ship mode=local-only yolo=on window=firstmate:fm-labmc-raw worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Sg83nc/trees/.treehouse/notes-1d08bd/2/notes
+spawn exit=0
+  lab tmux windows: lab fm-labmc-refuse fm-labmc-raw 
+  worker home for labmc-raw: absent
+  harness recorded: sleep

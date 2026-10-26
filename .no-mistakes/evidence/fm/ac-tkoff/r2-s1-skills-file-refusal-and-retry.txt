@@ -1,0 +1,66 @@
+# Round 2: fresh Grok spawn with an unreadable config/grok-worker-skills (real fm-spawn.sh, lab home, private tmux server, grok 1.0.70)
+=== config/grok-worker-skills holds non-UTF-8 bytes (19 bytes)
+=== before spawn
+  lab tmux windows: lab 
+  state entries for labmc-refuse: 0 
+  lab operator grok hooks: absent
+  worker home: absent
+  treehouse pool entries: 0
+  .fm-grok-turnend pointers in pool: 0
+=== fm-spawn.sh labmc-refuse <notes> --mode local-only --yolo on --harness grok
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Sg83nc
+error: cannot read /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Sg83nc/config/grok-worker-skills: not UTF-8 text
+spawn exit=1
+=== after refused spawn
+  lab tmux windows: lab 
+  state entries for labmc-refuse: 0 
+  lab operator grok hooks: absent
+  worker home: absent
+  treehouse pool entries: 0
+  .fm-grok-turnend pointers in pool: 0
+=== fix the file (one name per line) and retry the same task id
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Sg83nc
+spawned labmc-refuse harness=grok kind=ship mode=local-only yolo=on window=firstmate:fm-labmc-refuse worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Sg83nc/trees/.treehouse/notes-1d08bd/1/notes
+retry exit=0
+=== after retry
+  lab tmux windows: lab fm-labmc-refuse 
+  state entries for labmc-refuse: 4 labmc-refuse.git-hooks labmc-refuse.grok-home labmc-refuse.grok-turnend-token labmc-refuse.meta 
+  lab operator grok hooks: hooks/fm-turn-end.d/fm.fZbrfKlDz7mg hooks/fm-turn-end.json hooks/fm-turn-end.sh 
+  worker home: present
+  treehouse pool entries: 6
+  .fm-grok-turnend pointers in pool: 1
+
+# The retried worker's home, and what real grok inspect reports under it
+=== worker home labmc-refuse (mode 700)
+  AGENTS.md -> <lab>/grok-op/AGENTS.md
+  CHANGELOG.json (file, mode 644)
+  CHANGELOG.md (file, mode 644)
+  README.md (file, mode 644)
+  agent_id (file, mode 600)
+  auth.json -> <lab>/grok-op/auth.json
+  bundled (dir, mode 755)
+  config.toml (file, mode 644)
+  docs (dir, mode 755)
+  hooks -> <lab>/grok-op/hooks
+  installed-plugins (dir, mode 755)
+  logs (dir, mode 755)
+  managed_config.lock (file, mode 644)
+  memtrace (dir, mode 755)
+  models_cache.json (file, mode 644)
+  rules -> <lab>/grok-op/rules
+  sessions -> <lab>/grok-op/sessions
+  settings_cache.json (file, mode 600)
+  tip_cursor.json (file, mode 644)
+  worktrees.db (file, mode 644)
+=== generated config.toml, parsed
+  skills.disabled: 221 names; north-star disabled: False ; no-mistakes disabled: False
+  disabled_mcp_servers: ['convex-visual', 'cupertino', 'gitnexus', 'mcp-agent-mail', 'notion', 'pencil', 'playwright']
+  plugins.disabled: ['eli5', 'frontend-design', 'plannotator', 'vercel']
+  managed_mcps: {'enabled': False, 'gateway_tools_enabled': False}
+  features: {'image_gen': False, 'video_gen': False}  toolset.bash: {'bash': {'output_byte_limit': 8000}}
+=== real grok inspect --json under the worker home, in its worktree
+  skills discovered: 244; enabled: 23
+  enabled skills: build-with-ai, code-review, create-workflow, design, docx, execute-plan, game-assets, imagine, implement, learn, long-running-background-tasks, no-mistakes, north-star, pdf, pptx, pr-babysit, resume-claude, resume-codex, resume-cursor, review, skill-design-principles, statusline, threejs-frame-conventions
+  MCP servers discovered: 6; enabled: none
+  plugins enabled: ['frontend-design', 'plannotator', 'vercel', 'eli5']
+  configWarnings: [{"target": "configKey", "path": "mcp", "kind": "unknown-field", "reason": "unrecognized config key"}]

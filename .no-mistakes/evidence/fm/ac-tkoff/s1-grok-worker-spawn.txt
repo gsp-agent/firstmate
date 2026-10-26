@@ -1,0 +1,1 @@
+spawned labgk3494d262-worker harness=grok kind=ship mode=local-only yolo=on window=firstmate:fm-labgk3494d262-worker worktree=/private/tmp/fmgk.XL07uy/treehouse/.treehouse/notes-a46470/1/notes

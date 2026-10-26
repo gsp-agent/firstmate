@@ -1,0 +1,30 @@
+=== B (labgk3494d262-nm): no-mistakes ship, config/grok-worker-skills lists north-star, grill-me, not-a-real-skill
+generated config disables 220 skills
+  north-star: enabled
+  grill-me: enabled
+  no-mistakes: enabled
+  long-running-background-tasks: enabled
+  deslop: disabled
+  technical-writing: disabled
+grok inspect under B worker home: 24 of 244 skills enabled: build-with-ai, code-review, create-workflow, design, docx, execute-plan, game-assets, grill-me, imagine, implement, learn, long-running-background-tasks, no-mistakes, north-star, pdf, pptx, pr-babysit, resume-claude, resume-codex, resume-cursor, review, skill-design-principles, statusline, threejs-frame-conventions
+grok inspect under B worker home: enabled MCP servers: none
+B launch brief (slim, with Grok context discipline):    13869 chars ~3467 tokens
+B same brief rendered by the full path (no discipline):    19561 chars ~4890 tokens
+B launch brief sections: # Current worker role contract|# Task|# Herdr lifecycle declaration - NOT ENABLED|# Setup|# Rules|# Firstmate instruction inbox|# Full brief|# Worker context discipline|# Current no-mistakes intent contract|
+B source brief sections:  # Task|# Herdr lifecycle declaration - NOT ENABLED|# Setup|# Rules|# Firstmate instruction inbox|# Project memory|# Definition of done|
+B last heading: ## Captain intent authorized for --intent
+# Full brief
+The complete brief is at `/private/tmp/fmgk.XL07uy/home/data/labgk3494d262-nm/brief.md`.
+This launch text already carries its `# Setup`, `# Rules` sections in full above.
+It leaves out the sections below; they remain the contract, so read each one from that file at the point named:
+- `# Project memory` before you edit a project's AGENTS.md or CLAUDE.md.
+- `# Definition of done` before you report done.
+Its Definition of done opens with:
+Delivery contract: mode=no-mistakes
+Ship branch: fm/labgk3494d262-nm
+
+=== C (labgk3494d262-restore): local-only ship whose brief carries a restore note
+C launch brief:    13293 chars; sections: # Current worker role contract|# Task|# Herdr lifecycle declaration - NOT ENABLED|# Setup|# Rules|# Firstmate instruction inbox|# Project memory|# Definition of done|# Worker context discipline|
+C restore note line: 121:Note from firstmate: lab-restore-marker - only the unit test remains.
+C "# Full brief" pointer sections (0 = full path taken): 0
+C context discipline sections: 1

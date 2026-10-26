@@ -1,0 +1,14 @@
+=== B: no-mistakes ship with config/grok-worker-skills
+WARNING: watcher still down (same stale episode; last beat: 543s ago, grace 300s) - full banner already printed this episode.
+spawned labgk3494d262-nm harness=grok kind=ship mode=no-mistakes yolo=off window=firstmate:fm-labgk3494d262-nm worktree=/private/tmp/fmgk.XL07uy/treehouse/.treehouse/notes-a46470/2/notes
+spawn B exit=0
+=== C: local-only ship whose brief carries a restore note
+WARNING: watcher still down (same stale episode; last beat: 571s ago, grace 300s) - full banner already printed this episode.
+spawned labgk3494d262-restore harness=grok kind=ship mode=local-only yolo=on window=firstmate:fm-labgk3494d262-restore worktree=/private/tmp/fmgk.XL07uy/treehouse/.treehouse/notes-a46470/3/notes
+spawn C exit=0
+--- pane fm-labgk3494d262-nm (should be parked at the folder-trust prompt):
+Do you trust the contents of this directory?
+Yes, proceed                 y
+--- pane fm-labgk3494d262-restore (should be parked at the folder-trust prompt):
+Do you trust the contents of this directory?
+Yes, proceed                 y

@@ -1,0 +1,19 @@
+# Round 2: fm-control relaunch onto Grok with the new early spawn check in place (real fm-control.sh / fm-spawn.sh, lab home)
+before: pane_pid=17836 pane_command=grok-1.0.70-mac grok_children=[18328 ]
+=== fm-control.sh labmc-refuse relaunch --note ... with an unreadable skills file
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Sg83nc
+error: cannot read /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Sg83nc/config/grok-worker-skills: not UTF-8 text
+relaunch exit=1
+after refusal: pane_pid=17836 pane_command=grok-1.0.70-mac grok_children=[18328 ]
+progress notes in brief: 0
+=== same relaunch with the readable skills file restored
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Sg83nc
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Sg83nc
+relaunched labmc-refuse harness=grok from=grok model=default effort=default backend=tmux endpoint=firstmate:fm-labmc-refuse worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Sg83nc/trees/.treehouse/notes-1d08bd/1/notes
+relaunch exit=0
+after relaunch: pane_pid=17836 pane_command=bash grok_children=[18328 ]
+progress notes in brief: 1
+launch GROK_HOME is the worker home: not recorded in meta/data
+session: 01a179c7-1dec-7eb1-91e1-3876ace82769
+'MCP servers connected' banners found: 0
+relaunch launch text carries the progress note: True

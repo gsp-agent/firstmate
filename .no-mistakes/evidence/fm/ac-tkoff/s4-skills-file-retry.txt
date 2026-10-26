@@ -1,0 +1,37 @@
+--- config/grok-worker-skills:
+# lab extra worker skills
+
+  north-star  
+grill-me
+not-a-real-skill
+--- retry spawn
+WARNING: watcher still down (same stale episode; last beat: 504s ago, grace 300s) - full banner already printed this episode.
+error: window firstmate:fm-labgk3494d262-refuse already exists
+spawn exit=1
+lab zsh
+fm-labgk3494d262-worker grok-1.0.70-mac
+fm-labgk3494d262-refuse zsh
+Traceback (most recent call last):
+  File "<stdin>", line 2, in <module>
+FileNotFoundError: [Errno 2] No such file or directory: '/private/tmp/fmgk.XL07uy/home/state/labgk3494d262-refuse.grok-home/config.toml'
+sed: /private/tmp/fmgk.XL07uy/home/state/labgk3494d262-refuse.meta: No such file or directory
+worktree: 
+/private/tmp/fmgk.XL07uy/scripts/retry-with-skills.sh: line 29: cd: null directory
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+    d = json.load(sys.stdin)
+  File "/opt/homebrew/Cellar/python@3.15/3.15.0/Frameworks/Python.framework/Versions/3.15/lib/python3.15/json/__init__.py", line 306, in load
+    return loads(fp.read(),
+        cls=cls, object_hook=object_hook,
+        parse_float=parse_float, parse_int=parse_int,
+        parse_constant=parse_constant, object_pairs_hook=object_pairs_hook,
+        array_hook=array_hook, **kw)
+  File "/opt/homebrew/Cellar/python@3.15/3.15.0/Frameworks/Python.framework/Versions/3.15/lib/python3.15/json/__init__.py", line 371, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/opt/homebrew/Cellar/python@3.15/3.15.0/Frameworks/Python.framework/Versions/3.15/lib/python3.15/json/decoder.py", line 358, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.15/3.15.0/Frameworks/Python.framework/Versions/3.15/lib/python3.15/json/decoder.py", line 376, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)

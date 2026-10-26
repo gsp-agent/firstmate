@@ -1,0 +1,54 @@
+=== worker home /private/tmp/fmgk.XL07uy/home/state/labgk3494d262-worker.grok-home (mode 700)
+lrwxr-xr-x@  1 dalecarman  wheel      42 Oct 26 13:59 AGENTS.md -> /private/tmp/fmgk.XL07uy/grok-op/AGENTS.md
+lrwxr-xr-x@  1 dalecarman  wheel      42 Oct 26 13:59 auth.json -> /private/tmp/fmgk.XL07uy/grok-op/auth.json
+-rw-r--r--@  1 dalecarman  wheel    4927 Oct 26 14:08 config.toml
+lrwxr-xr-x@  1 dalecarman  wheel      38 Oct 26 13:59 hooks -> /private/tmp/fmgk.XL07uy/grok-op/hooks
+lrwxr-xr-x@  1 dalecarman  wheel      38 Oct 26 13:59 rules -> /private/tmp/fmgk.XL07uy/grok-op/rules
+lrwxr-xr-x@  1 dalecarman  wheel      41 Oct 26 13:59 sessions -> /private/tmp/fmgk.XL07uy/grok-op/sessions
+-rw-------@  1 dalecarman  wheel     260 Oct 26 13:59 trusted_folders.toml
+-rw-r--r--@  1 dalecarman  wheel       0 Oct 26 13:59 trusted_folders.toml.lock
+=== launch line prefix recorded by the spawn
+=== grok inspect --json (real Grok) in the worker's worktree
+== lab operator home (what a worker inherited before this change)
+skills discovered: 224; enabled: 224; enabled index ~11717 tokens (name+description chars/4)
+MCP servers discovered: 7; enabled: 7
+  enabled MCP servers: convex-visual, cupertino, gitnexus, mcp-agent-mail, notion, pencil, playwright
+plugins discovered: 4; enabled: 4
+  inspect keys: agents, channel, configSources, cwd, experiments, externalCompat, grokVersion, hooks, loginPolicy, lspServers, marketplaces, mcpServers, permissions, plugins, projectInstructions, projectRoot, projectTrusted, skills, updateChannel
+== per-task worker home (this change)
+skills discovered: 244; enabled: 22; enabled index ~1981 tokens (name+description chars/4)
+MCP servers discovered: 6; enabled: 0
+  enabled MCP servers: (none)
+plugins discovered: 4; enabled: 4
+  inspect keys: agents, channel, configSources, configWarnings, cwd, experiments, externalCompat, grokVersion, hookLoadErrors, hooks, loginPolicy, lspServers, marketplaces, mcpServers, permissions, plugins, projectInstructions, projectRoot, projectTrusted, skills, updateChannel
+  configWarnings: [{"target": "configKey", "path": "mcp", "kind": "unknown-field", "reason": "unrecognized config key"}]
+=== grok mcp list under the worker home
+No MCP servers configured. Run `grok mcp add --help` to get started.
+=== bead method on the worker's real session (chars/4 to first search_replace/write)
+session: 01a17995-52c3-7482-bfb8-4e89bd322e85
+first edit at chat_history row: 18 (tool: ['search_replace', 'search_replace'])
+tool definitions: 45819 chars ~11454 tokens; 23 tools
+  user turn (launch prompt): 23261 chars ~5815 tokens
+  system reminders (system_reminder): 10535 chars ~2633 tokens
+  stored reasoning: 10123 chars ~2530 tokens
+  system prompt: 5463 chars ~1365 tokens
+  assistant messages/tool calls: 3583 chars ~895 tokens
+  tool_result messages/tool calls: 3387 chars ~846 tokens
+PRE-EDIT CONTEXT: 102171 chars ~25542 tokens (chars/4)
+tool calls before/at first edit: run_terminal_command, run_terminal_command, grep, read_file, read_file, read_file, search_replace, search_replace
+largest pre-edit tool result: 0 chars
+=== MCP servers that session reports connected (system reminder in chat_history.jsonl)
+<system-reminder>
+MCP servers connected:
+- cursor (225 tools)
+- gmail (17 tools)
+- google_calendar (8 tools)
+- google_drive (5 tools)
+- notion (65 tools)
+- outlook_calendar (6 tools)
+- tasks (10 tools)
+announcement_state mcp_server_fingerprints: cursor (225 tools), gmail (17 tools), outlook_calendar (6 tools), tasks (10 tools), google_calendar (8 tools), notion (65 tools), google_drive (5 tools)
+announced skills (19): build-with-ai, create-workflow, design, docx, execute-plan, game-assets, imagine, learn, long-running-background-tasks, no-mistakes, pdf, pptx, resume-claude, resume-codex, resume-cursor, review, skill-design-principles, statusline, threejs-frame-conventions
+=== transcript location (operator sessions dir, through the worker home link)
+lrwxr-xr-x@ 1 dalecarman  wheel  41 Oct 26 13:59 /private/tmp/fmgk.XL07uy/home/state/labgk3494d262-worker.grok-home/sessions -> /private/tmp/fmgk.XL07uy/grok-op/sessions
+announcement_state.json chat_history.jsonl chat_history.jsonl.lock events.jsonl prompt_context.json resources_state.json rewind_points.jsonl rewind_points.jsonl.lock signals.json summary.json summary.json.lock system_prompt.txt terminal title_refresh_idx tool_definitions.json updates.jsonl updates.jsonl.lock usage.json usage.json.lock 

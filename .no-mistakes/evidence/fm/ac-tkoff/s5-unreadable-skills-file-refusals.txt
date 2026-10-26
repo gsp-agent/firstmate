@@ -1,0 +1,20 @@
+before: pane_pid=43004 pane_command=grok-1.0.70-mac children=[44440 ]
+--- fm-control relaunch with an unreadable skills file
+error: cannot read /private/tmp/fmgk.XL07uy/home/config/grok-worker-skills: not UTF-8 text
+relaunch exit=1
+after: pane_pid=43004 pane_command=grok-1.0.70-mac children=[44440 ]
+RESULT: running worker untouched
+progress notes in brief: 0
+--- fresh spawn of a second task with the same unreadable skills file
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: 402s ago, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  repair missing watcher supervision according to the session-start block for this harness; do not use shell &.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: cannot read /private/tmp/fmgk.XL07uy/home/config/grok-worker-skills: not UTF-8 text
+error: could not provision the Grok worker home for labgk3494d262-refuse at /private/tmp/fmgk.XL07uy/home/state/labgk3494d262-refuse.grok-home
+spawn exit=1
+window for labgk3494d262-refuse: 1 (0 = none launched)
+no worker home for labgk3494d262-refuse
