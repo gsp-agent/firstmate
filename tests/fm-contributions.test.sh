@@ -1227,8 +1227,150 @@ test_retire_is_idempotent_and_refuses_unknown_pairs() {
   pass 'retire is idempotent and refuses non-captain, unknown, malformed and signal-bearing pairs'
 }
 
+test_watcher_sweep_during_arm_never_rejects_the_check() {
+  local home out rc race rejections
+  home=$(new_home arm-race)
+  race="$home/race"
+  mkdir -p "$race"
+  forge_home "$home"
+  with_home "$home" "$ROOT/bin/fm-pr-check.sh" delivery https://github.com/o/r/pull/8 >/dev/null \
+    || fail 'could not register delivery for the arm race'
+  registered_checks "$home" >/dev/null
+  jq -n '[{id:12,user:{login:"maintainer"},author_association:"OWNER",
+    body:"Please clarify the contract",html_url:"https://github.com/o/r/pull/8#issuecomment-12",
+    updated_at:"2026-09-16T08:01:00Z",submitted_at:"2026-09-16T08:01:00Z"}]' > "$home/forge/comments.json"
+  # The watcher copies the check after it has read the trust: start a changed
+  # arm there and hold it with its new check published and its trust not yet.
+  cat > "$home/fakebin/cp" <<'SH'
+#!/usr/bin/env bash
+case "${1:-}:${2:-}" in
+  */contributions.check.sh:*/.fm-custom-check.*)
+    if mkdir "$FM_TEST_RACE/started" 2>/dev/null; then
+      ( FM_TEST_PAUSE_ARM=1 FM_CONTRIBUTIONS_BUDGET=20 FM_HOME="$FM_TEST_HOME" \
+          FM_STATE_OVERRIDE="$FM_TEST_HOME/state" FM_DATA_OVERRIDE="$FM_TEST_HOME/data" \
+          "$FM_TEST_ROOT/bin/fm-contributions.sh" arm </dev/null >/dev/null 2>"$FM_TEST_RACE/arm.err"
+        printf '%s\n' "$?" > "$FM_TEST_RACE/arm.rc" ) &
+      for _ in $(seq 300); do
+        [ ! -e "$FM_TEST_RACE/paused" ] || break
+        "$FM_TEST_REAL_SLEEP" 0.1
+      done
+      [ ! -e "$FM_TEST_RACE/paused" ] || : > "$FM_TEST_RACE/straddled"
+    fi
+    ;;
+esac
+exec "$FM_TEST_REAL_CP" "$@"
+SH
+  cat > "$home/fakebin/mv" <<'SH'
+#!/usr/bin/env bash
+"$FM_TEST_REAL_MV" "$@" || exit $?
+if [ -n "${FM_TEST_PAUSE_ARM:-}" ]; then
+  case "${!#}" in
+    "$FM_TEST_HOME/state/contributions.check.sh")
+      : > "$FM_TEST_RACE/paused"
+      for _ in $(seq 100); do
+        [ ! -e "$FM_TEST_RACE/resume" ] || break
+        "$FM_TEST_REAL_SLEEP" 0.1
+      done
+      ;;
+  esac
+fi
+SH
+  # Release the arm only once the watcher is waiting on its publish lock.
+  cat > "$home/fakebin/sleep" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = 0.1 ] && [ -e "$FM_TEST_RACE/paused" ]; then
+  : > "$FM_TEST_RACE/resume"
+fi
+exec "$FM_TEST_REAL_SLEEP" "$@"
+SH
+  chmod +x "$home/fakebin/cp" "$home/fakebin/mv" "$home/fakebin/sleep"
+  out="$home/watcher.out"
+  rc=0
+  with_home "$home" env FM_TEST_REAL_CP="$(command -v cp)" FM_TEST_REAL_MV="$(command -v mv)" \
+    FM_TEST_REAL_SLEEP="$(command -v sleep)" FM_TEST_RACE="$race" FM_TEST_HOME="$home" FM_TEST_ROOT="$ROOT" \
+    FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=0 FM_HEARTBEAT=999999 \
+    "$ROOT/bin/fm-watch-checkpoint.sh" --seconds 60 > "$out" 2> "$home/watcher.err" || rc=$?
+  for _ in $(seq 50); do
+    [ ! -e "$race/arm.rc" ] || break
+    sleep 0.1
+  done
+  [ -e "$race/straddled" ] || fail 'the watcher did not read the check while the arm was mid-publish'
+  [ "$rc" -eq 0 ] || fail "watcher did not finish its sweep during arm: $(cat "$home/watcher.err")"
+  ! grep -F 'rejected unauthenticated state checks' "$out" >/dev/null \
+    || fail "a watcher sweep during arm rejected the contributions check: $(cat "$out")"
+  rejections=$(awk -F '\t' 'NF >= 5 && $4 == "unauthenticated-state-checks" { count++ } END { print count + 0 }' "$home/state/.wake-queue")
+  [ "$rejections" = 0 ] || fail "a watcher sweep during arm queued $rejections rejection wakes"
+  [ ! -e "$home/state/.rejected-check-contributions" ] \
+    || fail 'a watcher sweep during arm marked the contributions check rejected'
+  [ -e "$race/resume" ] || fail 'the watcher never waited on the arm mid-publish'
+  [ "$(cat "$race/arm.rc" 2>/dev/null)" = 0 ] || fail "the racing arm failed: $(cat "$race/arm.err")"
+  grep -E '^check: contributions delivery [0-9a-f]{64}$' "$out" >/dev/null \
+    || fail "the check authenticated during arm did not run: $(cat "$out")"
+  grep -Fxq 'export FM_CONTRIBUTIONS_BUDGET=20' "$home/state/contributions.check.sh" \
+    || fail 'the racing arm did not publish its changed shim'
+  pass 'a watcher sweep that straddles an arm sees the old or new pair and rejects nothing'
+}
+
+test_unlocked_check_change_is_rejected_once() {
+  local home out rc rejections
+  home=$(new_home arm-tamper)
+  forge_home "$home"
+  with_home "$home" "$ROOT/bin/fm-pr-check.sh" delivery https://github.com/o/r/pull/8 >/dev/null \
+    || fail 'could not register delivery for the tamper case'
+  registered_checks "$home" >/dev/null
+  # A check that always reports ends every sweep with a wake.
+  printf '#!/usr/bin/env bash\nprintf "stop-cycle\\n"\n' > "$home/state/z-stop.check.sh"
+  chmod 0700 "$home/state/z-stop.check.sh"
+  with_home "$home" "$ROOT/bin/fm-check-register.sh" z-stop >/dev/null \
+    || fail 'could not register the stop-cycle check'
+  printf '# tampered\n' >> "$home/state/contributions.check.sh"
+  out="$home/watcher.out"
+  rc=0
+  with_home "$home" env FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=0 FM_HEARTBEAT=999999 \
+    "$ROOT/bin/fm-watch-checkpoint.sh" --seconds 60 > "$out" 2> "$home/watcher.err" || rc=$?
+  [ "$rc" -eq 0 ] || fail "watcher did not announce the tampered check: $(cat "$home/watcher.err")"
+  grep -F 'check: rejected unauthenticated state checks:' "$out" | grep -F 'contributions.check.sh' >/dev/null \
+    || fail "a check changed without the publish lock was not rejected: $(cat "$out")"
+  rc=0
+  with_home "$home" env FM_WATCH_HANDLING_SUCCESSOR=1 FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=0 FM_HEARTBEAT=999999 \
+    "$ROOT/bin/fm-watch-checkpoint.sh" --seconds 60 > "$home/watcher-repeat.out" 2> "$home/watcher-repeat.err" || rc=$?
+  [ "$rc" -eq 0 ] || fail "the repeat sweep did not finish: $(cat "$home/watcher-repeat.err")"
+  grep -F 'z-stop.check.sh: stop-cycle' "$home/watcher-repeat.out" >/dev/null \
+    || fail "the repeat sweep did not run: $(cat "$home/watcher-repeat.out")"
+  ! grep -F 'rejected unauthenticated state checks' "$home/watcher-repeat.out" >/dev/null \
+    || fail "the same tampered check was announced again: $(cat "$home/watcher-repeat.out")"
+  rejections=$(awk -F '\t' 'NF >= 5 && $4 == "unauthenticated-state-checks" { count++ } END { print count + 0 }' "$home/state/.wake-queue")
+  [ "$rejections" = 1 ] || fail "one tampered check queued $rejections rejection wakes"
+  pass 'a check changed without the publish lock is still rejected, exactly once'
+}
+
+test_arm_refuses_a_destination_changed_during_publish() {
+  local home rc=0
+  home=$(new_home arm-destination-change)
+  with_home "$home" env FM_CONTRIBUTIONS_BUDGET=1 "$ROOT/bin/fm-contributions.sh" arm >/dev/null \
+    || fail 'initial arm failed'
+  cat > "$home/fakebin/mv" <<'SH'
+#!/usr/bin/env bash
+"${FM_TEST_REAL_MV:?}" "$@" || exit $?
+if [ -n "${FM_TEST_DEST_CHANGE:-}" ] && [ "${!#}" = "$FM_TEST_HOME/state/contributions.check.sh" ] \
+  && [ ! -e "$FM_TEST_HOME/destination-changed" ]; then
+  : > "$FM_TEST_HOME/destination-changed"
+  rm -f -- "$FM_TEST_HOME/state/contributions.check-trust"
+  mkdir -- "$FM_TEST_HOME/state/contributions.check-trust"
+fi
+exit 0
+SH
+  chmod +x "$home/fakebin/mv"
+  with_home "$home" env FM_TEST_REAL_MV="$(command -v mv)" FM_TEST_HOME="$home" \
+    FM_TEST_DEST_CHANGE=1 FM_CONTRIBUTIONS_BUDGET=2 \
+    "$ROOT/bin/fm-contributions.sh" arm > "$home/arm.out" 2> "$home/arm.err" || rc=$?
+  [ "$rc" -ne 0 ] \
+    || fail 'arm reported success after the trust destination became a directory during publish'
+  pass 'arm refuses a destination changed during publish'
+}
+
 failures=0
-for test_name in test_actor_coverage test_stale_verdict test_unchecked_is_not_silence test_newest_check_has_no_verdict test_comment_wake test_review_wake test_inline_wake test_ready_issue_wake test_fresh_issue_requires_maintainer test_missing_lane_remains_missing test_partial_freshness_keeps_measured_rows test_malformed_record_cannot_prove_silence test_issue_timeline_and_exact_ack test_verdict_retains_judged_head test_verdict_actor_values_are_discoverable test_observed_replacement_refreshes_verdict test_unobserved_head_leaves_verdict_unknown test_away_yolo_is_fleet_work test_away_yolo_cross_home_is_fleet_work test_retired_and_unsupported_coverage test_unsupported_forge_is_not_fleet_work test_held_unsupported_forge_is_not_captain_work test_shared_contribution_signal_wakes_once test_watcher_keeps_diagnostics_separate_from_contribution_wakes test_expired_child_unsupported_forge_stays_unmeasured test_watcher_surfaces_new_contribution_once test_home_summary_coverage test_unreadable_pending_is_not_empty test_unreadable_sibling_keeps_healthy_record test_record_task_identity_matches_dirname_basename test_read_only_views_create_no_state test_budget_refusal_between_calls test_budget_bounded_call_timeout test_genuine_failure_near_deadline_is_unavailable test_shared_url_observed_once test_terminal_contribution_settles test_late_owner_inherits_terminal_observation test_interrupted_multi_owner_poll_settles_every_owner test_done_task_open_pr_still_observed test_reservation_defers_later_url_when_fifteen_seconds_do_not_remain test_three_second_pr_reads_complete_fresh_in_one_cycle test_slow_read_deadline_kill_is_budget_refusal test_unmeasured_url_does_not_starve_the_tail test_budget_is_cut_down_to_the_watcher_check_bound test_arm_plumbs_a_configured_budget_into_the_check_shim test_unavailable_forge_records_error_and_wakes_once_per_episode test_late_owner_keeps_failure_episode_suppressed test_retire_ends_observation_of_a_gone_contribution test_late_owner_of_a_retired_final_contribution_is_not_retired test_retire_is_idempotent_and_refuses_unknown_pairs; do
+for test_name in test_actor_coverage test_stale_verdict test_unchecked_is_not_silence test_newest_check_has_no_verdict test_comment_wake test_review_wake test_inline_wake test_ready_issue_wake test_fresh_issue_requires_maintainer test_missing_lane_remains_missing test_partial_freshness_keeps_measured_rows test_malformed_record_cannot_prove_silence test_issue_timeline_and_exact_ack test_verdict_retains_judged_head test_verdict_actor_values_are_discoverable test_observed_replacement_refreshes_verdict test_unobserved_head_leaves_verdict_unknown test_away_yolo_is_fleet_work test_away_yolo_cross_home_is_fleet_work test_retired_and_unsupported_coverage test_unsupported_forge_is_not_fleet_work test_held_unsupported_forge_is_not_captain_work test_shared_contribution_signal_wakes_once test_watcher_keeps_diagnostics_separate_from_contribution_wakes test_expired_child_unsupported_forge_stays_unmeasured test_watcher_surfaces_new_contribution_once test_home_summary_coverage test_unreadable_pending_is_not_empty test_unreadable_sibling_keeps_healthy_record test_record_task_identity_matches_dirname_basename test_read_only_views_create_no_state test_budget_refusal_between_calls test_budget_bounded_call_timeout test_genuine_failure_near_deadline_is_unavailable test_shared_url_observed_once test_terminal_contribution_settles test_late_owner_inherits_terminal_observation test_interrupted_multi_owner_poll_settles_every_owner test_done_task_open_pr_still_observed test_reservation_defers_later_url_when_fifteen_seconds_do_not_remain test_three_second_pr_reads_complete_fresh_in_one_cycle test_slow_read_deadline_kill_is_budget_refusal test_unmeasured_url_does_not_starve_the_tail test_budget_is_cut_down_to_the_watcher_check_bound test_arm_plumbs_a_configured_budget_into_the_check_shim test_unavailable_forge_records_error_and_wakes_once_per_episode test_late_owner_keeps_failure_episode_suppressed test_retire_ends_observation_of_a_gone_contribution test_late_owner_of_a_retired_final_contribution_is_not_retired test_retire_is_idempotent_and_refuses_unknown_pairs test_watcher_sweep_during_arm_never_rejects_the_check test_unlocked_check_change_is_rejected_once test_arm_refuses_a_destination_changed_during_publish; do
   ( "$test_name" ) || failures=$((failures + 1))
 done
 [ "$failures" -eq 0 ] || fail "$failures contribution regressions"
