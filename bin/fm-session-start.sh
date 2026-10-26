@@ -800,7 +800,15 @@ else
       printf '%s\n' "$BRANCH_REPLAY_OUT"
     fi
   fi
-  DRAIN_OUT=$("$SCRIPT_DIR/fm-wake-drain.sh" 2>&1)
+  # Session open empties main's presented set: the context that read those
+  # rows is gone after a clear, a move, or a compaction, so they stay unread
+  # until main drains them in a turn.
+  rm -f "$STATE/.main-eligible-rows" 2>/dev/null || true
+  if [ "${FM_SESSION_START_FROM_HOOK:-}" = 1 ]; then
+    DRAIN_OUT=$(FM_WAKE_DRAIN_PRESENT_ONLY=1 "$SCRIPT_DIR/fm-wake-drain.sh" 2>&1)
+  else
+    DRAIN_OUT=$("$SCRIPT_DIR/fm-wake-drain.sh" 2>&1)
+  fi
   if [ -n "$DRAIN_OUT" ]; then
     printf '%s\n' "$DRAIN_OUT"
   else

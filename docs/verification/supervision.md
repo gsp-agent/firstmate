@@ -505,6 +505,31 @@ The timeout hook trapped `TERM`, backgrounded `sleep 300`, waited, and on `TERM`
 | Control, exit 2 before the timeout | started +2, exited 2 at +12 | `Stop hook feedback` followed by the requested reply |
 | Timeout, exit 2 from the `TERM` handler | started +2, `TERM` and exit 2 at +32 | no `Stop hook feedback` and no reply, still idle at +111 |
 
+### Claude wakes itself when no Stop hook runs, 2026-10-26
+
+This supports the tracked `FileChanged` and `SessionStart` `asyncRewake` registration in `.claude/settings.json`, the turn record in `bin/fm-claude-turn.sh`, and the waker in `bin/fm-claude-wake.sh`.
+The Claude-side hook behavior it relies on was live-verified on Claude Code 2.1.310 in an isolated lab: a `FileChanged` hook with `asyncRewake` woke an idle session about one second after an append, before the first turn and after `/clear`, and an `asyncRewake` `SessionStart` entry woke a fresh and a cleared session.
+The portable replay suite runs every case in an isolated temporary home through the real scripts, with no live home or Claude session touched.
+
+```sh
+bash tests/fm-claude-wake.test.sh
+```
+
+Observed output:
+
+```text
+ok - 07:06Z replay: waker exits 2 within a second of the first append, no stall nudge
+ok - turn record from another pid reads as idle
+ok - busy turn: waker exits 0, Stop hook delivers at turn end, exactly one rewake
+ok - parked hook present: waker exits 0 and the parked hook delivers
+ok - post-reset rows already queued: session-open check exits 2 after the digest
+ok - reset-followup expiry: waker exits 2 at the undelivered close append
+ok - burst: ten appends within a second produce exactly one rewake
+ok - foreign hosts: Cursor and pi-code payloads exit 0 at once and never wait
+ok - turn boundary: Stop admission parks while a rewake is pending
+ok - session-start drain presents without claiming; digest-only ack refused
+```
+
 ## Watcher continuity
 
 The cross-harness evidence combines the 2026-07-17 live pass with Claude's replacement Stop-owned path revalidated on 2026-09-21, all against isolated project and home state.

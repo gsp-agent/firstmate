@@ -257,9 +257,14 @@ main_unread_scope() {  # [idle|needed]
 
 # Exit 2 when this generation delivers an unread record. Exit 0 when a record
 # was unread but the commit was refused. Return 1 when there is nothing to
-# deliver or this generation no longer owns the epoch.
+# deliver or this generation no longer owns the epoch. While a rewake is
+# pending (committed after the last turn start, captured before this firing
+# claimed its generation), delivery is skipped and the hook parks instead:
+# two rewakes never merge, and each costs its own turn.
+REWAKE_PENDING=0
 deliver_unread_instead() {  # [idle|needed]
   local scope rows banner
+  [ "$REWAKE_PENDING" -eq 1 ] && return 1
   if ! fm_autoarm_still_owner "$STATE" "$MY_GEN"; then
     return 1
   fi
@@ -314,6 +319,9 @@ fi
 # from a pre-generation build (or the guard's own terminal-check), which the
 # legacy shim defers to while genuinely deciding and reclaims once when proven
 # abandoned.
+if fm_claude_rewake_pending "$STATE" require-record; then
+  REWAKE_PENDING=1
+fi
 fm_autoarm_claim_open "$STATE" "$GRACE" && exit 0
 CLAIM_TRIES=0
 while :; do
@@ -501,10 +509,12 @@ fi
 # Rows already queued are delivered before the park. Routine rows on an
 # attended host home are not in this scope, so they still reach the park.
 # A home admitted only for an unread row arms nothing once no such row is left.
-if ! need_supervision; then
-  deliver_unread_instead idle || { autoarm_record clean; exit 0; }
+if [ "$REWAKE_PENDING" -eq 0 ]; then
+  if ! need_supervision; then
+    deliver_unread_instead idle || { autoarm_record clean; exit 0; }
+  fi
+  deliver_unread_instead needed || true
 fi
-deliver_unread_instead needed || true
 attempt=0
 while [ "$attempt" -lt "$AUTOARM_ATTEMPTS" ]; do
   # A superseded owner must not start or attach another watcher or mutate any

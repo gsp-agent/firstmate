@@ -217,6 +217,9 @@ presented_max_row() { # <rows-file>
   fi
 }
 
+PRESENT_ONLY=0
+[ "${FM_WAKE_DRAIN_PRESENT_ONLY:-}" = 1 ] && [ "$ACTOR" = main ] && PRESENT_ONLY=1
+
 case "${1:-}" in
   '') ;;
   --ack-through)
@@ -850,6 +853,27 @@ if [ -n "$ACK_THROUGH" ]; then
   else
     PRESENTED_MAX=$(presented_max_row "$MAIN_ROWS_FILE") || exit 1
   fi
+  if [ "$ACTOR" = main ] && [ "$ACK_THROUGH" -gt 0 ]; then
+    # Refuse an acknowledgement that would consume a row main was never
+    # presented in a turn (for example one typed from the session-start
+    # digest alone). A stale acknowledgement naming no queued row at or
+    # below its cutoff still degrades safely below.
+    GRANT_ROWS=/dev/null
+    if fm_wake_branch_grant_live "$ELIGIBLE_ROWS_FILE" "$ELIGIBLE_OWNER_FILE"; then
+      GRANT_ROWS=$ELIGIBLE_ROWS_FILE
+    fi
+    UNPRESENTED=$(awk -F '\t' -v cutoff="$ACK_THROUGH" -v rows="$MAIN_ROWS_FILE" -v grant="$GRANT_ROWS" '
+      BEGIN {
+        while ((getline line < rows) > 0) owned[line]=1
+        while ((getline line < grant) > 0) reserved[line]=1
+      }
+      NF >= 5 && $2 ~ /^[0-9]+$/ && $2 <= cutoff && !($2 in owned) && !($2 in reserved) { print $2; exit }
+    ' "$FM_WAKE_QUEUE" 2>/dev/null || true)
+    if [ -n "$UNPRESENTED" ]; then
+      echo "wake drain: row $UNPRESENTED was not presented to main in a turn, so this acknowledgement is refused; re-run bin/fm-wake-drain.sh in a turn and use the WAKE_ACK_REQUIRED command it prints" >&2
+      exit 1
+    fi
+  fi
   if [ "$ACTOR" = main ]; then
     # Preserve main's original whole-cutoff acknowledgement contract: a direct
     # or replayed main ack still owns every unreserved row through its cutoff,
@@ -976,7 +1000,7 @@ if [ ! -s "$FM_WAKE_QUEUE" ]; then
   RECOVERY_MARKER_TOKEN=$FM_RECOVERY_MARKER_TOKEN
   case "$RECOVERY_MARKER_TOKEN" in
     pending:downtime:*|announced:downtime:*)
-      fm_recovery_marker_begin_handling "$RECOVERY_MARKER" || {
+      [ "$PRESENT_ONLY" -eq 1 ] || fm_recovery_marker_begin_handling "$RECOVERY_MARKER" || {
         echo "wake drain: decision recovery could not begin handling safely" >&2
         exit 1
       }
@@ -992,6 +1016,25 @@ if [ ! -s "$FM_WAKE_QUEUE" ]; then
   if [ "$RECOVERY_ACK_REQUIRED" = true ]; then
     printf 'WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 0 --recovery-generation %s\n' "${RECOVERY_MARKER_TOKEN##*:}" >&2
   fi
+  assert_watcher_liveness
+  exit "$BRANCH_OUTCOMES_RC"
+fi
+
+if [ "$PRESENT_ONLY" -eq 1 ]; then
+  # Session-start presentation: print the rows, but claim nothing and begin
+  # no handling. The rows stay unread until main drains them in a turn.
+  DRAIN_VIEW_TMP=$(mktemp "$STATE/.wake-queue.actor-view.XXXXXX") || exit 1
+  awk -F '\t' 'NF >= 5 && $2 ~ /^[0-9]+$/' "$FM_WAKE_QUEUE" > "$DRAIN_VIEW_TMP" || exit 1
+  RAW_ROWS=$(fm_wake_print_deduped "$DRAIN_VIEW_TMP") || exit "$?"
+  rm -f -- "$DRAIN_VIEW_TMP" || exit 1
+  DRAIN_VIEW_TMP=
+  if [ -n "$RAW_ROWS" ]; then
+    printf '%s\n' "$RAW_ROWS" || exit "$?"
+  fi
+  fm_lock_release "$FM_WAKE_QUEUE_LOCK"
+  DRAIN_LOCK_HELD=false
+  (print_status_presentation "$RAW_ROWS") || true
+  print_branch_outcomes_section || BRANCH_OUTCOMES_RC=1
   assert_watcher_liveness
   exit "$BRANCH_OUTCOMES_RC"
 fi
