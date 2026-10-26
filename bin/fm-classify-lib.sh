@@ -375,6 +375,8 @@ status_is_context_paused() {
 # will push nothing more to that PR, and its next step starts after the merge.
 # A merge authority may read such a pause as no reason to hold that merge; any
 # other pause still holds, because a worker may pause with more pushes to come.
+# A wait for the review of the pushed head is part of that merge wait: the merge
+# authority still requires the approval at the head (obs-7bdvc round 2, 10-25).
 # The marker is the exact field "[awaits=merge]" before the first colon of a
 # pause line, beside [at=], [key=] or corr tags in any order, read on the
 # unstamped head so a readable time's colons cannot move the boundary.
