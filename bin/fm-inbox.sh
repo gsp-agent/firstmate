@@ -63,8 +63,8 @@
 # is a strict total order and two replies recorded in the same second are both
 # readable. One reply per note: a second one is refused.
 # `ready` is the read-only primary-readiness projection (lock, wake-consumer
-# health, away posture, observation time). It never acquires the session lock
-# and never infers liveness from a lock file, a session, or a pane.
+# health, delivery, away posture, observation time). It never acquires the
+# session lock and never infers liveness from a lock file, a session, or a pane.
 # A healthy consumer is the model-aware supervision verdict
 # (fm_watcher_supervision_verdict in fm-wake-lib.sh) with a beacon within
 # FM_WATCHER_STALE_GRACE, else FM_GUARD_GRACE, else the poll-derived grace, or
