@@ -91,6 +91,18 @@ while [ "$i" -lt 200 ]; do
 done
 exit 1
 SH
+# wait-gated <gate-dir> <pid>: return once <pid>'s gated sleep holds; fail
+# when it exits first or never waits.
+cat > "$HELPERS/wait-gated" <<'SH'
+#!/usr/bin/env bash
+i=0
+while [ ! -e "$1/sleeping" ]; do
+  kill -0 "$2" 2>/dev/null || exit 1
+  [ "$i" -lt 2400 ] || exit 1
+  sleep 0.05
+  i=$((i + 1))
+done
+SH
 # digest <state> [lock-pid]: the session-start digest's effects the waker
 # depends on. A fresh startup first takes the lock for [lock-pid]; then the
 # presented set is emptied, and on finishing the completion record naming
@@ -153,6 +165,29 @@ shift
 FM_STATE_OVERRIDE="$state" "$DRAIN" $* >/dev/null 2>&1
 SH
 chmod +x "$HELPERS"/*
+
+# A sleep(1) stand-in put first on PATH for a Stop hook under test only. With
+# FM_SLEEP_GATE set, its claim retry's `sleep 0.2` marks
+# $FM_SLEEP_GATE/sleeping and holds until the test creates
+# $FM_SLEEP_GATE/released, so a race replay lands its ledger write inside the
+# retry whatever the host load; every other sleep runs as before.
+SLEEP_GATE_BIN=$(fm_fakebin "$TMP_ROOT/sleep-gate")
+REAL_SLEEP=$(command -v sleep) || fail "this host has no sleep to gate"
+cat > "$SLEEP_GATE_BIN/sleep" <<SH
+#!/usr/bin/env bash
+if [ "\${1:-}" = 0.2 ] && [ -n "\${FM_SLEEP_GATE:-}" ] && [ ! -e "\$FM_SLEEP_GATE/released" ]; then
+  : > "\$FM_SLEEP_GATE/sleeping"
+  i=0
+  while [ ! -e "\$FM_SLEEP_GATE/released" ] && [ "\$i" -lt 2400 ]; do
+    "$REAL_SLEEP" 0.05
+    i=\$((i + 1))
+  done
+  exit 0
+fi
+exec "$REAL_SLEEP" "\$@"
+SH
+chmod +x "$SLEEP_GATE_BIN/sleep"
+export SLEEP_GATE_BIN
 
 install_wake_scripts() {
   local dir=$1 f
@@ -689,6 +724,115 @@ test_rewake_from_an_earlier_claude_is_not_pending() {
   pass "restart: a rewake committed by an earlier Claude process is not pending in the new one"
 }
 
+test_stop_claim_loses_to_waker_rewake_committed_after_pending_read() {
+  local dir out
+  dir=$(make_home "$TMP_ROOT/stoprace")
+  out=$(run_body "$dir" '
+    "$P" sess-1 UserPromptSubmit | "$FM_HOME/bin/fm-claude-turn.sh"
+    "$P" sess-1 Stop | "$FM_HOME/bin/fm-claude-turn.sh"
+    "$HELPERS/append" "$S" race-note
+    "$HELPERS/old-claim" "$S" || echo OLD_CLAIM_FAILED
+    . "$FM_HOME/bin/fm-wake-lib.sh"
+    printf "epoch=2 owner_pid=%s outcome=rewake updated_at=%s session_pid=%s\n%s\n" \
+      "$$" "$(date +%s)" "$LOCK_PID" "$(fm_pid_identity "$$")" > "$S/.late-rewake"
+    fm_lock_try_acquire "$S/.claude-autoarm.lock" || echo MUTEX_FAILED
+    mkdir -p "$S/gate"
+    "$P" sess-1 Stop | FM_SLEEP_GATE="$S/gate" PATH="$SLEEP_GATE_BIN:$PATH" \
+      "$FM_HOME/bin/fm-claude-stop-autoarm.sh" 2>"$S/stop-err" &
+    h=$!
+    "$HELPERS/wait-gated" "$S/gate" "$h" || echo STOP_DID_NOT_WAIT
+    mv -f "$S/.late-rewake" "$S/.claude-autoarm-epoch"
+    fm_lock_release "$S/.claude-autoarm.lock"
+    : > "$S/gate/released"
+    wait "$h"; echo "STOP_RC=$?"
+    sed -n "1s/^epoch=\([0-9]*\) .*outcome=\([a-z-]*\).*/LEDGER=\1 \2/p" "$S/.claude-autoarm-epoch"
+    "$P" sess-1 FileChanged | "$FM_HOME/bin/fm-claude-wake.sh" 2>/dev/null; echo "LATE_RC=$?"
+  ')
+  printf '%s\n' "$out" | grep -q 'OLD_CLAIM_FAILED\|MUTEX_FAILED\|STOP_DID_NOT_WAIT' \
+    && fail "stop race setup failed, got: $out"
+  expect "$out" "STOP_RC=0" "a Stop hook whose claim loses to a waker rewake committed after its pending read must not wake main again"
+  expect "$out" "LEDGER=2 rewake" "the waker rewake committed after the pending read must stay the only rewake"
+  expect "$out" "LATE_RC=0" "a later waker firing must still see the rewake pending"
+  pass "stop race: a waker rewake committed between the pending read and the claim yields exactly one rewake"
+}
+
+test_stop_claim_loses_to_inflight_waker_rewake() {
+  local dir out
+  dir=$(make_home "$TMP_ROOT/stopinflight")
+  out=$(run_body "$dir" '
+    "$P" sess-1 UserPromptSubmit | "$FM_HOME/bin/fm-claude-turn.sh"
+    "$P" sess-1 Stop | "$FM_HOME/bin/fm-claude-turn.sh"
+    "$HELPERS/append" "$S" inflight-note
+    . "$FM_HOME/bin/fm-wake-lib.sh"
+    fm_autoarm_claim_next "$S" 300 || echo CLAIM_FAILED
+    printf "epoch=%s owner_pid=%s outcome=rewake updated_at=%s session_pid=%s\n%s\n" \
+      "$FM_AUTOARM_MY_GEN" "$$" "$(date +%s)" "$LOCK_PID" "$(sed -n 2p "$S/.claude-autoarm-epoch")" > "$S/.inflight-rewake"
+    "$HELPERS/set-mtime" "$S/.claude-autoarm-epoch" "$(( $(date +%s) - 1000 ))"
+    fm_lock_try_acquire "$S/.claude-autoarm.lock" || echo MUTEX_FAILED
+    mkdir -p "$S/gate"
+    "$P" sess-1 Stop | FM_SLEEP_GATE="$S/gate" PATH="$SLEEP_GATE_BIN:$PATH" \
+      "$FM_HOME/bin/fm-claude-stop-autoarm.sh" 2>"$S/stop-err" &
+    h=$!
+    "$HELPERS/wait-gated" "$S/gate" "$h" || echo STOP_DID_NOT_WAIT
+    mv -f "$S/.inflight-rewake" "$S/.claude-autoarm-epoch"
+    fm_lock_release "$S/.claude-autoarm.lock"
+    : > "$S/gate/released"
+    wait "$h"; echo "STOP_RC=$?"
+    sed -n "1s/^epoch=\([0-9]*\) .*outcome=\([a-z-]*\).*/LEDGER=\1 \2/p" "$S/.claude-autoarm-epoch"
+    "$P" sess-1 FileChanged | "$FM_HOME/bin/fm-claude-wake.sh" 2>/dev/null; echo "LATE_RC=$?"
+  ')
+  printf '%s\n' "$out" | grep -q 'CLAIM_FAILED\|MUTEX_FAILED\|STOP_DID_NOT_WAIT' \
+    && fail "inflight stop race setup failed, got: $out"
+  expect "$out" "STOP_RC=0" "a Stop hook whose pending read saw the waker claim still arming must not wake main again once that claim commits its rewake"
+  expect "$out" "LEDGER=1 rewake" "the waker rewake committed at the generation the pending read saw must stay the only rewake"
+  expect "$out" "LATE_RC=0" "a later waker firing must still see the rewake pending"
+  pass "stop race: a waker rewake committed at the generation the pending read saw arming yields exactly one rewake"
+}
+
+test_waker_banner_carries_away_line_on_host_home() {
+  local dir out
+  dir=$(make_home "$TMP_ROOT/wakeaway")
+  rm -f "$dir/config/supervision-host-off"
+  FM_HOME="$dir" "$ROOT/bin/fm-afk-contract.sh" enter --words 'away for the day' >/dev/null 2>&1 \
+    || fail "fixture: could not record away mode"
+  out=$(run_body "$dir" '
+    "$P" sess-1 UserPromptSubmit | "$FM_HOME/bin/fm-claude-turn.sh"
+    "$P" sess-1 Stop | "$FM_HOME/bin/fm-claude-turn.sh"
+    "$HELPERS/append" "$S" away-note
+    "$P" sess-1 FileChanged | "$FM_HOME/bin/fm-claude-wake.sh" 2>"$S/wake-err"; echo "WAKE_RC=$?"
+    grep -Fqx "This wake comes from automatic supervision under the away-posture record, not from the captain: it is not a return, so handle it under the away posture." "$S/wake-err" && echo AWAY_LINE=yes || echo AWAY_LINE=no
+  ')
+  expect "$out" "WAKE_RC=2" "the waker must still wake main under an away record on a host home"
+  expect "$out" "AWAY_LINE=yes" "a waker wake on a host home with a live away record must carry the away-posture line"
+
+  dir=$(make_home "$TMP_ROOT/wakequiet")
+  rm -f "$dir/config/supervision-host-off"
+  FM_HOME="$dir" FM_AFK_MODE=quiet "$ROOT/bin/fm-afk-contract.sh" enter --words 'keep routine wakes off my main' >/dev/null 2>&1 \
+    || fail "fixture: could not record quiet mode"
+  out=$(run_body "$dir" '
+    "$P" sess-1 UserPromptSubmit | "$FM_HOME/bin/fm-claude-turn.sh"
+    "$P" sess-1 Stop | "$FM_HOME/bin/fm-claude-turn.sh"
+    "$HELPERS/append" "$S" quiet-note
+    "$P" sess-1 FileChanged | "$FM_HOME/bin/fm-claude-wake.sh" 2>"$S/wake-err"; echo "WAKE_RC=$?"
+    grep -Fqx "This wake comes from automatic supervision under the away-posture record, not from the captain: it is not a return, so handle it under the away posture." "$S/wake-err" && echo AWAY_LINE=yes || echo AWAY_LINE=no
+  ')
+  expect "$out" "WAKE_RC=2" "the waker must wake main beside a quiet record"
+  expect "$out" "AWAY_LINE=no" "a waker wake beside a quiet record must carry no away-posture line"
+
+  dir=$(make_home "$TMP_ROOT/wakenone")
+  rm -f "$dir/config/supervision-host-off"
+  out=$(run_body "$dir" '
+    "$P" sess-1 UserPromptSubmit | "$FM_HOME/bin/fm-claude-turn.sh"
+    "$P" sess-1 Stop | "$FM_HOME/bin/fm-claude-turn.sh"
+    "$HELPERS/append" "$S" plain-note
+    "$P" sess-1 FileChanged | "$FM_HOME/bin/fm-claude-wake.sh" 2>"$S/wake-err"; echo "WAKE_RC=$?"
+    grep -Fqx "This wake comes from automatic supervision under the away-posture record, not from the captain: it is not a return, so handle it under the away posture." "$S/wake-err" && echo AWAY_LINE=yes || echo AWAY_LINE=no
+  ')
+  expect "$out" "WAKE_RC=2" "the waker must wake main with no away record"
+  expect "$out" "AWAY_LINE=no" "a waker wake with no away record must carry no away-posture line"
+  pass "waker banner: a host home with a live away record carries the away-posture line, quiet and no record do not"
+}
+
 test_session_start_drain_presents_without_claiming() {
   local dir state seq gen out ack_rc=0 drain_out
   dir="$TMP_ROOT/presentonly"
@@ -770,5 +914,8 @@ test_foreign_hosts_exit_at_once
 test_stop_admission_parks_while_rewake_pending
 test_parked_rewake_then_later_row_still_delivered
 test_rewake_from_an_earlier_claude_is_not_pending
+test_stop_claim_loses_to_waker_rewake_committed_after_pending_read
+test_stop_claim_loses_to_inflight_waker_rewake
+test_waker_banner_carries_away_line_on_host_home
 test_session_start_drain_presents_without_claiming
 test_session_start_drain_excludes_branch_grant
