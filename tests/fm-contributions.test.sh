@@ -1227,8 +1227,51 @@ test_retire_is_idempotent_and_refuses_unknown_pairs() {
   pass 'retire is idempotent and refuses non-captain, unknown, malformed and signal-bearing pairs'
 }
 
+test_arm_never_exposes_an_unauthenticated_check() {
+  local home real_mv
+  home=$(new_home arm-race)
+  real_mv=$(command -v mv)
+  with_home "$home" env FM_CONTRIBUTIONS_BUDGET=1 "$ROOT/bin/fm-contributions.sh" arm >/dev/null \
+    || fail 'initial arm failed'
+  cat > "$home/fakebin/mv" <<'SH'
+#!/usr/bin/env bash
+"${FM_TEST_REAL_MV:?}" "$@" || exit $?
+last=${!#}
+case "$last" in
+  "${FM_TEST_LIVE_CHECK:?}"|"${FM_TEST_LIVE_TRUST:?}")
+    if [ -e "$FM_TEST_LIVE_CHECK" ]; then
+      FM_TEST_ROOT="$FM_TEST_ROOT" FM_TEST_STATE="$FM_TEST_STATE" bash -c '
+        . "$FM_TEST_ROOT/bin/fm-pr-lib.sh"
+        . "$FM_TEST_ROOT/bin/fm-check-lib.sh"
+        fm_custom_check_registered "$FM_TEST_STATE" contributions
+      ' || printf 'rejected\n' >> "${FM_TEST_REJECTIONS:?}"
+    fi
+    ;;
+esac
+exit 0
+SH
+  chmod +x "$home/fakebin/mv"
+  : > "$home/auth-rejections"
+  with_home "$home" env FM_TEST_REAL_MV="$real_mv" FM_TEST_ROOT="$ROOT" \
+    FM_TEST_STATE="$home/state" FM_TEST_LIVE_CHECK="$home/state/contributions.check.sh" \
+    FM_TEST_LIVE_TRUST="$home/state/contributions.check-trust" \
+    FM_TEST_REJECTIONS="$home/auth-rejections" \
+    FM_CONTRIBUTIONS_BUDGET=2 "$ROOT/bin/fm-contributions.sh" arm >/dev/null \
+    || fail 're-arm with a changed shim failed'
+  [ ! -s "$home/auth-rejections" ] \
+    || fail 'a watcher sweep during arm rejected the contributions check'
+  grep -Fxq 'export FM_CONTRIBUTIONS_BUDGET=2' "$home/state/contributions.check.sh" \
+    || fail 're-arm did not publish the changed shim'
+  FM_TEST_ROOT="$ROOT" FM_TEST_STATE="$home/state" bash -c '
+    . "$FM_TEST_ROOT/bin/fm-pr-lib.sh"
+    . "$FM_TEST_ROOT/bin/fm-check-lib.sh"
+    fm_custom_check_registered "$FM_TEST_STATE" contributions
+  ' || fail 're-arm left the contributions check unauthenticated'
+  pass 'a watcher sweep during arm never rejects the contributions check'
+}
+
 failures=0
-for test_name in test_actor_coverage test_stale_verdict test_unchecked_is_not_silence test_newest_check_has_no_verdict test_comment_wake test_review_wake test_inline_wake test_ready_issue_wake test_fresh_issue_requires_maintainer test_missing_lane_remains_missing test_partial_freshness_keeps_measured_rows test_malformed_record_cannot_prove_silence test_issue_timeline_and_exact_ack test_verdict_retains_judged_head test_verdict_actor_values_are_discoverable test_observed_replacement_refreshes_verdict test_unobserved_head_leaves_verdict_unknown test_away_yolo_is_fleet_work test_away_yolo_cross_home_is_fleet_work test_retired_and_unsupported_coverage test_unsupported_forge_is_not_fleet_work test_held_unsupported_forge_is_not_captain_work test_shared_contribution_signal_wakes_once test_watcher_keeps_diagnostics_separate_from_contribution_wakes test_expired_child_unsupported_forge_stays_unmeasured test_watcher_surfaces_new_contribution_once test_home_summary_coverage test_unreadable_pending_is_not_empty test_unreadable_sibling_keeps_healthy_record test_record_task_identity_matches_dirname_basename test_read_only_views_create_no_state test_budget_refusal_between_calls test_budget_bounded_call_timeout test_genuine_failure_near_deadline_is_unavailable test_shared_url_observed_once test_terminal_contribution_settles test_late_owner_inherits_terminal_observation test_interrupted_multi_owner_poll_settles_every_owner test_done_task_open_pr_still_observed test_reservation_defers_later_url_when_fifteen_seconds_do_not_remain test_three_second_pr_reads_complete_fresh_in_one_cycle test_slow_read_deadline_kill_is_budget_refusal test_unmeasured_url_does_not_starve_the_tail test_budget_is_cut_down_to_the_watcher_check_bound test_arm_plumbs_a_configured_budget_into_the_check_shim test_unavailable_forge_records_error_and_wakes_once_per_episode test_late_owner_keeps_failure_episode_suppressed test_retire_ends_observation_of_a_gone_contribution test_late_owner_of_a_retired_final_contribution_is_not_retired test_retire_is_idempotent_and_refuses_unknown_pairs; do
+for test_name in test_actor_coverage test_stale_verdict test_unchecked_is_not_silence test_newest_check_has_no_verdict test_comment_wake test_review_wake test_inline_wake test_ready_issue_wake test_fresh_issue_requires_maintainer test_missing_lane_remains_missing test_partial_freshness_keeps_measured_rows test_malformed_record_cannot_prove_silence test_issue_timeline_and_exact_ack test_verdict_retains_judged_head test_verdict_actor_values_are_discoverable test_observed_replacement_refreshes_verdict test_unobserved_head_leaves_verdict_unknown test_away_yolo_is_fleet_work test_away_yolo_cross_home_is_fleet_work test_retired_and_unsupported_coverage test_unsupported_forge_is_not_fleet_work test_held_unsupported_forge_is_not_captain_work test_shared_contribution_signal_wakes_once test_watcher_keeps_diagnostics_separate_from_contribution_wakes test_expired_child_unsupported_forge_stays_unmeasured test_watcher_surfaces_new_contribution_once test_home_summary_coverage test_unreadable_pending_is_not_empty test_unreadable_sibling_keeps_healthy_record test_record_task_identity_matches_dirname_basename test_read_only_views_create_no_state test_budget_refusal_between_calls test_budget_bounded_call_timeout test_genuine_failure_near_deadline_is_unavailable test_shared_url_observed_once test_terminal_contribution_settles test_late_owner_inherits_terminal_observation test_interrupted_multi_owner_poll_settles_every_owner test_done_task_open_pr_still_observed test_reservation_defers_later_url_when_fifteen_seconds_do_not_remain test_three_second_pr_reads_complete_fresh_in_one_cycle test_slow_read_deadline_kill_is_budget_refusal test_unmeasured_url_does_not_starve_the_tail test_budget_is_cut_down_to_the_watcher_check_bound test_arm_plumbs_a_configured_budget_into_the_check_shim test_unavailable_forge_records_error_and_wakes_once_per_episode test_late_owner_keeps_failure_episode_suppressed test_retire_ends_observation_of_a_gone_contribution test_late_owner_of_a_retired_final_contribution_is_not_retired test_retire_is_idempotent_and_refuses_unknown_pairs test_arm_never_exposes_an_unauthenticated_check; do
   ( "$test_name" ) || failures=$((failures + 1))
 done
 [ "$failures" -eq 0 ] || fail "$failures contribution regressions"
