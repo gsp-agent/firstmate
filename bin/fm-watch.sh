@@ -134,7 +134,9 @@
 #   check: rejected unauthenticated state checks: <paths>
 #                          unsafe state checks were refused without execution.
 #                          A custom check is refused only after one retry
-#                          under its publish lock (bin/fm-check-lib.sh).
+#                          under its publish lock (bin/fm-check-lib.sh), or
+#                          when that lock stays busy past
+#                          CUSTOM_CHECK_PUBLISH_WAIT.
 #                          Announced once per check id and fingerprint
 #                          (state/.rejected-check-<id>, bin/fm-check-lib.sh):
 #                          the wake names the owning task id, and the same
