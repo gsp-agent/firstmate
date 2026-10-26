@@ -2869,6 +2869,37 @@ resurface_row_main_only() {  # <kind> <key> <payload>
   return 1
 }
 
+# fm_wake_main_unread_scope <state> <config> <grace> [idle|needed] [primary]
+# Print the scope a primary's Stop hook reads unread rows with. The primary
+# harness decides the host default and is claude unless named.
+# main-only while an attended host home needs supervision, because the park
+# runs the engine that owns routine rows. Every row on a plain home, with the
+# host off, or on a host home with no supervision need, where no park will run
+# that engine. No scope (return 1) while the away daemon's flag or, on a host
+# home, the away record is present: the daemon or the host then takes every
+# close. A caller that has just read need passes idle or needed, so need is
+# not probed twice at one decision point.
+# Requires bin/fm-supervision-lib.sh, bin/fm-supervision-engine-lib.sh, and
+# bin/fm-afk-contract.sh to be sourced first.
+fm_wake_main_unread_scope() {  # <state> <config> <grace> [idle|needed] [primary]
+  local state=$1 config=$2 grace=$3
+  [ -e "$state/.afk" ] && return 1
+  if fm_supervision_host_enabled "$config" "${5:-claude}"; then
+    fm_afk_contract_away_present "$state" && return 1
+    case "${4:-}" in
+      needed) printf 'main-only\n'; return 0 ;;
+      idle) ;;
+      *)
+        if fm_supervision_needed "$state" "$grace"; then
+          printf 'main-only\n'
+          return 0
+        fi
+        ;;
+    esac
+  fi
+  printf 'any\n'
+}
+
 # fm_wake_main_unread <state> <scope>
 # Print the payloads of complete rows main has not been shown, oldest first.
 # A row is unread when its sequence is absent from state/.main-eligible-rows,
@@ -2878,8 +2909,13 @@ resurface_row_main_only() {  # <kind> <key> <payload>
 # Return 0 when at least one payload is printed, 1 when none, 2 on a bad scope.
 # A queue lock that cannot be taken returns 0 and prints one stable check line.
 # Restores STATE, FM_WAKE_QUEUE, and FM_WAKE_QUEUE_LOCK before returning.
+# Sets FM_WAKE_MAIN_UNREAD_OLDEST_EPOCH to the epoch of the oldest printed
+# row, or empty when no row carries one, so a caller that discards the
+# payloads can still read the oldest unread row's age from the same pass.
+FM_WAKE_MAIN_UNREAD_OLDEST_EPOCH=
 fm_wake_main_unread() {  # <state> <scope>
   local state=$1 scope=$2
+  FM_WAKE_MAIN_UNREAD_OLDEST_EPOCH=
   local saved_state saved_queue saved_lock
   local presented='' grant='' snapshot=''
   local epoch seq kind key payload rest
@@ -2942,6 +2978,7 @@ $seq
       if [ "$scope" = main-only ] && [ "$main" -eq 0 ]; then
         continue
       fi
+      [ -n "$FM_WAKE_MAIN_UNREAD_OLDEST_EPOCH" ] || FM_WAKE_MAIN_UNREAD_OLDEST_EPOCH=$epoch
       printf '%s\n' "$payload"
       matched=1
     done <<FM_UNREAD_ROWS

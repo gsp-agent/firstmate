@@ -641,6 +641,196 @@ for inherited in '' autoarm extension persistent; do
 done
 pass "readiness follows the inspected home's supervision model, never the caller's or a stale beacon"
 
+# --- delivery: an idle main with an old unread row cannot receive ----------
+# Replay of the 10-21 23:11Z exit picker: the beat stays fresh from the
+# backstop arm while main sits idle behind a modal and rows wait unread.
+# The consumer verdict still says healthy; delivery reads stalled.
+home=$(make_home ready-delivery-stalled)
+printf '%s\n' "$holder_pid" > "$home/state/.lock"
+touch "$home/state/.last-watcher-beat"
+now=$(date +%s)
+printf 'idle %s %s %s\n' "$now" "$holder_pid" "delivery-session" \
+  > "$home/state/.claude-turn"
+printf '%s\t%s\t%s\t%s\t%s\n' "$((now - 7200))" 1 check "inbox:delivery-note" \
+  "check: captain inbox note delivery-note - stalled" \
+  > "$home/state/.wake-queue"
+stalled=$(FM_WATCHER_STALE_GRACE=300 run_inbox "$home" ready) \
+  || fail "ready should succeed for a delivery-stalled home"
+printf 'ready delivery-stalled regression: %s\n' "$stalled"
+assert_equals "healthy" "$(printf '%s' "$stalled" | json_get wake_consumer state)" \
+  "a fresh beat still reads a healthy consumer when delivery stalls"
+assert_equals "delivery-stalled" "$(printf '%s' "$stalled" | json_get wake_consumer reason)" \
+  "an idle main with a two-hour unread row reports delivery-stalled"
+assert_equals "False" "$(printf '%s' "$stalled" | json_get can_receive)" \
+  "an idle main with a two-hour unread row cannot receive"
+assert_equals "idle" "$(printf '%s' "$stalled" | json_get delivery turn_state)" \
+  "the stalled delivery shows the idle turn state"
+[ "$(printf '%s' "$stalled" | json_get delivery oldest_unread_age_seconds)" -ge 7000 ] \
+  || fail "the stalled delivery must show the oldest unread age"
+
+# A long busy turn with a fresh row keeps today's answer and shows busy.
+home=$(make_home ready-delivery-busy)
+printf '%s\n' "$holder_pid" > "$home/state/.lock"
+touch "$home/state/.last-watcher-beat"
+now=$(date +%s)
+printf 'busy %s %s %s\n' "$now" "$holder_pid" "delivery-session" \
+  > "$home/state/.claude-turn"
+printf '%s\t%s\t%s\t%s\t%s\n' "$now" 1 check "inbox:delivery-note" \
+  "check: captain inbox note delivery-note - busy" \
+  > "$home/state/.wake-queue"
+busy=$(FM_WATCHER_STALE_GRACE=300 run_inbox "$home" ready) \
+  || fail "ready should succeed for a busy home"
+assert_equals "True" "$(printf '%s' "$busy" | json_get can_receive)" \
+  "a busy main with a fresh row can still receive"
+assert_equals "supervised" "$(printf '%s' "$busy" | json_get wake_consumer reason)" \
+  "a busy main keeps the consumer reason"
+assert_equals "busy" "$(printf '%s' "$busy" | json_get delivery turn_state)" \
+  "the busy delivery shows the busy turn state"
+
+# A long busy turn whose row has outwaited the grace still keeps its answer.
+home=$(make_home ready-delivery-long-busy)
+printf '%s\n' "$holder_pid" > "$home/state/.lock"
+touch "$home/state/.last-watcher-beat"
+now=$(date +%s)
+printf 'busy %s %s %s\n' "$((now - 7200))" "$holder_pid" "delivery-session" \
+  > "$home/state/.claude-turn"
+printf '%s\t%s\t%s\t%s\t%s\n' "$((now - 7200))" 1 check "inbox:delivery-note" \
+  "check: captain inbox note delivery-note - long busy" \
+  > "$home/state/.wake-queue"
+long_busy=$(FM_WATCHER_STALE_GRACE=300 run_inbox "$home" ready) \
+  || fail "ready should succeed for a long busy home"
+assert_equals "True" "$(printf '%s' "$long_busy" | json_get can_receive)" \
+  "a busy main with a two-hour unread row can still receive"
+assert_equals "supervised" "$(printf '%s' "$long_busy" | json_get wake_consumer reason)" \
+  "a long busy main keeps the consumer reason"
+assert_equals "busy" "$(printf '%s' "$long_busy" | json_get delivery turn_state)" \
+  "the long busy delivery shows the busy turn state"
+
+# On a host home that needs supervision the parked engine owns routine rows,
+# so an old heartbeat row is no stall, exactly as the Stop hook reads it.
+home=$(make_home ready-delivery-host-heartbeat)
+printf '%s\n' "$holder_pid" > "$home/state/.lock"
+touch "$home/state/.last-watcher-beat" "$home/state/host-task.meta"
+now=$(date +%s)
+printf 'idle %s %s %s\n' "$now" "$holder_pid" "delivery-session" \
+  > "$home/state/.claude-turn"
+printf '%s\t%s\t%s\t%s\t%s\n' "$((now - 7200))" 1 heartbeat heartbeat heartbeat \
+  > "$home/state/.wake-queue"
+host_beat=$(FM_WATCHER_STALE_GRACE=300 run_inbox "$home" ready) \
+  || fail "ready should succeed for a host home with a heartbeat row"
+assert_equals "True" "$(printf '%s' "$host_beat" | json_get can_receive)" \
+  "a host-owned heartbeat row cannot stall delivery"
+assert_equals "supervised" "$(printf '%s' "$host_beat" | json_get wake_consumer reason)" \
+  "a host-owned heartbeat row keeps the consumer reason"
+assert_equals "idle" "$(printf '%s' "$host_beat" | json_get delivery turn_state)" \
+  "the host home still shows the idle turn state"
+assert_equals "None" "$(printf '%s' "$host_beat" | json_get delivery oldest_unread_age_seconds)" \
+  "a host-owned heartbeat row is not main's unread row"
+
+# An empty queue reads as today, with no unread age to report.
+home=$(make_home ready-delivery-empty)
+printf '%s\n' "$holder_pid" > "$home/state/.lock"
+touch "$home/state/.last-watcher-beat"
+now=$(date +%s)
+printf 'idle %s %s %s\n' "$now" "$holder_pid" "delivery-session" \
+  > "$home/state/.claude-turn"
+empty=$(FM_WATCHER_STALE_GRACE=300 run_inbox "$home" ready) \
+  || fail "ready should succeed for an empty-queue home"
+assert_equals "True" "$(printf '%s' "$empty" | json_get can_receive)" \
+  "an empty queue can receive as today"
+assert_equals "supervised" "$(printf '%s' "$empty" | json_get wake_consumer reason)" \
+  "an empty queue keeps the consumer reason"
+assert_equals "None" "$(printf '%s' "$empty" | json_get delivery oldest_unread_age_seconds)" \
+  "an empty queue has no unread age"
+
+# A holder with no turn record of its own keeps today's answer: no record,
+# or an idle record from another pid, reads unknown and never stalls.
+for turn_owner in none other; do
+  home=$(make_home "ready-delivery-$turn_owner")
+  printf '%s\n' "$holder_pid" > "$home/state/.lock"
+  touch "$home/state/.last-watcher-beat"
+  now=$(date +%s)
+  if [ "$turn_owner" = other ]; then
+    printf 'idle %s %s %s\n' "$now" "$pi_pid" "other-session" \
+      > "$home/state/.claude-turn"
+  fi
+  printf '%s\t%s\t%s\t%s\t%s\n' "$((now - 7200))" 1 check "inbox:delivery-note" \
+    "check: captain inbox note delivery-note - $turn_owner" \
+    > "$home/state/.wake-queue"
+  unowned=$(FM_WATCHER_STALE_GRACE=300 run_inbox "$home" ready) \
+    || fail "ready should succeed for a $turn_owner turn record"
+  assert_equals "True" "$(printf '%s' "$unowned" | json_get can_receive)" \
+    "a $turn_owner turn record with an old unread row can receive as today"
+  assert_equals "supervised" "$(printf '%s' "$unowned" | json_get wake_consumer reason)" \
+    "a $turn_owner turn record keeps the consumer reason"
+  assert_equals "unknown" "$(printf '%s' "$unowned" | json_get delivery turn_state)" \
+    "a $turn_owner turn record reads an unknown turn state"
+done
+# A non-Claude holder has no host by default, so main owns every row and its
+# oldest unread signal row reports its real age.
+home=$(make_home ready-delivery-codex-signal)
+printf '%s\n' "$codex_pid" > "$home/state/.lock"
+touch "$home/state/.last-watcher-beat" "$home/state/worker.meta"
+now=$(date +%s)
+printf '%s\t%s\t%s\t%s\t%s\n' "$((now - 7200))" 1 signal worker.status \
+  "signal: worker done" > "$home/state/.wake-queue"
+codex_signal=$(FM_WATCHER_STALE_GRACE=300 run_inbox "$home" ready) \
+  || fail "ready should succeed for a codex home with a signal row"
+assert_equals "unknown" "$(printf '%s' "$codex_signal" | json_get delivery turn_state)" \
+  "a codex holder has no Claude turn state"
+[ "$(printf '%s' "$codex_signal" | json_get delivery oldest_unread_age_seconds)" -ge 7000 ] \
+  || fail "a codex holder's unread signal row must show its oldest unread age"
+# A live supervision-host grant means the Stop hook is parked in a host that
+# hands main its rows when the engine turn ends, so an old note is no stall.
+# The same home with a dead grant owner still reads delivery-stalled.
+perl -e 'exit 0' &
+dead_owner_pid=$!
+wait "$dead_owner_pid" 2>/dev/null || true
+for grant_owner in live dead; do
+  home=$(make_home "ready-delivery-grant-$grant_owner")
+  printf '%s\n' "$holder_pid" > "$home/state/.lock"
+  touch "$home/state/.last-watcher-beat" "$home/state/worker.meta"
+  now=$(date +%s)
+  printf 'idle %s %s %s\n' "$now" "$holder_pid" "delivery-session" \
+    > "$home/state/.claude-turn"
+  {
+    printf '%s\t%s\t%s\t%s\t%s\n' "$((now - 500))" 1 signal worker.status \
+      "signal: worker done"
+    printf '%s\t%s\t%s\t%s\t%s\n' "$((now - 400))" 2 check "inbox:grant-note" \
+      "check: captain inbox note grant-note - $grant_owner"
+  } > "$home/state/.wake-queue"
+  printf '1\n' > "$home/state/.branch-eligible-rows"
+  if [ "$grant_owner" = live ]; then
+    grant_pid=$pi_pid
+    grant_identity=$(FM_STATE_OVERRIDE="$home/state" \
+      bash -c '. "$1/bin/fm-wake-lib.sh"; fm_pid_identity "$2"' _ "$ROOT" "$grant_pid")
+  else
+    grant_pid=$dead_owner_pid
+    grant_identity=gone
+  fi
+  printf 'fm-branch-eligible-owner-v1\n%s\n%s\ngrant-1\n' "$grant_pid" "$grant_identity" \
+    > "$home/state/.branch-eligible-owner"
+  granted=$(FM_WATCHER_STALE_GRACE=300 run_inbox "$home" ready) \
+    || fail "ready should succeed for a $grant_owner grant owner"
+  assert_equals "idle" "$(printf '%s' "$granted" | json_get delivery turn_state)" \
+    "a $grant_owner grant owner keeps the idle turn state"
+  [ "$(printf '%s' "$granted" | json_get delivery oldest_unread_age_seconds)" -ge 400 ] \
+    || fail "a $grant_owner grant owner must show the note's unread age"
+  if [ "$grant_owner" = live ]; then
+    assert_equals "True" "$(printf '%s' "$granted" | json_get can_receive)" \
+      "a live host grant is no delivery stall"
+    assert_equals "supervised" "$(printf '%s' "$granted" | json_get wake_consumer reason)" \
+      "a live host grant keeps the consumer reason"
+  else
+    assert_equals "False" "$(printf '%s' "$granted" | json_get can_receive)" \
+      "a dead grant owner still reads a delivery stall"
+    assert_equals "delivery-stalled" "$(printf '%s' "$granted" | json_get wake_consumer reason)" \
+      "a dead grant owner reports delivery-stalled"
+  fi
+done
+
+pass "delivery stalls only for an idle main with an old unread row"
+
 # The model is the lock holder's, not the caller's: a codex primary still needs
 # its watcher process when a Claude session asks.
 home=$(make_home ready-codex-holder)
