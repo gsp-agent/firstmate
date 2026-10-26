@@ -3054,14 +3054,14 @@ test_park_test_clock_requires_the_marker() {
   pass "host: the park's test clock is inert without the test marker"
 }
 
-# A park at or beyond the hook registration is refused for the default. The
-# default is observable through the pre-turn margin: a turn bound plus grace of
-# 27000 seconds crosses a 27000-second park, so the close goes to main at the
-# boundary, while under a 28799-second park the same turn runs.
-park_outcome() {  # <name> <park-seconds>; sets PARK_OUTCOME to boundary or handled
+# One close meets the pre-turn margin with the park clock held at zero: a turn
+# whose bound plus grace crosses the park boundary is refused there, so the
+# close goes to main before any engine turn starts, while a turn with room runs.
+park_outcome() {  # <name> <park-seconds>; the turn bound and grace come from the caller's environment; sets PARK_OUTCOME to boundary or handled
   local home
   home=$(make_home "$1" away)
-  FM_SUPERVISION_HOST_PARK_SECONDS=$2 FM_SUPERVISION_HOST_TURN_TIMEOUT=26990 FM_SUPERVISION_ENGINE_GRACE=10 start_host "$home"
+  echo 0 > "$home/park-clock"
+  FM_TEST_SUPERVISION_HOST_CLOCK="$home/park-clock" FM_SUPERVISION_HOST_PARK_SECONDS=$2 start_host "$home"
   wait_until 150 watcher_live "$home" || fail "$1: the host never started a watcher cycle"
   append_status "$home" 'one close'
   wait_until 250 sh -c '[ -s "$1/host.rc" ] || grep -q "	handled	" "$1/state/.supervision-host.log" 2>/dev/null' _ "$home" \
@@ -3077,7 +3077,12 @@ park_outcome() {  # <name> <park-seconds>; sets PARK_OUTCOME to boundary or hand
   fi
 }
 
+# A park at or beyond the hook registration is refused for the default: a turn
+# bound plus grace of 27000 seconds crosses a 27000-second park, so the close
+# goes to main at the boundary, while under a 28799-second park the same turn
+# runs.
 test_park_seconds_at_or_beyond_the_hook_registration_fall_back_to_the_default() {
+  local -x FM_SUPERVISION_HOST_TURN_TIMEOUT=26990 FM_SUPERVISION_ENGINE_GRACE=10
   park_outcome park-28799 28799
   [ "$PARK_OUTCOME" = handled ] || fail "a park just under the registration must be honored"
   park_outcome park-28800 28800
@@ -3087,39 +3092,17 @@ test_park_seconds_at_or_beyond_the_hook_registration_fall_back_to_the_default() 
   pass "host: a park at or beyond the Stop-hook registration falls back to the default boundary"
 }
 
-# The default turn bound is observable through the pre-turn margin, with the
-# park clock held at zero and the engine grace at its 30-second default.
-# A park of 571 seconds leaves room for a 540-second turn plus the grace, so
-# the turn runs.
-# A park of 570 seconds leaves no such room, so a turn that would run past
-# the default cap is refused at the boundary and no engine turn starts.
-# Together the two parks pin the default at exactly 540 seconds.
-default_turn_outcome() {  # <name> <park-seconds>; sets DEFAULT_TURN_OUTCOME to boundary or handled
-  local home
-  home=$(make_home "$1" away)
-  echo 0 > "$home/park-clock"
-  FM_TEST_SUPERVISION_HOST_CLOCK="$home/park-clock" FM_SUPERVISION_HOST_PARK_SECONDS=$2 \
-    FM_SUPERVISION_ENGINE_GRACE=30 start_host "$home"
-  wait_until 150 watcher_live "$home" || fail "$1: the host never started a watcher cycle"
-  append_status "$home" 'one close'
-  wait_until 250 sh -c '[ -s "$1/host.rc" ] || grep -q "	handled	" "$1/state/.supervision-host.log" 2>/dev/null' _ "$home" \
-    || fail "$1: the close was neither handled nor handed to main: $(cat "$home/state/.supervision-host.log")"
-  if host_exited "$home"; then
-    grep -q '^supervision-host: cycle boundary - ' "$home/host.out" || fail "$1: the host exited without the boundary: $(cat "$home/host.out")"
-    ! ls "$home"/engine-call.* >/dev/null 2>&1 || fail "$1: an engine turn ran before the boundary exit"
-    DEFAULT_TURN_OUTCOME=boundary
-  else
-    kill -TERM "$(awk -F '\t' '$1 == "host" { print $2 }' "$home/state/.supervision-host")"
-    wait_until 200 host_exited "$home" || fail "$1: the host did not stop on TERM"
-    DEFAULT_TURN_OUTCOME=handled
-  fi
-}
-
+# The default turn bound, with the engine grace at its 30-second default: a
+# park of 571 seconds leaves room for a 540-second turn plus the grace, so the
+# turn runs, and a park of 570 seconds leaves no such room, so the turn is
+# refused at the boundary and no engine turn starts. Together the two parks
+# pin the default at exactly 540 seconds.
 test_default_turn_timeout_is_540_seconds() {
-  default_turn_outcome default-turn-571 571
-  [ "$DEFAULT_TURN_OUTCOME" = handled ] || fail "a park with room for the default cap plus its grace must run the turn"
-  default_turn_outcome default-turn-570 570
-  [ "$DEFAULT_TURN_OUTCOME" = boundary ] || fail "a park without room for the default cap plus its grace must refuse the turn at the boundary"
+  local -x FM_SUPERVISION_ENGINE_GRACE=30
+  park_outcome default-turn-571 571
+  [ "$PARK_OUTCOME" = handled ] || fail "a park with room for the default cap plus its grace must run the turn"
+  park_outcome default-turn-570 570
+  [ "$PARK_OUTCOME" = boundary ] || fail "a park without room for the default cap plus its grace must refuse the turn at the boundary"
   pass "host: the default turn bound is 540 seconds, so a park with room for it runs the turn and a park without is refused at the boundary"
 }
 

@@ -404,7 +404,7 @@ test_host_checkpoint_bounds_the_park_by_posture() {
   run_host_checkpoint "$home" boundary --seconds 5
   expect_code 124 "$STATUS" "a host park that reached its bound is a quiet checkpoint"
   assert_contains "$(cat "$home/out.txt")" "checkpoint: no actionable wake within 5s" "the boundary must read as the ordinary quiet line"
-  assert_contains "$(cat "$home/host-env")" $'args=park\nprimary=codex\npark=5\nlimit=1235' \
+  assert_contains "$(cat "$home/host-env")" $'args=park\nprimary=codex\npark=5\nlimit=575' \
     "attended, the host must park for the checkpoint's own bound with the codex pin and a turn limit past it"
   : > "$home/state/.afk-contract"
   run_host_checkpoint "$home" boundary --seconds 5
