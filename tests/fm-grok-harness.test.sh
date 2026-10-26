@@ -117,10 +117,15 @@ SH
 # call records the GROK_HOME it ran under and appends a transcript turn under
 # that home's sessions directory, as a launched worker does, so executing a
 # launch shows which home the worker would use and where its transcript lands.
+# FM_FAKE_GROK_INSPECT_FAIL makes discovery fail.
 install_fake_grok() {  # <fakebin>
   cat > "$1/grok" <<'SH'
 #!/usr/bin/env bash
 if [ "${1:-}" = inspect ] && [ "${2:-}" = --json ]; then
+  if [ -n "${FM_FAKE_GROK_INSPECT_FAIL:-}" ]; then
+    echo 'grok: inspect unavailable' >&2
+    exit 1
+  fi
   printf '%s\n' '{"skills":[{"name":"no-mistakes"},{"name":"poteto-mode"},{"name":"deslop"},{"name":"long-running-background-tasks"}],"mcpServers":[{"name":"notion"},{"name":"gmail"}],"plugins":[{"name":"cursor-plugin"}]}'
   exit 0
 fi
@@ -266,6 +271,28 @@ PY
   pass "grok worker skills file keeps a listed skill enabled while an unlisted one is disabled"
 }
 
+test_grok_worker_discovery_failure_warns_and_launches() {
+  local rec case_dir home proj wt fakebin grok_home id out status
+  rec=$(make_spawn_case discovery-fail)
+  IFS='|' read -r case_dir home proj wt fakebin grok_home id <<EOF
+$rec
+EOF
+  install_fake_grok "$fakebin"
+  out=$(FM_FAKE_GROK_INSPECT_FAIL=1 run_grok_spawn "$home" "$proj" "$wt" "$fakebin" "$grok_home" "$id")
+  status=$?
+  expect_code 0 "$status" "a grok worker spawn whose discovery fails should still launch: $out"
+  assert_contains "$out" "warning: Grok worker home $home/state/$id.grok-home: grok inspect --json failed" \
+    "a failed grok discovery did not warn that the worker is untrimmed"
+  python3 -I - "$home/state/$id.grok-home/config.toml" <<'PY' || fail "a failed grok discovery did not leave the untrimmed worker config"
+import sys, tomllib
+with open(sys.argv[1], "rb") as fh:
+    cfg = tomllib.load(fh)
+if cfg["skills"]["disabled"] != [] or cfg["disabled_mcp_servers"] != []:
+    sys.exit(1)
+PY
+  pass "a failed grok discovery warns that the worker is untrimmed and still launches it"
+}
+
 test_grok_worker_transcripts_survive_teardown() {
   local rec case_dir home proj wt fakebin grok_home id out status launch transcript
   rec=$(make_spawn_case transcripts)
@@ -279,6 +306,8 @@ EOF
   expect_code 0 "$status" "grok worker spawn should succeed: $out"
   launch=$(grep -F 'grok --always-approve' "$case_dir/launch.log" | tail -n 1)
   [ -n "$launch" ] || fail "grok worker spawn sent no launch command"
+  assert_equals 700 "$(python3 -I -c 'import os, stat, sys; print(format(stat.S_IMODE(os.stat(sys.argv[1]).st_mode), "o"))' "$home/state/$id.grok-home")" \
+    "the grok worker home is not private"
   GROK_HOME="$grok_home" PATH="$fakebin:$PATH" /bin/sh -c "$launch" >/dev/null 2>&1 || fail "grok worker launch failed to run"
 
   FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" \
@@ -287,6 +316,8 @@ EOF
     || fail "grok teardown failed"
 
   assert_absent "$home/state/$id.grok-home" "teardown left the grok worker home"
+  assert_equals 700 "$(python3 -I -c 'import os, stat, sys; print(format(stat.S_IMODE(os.stat(sys.argv[1]).st_mode), "o"))' "$grok_home/sessions")" \
+    "the operator sessions directory provisioning created is not private"
   transcript="$grok_home/sessions/fake-workspace/chat_history.jsonl"
   assert_present "$transcript" "grok worker transcript did not survive teardown in the operator sessions directory"
   assert_grep 'fake worker turn' "$transcript" "grok worker transcript lost its content"
@@ -352,7 +383,26 @@ SH
   grep -qxF -- '# Definition of done' "$launch_brief" || fail "grok relaunch did not take the full launch brief"
   assert_launch_context_discipline "$brief" "$launch_brief"
   assert_intent_contract_last "$launch_brief"
-  pass "grok slim launch brief defers only later-read sections and a relaunch takes the full brief"
+
+  # A restore launches without --relaunch, and with no home brief additions its
+  # note ends the Definition of done the slim brief would leave out.
+  rec=$(make_spawn_case slim-restore)
+  IFS='|' read -r case_dir home proj wt fakebin grok_home id <<EOF
+$rec
+EOF
+  install_fake_grok "$fakebin"
+  scaffold_ship_brief "$home" "$id"
+  brief="$home/data/$id/brief.md"
+  launch_brief="$home/data/$id/launch-brief.md"
+  printf '\n## Restore note (2026-10-26T00:00:00Z)\n\nThis task was closed before its done was met and has been restored from its archived record.\nrestore-marker-remaining-work\n' >> "$brief"
+  out=$(run_grok_spawn "$home" "$proj" "$wt" "$fakebin" "$grok_home" "$id")
+  status=$?
+  expect_code 0 "$status" "a restored grok worker spawn should succeed: $out"
+  assert_grep 'restore-marker-remaining-work' "$launch_brief" "a restored grok worker launch dropped the restore note"
+  grep -qxF -- '# Definition of done' "$launch_brief" || fail "a restored grok worker did not take the full launch brief"
+  assert_launch_context_discipline "$brief" "$launch_brief"
+  assert_intent_contract_last "$launch_brief"
+  pass "grok slim launch brief defers only later-read sections, and a relaunch or restore takes the full brief"
 }
 
 test_grok_hook_requires_registered_token
@@ -361,5 +411,6 @@ test_fm_lock_recognizes_grok_holder
 test_grok_worker_home_trims_launch_context
 test_grok_worker_home_resolves_operator_trust_and_policy
 test_grok_worker_skills_file_keeps_listed_skills
+test_grok_worker_discovery_failure_warns_and_launches
 test_grok_worker_transcripts_survive_teardown
 test_grok_slim_launch_brief_defers_only_later_sections

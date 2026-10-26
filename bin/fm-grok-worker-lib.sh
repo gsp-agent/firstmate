@@ -32,8 +32,12 @@
 # teardown, which removes only the link).
 # The one write to the operator's home is creating that sessions directory
 # when it is absent, so the link never dangles.
-# When discovery is unavailable (no grok or python3 on PATH), the generated
-# config still carries the compat, media, and output-cap sections.
+# The worker home, and the operator sessions directory when provisioning
+# creates it, are private (mode 0700), matching Grok's own home.
+# When discovery fails or is unavailable (no grok or python3 on PATH), the
+# generated config still carries the compat, media, and output-cap sections,
+# and a one-line warning on stderr names the failure and the worker home
+# whose skills index and MCP servers stay untrimmed.
 #
 # fm_grok_worker_context_rules prints the tool-output and skill-loading
 # discipline every Grok ship and scout launch brief carries, so exploration
@@ -51,9 +55,9 @@
 # its status command, the instruction inbox, and home brief additions) is
 # carried verbatim.
 # It returns 1 without printing when the source has none of the left-out
-# sections, so the caller falls back to the full launch brief.
-# bin/fm-spawn.sh also takes the full launch brief on a relaunch, because the
-# progress note bin/fm-control.sh appends ends the source brief.
+# sections, or carries a continuation note bin/fm-control.sh appends (a
+# relaunch `## Progress note` or a restore `## Restore note`), so the caller
+# falls back to the full launch brief and the worker reads that note up front.
 # Secondmate charters never take either path: fm-spawn.sh gates both on
 # KIND != secondmate, so a supervisor seat keeps its full configuration.
 
@@ -87,7 +91,7 @@ fm_grok_worker_provision() {  # <operator-grok-home> <worker-home> <worktree> <s
   local op_home=$1 worker_home=$2 worktree=$3 skills_file=$4 extra_skills name
   [ -n "$op_home" ] && [ -n "$worker_home" ] && [ -n "$worktree" ] && [ -n "$skills_file" ] || return 1
   extra_skills=$(fm_grok_worker_skills "$skills_file") || return 1
-  mkdir -p "$worker_home" "$op_home/sessions" || return 1
+  (umask 077 && mkdir -p "$worker_home" "$op_home/sessions") || return 1
   for name in auth.json trusted_folders.toml AGENTS.md rules managed_config.toml requirements.toml hooks sessions; do
     [ -e "$op_home/$name" ] || [ -L "$op_home/$name" ] || continue
     if [ ! -e "$worker_home/$name" ] && [ ! -L "$worker_home/$name" ]; then
@@ -110,8 +114,8 @@ try:
     skills = {s["name"] for s in data.get("skills", []) if s.get("name")}
     mcps = {m["name"] for m in data.get("mcpServers", []) if m.get("name")}
     plugins = {p["name"] for p in data.get("plugins", []) if p.get("name")}
-except Exception:
-    pass
+except Exception as exc:
+    print(f"warning: Grok worker home {worker_home}: grok inspect --json failed ({type(exc).__name__}: {exc}); its skills index and MCP servers are not trimmed", file=sys.stderr)
 
 model_default = ""
 try:
@@ -161,6 +165,7 @@ with open(os.path.join(worker_home, "config.toml"), "w") as fh:
     fh.write("\n".join(lines) + "\n")
 PY
   else
+    echo "warning: Grok worker home $worker_home: python3 or grok is not on PATH, so discovery did not run; its skills index and MCP servers are not trimmed" >&2
     cat >"$worker_home/config.toml" <<'EOF' || return 1
 # Generated per-task worker configuration. Do not edit by hand.
 disabled_mcp_servers = []
@@ -203,6 +208,7 @@ EOF
 fm_grok_slim_launch_brief() {  # <source-brief> <state> <task-id> <code-root> <decision-owner>
   local source_brief=$1 state=$2 task_id=$3 root=$4 decision_owner=$5
   local body done_lines pointer='' carried='' heading when
+  ! grep -qE '^## (Progress|Restore) note \(' "$source_brief" || return 1
   body=$(cat "$source_brief") || return 1
   done_lines=$(fm_brief_heading_body "$source_brief" "# Definition of done" |
     grep -E '^(Delivery contract: |Ship branch: |Write your findings to )')

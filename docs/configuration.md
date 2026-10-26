@@ -938,6 +938,7 @@ Grok ship and scout workers run under a per-task Grok home, `state/<id>.grok-hom
 The optional local, gitignored `config/grok-worker-skills` keeps more skills enabled.
 Write one skill name per line; blank lines and lines beginning with `#` are ignored, and surrounding whitespace on a line is trimmed.
 With no file, only those three skills stay enabled, and a name that matches no discovered skill changes nothing.
+When `grok inspect --json` fails, or `grok` or `python3` is not on the spawning host's `PATH`, the worker still launches with nothing trimmed, and the spawn prints a one-line warning naming its worker home.
 
 The file is read from this home's own configuration directory each time a Grok worker is spawned or relaunched, so a change reaches the next launch while a running worker keeps its list.
 A present file that cannot be read as UTF-8 text stops the launch, and a relaunch onto Grok refuses on it before stopping the running worker.

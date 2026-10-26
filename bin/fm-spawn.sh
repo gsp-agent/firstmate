@@ -578,8 +578,9 @@
 # A grok crewmate or scout additionally runs under a per-task worker home
 # (state/<id>.grok-home, bin/fm-grok-worker-lib.sh) that trims its skills
 # index, MCP servers, and media tools, and whose launch brief carries the
-# Grok-only worker context discipline; a fresh one receives a slim launch
-# brief that links the brief's later-read sections instead of inlining them.
+# Grok-only worker context discipline; one whose brief carries no relaunch or
+# restore note receives a slim launch brief that links the brief's later-read
+# sections instead of inlining them.
 # A grok secondmate keeps the operator configuration and the full charter
 # launch.
 # muse installs no hook at all - its plugin engine is off in the default build - so
@@ -4219,7 +4220,7 @@ if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
   BRIEF="$DATA/$ID/launch-brief.md"
   BRIEF_TMP="$DATA/$ID/.launch-brief.md.${BASHPID:-$$}"
   {
-    if [ "$HARNESS" = grok ] && [ "$KIND" != secondmate ] && [ "$RELAUNCH" -eq 0 ] &&
+    if [ "$HARNESS" = grok ] && [ "$KIND" != secondmate ] &&
       fm_grok_slim_launch_brief "$SOURCE_BRIEF" "$STATE" "$ID" "$FM_ROOT" "$DECISION_OWNER"; then
       true
     else
