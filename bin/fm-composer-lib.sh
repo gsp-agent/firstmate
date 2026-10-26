@@ -563,9 +563,10 @@ FM_COMPOSER_PI_MAX_LINES=${FM_COMPOSER_PI_MAX_LINES:-8}
 
 # Column overhang of Grok 1.0.5's titled bottom border over its aligned top
 # and content rows, captured live in issue #3436's 2026-09-14 idle repro
-# (see docs/verification/runtime-backends.md). Not re-verified against a live
-# Grok install since; may need to change if a future Grok release renders a
-# different overhang or scales it with title/model-name length.
+# (see docs/verification/runtime-backends.md). The overhang itself has not
+# been re-verified live since, and Grok 1.0.70's mode-suffixed title showed
+# none (see _fm_composer_titled_bottom_ok); a future release may render a
+# different overhang or scale it with title/model-name length.
 FM_COMPOSER_GROK_TITLE_OVERHANG=3
 
 # 0 when <content> is exactly one glyph drawn from <glyph-list>.
