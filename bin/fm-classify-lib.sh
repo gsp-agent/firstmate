@@ -47,13 +47,30 @@
 # Directory of this library, used to locate the sibling fm-crew-state.sh reader.
 # Resolved at source time from BASH_SOURCE so it works whether sourced by a
 # bin/ script (which sets its own SCRIPT_DIR) or directly by a test.
-_FM_CLASSIFY_LIB_DIR="$(d=${BASH_SOURCE[0]%/*}; [ "$d" != "${BASH_SOURCE[0]}" ] || d=.; cd "${d:-/}" && pwd 2>/dev/null)" || _FM_CLASSIFY_LIB_DIR="."
+# An absolute, already-normal path is its own logical directory, so loading
+# this library starts no process; only a relative or unnormalized one needs the
+# cd/pwd subshell.
+_FM_CLASSIFY_LIB_DIR=${BASH_SOURCE[0]%/*}
+case "$_FM_CLASSIFY_LIB_DIR/" in
+  */./*|*/../*|*//*|[!/]*|/)
+    _FM_CLASSIFY_LIB_DIR="$(d=${BASH_SOURCE[0]%/*}; [ "$d" != "${BASH_SOURCE[0]}" ] || d=.; cd "${d:-/}" && pwd 2>/dev/null)" || _FM_CLASSIFY_LIB_DIR="."
+    ;;
+esac
 
 # The kernel name, read once at source time rather than forked by every status
 # stat helper below. These helpers mostly run inside $() subshells, where a lazy
 # cache would never persist. fm-wake-lib.sh's _FM_UNAME is reused when it is
-# already loaded; either value is compared only against Darwin.
-_FM_CLASSIFY_UNAME_S=${_FM_UNAME:-$(uname -s 2>/dev/null)}
+# already loaded; either value is compared only against Darwin. A second load
+# in the same shell (bin/fm-dod-lib.sh sources this library again) reuses the
+# first read, and a Bash built for Darwin (OSTYPE darwin*) can only be running
+# on Darwin, so there the kernel name needs no uname process.
+_FM_CLASSIFY_UNAME_S=${_FM_UNAME:-${_FM_CLASSIFY_UNAME_S:-}}
+if [ -z "$_FM_CLASSIFY_UNAME_S" ]; then
+  case "${OSTYPE:-}" in
+    darwin*) _FM_CLASSIFY_UNAME_S=Darwin ;;
+    *) _FM_CLASSIFY_UNAME_S=$(uname -s 2>/dev/null) ;;
+  esac
+fi
 
 # The crew current-state reader used for the "provably working" decision.
 # Overridable so tests can stub the run-step/pane verdict without a real worktree
