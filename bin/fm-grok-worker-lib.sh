@@ -243,6 +243,7 @@ SECTIONS
   printf '\nDecision owner for this dispatch: %s\n\n' "$decision_owner"
   printf '%s\n' "$body"
   printf '\n# Full brief\n'
+  # shellcheck disable=SC2016 # The backticks are literal Markdown around the %s path, not command substitution.
   printf 'The complete brief is at `%s`.\n' "$source_brief"
   [ -z "$carried" ] || printf 'This launch text already carries its %s sections in full above.\n' "$carried"
   printf 'It leaves out the sections below; they remain the contract, so read each one from that file at the point named:\n%s' "$pointer"

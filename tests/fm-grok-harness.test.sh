@@ -157,6 +157,7 @@ assert_launch_context_discipline() {  # <brief> <launch-brief>
   local discipline line
   assert_no_grep '# Worker context discipline' "$1" "the scaffold carries the Grok-only context discipline"
   discipline=$(section_of "$2" '# Worker context discipline')
+  # shellcheck disable=SC2016 # Backticks and ~ are literal assertion text, matched verbatim.
   for line in 'Cap search and grep output near 50 lines' 'Tail or head long command output' \
     'Do not read skills at session start' "the project's \`.agents/skills/<name>/SKILL.md\`" \
     '`~/.agents/skills/<category>/<name>/SKILL.md`' '`~/.claude/skills/<name>/SKILL.md`'; do
