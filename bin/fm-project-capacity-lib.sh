@@ -120,6 +120,8 @@
 # not carry that identity cannot be recorded, so it is not admitted past its
 # count.
 #
+# The pool-tree limit beside places is fm_project_capacity_pool below.
+#
 # Requires bin/fm-wake-lib.sh (root home, local homes, project lock path),
 # bin/fm-secondmate-registry-lib.sh (which the local-homes walk reads), and
 # bin/fm-backend.sh (fm_meta_get) to be sourced first. The headroom reading
@@ -322,6 +324,64 @@ fm_project_capacity_occupants() {  # <project-lock> <project-dir> <first-state> 
       FM_PROJECT_CAPACITY_OCCUPANT_IDS="${FM_PROJECT_CAPACITY_OCCUPANT_IDS:+$FM_PROJECT_CAPACITY_OCCUPANT_IDS, }$label"
     done
   done
+  return 0
+}
+
+# Pool trees: the second limit on a fresh worker. A Treehouse-backed spawn
+# also needs a free tree in the project's worktree pool, and a pool whose trees
+# are all held cannot start a worker however many places are free. The pool's
+# size is the project's own treehouse.toml `max_trees` (the last such line); a
+# project without that line declares no size here, so the pool is not counted
+# and `treehouse get` alone decides. Treehouse's state is read with
+# `treehouse status --json` from the project directory, bounded by
+# FM_PROJECT_CAPACITY_POOL_TIMEOUT seconds. A tree is free when Treehouse
+# reports it `available`, and each tree the pool can still create below its
+# size is free too. `available` is Treehouse's status, not its reuse test, so
+# the count can be high, never low: a spawn whose `treehouse get` then refuses
+# the pool still defers (bin/fm-spawn.sh).
+# Sets FM_PROJECT_CAPACITY_POOL_KNOWN to 1 with FM_PROJECT_CAPACITY_POOL_MAX,
+# FM_PROJECT_CAPACITY_POOL_FREE and FM_PROJECT_CAPACITY_POOL_HELD (each held
+# tree as <name> <status>[ by <lease holder>], comma-separated), or to 0 when
+# the project declares no size or the pool cannot be read; never fails.
+FM_PROJECT_CAPACITY_POOL_TIMEOUT=${FM_PROJECT_CAPACITY_POOL_TIMEOUT:-20}
+fm_project_capacity_pool() {  # <project-dir>
+  local project=$1 toml line key value max="" json counts total avail
+  FM_PROJECT_CAPACITY_POOL_KNOWN=0
+  FM_PROJECT_CAPACITY_POOL_MAX=
+  FM_PROJECT_CAPACITY_POOL_FREE=
+  FM_PROJECT_CAPACITY_POOL_HELD=
+  toml="$project/treehouse.toml"
+  [ -f "$toml" ] && [ -r "$toml" ] || return 0
+  while IFS= read -r line || [ -n "$line" ]; do
+    line=${line%%#*}
+    case "$line" in
+      *max_trees*=*) ;;
+      *) continue ;;
+    esac
+    key=${line%%=*}
+    key=${key//[[:space:]]/}
+    [ "$key" = max_trees ] || continue
+    value=${line#*=}
+    value=${value//[[:space:]]/}
+    case "$value" in '' | *[!0-9]* | 0*) continue ;; esac
+    max=$value
+  done < "$toml"
+  [ -n "$max" ] || return 0
+  command -v jq >/dev/null 2>&1 && command -v treehouse >/dev/null 2>&1 || return 0
+  _fm_project_capacity_require_timeout || return 0
+  json=$(CDPATH='' cd -- "$project" 2>/dev/null &&
+    fm_run_timed "$FM_PROJECT_CAPACITY_POOL_TIMEOUT" treehouse status --json </dev/null 2>/dev/null) || return 0
+  counts=$(printf '%s\n' "$json" | jq -er 'arrays | "\(length) \(map(select(.status == "available")) | length)"' 2>/dev/null) ||
+    return 0
+  total=${counts%% *}
+  avail=${counts#* }
+  FM_PROJECT_CAPACITY_POOL_HELD=$(printf '%s\n' "$json" | jq -r '[.[] | select(.status != "available") |
+    "\(.name) \(.status)" + (if (.lease_holder // "") != "" then " by \(.lease_holder)" else "" end)] | join(", ")' 2>/dev/null) ||
+    FM_PROJECT_CAPACITY_POOL_HELD=
+  FM_PROJECT_CAPACITY_POOL_MAX=$max
+  FM_PROJECT_CAPACITY_POOL_FREE=$avail
+  [ "$total" -ge "$max" ] || FM_PROJECT_CAPACITY_POOL_FREE=$((avail + max - total))
+  FM_PROJECT_CAPACITY_POOL_KNOWN=1
   return 0
 }
 

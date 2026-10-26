@@ -284,6 +284,16 @@
 #   A batch reports such a pair as `batch: DEFERRED` and exits 75 when nothing
 #   else failed. A relaunch and a --secondmate spawn are never counted against
 #   capacity.
+#   Pool trees: a fresh Treehouse-backed ship or scout (not Orca, a relaunch or
+#   a --secondmate spawn) also needs a free tree in the project's worktree pool.
+#   When the project's treehouse.toml declares max_trees and every tree is
+#   held (fm_project_capacity_pool in bin/fm-project-capacity-lib.sh owns the
+#   count), the spawn prints one `deferred:` line naming the pool and its held
+#   trees and exits 75 under the same lock and with the same nothing-created
+#   guarantee as a full count of places. A `treehouse get` in the task pane
+#   that still reports every tree in use or dirty also defers with 75, after
+#   closing the endpoint it opened, since that count reads Treehouse's status
+#   rather than its reuse test.
 #   Regression coverage: tests/fm-project-capacity.test.sh.
 #   Live sessions: when this machine has a live-session detector
 #   (bin/fm-live-session-lib.sh owns which detector, the folder name it is
@@ -4154,6 +4164,19 @@ if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
     fi
   fi
 fi
+# Pool-tree admission: a fresh Treehouse-backed worker also needs a free tree
+# in the project's worktree pool (fm_project_capacity_pool owns the count). A
+# pool whose declared trees are all held defers here, under the same project
+# lock, before any endpoint or backlog move, exactly like a full count of
+# places, so the item stays queued and the reason names the pool instead of a
+# later `treehouse get` error.
+if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
+  fm_project_capacity_pool "$PROJ_ABS"
+  if [ "$FM_PROJECT_CAPACITY_POOL_KNOWN" = 1 ] && [ "$FM_PROJECT_CAPACITY_POOL_FREE" -le 0 ]; then
+    echo "deferred: project $(basename "$PROJ_ABS")'s worktree pool is full: max_trees $FM_PROJECT_CAPACITY_POOL_MAX in $PROJ_ABS/treehouse.toml and every tree is held (${FM_PROJECT_CAPACITY_POOL_HELD:-none listed}); task $ID was not launched and its backlog item stays queued - dispatch it again once a tree is returned" >&2
+    exit "$SPAWN_DEFER_EXIT"
+  fi
+fi
 [ "$QUEUE_START" -eq 0 ] || spawn_queue_start_brief
 [ -f "$BRIEF" ] || {
   echo "error: task $ID has no brief at inaccessible data path $BRIEF" >&2
@@ -5749,6 +5772,17 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
         else
           treehouse_cleanup="could not confirm closure of its endpoint; inspect window $treehouse_unclosed"
         fi
+        # A pool Treehouse itself reports full is the pool-tree limit, not a
+        # failure: nothing launched and the item is still queued, so this
+        # defers like the admission count above (which can read high, since
+        # `available` is not Treehouse's reuse test).
+        case "$treehouse_said" in
+          *"worktrees are in use or dirty"*)
+            [ "$SPAWN_ENDPOINT_CLOSED" != 1 ] || SPAWN_CREATED_ENDPOINT=
+            echo "deferred: project $(basename "$PROJ_ABS")'s worktree pool is full by treehouse's own allocation; task $ID was not launched and its backlog item stays queued - dispatch it again once a tree is returned; $treehouse_cleanup; treehouse said:"$'\n'"$treehouse_said" >&2
+            exit "$SPAWN_DEFER_EXIT"
+            ;;
+        esac
         echo "error: treehouse get exited without entering a worktree for project '$PROJ_ABS', so no worker was launched; $treehouse_cleanup; treehouse said:"$'\n'"${treehouse_said:-  (no output)}" >&2
         exit 1
       fi

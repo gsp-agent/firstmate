@@ -3,12 +3,15 @@
 # project really has free and which ready backlog rows are waiting for one.
 #
 # Usage: fm-dispatch-ready.sh [--if-capped] <project-dir>
+#        fm-dispatch-ready.sh --freed-by <task-id>
 #
 # Prints one `Dispatch:` line about <project-dir>, and a second one when ready
-# rows name other projects. bin/fm-teardown.sh prints it after a cleanup and
-# bin/fm-pr-check.sh after a recorded PR handoff, the two events that free a
-# place, so the wake that frees a place also says what to start in it. Main may
-# run it at any time for any project.
+# rows name other projects. Each event that frees a place prints it, so the
+# wake that frees a place also says what to start in it: bin/fm-teardown.sh
+# after a cleanup, bin/fm-pr-check.sh after a recorded PR handoff, and
+# bin/fm-supervision-host.sh (through --freed-by below) when a worker's own
+# status line takes it off working. Main may run it at any time for any
+# project.
 #
 # Why it exists: main once judged capacity by counting the backlog's in-flight
 # rows. That count includes merged rows nobody closed and workers that already
@@ -20,7 +23,10 @@
 # is a snapshot) and never a reason to skip a spawn the line says to try.
 #
 # Ready rows are `bin/fm-tasks-axi.sh ready` (unblocked, unheld, queued), in
-# backlog order. A row names this project when its repo is the project's
+# backlog order, less `captain` rows, which are decisions held for a person
+# rather than work a spawn takes. Free starts are the smaller of the free places
+# and the free trees in the project's worktree pool (fm_project_capacity_pool),
+# the two limits bin/fm-spawn.sh admits by. A row names this project when its repo is the project's
 # registered name (its directory's basename). A row whose repo is `firstmate`
 # names it only when the project shares this code root's lineage
 # (fm_role_self_repo), whatever the project's directory is called.
@@ -51,13 +57,41 @@ DISPATCH_LIST_MAX=8
 DISPATCH_READY_TIMEOUT=${FM_DISPATCH_READY_TIMEOUT:-30}
 case "$DISPATCH_READY_TIMEOUT" in ''|*[!0-9]*|0) DISPATCH_READY_TIMEOUT=30 ;; esac
 
+# --freed-by <task-id>: the place a worker frees when its own status line takes
+# it off working, with no cleanup or PR handoff. bin/fm-supervision-host.sh
+# asks this for each signal wake the supervision branch handled, because that
+# branch cannot start work. Prints the project's first Dispatch line only when
+# the task's record is a worker (not a secondmate) with no recorded pr=, its
+# crew state no longer reads working (fm_project_capacity_is_working, the read
+# bin/fm-spawn.sh's count uses), and that line says to start something;
+# otherwise prints nothing. Exits 0 either way.
+if [ "${1:-}" = --freed-by ]; then
+  [ "$#" -eq 2 ] || { echo "usage: fm-dispatch-ready.sh --freed-by <task-id>" >&2; exit 2; }
+  case "$2" in '' | *[!A-Za-z0-9._-]*) echo "error: invalid task id: $2" >&2; exit 2 ;; esac
+  meta="$STATE/$2.meta"
+  [ -f "$meta" ] && [ ! -L "$meta" ] && [ -r "$meta" ] || exit 0
+  ! grep -q '^pr=' "$meta" || exit 0
+  ! grep -qx 'kind=secondmate' "$meta" || exit 0
+  freed_project=$(grep '^project=' "$meta" | tail -n 1 | cut -d= -f2-)
+  [ -n "$freed_project" ] && [ -d "$freed_project" ] || exit 0
+  # shellcheck source=bin/fm-timeout-lib.sh
+  . "$SCRIPT_DIR/fm-timeout-lib.sh"
+  { . "$SCRIPT_DIR/fm-wake-lib.sh" && . "$SCRIPT_DIR/fm-secondmate-registry-lib.sh" &&
+    . "$SCRIPT_DIR/fm-backend.sh" && . "$SCRIPT_DIR/fm-project-capacity-lib.sh"; } >/dev/null 2>&1 || exit 0
+  fm_project_capacity_is_working "$STATE" "$2"
+  [ "$?" -eq 1 ] || exit 0
+  freed_line=$("$0" "$freed_project" 2>/dev/null | head -n 1)
+  case "$freed_line" in *"start it now"*) printf '%s\n' "$freed_line" ;; esac
+  exit 0
+fi
+
 IF_CAPPED=0
 if [ "${1:-}" = --if-capped ]; then
   IF_CAPPED=1
   shift
 fi
 if [ "$#" -ne 1 ] || [ -z "$1" ]; then
-  echo "usage: fm-dispatch-ready.sh [--if-capped] <project-dir>" >&2
+  echo "usage: fm-dispatch-ready.sh [--if-capped] <project-dir> | --freed-by <task-id>" >&2
   exit 2
 fi
 PROJ=$(CDPATH='' cd -- "$1" 2>/dev/null && pwd -P) || {
@@ -115,6 +149,9 @@ if READY_OUT=$(fm_run_timed "$DISPATCH_READY_TIMEOUT" "$SCRIPT_DIR/fm-tasks-axi.
     line=${line#  }
     id=${line%%,*}
     rest=${line#*,queued,}
+    kind=${rest%%,*}
+    # A captain row is a decision held for a person, not work a spawn takes.
+    [ "$kind" != captain ] || continue
     rest=${rest#*,}
     repo=${rest%%,*}
     match=0
@@ -159,6 +196,13 @@ if [ -z "$COUNT_ERROR" ] && [ -n "$CAP" ] && [ "$CAP" != 0 ] && { [ -n "$MINE" ]
   fi
 fi
 
+# --- pool trees, the second limit bin/fm-spawn.sh admits by -------------------
+POOL_KNOWN=0
+if [ -n "$MINE" ] && [ -z "$READY_ERROR" ] && [ "$CAP" != 0 ]; then
+  fm_project_capacity_pool "$PROJ"
+  POOL_KNOWN=$FM_PROJECT_CAPACITY_POOL_KNOWN
+fi
+
 # --- the line -------------------------------------------------------------------
 START="Write each brief and start it now with bin/fm-spawn.sh, in that order, until a spawn defers with exit 75 (its row stays queued); the spawn alone decides capacity, never a count of backlog rows."
 if [ -n "$COUNT_ERROR" ]; then
@@ -173,6 +217,10 @@ else
   places="$NAME has $FREE of $CAP places free by bin/fm-spawn.sh's own count"
   [ -z "$HOLDERS" ] || places="$places (holding: $(short_list "$HOLDERS" 6))"
 fi
+if [ "$POOL_KNOWN" = 1 ]; then
+  places="$places, and $FM_PROJECT_CAPACITY_POOL_FREE of $FM_PROJECT_CAPACITY_POOL_MAX worktree pool trees free"
+  [ "$FM_PROJECT_CAPACITY_POOL_FREE" -gt 0 ] || places="$places (held: $(short_list "$FM_PROJECT_CAPACITY_POOL_HELD" 6))"
+fi
 
 if [ -n "$READY_ERROR" ]; then
   printf 'Dispatch: %s. Its ready rows could not be read (%s): run bin/fm-tasks-axi.sh ready and start the rows for %s with bin/fm-spawn.sh until one defers with exit 75.\n' \
@@ -183,6 +231,10 @@ if [ -z "$MINE" ]; then
   printf 'Dispatch: %s; no ready backlog row names it, so nothing starts and its places were not counted.\n' "$places"
 elif [ "$CAP" = 0 ]; then
   printf 'Dispatch: %s. Ready for it, held back by that declaration: %s.\n' "$places" "$(short_list "$MINE" "$DISPATCH_LIST_MAX")"
+elif [ "$POOL_KNOWN" = 1 ] && [ "$FM_PROJECT_CAPACITY_POOL_FREE" -le 0 ]; then
+  # bin/fm-spawn.sh defers with 75 on a full pool whatever the places say.
+  printf 'Dispatch: %s. Ready for it, in backlog order: %s. Nothing starts until a pool tree is returned; the next cleanup in %s prints this line again.\n' \
+    "$places" "$(short_list "$MINE" "$DISPATCH_LIST_MAX")" "$NAME"
 elif [ -z "$COUNT_ERROR" ] && [ -n "$CAP" ] && [ "$FREE" -le 0 ]; then
   # At the declared count bin/fm-spawn.sh can still admit one extra start
   # through config/project-capacity-headroom, once per window. Read the same
@@ -201,11 +253,11 @@ elif [ -z "$COUNT_ERROR" ] && [ -n "$CAP" ] && [ "$FREE" -le 0 ]; then
         left=$((spent_at + FM_PROJECT_CAPACITY_OVERSHARE_WINDOW - $(date +%s)))
         [ "$left" -gt 0 ] || left=0
       fi
-      printf 'Dispatch: %s, and its one extra start for this window is taken%s. Ready for it, in backlog order: %s. Nothing starts until a place frees or that window passes; the next cleanup, recorded PR or heartbeat line in %s says which.\n' \
+      printf 'Dispatch: %s, and its one extra start for this window is taken%s. Ready for it, in backlog order: %s. Nothing starts until a place frees or that window passes; the next cleanup, recorded PR or freed place in %s prints this line again.\n' \
         "$places" "${left:+ (the window passes in about ${left}s)}" "$(short_list "$MINE" "$DISPATCH_LIST_MAX")" "$NAME"
       ;;
     *)
-      printf 'Dispatch: %s. Ready for it, in backlog order: %s. Nothing starts until a place frees; the next cleanup, recorded PR or heartbeat line in %s says when.\n' \
+      printf 'Dispatch: %s. Ready for it, in backlog order: %s. Nothing starts until a place frees; the next cleanup, recorded PR or freed place in %s prints this line again.\n' \
         "$places" "$(short_list "$MINE" "$DISPATCH_LIST_MAX")" "$NAME"
       ;;
   esac

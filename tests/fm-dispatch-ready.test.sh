@@ -46,6 +46,14 @@ case "$line" in
 esac
 SH
   chmod +x "$fakebin/fm-crew-state-stub"
+  cat > "$fakebin/treehouse" <<'SH'
+#!/usr/bin/env bash
+case "$*" in
+  "status --json") [ -z "${FM_FAKE_TREEHOUSE_STATUS:-}" ] || printf '%s\n' "$FM_FAKE_TREEHOUSE_STATUS" ;;
+esac
+exit 0
+SH
+  chmod +x "$fakebin/treehouse"
   fm_git_init_commit "$case_dir/proj"
   fm_git_add_origin "$case_dir/proj" "$case_dir/proj.origin.git"
   printf '%s\n' "$case_dir"
@@ -173,6 +181,68 @@ test_full_project_with_headroom_leaves_the_extra_start_to_spawn() {
   pass "a full project with a headroom reading leaves its extra start to bin/fm-spawn.sh and names a spent window"
 }
 
+# The pool-tree limit beside places (the 07:19:45 10-26 shape): places free,
+# every tree in the project's worktree pool held, so nothing starts.
+GSP_FULL_POOL='[{"name":"1","status":"in-use","lease_holder":""},{"name":"2","status":"in-use","lease_holder":""},{"name":"3","status":"in-use","lease_holder":""},{"name":"4","status":"leased","lease_holder":"fm-spawn-other"}]'
+test_full_pool_holds_ready_rows_beside_free_places() {
+  local case_dir out
+  case_dir=$(make_case full-pool)
+  declare_capacity "$case_dir" "proj 5"
+  write_worker "$case_dir" busy-1 'working [at=1790000000]: building'
+  axi "$case_dir" add ready-a "first ready" --kind ship --repo proj
+  printf '%s\n' '# pool size' 'max_trees = 4' 'root = ""' > "$case_dir/proj/treehouse.toml"
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$GSP_FULL_POOL run_helper "$case_dir") || fail "full-pool: helper failed"
+  assert_contains "$out" "proj has 4 of 5 places free" "full-pool: places"
+  assert_contains "$out" "and 0 of 4 worktree pool trees free (held: 1 in-use, 2 in-use, 3 in-use, 4 leased by fm-spawn-other)" \
+    "full-pool: pool count or holders"
+  assert_contains "$out" "Nothing starts until a pool tree is returned" "full-pool: wording"
+  assert_not_contains "$out" "start it now" "full-pool: told to start into a full pool"
+  out=$(FM_FAKE_TREEHOUSE_STATUS='[{"name":"1","status":"in-use"},{"name":"2","status":"available"}]' run_helper "$case_dir") ||
+    fail "full-pool: helper failed with a free tree"
+  assert_contains "$out" "and 3 of 4 worktree pool trees free" "full-pool: an available tree plus two creatable"
+  assert_contains "$out" "start it now with bin/fm-spawn.sh" "full-pool: a free tree was not offered"
+  pass "a full worktree pool holds ready rows back beside free places, and a free tree offers them"
+}
+
+test_captain_rows_are_not_offered() {
+  local case_dir out
+  case_dir=$(make_case captain-row)
+  declare_capacity "$case_dir" "proj 2"
+  axi "$case_dir" add decide-a "a decision for the captain" --kind captain --repo proj
+  axi "$case_dir" add ready-b "real work" --kind ship --repo proj
+  out=$(run_helper "$case_dir") || fail "captain-row: helper failed"
+  assert_contains "$out" "Ready for it, in backlog order: ready-b." "captain-row: ship row"
+  assert_not_contains "$out" "decide-a" "captain-row: a captain row was offered as work"
+  pass "a kind: captain row is never offered as work to start"
+}
+
+# A worker's own status line taking it off working frees a place with no
+# cleanup or PR; --freed-by prints the line only then, and only when it says start.
+test_freed_by_prints_only_for_a_worker_that_stopped() {
+  local case_dir out
+  case_dir=$(make_case freed-by)
+  declare_capacity "$case_dir" "proj 1"
+  write_worker "$case_dir" stopper 'working [at=1790000000]: building'
+  axi "$case_dir" add ready-a "first ready" --kind ship --repo proj
+  out=$(run_helper "$case_dir" --freed-by stopper) || fail "freed-by: helper failed"
+  assert_equals "" "$out" "freed-by: a still-working worker printed a line"
+  printf '%s\n' 'paused [at=1790000100]: waiting on review' >> "$case_dir/home/state/stopper.status"
+  out=$(run_helper "$case_dir" --freed-by stopper) || fail "freed-by: helper failed after the pause"
+  assert_contains "$out" "Dispatch: proj has 1 of 1 places free" "freed-by: the freed place"
+  assert_contains "$out" "Ready for it, in backlog order: ready-a." "freed-by: ready row"
+  [ "$(printf '%s\n' "$out" | wc -l | tr -d ' ')" = 1 ] || fail "freed-by: printed more than one line: $out"
+  printf '%s\n' 'pr=https://github.com/example/proj/pull/9' >> "$case_dir/home/state/stopper.meta"
+  out=$(run_helper "$case_dir" --freed-by stopper) || fail "freed-by: helper failed with pr="
+  assert_equals "" "$out" "freed-by: a worker whose PR already freed its place printed again"
+  out=$(run_helper "$case_dir" --freed-by no-such-task) || fail "freed-by: helper failed for a missing record"
+  assert_equals "" "$out" "freed-by: a missing record printed a line"
+  axi "$case_dir" rm ready-a
+  sed -i.bak '/^pr=/d' "$case_dir/home/state/stopper.meta" && rm -f "$case_dir/home/state/stopper.meta.bak"
+  out=$(run_helper "$case_dir" --freed-by stopper) || fail "freed-by: helper failed with nothing ready"
+  assert_equals "" "$out" "freed-by: a freed place with nothing to start printed a line"
+  pass "--freed-by prints the Dispatch line only for a stopped worker without a PR, and only when it says start"
+}
+
 test_uncapped_project_starts_everything_and_if_capped_is_silent() {
   local case_dir out
   case_dir=$(make_case uncapped)
@@ -283,6 +353,8 @@ test_instructions_carry_the_dispatch_and_merge_cleanup_rules() {
   assert_contains "$agents" '`bin/fm-spawn.sh` alone judges project capacity: never decide a project is full by counting backlog rows' \
     "AGENTS.md lost the only-admitter rule"
   assert_contains "$agents" 'until a spawn defers with exit 75' "AGENTS.md lost the start-until-deferred rule"
+  assert_contains "$agents" '`freed-place:` hand-back from the supervision host' "AGENTS.md lost the freed-place trigger"
+  assert_not_contains "$agents" 'handoff, and heartbeat is a place-release' "AGENTS.md still names heartbeat as a trigger"
   assert_contains "$agents" 'a `check: merge landed:` task is cleaned up in that same turn' "AGENTS.md lost the merge cleanup rule"
   assert_contains "$skill" 'run `bin/fm-teardown.sh <id>` with no flags in that same turn' "ship-landing lost the same-turn cleanup"
   assert_contains "$skill" 'is filed as its own task and never kept as a reason to leave the merged one in place' \
@@ -294,6 +366,9 @@ test_instructions_carry_the_dispatch_and_merge_cleanup_rules() {
 test_free_places_are_counted_by_spawns_rule_not_backlog_rows
 test_full_project_names_its_ready_rows_and_waits
 test_full_project_with_headroom_leaves_the_extra_start_to_spawn
+test_full_pool_holds_ready_rows_beside_free_places
+test_captain_rows_are_not_offered
+test_freed_by_prints_only_for_a_worker_that_stopped
 test_uncapped_project_starts_everything_and_if_capped_is_silent
 test_zero_places_hold_ready_work_back
 test_no_ready_rows_skips_the_count

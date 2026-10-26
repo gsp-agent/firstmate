@@ -597,6 +597,31 @@ emit() {  # [line...]
   [ -z "$text" ] || printf '%s\n' "$text"
 }
 
+# The Dispatch lines for places freed by the signal rows in <reason>: each
+# signal names a task's status file, and bin/fm-dispatch-ready.sh --freed-by
+# prints that task's project line only when its worker stopped working and the
+# line says to start something. One line per project, in row order.
+freed_place_dispatch_lines() {  # <reason>
+  local line id seen='|' dispatch out=''
+  while IFS= read -r line; do
+    case "$line" in 'signal: '*.status) ;; *) continue ;; esac
+    id=${line#signal: }
+    id=${id##*/}
+    id=${id%.status}
+    case "$id" in '' | *[!A-Za-z0-9._-]*) continue ;; esac
+    case "$seen" in *"|$id|"*) continue ;; esac
+    seen="$seen$id|"
+    dispatch=$(fm_run_timed 300 env FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" \
+      "$SCRIPT_DIR/fm-dispatch-ready.sh" --freed-by "$id" </dev/null 2>/dev/null) || dispatch=
+    [ -n "$dispatch" ] || continue
+    case "$out" in *"$dispatch"*) continue ;; esac
+    out=${out:+$out$'\n'}$dispatch
+  done <<FREED
+$1
+FREED
+  [ -z "$out" ] || printf '%s\n' "$out"
+}
+
 exit_to_main() {  # <why> [further lines]
   local lines=${2:-} rc=0 generation=$SUCCESSOR_GENERATION
   leave_successor_for_main || rc=1
@@ -1221,6 +1246,19 @@ while :; do
     ARM_TEXT=
     exit_to_main "the supervision session handled this wake, and a main-only wake is queued for you; run bin/fm-wake-drain.sh and handle it" \
       "$HEALTH_NOTE"
+  fi
+  # A worker whose own status line took it off working freed its place with no
+  # cleanup or PR handoff, and the branch that handled that signal cannot start
+  # work. Hand main the Dispatch line when it names work to start
+  # (bin/fm-dispatch-ready.sh --freed-by owns the test). Away, the away
+  # session's own dispatch rules apply instead.
+  if ! fm_afk_contract_away_present "$STATE"; then
+    FREED_DISPATCH=$(freed_place_dispatch_lines "$REASON")
+    if [ -n "$FREED_DISPATCH" ]; then
+      ARM_TEXT=
+      exit_to_main "freed-place: a worker's own status line took it off working and freed its place with no cleanup or PR; start the ready rows each Dispatch line below names with bin/fm-spawn.sh until a spawn defers with exit 75" \
+        "$FREED_DISPATCH${HEALTH_NOTE:+$'\n'$HEALTH_NOTE}"
+    fi
   fi
 
   # Handled: park on the successor.
