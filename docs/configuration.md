@@ -932,6 +932,22 @@ Unset or empty values default to `1`; only `1` enables trimming.
 Raw launch commands retain their supplied MCP flags; the policy does not edit user or project MCP configuration.
 [`bin/fm-spawn.sh`](../bin/fm-spawn.sh) owns the launch mechanics; [`tests/fm-spawn-dispatch-profile.test.sh`](../tests/fm-spawn-dispatch-profile.test.sh) covers the default Claude launch line.
 
+## Grok worker skills (config/grok-worker-skills)
+
+Grok ship and scout workers run under a per-task Grok home, `state/<id>.grok-home`, that disables every skill `grok inspect --json` discovers for the worktree except `firstmate-coding-guidelines`, `long-running-background-tasks`, and `no-mistakes`, which keeps the skills index out of the worker's starting context.
+The optional local, gitignored `config/grok-worker-skills` keeps more skills enabled.
+Write one skill name per line; blank lines and lines beginning with `#` are ignored, and surrounding whitespace on a line is trimmed.
+With no file, only those three skills stay enabled, and a name that matches no discovered skill changes nothing.
+
+The file is read from this home's own configuration directory each time a Grok worker is spawned or relaunched, so a change reaches the next launch while a running worker keeps its list.
+A present file that cannot be read stops the launch.
+It is not in the inherited configuration set, so create it in each home that wants it.
+Grok secondmates keep the operator's full Grok configuration and never read it.
+
+A worker finds a skill its session does not list at the project's `.agents/skills/<name>/SKILL.md`, or at the path given by the instruction that names it.
+Worker transcripts are written through a link to the operator's Grok `sessions` directory, so they stay there after teardown removes the task's Grok home.
+[`bin/fm-grok-worker-lib.sh`](../bin/fm-grok-worker-lib.sh) owns the worker home and this list.
+
 ## Worker tool exclusions (config/crew-exclude-tools)
 
 The optional local, gitignored `config/crew-exclude-tools` hides named tools from this home's ship and scout workers, for example to keep an MCP server's write tools out of reach while its read tools stay available.

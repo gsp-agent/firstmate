@@ -6787,19 +6787,20 @@ fi
 # A Grok crewmate or scout runs under a per-task worker home so it does not
 # inherit the operator seat's skills index, MCP servers, or media tools.
 # bin/fm-grok-worker-lib.sh owns that home; the operator's own Grok home is
-# only read there (config discovery and auth/hooks symlinks), never written
-# beyond the turn-end hook wiring above that already targets it.
+# only read there (config discovery and auth, hooks, and sessions symlinks),
+# and its one write beyond the turn-end hook wiring above is creating the
+# sessions directory when absent.
 # A Grok secondmate is a supervisor seat and keeps the full configuration.
 if [ "$HARNESS" = grok ] && [ "$KIND" != secondmate ]; then
   GROK_WORKER_HOME=$(fm_grok_worker_home "$STATE" "$ID") || {
     echo "error: could not resolve the Grok worker home for $ID" >&2
     exit 1
   }
-  fm_grok_worker_provision "${GROK_HOME:-$HOME/.grok}" "$GROK_WORKER_HOME" "$WT" || {
+  fm_grok_worker_provision "${GROK_HOME:-$HOME/.grok}" "$GROK_WORKER_HOME" "$WT" "$CONFIG/grok-worker-skills" || {
     echo "error: could not provision the Grok worker home for $ID at $GROK_WORKER_HOME" >&2
     exit 1
   }
-  LAUNCH="GROK_HOME=$(shell_quote "$GROK_WORKER_HOME") GROK_CLAUDE_SKILLS_ENABLED=false GROK_CURSOR_SKILLS_ENABLED=false GROK_CLAUDE_MCPS_ENABLED=false GROK_CURSOR_MCPS_ENABLED=false $LAUNCH"
+  LAUNCH="GROK_HOME=$(shell_quote "$GROK_WORKER_HOME") $LAUNCH"
 fi
 if [ "$KIND" = secondmate ]; then
   sq_home=$(shell_quote "$PROJ_ABS")

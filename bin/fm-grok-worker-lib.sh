@@ -4,16 +4,25 @@
 # Usage: . bin/fm-grok-worker-lib.sh
 #
 # fm_grok_worker_provision <operator-grok-home> <worker-home> <worktree>
+#   <skills-file>
 # creates a per-task Grok home that trims the fixed launch context a worker
 # otherwise inherits from the operator's seat: the discovered skills index
-# (all but a small allowlist), compat and user-config MCP servers, plugin
-# skills, image/video tools, and oversized tool output.
+# (all but the built-in allowlist below and the names <skills-file> lists),
+# compat and user-config MCP servers, plugin skills, image/video tools, and
+# oversized tool output.
+# <skills-file> is the spawning home's optional config/grok-worker-skills:
+# one skill name per line, with blank lines and `#` lines ignored. An absent
+# file keeps only the built-in allowlist; one that cannot be read fails
+# provisioning.
 # Discovery is `grok inspect --json` in the worktree at spawn time, so no
 # operator-specific server, skill, or plugin name is ever recorded here.
-# The operator's own home is never written: the worker home carries only a
-# generated config.toml plus symlinks to the operator's auth.json (sign-in
-# is referenced, never copied) and hooks directory (the turn-end hook
-# bin/fm-spawn.sh installs there keeps loading unchanged).
+# The worker home carries a generated config.toml plus symlinks to the
+# operator's auth.json (sign-in is referenced, never copied), hooks
+# directory (the turn-end hook bin/fm-spawn.sh installs there keeps loading
+# unchanged), and sessions directory (worker transcripts land with the
+# operator's and outlive teardown, which removes only the link).
+# The one write to the operator's home is creating that sessions directory
+# when it is absent, so the link never dangles.
 # When discovery is unavailable (no grok or python3 on PATH), the generated
 # config still carries the compat, media, and output-cap sections.
 #
@@ -39,24 +48,36 @@ fm_grok_worker_home() {  # <state-dir> <task-id>
   printf '%s/%s.grok-home\n' "$1" "$2"
 }
 
-fm_grok_worker_provision() {  # <operator-grok-home> <worker-home> <worktree>
-  local op_home=$1 worker_home=$2 worktree=$3
-  [ -n "$op_home" ] && [ -n "$worker_home" ] && [ -n "$worktree" ] || return 1
-  mkdir -p "$worker_home" || return 1
+fm_grok_worker_provision() {  # <operator-grok-home> <worker-home> <worktree> <skills-file>
+  local op_home=$1 worker_home=$2 worktree=$3 skills_file=$4 name
+  [ -n "$op_home" ] && [ -n "$worker_home" ] && [ -n "$worktree" ] && [ -n "$skills_file" ] || return 1
+  mkdir -p "$worker_home" "$op_home/sessions" || return 1
   if [ -e "$op_home/auth.json" ] || [ -L "$op_home/auth.json" ]; then
     if [ ! -e "$worker_home/auth.json" ] && [ ! -L "$worker_home/auth.json" ]; then
       ln -s "$op_home/auth.json" "$worker_home/auth.json" || return 1
     fi
   fi
-  if [ ! -e "$worker_home/hooks" ] && [ ! -L "$worker_home/hooks" ]; then
-    ln -s "$op_home/hooks" "$worker_home/hooks" || return 1
-  fi
+  for name in hooks sessions; do
+    if [ ! -e "$worker_home/$name" ] && [ ! -L "$worker_home/$name" ]; then
+      ln -s "$op_home/$name" "$worker_home/$name" || return 1
+    fi
+  done
   if command -v python3 >/dev/null 2>&1 && command -v grok >/dev/null 2>&1; then
-    FM_GROK_ALLOW="$FM_GROK_WORKER_ALLOW_SKILLS" python3 -I - "$op_home" "$worker_home" "$worktree" <<'PY' || return 1
+    FM_GROK_ALLOW="$FM_GROK_WORKER_ALLOW_SKILLS" python3 -I - "$op_home" "$worker_home" "$worktree" "$skills_file" <<'PY' || return 1
 import json, os, subprocess, sys
 
-op_home, worker_home, worktree = sys.argv[1:4]
+op_home, worker_home, worktree, skills_file = sys.argv[1:5]
 allow = set(os.environ.get("FM_GROK_ALLOW", "").split())
+try:
+    with open(skills_file, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if line and not line.startswith("#"):
+                allow.add(line)
+except FileNotFoundError:
+    pass
+except OSError as exc:
+    sys.exit(f"error: cannot read {skills_file}: {exc.strerror}")
 skills, mcps, plugins = set(), set(), set()
 try:
     out = subprocess.run(

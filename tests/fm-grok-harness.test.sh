@@ -114,8 +114,9 @@ SH
 
 # A fixed `grok inspect --json` inventory, so the worker configuration is
 # derived from known discovery rather than whatever grok the host has. Any other
-# call records the GROK_HOME it ran under, so executing a launch shows which
-# home the worker would use.
+# call records the GROK_HOME it ran under and appends a transcript turn under
+# that home's sessions directory, as a launched worker does, so executing a
+# launch shows which home the worker would use and where its transcript lands.
 install_fake_grok() {  # <fakebin>
   cat > "$1/grok" <<'SH'
 #!/usr/bin/env bash
@@ -124,7 +125,8 @@ if [ "${1:-}" = inspect ] && [ "${2:-}" = --json ]; then
   exit 0
 fi
 printf '%s\n' "${GROK_HOME:-}" > "${FM_FAKE_GROK_HOME_LOG:-/dev/null}"
-exit 0
+mkdir -p "${GROK_HOME:?}/sessions/fake-workspace" &&
+  printf '%s\n' '{"role":"user","content":"fake worker turn"}' >> "$GROK_HOME/sessions/fake-workspace/chat_history.jsonl"
 SH
   chmod +x "$1/grok"
 }
@@ -192,6 +194,55 @@ PY
   pass "grok worker home trims the discovered launch context and the launch runs under it"
 }
 
+test_grok_worker_skills_file_keeps_listed_skills() {
+  local rec case_dir home proj wt fakebin grok_home id out status
+  rec=$(make_spawn_case worker-skills)
+  IFS='|' read -r case_dir home proj wt fakebin grok_home id <<EOF
+$rec
+EOF
+  install_fake_grok "$fakebin"
+  printf '%s\n' '# extra skills for this home' '' '  deslop  ' 'not-discovered' > "$home/config/grok-worker-skills"
+  out=$(run_grok_spawn "$home" "$proj" "$wt" "$fakebin" "$grok_home" "$id")
+  status=$?
+  expect_code 0 "$status" "grok worker spawn with a skills file should succeed: $out"
+  python3 -I - "$home/state/$id.grok-home/config.toml" <<'PY' || fail "grok worker skills file did not keep the listed skill enabled and the unlisted one disabled"
+import sys, tomllib
+with open(sys.argv[1], "rb") as fh:
+    cfg = tomllib.load(fh)
+if cfg["skills"]["disabled"] != ["poteto-mode"]:
+    print("skills.disabled = %r" % cfg["skills"]["disabled"], file=sys.stderr)
+    sys.exit(1)
+PY
+  pass "grok worker skills file keeps a listed skill enabled while an unlisted one is disabled"
+}
+
+test_grok_worker_transcripts_survive_teardown() {
+  local rec case_dir home proj wt fakebin grok_home id out status launch transcript
+  rec=$(make_spawn_case transcripts)
+  IFS='|' read -r case_dir home proj wt fakebin grok_home id <<EOF
+$rec
+EOF
+  install_fake_grok "$fakebin"
+  assert_absent "$grok_home/sessions" "the operator grok home already had a sessions directory"
+  out=$(FM_FAKE_LAUNCH_LOG="$case_dir/launch.log" run_grok_spawn "$home" "$proj" "$wt" "$fakebin" "$grok_home" "$id")
+  status=$?
+  expect_code 0 "$status" "grok worker spawn should succeed: $out"
+  launch=$(grep -F 'grok --always-approve' "$case_dir/launch.log" | tail -n 1)
+  [ -n "$launch" ] || fail "grok worker spawn sent no launch command"
+  GROK_HOME="$grok_home" PATH="$fakebin:$PATH" /bin/sh -c "$launch" >/dev/null 2>&1 || fail "grok worker launch failed to run"
+
+  FM_ROOT_OVERRIDE="$ROOT" FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" \
+    GROK_HOME="$grok_home" PATH="$fakebin:$PATH" \
+    "$TEARDOWN" "$id" --force >/dev/null 2>&1 \
+    || fail "grok teardown failed"
+
+  assert_absent "$home/state/$id.grok-home" "teardown left the grok worker home"
+  transcript="$grok_home/sessions/fake-workspace/chat_history.jsonl"
+  assert_present "$transcript" "grok worker transcript did not survive teardown in the operator sessions directory"
+  assert_grep 'fake worker turn' "$transcript" "grok worker transcript lost its content"
+  pass "grok worker transcripts land in the operator sessions directory and survive teardown"
+}
+
 test_grok_slim_launch_brief_defers_only_later_sections() {
   local rec case_dir home proj wt fakebin grok_home id out status brief launch_brief heading status_cmd
   rec=$(make_spawn_case slim-brief)
@@ -223,6 +274,7 @@ EOF
   grep -qxF -- "$status_cmd" "$launch_brief" || fail "grok launch brief does not carry the brief's own status command"
   grep -qxF -- 'Delivery contract: mode=no-mistakes' "$launch_brief" || fail "grok launch brief does not carry the delivery contract"
   assert_grep "The complete brief is at \`$brief\`." "$launch_brief" "grok launch brief did not name the full brief"
+  assert_grep "the project's \`.agents/skills/<name>/SKILL.md\`" "$launch_brief" "grok launch brief does not say where an unlisted skill is found"
   assert_contains "$(section_of "$launch_brief" '# Current no-mistakes intent contract')" 'Trim the worker launch context.' \
     "grok launch brief dropped the no-mistakes intent contract"
   [ "$(wc -c < "$launch_brief")" -lt "$(wc -c < "$brief")" ] || fail "grok launch brief is not smaller than the full brief"
@@ -254,4 +306,6 @@ test_grok_hook_requires_registered_token
 test_grok_teardown_removes_pointer_and_token
 test_fm_lock_recognizes_grok_holder
 test_grok_worker_home_trims_launch_context
+test_grok_worker_skills_file_keeps_listed_skills
+test_grok_worker_transcripts_survive_teardown
 test_grok_slim_launch_brief_defers_only_later_sections
