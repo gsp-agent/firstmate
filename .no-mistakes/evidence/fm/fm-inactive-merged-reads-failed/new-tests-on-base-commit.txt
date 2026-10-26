@@ -1,0 +1,13 @@
+# The change's three new tests (tests/fm-crew-state.test.sh) run against the BASE commit f9fab1d4 bin.
+# Expected: the two merged-marker tests FAIL on base (bug reproduced); the mismatched-marker guard passes on both.
+# On the change (28febeaa) all three pass, alongside the existing orphaned-CI-monitor and terminal-delivery matrix tests.
+
+state: failed · source: run-step · run failed
+BASE RESULT: test_terminal_failed_ci_orphan_merged_marker_no_forge_reads_done FAILED
+1793022231	1	check	inactive-outcome:08064f089228ba007e01e6ba3ff18692	inactive terminal outcome awaiting captain presentation: child=feat-ci-merged-recon state=failed pr=https://github.com/o/r/pull/203
+BASE RESULT: test_terminal_failed_ci_orphan_merged_marker_reconciler_queues_no_failed FAILED
+ok - passed: terminal delivery reports only observed evidence
+ok - a merge marker for a different PR never reads merged under no-forge
+BASE RESULT: test_terminal_failed_ci_orphan_mismatched_marker_no_forge_stays_failed passed
+
+[exited with code 0]

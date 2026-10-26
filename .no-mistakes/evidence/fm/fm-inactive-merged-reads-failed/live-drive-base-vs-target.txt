@@ -1,0 +1,112 @@
+# Live drive: real no-mistakes CLI (disposable NM_HOME) + real fm-crew-state.sh / fm-inactive-reconcile.sh in marked lab homes
+# base = f9fab1d4 bin, target = 28febeaa (change under test); run 2026-10-26T13:41:21Z
+
+################ no-mistakes (real CLI, disposable NM_HOME) view of the incident run
+run:
+  id: "01LABMERGED0MARKER000203"
+  branch: fm/merged-marker
+  status: failed
+  head: 6bfa026f
+  head_sha: 6bfa026f6732ac9bb4acd41d8da882b3d0b18ed4
+  verification_plan: none
+  pr: "https://github.com/gj-lab/fm-lab/pull/203"
+  findings: none
+  steps[9]{step,status,findings,duration_ms}:
+    intent,completed,0,1000
+    rebase,completed,0,1000
+    review,completed,0,1000
+    test,completed,0,1000
+    document,completed,0,1000
+    lint,completed,0,1000
+    push,completed,0,1000
+    pr,completed,0,1000
+    ci,failed,0,1000
+outcome: failed
+error: "ci_monitor_recovery: CI monitoring stopped on daemon restart (daemon restarted while monitoring CI)"
+step: ci
+run: "01LABMERGED0MARKER000203"
+lines: 4 total
+log[4]{line}:
+  polling CI checks
+  CI checks running
+  all CI checks passed - still monitoring until merged or closed
+  daemon shutting down
+
+################ [base] state dir merge evidence
+  merged-marker    marker mode=600 pr#=203
+  no-marker        no marker; retirement receipt: no
+  wrong-pr-marker  marker mode=600 pr#=999
+  red-ci-marker    marker mode=600 pr#=206
+  tampered-marker  marker mode=644 pr#=207
+  passed-marker    marker mode=600 pr#=208
+  merge-poll wakes already queued before the scan:
+    1793022089	1	check	merged-merged-marker-https://github.com/gj-lab/fm-lab/pull/203	check: merge landed: merged-marker https://github.com/gj-lab/fm-lab/pull/203 external
+    1793022090	2	check	merged-wrong-pr-marker-https://github.com/gj-lab/fm-lab/pull/999	check: merge landed: wrong-pr-marker https://github.com/gj-lab/fm-lab/pull/999 external
+    1793022091	3	check	merged-red-ci-marker-https://github.com/gj-lab/fm-lab/pull/206	check: merge landed: red-ci-marker https://github.com/gj-lab/fm-lab/pull/206 external
+    1793022092	4	check	merged-tampered-marker-https://github.com/gj-lab/fm-lab/pull/207	check: merge landed: tampered-marker https://github.com/gj-lab/fm-lab/pull/207 external
+    1793022093	5	check	merged-passed-marker-https://github.com/gj-lab/fm-lab/pull/208	check: merge landed: passed-marker https://github.com/gj-lab/fm-lab/pull/208 external
+################ [base] fm-crew-state.sh with FM_CREW_STATE_NO_FORGE=1 (the reconciler's read)
+  merged-marker    state: failed · source: run-step · run failed · run: 01LABMERGED0MARKER000203
+  no-marker        state: failed · source: run-step · run failed · run: 01LABNO0MARKER000204
+  wrong-pr-marker  state: failed · source: run-step · run failed · run: 01LABWRONG0PR0MARKER000205
+  red-ci-marker    state: failed · source: run-step · run failed · run: 01LABRED0CI0MARKER000206
+  tampered-marker  state: failed · source: run-step · run failed · run: 01LABTAMPERED0MARKER000207
+  passed-marker    state: done · source: run-step · run passed: PR state unknown (forge read skipped) · run: 01LABPASSED0MARKER000208
+################ [base] fm-inactive-reconcile.sh scan --startup
+  scan pass 1 rc=0
+  scan pass 2 rc=0
+  scan pass 3 rc=0
+  wake-queue lines added by the reconciler:
+    1793022113	6	check	inactive-outcome:3bc87ec4355e934995a3cda94ebae278	inactive terminal outcome awaiting captain presentation: child=merged-marker state=failed pr=https://github.com/gj-lab/fm-lab/pull/203
+    1793022116	7	check	inactive-outcome:4e54e1b08a914114f393c49bbf6aaf95	inactive terminal outcome awaiting captain presentation: child=no-marker state=failed pr=https://github.com/gj-lab/fm-lab/pull/204
+    1793022118	8	check	inactive-outcome:51fc2828cea0eff5fa9fa9d0c6c6b0df	inactive terminal outcome awaiting captain presentation: child=passed-marker state=done pr=https://github.com/gj-lab/fm-lab/pull/208
+    1793022121	9	check	inactive-outcome:71b2dd9d60f30ec93deb01d84a03e371	inactive terminal outcome awaiting captain presentation: child=red-ci-marker state=failed pr=https://github.com/gj-lab/fm-lab/pull/206
+    1793022126	10	check	inactive-outcome:74a65731df718334f90dd50bb54a5a86	inactive terminal outcome awaiting captain presentation: child=tampered-marker state=failed pr=https://github.com/gj-lab/fm-lab/pull/207
+    1793022129	11	check	inactive-outcome:aa4330a48fc24d97d6f50365b7775c3a	inactive terminal outcome awaiting captain presentation: child=wrong-pr-marker state=failed pr=https://github.com/gj-lab/fm-lab/pull/205
+  durable terminal-outcome records (child/state/pr):
+    task_id=merged-marker state=failed pr=https://github.com/gj-lab/fm-lab/pull/203 phase=presentation 
+    task_id=no-marker state=failed pr=https://github.com/gj-lab/fm-lab/pull/204 phase=presentation 
+    task_id=passed-marker state=done pr=https://github.com/gj-lab/fm-lab/pull/208 phase=presentation 
+    task_id=red-ci-marker state=failed pr=https://github.com/gj-lab/fm-lab/pull/206 phase=presentation 
+    task_id=tampered-marker state=failed pr=https://github.com/gj-lab/fm-lab/pull/207 phase=presentation 
+    task_id=wrong-pr-marker state=failed pr=https://github.com/gj-lab/fm-lab/pull/205 phase=presentation 
+
+################ [target] state dir merge evidence
+  merged-marker    marker mode=600 pr#=203
+  no-marker        no marker; retirement receipt: no
+  wrong-pr-marker  marker mode=600 pr#=999
+  red-ci-marker    marker mode=600 pr#=206
+  tampered-marker  marker mode=644 pr#=207
+  passed-marker    marker mode=600 pr#=208
+  merge-poll wakes already queued before the scan:
+    1793022190	1	check	merged-merged-marker-https://github.com/gj-lab/fm-lab/pull/203	check: merge landed: merged-marker https://github.com/gj-lab/fm-lab/pull/203 external
+    1793022191	2	check	merged-wrong-pr-marker-https://github.com/gj-lab/fm-lab/pull/999	check: merge landed: wrong-pr-marker https://github.com/gj-lab/fm-lab/pull/999 external
+    1793022191	3	check	merged-red-ci-marker-https://github.com/gj-lab/fm-lab/pull/206	check: merge landed: red-ci-marker https://github.com/gj-lab/fm-lab/pull/206 external
+    1793022192	4	check	merged-tampered-marker-https://github.com/gj-lab/fm-lab/pull/207	check: merge landed: tampered-marker https://github.com/gj-lab/fm-lab/pull/207 external
+    1793022193	5	check	merged-passed-marker-https://github.com/gj-lab/fm-lab/pull/208	check: merge landed: passed-marker https://github.com/gj-lab/fm-lab/pull/208 external
+################ [target] fm-crew-state.sh with FM_CREW_STATE_NO_FORGE=1 (the reconciler's read)
+  merged-marker    state: done · source: run-step · checks green: PR merged (ci monitor ended): https://github.com/gj-lab/fm-lab/pull/203 · run: 01LABMERGED0MARKER000203
+  no-marker        state: failed · source: run-step · run failed · run: 01LABNO0MARKER000204
+  wrong-pr-marker  state: failed · source: run-step · run failed · run: 01LABWRONG0PR0MARKER000205
+  red-ci-marker    state: failed · source: run-step · run failed · run: 01LABRED0CI0MARKER000206
+  tampered-marker  state: failed · source: run-step · run failed · run: 01LABTAMPERED0MARKER000207
+  passed-marker    state: done · source: run-step · run passed: PR merged · run: 01LABPASSED0MARKER000208
+################ [target] fm-inactive-reconcile.sh scan --startup
+  scan pass 1 rc=0
+  scan pass 2 rc=0
+  scan pass 3 rc=0
+  wake-queue lines added by the reconciler:
+    1793022223	6	check	inactive-outcome:978cbd5c8a1f30394dbabbe8f16978b0	inactive terminal outcome awaiting captain presentation: child=merged-marker state=done pr=https://github.com/gj-lab/fm-lab/pull/203
+    1793022230	7	check	inactive-outcome:4e54e1b08a914114f393c49bbf6aaf95	inactive terminal outcome awaiting captain presentation: child=no-marker state=failed pr=https://github.com/gj-lab/fm-lab/pull/204
+    1793022234	8	check	inactive-outcome:51fc2828cea0eff5fa9fa9d0c6c6b0df	inactive terminal outcome awaiting captain presentation: child=passed-marker state=done pr=https://github.com/gj-lab/fm-lab/pull/208
+    1793022237	9	check	inactive-outcome:71b2dd9d60f30ec93deb01d84a03e371	inactive terminal outcome awaiting captain presentation: child=red-ci-marker state=failed pr=https://github.com/gj-lab/fm-lab/pull/206
+    1793022240	10	check	inactive-outcome:74a65731df718334f90dd50bb54a5a86	inactive terminal outcome awaiting captain presentation: child=tampered-marker state=failed pr=https://github.com/gj-lab/fm-lab/pull/207
+    1793022244	11	check	inactive-outcome:aa4330a48fc24d97d6f50365b7775c3a	inactive terminal outcome awaiting captain presentation: child=wrong-pr-marker state=failed pr=https://github.com/gj-lab/fm-lab/pull/205
+  durable terminal-outcome records (child/state/pr):
+    task_id=no-marker state=failed pr=https://github.com/gj-lab/fm-lab/pull/204 phase=presentation 
+    task_id=passed-marker state=done pr=https://github.com/gj-lab/fm-lab/pull/208 phase=presentation 
+    task_id=red-ci-marker state=failed pr=https://github.com/gj-lab/fm-lab/pull/206 phase=presentation 
+    task_id=tampered-marker state=failed pr=https://github.com/gj-lab/fm-lab/pull/207 phase=presentation 
+    task_id=merged-marker state=done pr=https://github.com/gj-lab/fm-lab/pull/203 phase=presentation 
+    task_id=wrong-pr-marker state=failed pr=https://github.com/gj-lab/fm-lab/pull/205 phase=presentation 
+

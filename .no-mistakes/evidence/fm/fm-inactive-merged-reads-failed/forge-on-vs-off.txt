@@ -1,0 +1,15 @@
+# Supplementary: crew-state with the forge on vs off for the incident task (merged-marker) and the no-local-record control (no-marker).
+# Real crew-state + real no-mistakes CLI; the GitHub forge is a logged stand-in answering MERGED (lab PRs do not exist on github.com).
+
+[base] merged-marker
+  forge off (forge calls=0): state: failed · source: run-step · run failed · run: 01LABMERGED0MARKER000203
+  forge on  (forge calls=1): state: done · source: run-step · checks green: PR merged (ci monitor ended): https://github.com/gj-lab/fm-lab/pull/203 · run: 01LABMERGED0MARKER000203
+[base] no-marker
+  forge off (forge calls=0): state: failed · source: run-step · run failed · run: 01LABNO0MARKER000204
+  forge on  (forge calls=1): state: done · source: run-step · checks green: PR merged (ci monitor ended): https://github.com/gj-lab/fm-lab/pull/204 · run: 01LABNO0MARKER000204
+[target] merged-marker
+  forge off (forge calls=0): state: done · source: run-step · checks green: PR merged (ci monitor ended): https://github.com/gj-lab/fm-lab/pull/203 · run: 01LABMERGED0MARKER000203
+  forge on  (forge calls=0): state: done · source: run-step · checks green: PR merged (ci monitor ended): https://github.com/gj-lab/fm-lab/pull/203 · run: 01LABMERGED0MARKER000203
+[target] no-marker
+  forge off (forge calls=0): state: failed · source: run-step · run failed · run: 01LABNO0MARKER000204
+  forge on  (forge calls=1): state: done · source: run-step · checks green: PR merged (ci monitor ended): https://github.com/gj-lab/fm-lab/pull/204 · run: 01LABNO0MARKER000204
