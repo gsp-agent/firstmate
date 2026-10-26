@@ -12,7 +12,11 @@
 # Exit 2 only when every condition holds: a complete unread record for
 # main (fm_wake_main_unread, scope any), the turn record reads idle, no
 # live open Stop-hook claim exists (a parked hook delivers), and no rewake
-# is already pending. The commit goes through the generation ledger
+# is already pending. On a supervision-host home with a live away record
+# the banner also carries the away-posture line (fm_claude_away_wake_line
+# in bin/fm-wake-lib.sh, shared with the Stop hook); the waker is never
+# gated on that record, because waking main is what re-parks the host.
+# The commit goes through the generation ledger
 # (fm_autoarm_claim_next against the generation read before those checks,
 # then a rewake outcome), so concurrent waker and Stop firings stay
 # single-flight and a waker never supersedes an entry written after it
@@ -27,6 +31,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FM_ROOT="${FM_ROOT_OVERRIDE:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 FM_HOME="${FM_HOME:-${FM_ROOT_OVERRIDE:-$FM_ROOT}}"
 STATE="${FM_STATE_OVERRIDE:-$FM_HOME/state}"
+CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
 
 if [ "${1:-}" = --print-watch-paths ]; then
   printf '{"hookSpecificOutput":{"hookEventName":"SessionStart","watchPaths":["%s/.wake-queue"]}}\n' "$STATE"
@@ -143,6 +148,7 @@ fi
 {
   printf 'firstmate watcher wake - one supervision event needs a handling turn now.\n'
   printf '%s\n' "$rows" | head -8
+  fm_claude_away_wake_line "$STATE" "$CONFIG" || true
   printf 'Run bin/fm-wake-drain.sh first, handle the wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. Until that post-handling acknowledgement, interruption leaves the wake durable for idempotent re-handling. This Stop hook owns watcher continuity: when the handling turn ends, the next needed cycle arms automatically - do NOT run bin/fm-watch-arm.sh after an ordinary wake.\n'
 } >&2
 exit 2

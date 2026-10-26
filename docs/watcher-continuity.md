@@ -98,9 +98,10 @@ It reads the turn record again at each delivery attempt, so once that rewake's o
 
 An idle Claude primary holding an unread row with no running Stop hook is woken by `bin/fm-claude-wake.sh`, which `.claude/settings.json` runs as an `asyncRewake` hook for `FileChanged` on `state/.wake-queue` and at session open.
 A synchronous `SessionStart` entry registers that watch path, and a session-open firing that runs the digest first waits, within the digest's own 180-second budget, for this session open's digest to complete.
-The waker applies the Stop hook's foreign-host, primary-scope, session-lock, and away gates.
+The waker applies the Stop hook's foreign-host, primary-scope, session-lock, and away-daemon (`state/.afk`) gates.
 It exits 2 only when `fm_wake_main_unread` finds a row, the turn record reads idle, no open Stop-hook claim exists because a parked hook delivers, and no rewake is pending.
 It commits through the same generation ledger as the Stop hook, so concurrent waker and Stop firings stay single-flight.
+On a supervision-host home with a live away record its banner carries the same away-posture line as the Stop hook's rewake (`fm_claude_away_wake_line` in `bin/fm-wake-lib.sh`), but the waker is never gated on that record, because waking main is what re-parks a host whose park ended.
 `bin/fm-claude-turn.sh` writes the turn record, `state/.claude-turn`, from `UserPromptSubmit`, `Stop`, `StopFailure`, and a clear, startup, or resume session open, and a record from another Claude process reads as idle.
 Known limit: Claude fires no hook for a manual interrupt, and a busy record has no age bound, so an interrupted turn keeps its record busy, and the waker inert, until the next prompt or a clear, startup, or resume session open.
 [`verification/supervision.md`](verification/supervision.md#claude-wakes-itself-when-no-stop-hook-runs-2026-10-26) records the live hook evidence and the replay suite.
