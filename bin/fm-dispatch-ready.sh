@@ -24,6 +24,11 @@
 # registered name (its directory's basename), or when its repo is `firstmate`
 # and the project shares this code root's lineage (fm_role_self_repo).
 #
+# Cost: the count is fm-spawn's own admission count and costs what one
+# admission costs, nearly all of it one bounded crew-state read per record that
+# still names the project. It is taken only when ready rows name the project, so
+# a release with nothing to start costs only the declaration and backlog reads.
+#
 # --if-capped prints nothing for a project that declares no place limit, for a
 # caller whose event frees a place only under a declared limit.
 #
@@ -79,7 +84,7 @@ short_list() {
 # shellcheck source=bin/fm-role-lib.sh
 . "$SCRIPT_DIR/fm-role-lib.sh"
 
-# --- places, by bin/fm-spawn.sh's own rule ----------------------------------
+# --- the declaration -----------------------------------------------------------
 CAP=
 FREE=
 HOLDERS=
@@ -93,17 +98,6 @@ elif ! fm_project_capacity_lookup "$CAP_CONFIG" "$NAME"; then
   COUNT_ERROR=$FM_PROJECT_CAPACITY_ERROR
 else
   CAP=$FM_PROJECT_CAPACITY
-  if [ -n "$CAP" ] && [ "$CAP" != 0 ]; then
-    if ! LOCK=$(fm_treehouse_project_lock_path "$PROJ" 2>/dev/null); then
-      COUNT_ERROR="no project lock path for $PROJ"
-    elif ! fm_project_capacity_occupants "$LOCK" "$PROJ" "$STATE" ''; then
-      COUNT_ERROR=$FM_PROJECT_CAPACITY_ERROR
-    else
-      FREE=$((CAP - FM_PROJECT_CAPACITY_OCCUPANTS))
-      [ "$FREE" -ge 0 ] || FREE=0
-      HOLDERS=$FM_PROJECT_CAPACITY_OCCUPANT_IDS
-    fi
-  fi
 fi
 [ "$IF_CAPPED" = 0 ] || [ -n "$CAP" ] || [ -n "$COUNT_ERROR" ] || exit 0
 
@@ -144,6 +138,24 @@ else
   READY_ERROR="bin/fm-tasks-axi.sh ready failed or ran past ${DISPATCH_READY_TIMEOUT}s"
 fi
 
+# --- places, by bin/fm-spawn.sh's own rule ----------------------------------
+# The count is fm-spawn's own admission count, the same function over the same
+# records, so it costs what one spawn's admission costs: almost all of it is
+# one bounded crew-state read per record still naming the project. It runs
+# only when ready rows name this project (or the backlog could not be read),
+# because a place with nothing to start needs no count.
+if [ -z "$COUNT_ERROR" ] && [ -n "$CAP" ] && [ "$CAP" != 0 ] && { [ -n "$MINE" ] || [ -n "$READY_ERROR" ]; }; then
+  if ! LOCK=$(fm_treehouse_project_lock_path "$PROJ" 2>/dev/null); then
+    COUNT_ERROR="no project lock path for $PROJ"
+  elif ! fm_project_capacity_occupants "$LOCK" "$PROJ" "$STATE" ''; then
+    COUNT_ERROR=$FM_PROJECT_CAPACITY_ERROR
+  else
+    FREE=$((CAP - FM_PROJECT_CAPACITY_OCCUPANTS))
+    [ "$FREE" -ge 0 ] || FREE=0
+    HOLDERS=$FM_PROJECT_CAPACITY_OCCUPANT_IDS
+  fi
+fi
+
 # --- the line -------------------------------------------------------------------
 START="Write each brief and start it now with bin/fm-spawn.sh, in that order, until a spawn defers with exit 75 (its row stays queued); the spawn alone decides capacity, never a count of backlog rows."
 if [ -n "$COUNT_ERROR" ]; then
@@ -152,6 +164,8 @@ elif [ -z "$CAP" ]; then
   places="$NAME declares no place limit"
 elif [ "$CAP" = 0 ]; then
   places="$NAME declares 0 places, so nothing starts for it"
+elif [ -z "$FREE" ]; then
+  places="$NAME declares $CAP places"
 else
   places="$NAME has $FREE of $CAP places free by bin/fm-spawn.sh's own count"
   [ -z "$HOLDERS" ] || places="$places (holding: $(short_list "$HOLDERS" 6))"
@@ -163,7 +177,7 @@ if [ -n "$READY_ERROR" ]; then
   exit 0
 fi
 if [ -z "$MINE" ]; then
-  printf 'Dispatch: %s; no ready backlog row names it.\n' "$places"
+  printf 'Dispatch: %s; no ready backlog row names it, so nothing starts and its places were not counted.\n' "$places"
 elif [ "$CAP" = 0 ]; then
   printf 'Dispatch: %s. Ready for it, held back by that declaration: %s.\n' "$places" "$(short_list "$MINE" "$DISPATCH_LIST_MAX")"
 elif [ -z "$COUNT_ERROR" ] && [ -n "$CAP" ] && [ "$FREE" -le 0 ]; then

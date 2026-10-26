@@ -165,14 +165,27 @@ test_zero_places_hold_ready_work_back() {
   pass "a project declared at 0 places holds its ready rows back"
 }
 
-test_no_ready_rows_says_so() {
+test_no_ready_rows_skips_the_count() {
   local case_dir out
   case_dir=$(make_case none-ready)
   declare_capacity "$case_dir" "proj 3"
+  write_worker "$case_dir" busy-1 'working [at=1790000000]: building'
+  axi "$case_dir" add elsewhere-e "another project's work" --kind ship --repo other-proj
+  # The count's cost is its crew-state reads; log each one.
+  cat > "$case_dir/fakebin/fm-crew-state-stub" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$1" >> "$FM_STATE_OVERRIDE/../crew-reads.log"
+echo "state: working - source: status-log - fixture"
+SH
   out=$(run_helper "$case_dir") || fail "none-ready: helper failed"
-  assert_equals "Dispatch: proj has 3 of 3 places free by bin/fm-spawn.sh's own count; no ready backlog row names it." \
-    "$out" "none-ready: line"
-  pass "a project with free places and no ready rows says so in one line"
+  assert_contains "$out" "Dispatch: proj declares 3 places; no ready backlog row names it, so nothing starts and its places were not counted." \
+    "none-ready: line"
+  assert_absent "$case_dir/home/crew-reads.log" "none-ready: the helper read crew state with nothing to start"
+  axi "$case_dir" add ready-a "first ready" --kind ship --repo proj
+  out=$(run_helper "$case_dir") || fail "none-ready: helper failed with a ready row"
+  assert_contains "$out" "proj has 2 of 3 places free" "none-ready: a ready row did not get the count"
+  assert_present "$case_dir/home/crew-reads.log" "none-ready: the count did not read crew state"
+  pass "a release with no ready row for the project skips the count, and a ready row gets it"
 }
 
 test_firstmate_rows_match_only_a_firstmate_lineage_project() {
@@ -244,7 +257,7 @@ test_free_places_are_counted_by_spawns_rule_not_backlog_rows
 test_full_project_names_its_ready_rows_and_waits
 test_uncapped_project_starts_everything_and_if_capped_is_silent
 test_zero_places_hold_ready_work_back
-test_no_ready_rows_says_so
+test_no_ready_rows_skips_the_count
 test_firstmate_rows_match_only_a_firstmate_lineage_project
 test_failed_reads_are_named_and_never_fail_the_caller
 test_bad_request_exits_2
