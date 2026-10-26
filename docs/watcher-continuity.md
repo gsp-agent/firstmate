@@ -492,7 +492,7 @@ They also prove that a legacy or handoff-phase watcher marker from an absent rep
 - A take-over that stays quiet after a confirmed TERM, still surfaces queued work and self-exit downtime, and attaches without stopping a cycle the named arm does not own.
 - A covering successor left for main that keeps one live watcher with a fresh beat through a mid-turn event, hands over to the turn-end arm or a take-over with exactly one watcher left, and closes on its wake as before while its owner still runs.
 - The disposable-checkout arm refusal.
-- The home-gone and state-gone watcher exits.
+- The home-gone and state-gone watcher and arm exits.
 - The test reaper that stops a watcher armed for a temporary home.
 
 `tests/fm-watch-recovery-loop.test.sh` covers:

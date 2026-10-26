@@ -168,9 +168,15 @@ unset FM_SUPERVISION_ACTOR FM_BRANCH_REPORT_TURN FM_LEASE_HOLDER_PID PI_CODING_A
 # Homes are registered in a file: make_home runs in a command substitution,
 # whose variables never reach this shell.
 HOMES_FILE="$TMP_ROOT/homes"
-# Stop whatever a case left running, by the exact pids its home recorded.
+# Stop whatever a case left running, by the exact pids its home recorded, and
+# wait for it, since the caller may remove the home next
+# (test_home_teardown_leaves_no_arm_or_watcher_running). A successor a host
+# left for main is in no host record: the home-scoped stop that follows claims
+# that covering arm and stops it and the home's watcher, each by its recorded
+# identity.
 stop_home_processes() {  # <home>
-  local home=$1 pid arms='' i=0
+  local home=$1 pid arms='' cover watcher arm_bin i=0
+  cover=$(cut -f1 "$home/state/.watch-cover" 2>/dev/null || true)
   if [ -f "$home/state/.supervision-host" ]; then
     arms=$(awk -F '\t' '$1 == "arm" { print $2 }' "$home/state/.supervision-host")
     pid=$(awk -F '\t' '$1 == "host" { print $2; exit }' "$home/state/.supervision-host")
@@ -183,8 +189,8 @@ stop_home_processes() {  # <home>
   for pid in $arms; do
     kill -TERM "$pid" 2>/dev/null || true
   done
-  pid=$(cat "$home/state/.watch.lock/pid" 2>/dev/null || true)
-  [ -z "$pid" ] || kill -TERM "$pid" 2>/dev/null || true
+  watcher=$(cat "$home/state/.watch.lock/pid" 2>/dev/null || true)
+  [ -z "$watcher" ] || kill -TERM "$watcher" 2>/dev/null || true
   while IFS= read -r pid; do
     if [ -e "$home/session.stop" ]; then
       wait "$pid" 2>/dev/null || true
@@ -195,6 +201,18 @@ stop_home_processes() {  # <home>
   while IFS= read -r pid; do
     kill -TERM "$pid" 2>/dev/null || true
   done < <(cat "$home/orphan-pid" 2>/dev/null)
+  if [ -d "$home/state" ]; then
+    arm_bin="$home/bin/fm-watch-arm.sh"
+    [ -x "$arm_bin" ] || arm_bin="$ROOT/bin/fm-watch-arm.sh"
+    FM_HOME="$home" "$arm_bin" --stop >/dev/null 2>&1 || true
+  fi
+  i=0
+  for pid in $arms $cover $watcher; do
+    while [ "$i" -lt 100 ] && is_live_non_zombie "$pid"; do
+      sleep 0.1
+      i=$((i + 1))
+    done
+  done
 }
 suite_cleanup() {
   local home
@@ -2804,6 +2822,42 @@ test_engine_turn_is_bounded_and_its_descendants_reaped() {
   pass "host: an engine turn is bounded, and tool processes outside its process group are reaped"
 }
 
+# The leak of 2026-10-26 (.agent-config-ks05d.5): covering arms started for
+# this suite's homes kept polling for up to fifty minutes after the suite had
+# removed those homes. The cleanup signalled what each home recorded and
+# removed the tree at once; the successor a host leaves for main is in no host
+# record, and a covering arm still closing when its state directory went away
+# never finished. A home's teardown stops every arm and watcher it started,
+# that successor included, and waits for them before the tree goes.
+test_home_teardown_leaves_no_arm_or_watcher_running() {
+  local home left watcher survivors=''
+  home=$(make_home teardown-left away)
+  echo noreport > "$home/stub-mode"
+  start_session "$home"
+  park_again "$home"
+  append_status "$home" 'needs a look'
+  wait_until 250 host_exited "$home" || fail "teardown: the host did not hand the wake to main"
+  left=$(cut -f1 "$home/state/.supervision-host-left" 2>/dev/null)
+  watcher=$(cat "$home/state/.watch.lock/pid" 2>/dev/null)
+  if [ -z "$left" ] || ! kill -0 "$left" 2>/dev/null; then
+    fail "fixture: the host left no covering successor running for main"
+  fi
+  if [ -z "$watcher" ] || [ "$(parent_of "$watcher")" != "$left" ]; then
+    fail "fixture: the successor left for main does not own the home's watcher"
+  fi
+  # The suite's own order: stop what the home started, then remove the tree.
+  stop_home_processes "$home"
+  ! kill -0 "$left" 2>/dev/null || survivors="$survivors successor=$left"
+  ! kill -0 "$watcher" 2>/dev/null || survivors="$survivors watcher=$watcher"
+  fm_test_remove_tree "$home"
+  if [ -n "$survivors" ]; then
+    wait_until 50 sh -c '! kill -0 "$1" 2>/dev/null && ! kill -0 "$2" 2>/dev/null' _ "$left" "$watcher" \
+      || kill -KILL "$left" "$watcher" 2>/dev/null || true
+    fail "the home's teardown returned before what the home started had stopped:$survivors"
+  fi
+  pass "host: a home's teardown stops the successor left for main and its watcher before the home is removed"
+}
+
 test_restarted_host_stops_what_a_killed_predecessor_left() {
   local home first_host arm watcher
   home=$(make_home away-crash away)
@@ -3559,6 +3613,7 @@ supervision_host_lane_b() {
   test_latch_keeps_attended_closes_on_main_and_skips_unopted_homes
   test_attended_latch_keeps_closes_on_main_and_records_recovery_off_main
   test_engine_turn_is_bounded_and_its_descendants_reaped
+  test_home_teardown_leaves_no_arm_or_watcher_running
   test_restarted_host_stops_what_a_killed_predecessor_left
   test_teardown_lease_lock_at_activation_still_starts_the_watcher
   test_teardown_lease_lock_after_an_engine_turn_still_parks_on_the_successor
