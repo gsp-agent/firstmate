@@ -3919,6 +3919,27 @@ test_send_key_normalizes_and_targets_pane() {
   pass "fm_backend_herdr_send_key: normalizes the key and targets the right pane"
 }
 
+test_send_key_passes_unlisted_key_through() {
+  local dir log resp fb k want
+  dir="$TMP_ROOT/sendkey-passthrough"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
+  fb=$(make_herdr_fakebin "$dir")
+  # X is the Grok weekly-limit dialog's Shift+x dismiss key. Herdr normalizes
+  # only Enter, Escape, C-c and C-u; every other name reaches the pane as given.
+  for k in X Enter C-c; do
+    case "$k" in
+      Enter) want=enter ;;
+      C-c) want='ctrl+c' ;;
+      *) want=$k ;;
+    esac
+    : > "$log"
+    PATH="$fb:$PATH" FM_HERDR_LOG="$log" FM_HERDR_RESPONSES="$resp" \
+      bash -c '. "$0/bin/backends/herdr.sh"; fm_backend_herdr_send_key default:w1:p2 "$1"' "$ROOT" "$k"
+    expect_code 0 $? "send_key $k should succeed"
+    assert_contains "$(cat "$log")" $'\x1f''pane'$'\x1f''send-keys'$'\x1f''w1:p2'$'\x1f'"$want" "send_key did not deliver $k to the pane as $want"
+  done
+  pass "fm_backend_herdr_send_key: passes X through unchanged and still delivers Enter and C-c"
+}
+
 test_kill_is_best_effort() {
   local dir log resp fb
   dir="$TMP_ROOT/kill"; mkdir -p "$dir/responses"; log="$dir/log"; resp="$dir/responses"; : > "$log"
@@ -6353,6 +6374,7 @@ test_capture_calls_pane_read
 test_capture_works_around_small_lines_bug
 test_capture_preserves_pane_read_failure
 test_send_key_normalizes_and_targets_pane
+test_send_key_passes_unlisted_key_through
 test_kill_is_best_effort
 test_current_path_reads_cwd
 test_busy_state_working_maps_to_busy
