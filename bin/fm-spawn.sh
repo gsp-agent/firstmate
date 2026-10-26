@@ -5778,8 +5778,10 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
         # `available` is not Treehouse's reuse test).
         case "$treehouse_said" in
           *"worktrees are in use or dirty"*)
-            [ "$SPAWN_ENDPOINT_CLOSED" != 1 ] || SPAWN_CREATED_ENDPOINT=
-            echo "deferred: project $(basename "$PROJ_ABS")'s worktree pool is full by treehouse's own allocation; task $ID was not launched and its backlog item stays queued - dispatch it again once a tree is returned; $treehouse_cleanup; treehouse said:"$'\n'"$treehouse_said" >&2
+            # The close above already ran and reported what it could not
+            # close; the abort trap must not close it again on this deferral.
+            SPAWN_CREATED_ENDPOINT=
+            echo "deferred: the worktree pool of project '$PROJ_ABS' is full by treehouse's own allocation; task $ID was not launched and its backlog item stays queued - dispatch it again once a tree is returned; $treehouse_cleanup; treehouse said:"$'\n'"$treehouse_said" >&2
             exit "$SPAWN_DEFER_EXIT"
             ;;
         esac

@@ -295,7 +295,7 @@ test_treehouse_full_pool_refusal_in_the_pane_defers() {
     fm-treehouse-get-end > "$case_dir/capture.txt"
   out=$(FM_FAKE_CAPTURE="$case_dir/capture.txt" spawn_ship "$case_dir" task-a "$case_dir/project") || rc=$?
   expect_code "$DEFER_EXIT" "$rc" "a pane treehouse refusal of a full pool did not defer: $out"
-  assert_contains "$out" "worktree pool is full by treehouse's own allocation" "the pane deferral did not name the pool"
+  assert_contains "$out" "worktree pool of project '$case_dir/project' is full by treehouse's own allocation" "the pane deferral did not name the pool"
   assert_absent "$home/state/task-a.meta" "the pane deferral published a task record"
   if [ "$HAVE_TASKS_AXI" = 1 ]; then
     [ "$(row_state "$home" task-a)" = queued ] || fail "the pane deferral moved task-a's row: $(row_state "$home" task-a)"
