@@ -337,6 +337,11 @@ test_send_key_refuses_unknown_key() {
   status=$?
   [ "$status" -ne 0 ] || fail "send_key should refuse unsupported Orca keys"
   assert_contains "$out" "unsupported Orca key 'F12'" "send_key did not name the unsupported key"
+  out=$( PATH="$FB:$PATH" FM_ORCA_LOG="$LOG" FM_ORCA_RESPONSES="$RESP" \
+    bash -c '. "$0/bin/backends/orca.sh"; fm_backend_orca_send_key term-123 X' "$ROOT" 2>&1 )
+  status=$?
+  [ "$status" -ne 0 ] || fail "send_key should refuse X, which Orca has no primitive for"
+  assert_contains "$out" "unsupported Orca key 'X'" "send_key did not name X as unsupported"
   pass "fm_backend_orca_send_key: refuses unsupported keys loudly"
 }
 

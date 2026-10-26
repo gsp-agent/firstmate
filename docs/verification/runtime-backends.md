@@ -414,7 +414,7 @@ claude --help | grep -A 5 'workspace trust dialog'
 ```
 
 `--dangerously-skip-permissions` is a permission control and is absent from that bypass, so an interactive worker in a fresh worktree still reaches the dialog.
-Firstmate cannot answer it either, because its key plane carries only Enter, Escape, and C-c with no arrow navigation.
+Firstmate does not answer it either: arrow navigation of the dialog is not verified live and is not supported on every backend (Orca accepts only Enter and C-c; the `bin/fm-send.sh` header owns which keys each backend passes through), so trust handling does not rely on it.
 Suppression itself was then observed directly on the same date and version, with a control arm and a treatment arm.
 
 The control arm launched a fresh linked worktree with no pre-registration, the way `bin/fm-spawn.sh` launches one.
@@ -734,7 +734,7 @@ Hooks can run outside the sandbox after you trust them.
 Press enter to confirm or esc to go back
 ```
 
-The selection starts on "Review hooks", which is neither trusting nor declining, and Firstmate's key plane carries only Enter, Escape, and C-c with no arrow navigation, so the selection cannot be moved.
+The selection starts on "Review hooks", which is neither trusting nor declining, and arrow navigation of the modal is not verified live and is not supported on every backend (Orca accepts only Enter and C-c; the `bin/fm-send.sh` header owns which keys each backend passes through), so Firstmate does not move the selection.
 That count covers every hook Codex had no persisted trust for, drawn from both the machine's own `~/.codex/hooks.json` and this repository's tracked `.codex/hooks.json`.
 Writing Codex's own trust store to pre-accept the modal would record an operator consent that was never given, so it is not an option either.
 

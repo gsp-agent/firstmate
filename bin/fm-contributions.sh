@@ -101,6 +101,8 @@ DATA="${FM_DATA_OVERRIDE:-$FM_HOME/data}"
 export FM_HOME FM_STATE_OVERRIDE="$STATE"
 # shellcheck source=bin/fm-pr-lib.sh
 . "$SCRIPT_DIR/fm-pr-lib.sh"
+# shellcheck source=bin/fm-check-lib.sh
+. "$SCRIPT_DIR/fm-check-lib.sh"
 # shellcheck source=bin/fm-timeout-lib.sh
 . "$SCRIPT_DIR/fm-timeout-lib.sh"
 # shellcheck source=bin/fm-path-lib.sh
@@ -124,7 +126,11 @@ BUDGET_CAP=$((CHECK_TIMEOUT - 3))
 [ "$BUDGET" -le "$BUDGET_CAP" ] || BUDGET=$BUDGET_CAP
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/fm-contributions.XXXXXX")
 LOCK_HELD=0
+PUBLISH_LOCK=
+STAGE_DIR=
 cleanup() {
+  [ -z "$PUBLISH_LOCK" ] || fm_lock_release "$PUBLISH_LOCK" || true
+  [ -z "$STAGE_DIR" ] || rm -rf -- "$STAGE_DIR"
   [ "$LOCK_HELD" = 0 ] || fm_lock_release "$STATE/.contributions.lock" || true
   rm -rf -- "$TMP"
 }
@@ -460,6 +466,7 @@ arm() {
   fi
   device=$(fm_pr_file_device "$STATE")
   fm_pr_regular_destination_on_device_or_absent "$STATE/contributions.check.sh" "$device" || fail 'unsafe check destination'
+  fm_pr_regular_destination_on_device_or_absent "$STATE/contributions.check-trust" "$device" || fail 'unsafe check trust destination'
   staged=$(umask 077; mktemp "$STATE/.contributions-check.XXXXXX")
   shim=('#!/usr/bin/env bash'
     "export FM_HOME=$(printf '%q' "$FM_HOME")"
@@ -471,8 +478,45 @@ arm() {
   shim+=("exec $(printf '%q' "$SCRIPT_DIR/fm-contributions.sh") poll")
   printf '%s\n' "${shim[@]}" > "$staged"
   chmod 700 "$staged"
-  mv -f -- "$staged" "$STATE/contributions.check.sh"
-  "$SCRIPT_DIR/fm-check-register.sh" contributions
+  if [ -f "$STATE/contributions.check.sh" ] && [ ! -L "$STATE/contributions.check.sh" ] \
+    && cmp -s "$staged" "$STATE/contributions.check.sh" \
+    && fm_custom_check_registered "$STATE" contributions; then
+    rm -f -- "$staged"
+    return 0
+  fi
+  # Bind the staged bytes first, so the publish lock covers only two renames.
+  # The watcher retries a failed authentication under that lock, so a sweep
+  # that straddles the publish sees the old pair or the new one.
+  STAGE_DIR=$(umask 077; mktemp -d "$STATE/.contributions-arm.XXXXXX")
+  mv -f -- "$staged" "$STAGE_DIR/contributions.check.sh"
+  FM_STATE_OVERRIDE="$STAGE_DIR" "$SCRIPT_DIR/fm-check-register.sh" contributions >/dev/null
+  PUBLISH_LOCK=$(fm_custom_check_publish_lock "$STATE" contributions)
+  fm_lock_acquire_wait "$PUBLISH_LOCK" || fail 'check publish lock unavailable'
+  # The lock wait can be long, so the destinations validated above may have
+  # changed: refuse a changed one here, and again before the trust rename,
+  # rather than let a rename drop a staged file inside a new directory.
+  if ! fm_pr_regular_destination_on_device_or_absent "$STATE/contributions.check.sh" "$device" \
+    || ! fm_pr_regular_destination_on_device_or_absent "$STATE/contributions.check-trust" "$device"; then
+    fm_lock_release "$PUBLISH_LOCK"
+    PUBLISH_LOCK=
+    fail 'unsafe check destination'
+  fi
+  mv -f -- "$STAGE_DIR/contributions.check.sh" "$STATE/contributions.check.sh"
+  if ! fm_pr_regular_destination_on_device_or_absent "$STATE/contributions.check-trust" "$device"; then
+    fm_lock_release "$PUBLISH_LOCK"
+    PUBLISH_LOCK=
+    fail 'unsafe check trust destination'
+  fi
+  mv -f -- "$STAGE_DIR/contributions.check-trust" "$STATE/contributions.check-trust"
+  if ! fm_custom_check_registered "$STATE" contributions; then
+    fm_lock_release "$PUBLISH_LOCK"
+    PUBLISH_LOCK=
+    fail 'the published check did not authenticate'
+  fi
+  fm_lock_release "$PUBLISH_LOCK"
+  PUBLISH_LOCK=
+  rmdir -- "$STAGE_DIR"
+  STAGE_DIR=
 }
 
 case "${1:-}" in

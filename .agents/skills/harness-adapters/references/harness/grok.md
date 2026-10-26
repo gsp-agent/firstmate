@@ -44,7 +44,7 @@ On 2026-09-24, on those same first dispatches, Grok 1.0.41 rendered a folder-tru
 The dialog printed the primary checkout path, because a linked worktree's git root resolves to the main one, so the text reads exactly like a worktree-isolation violation when isolation is intact.
 Check the worker's real location with `/proc/<pid>/cwd`, never the path the dialog prints.
 Answer the gate with the key path's Enter (`../../../bin/fm-send.sh <target> --key Enter`).
-`../../../bin/fm-send.sh` documents only Escape, Enter, and C-c, and a literal `y` has no sanctioned route.
+The `--key` route passes key names through on tmux and Herdr; its header in `../../../bin/fm-send.sh` owns the exact per-backend set.
 On 2026-09-24 Grok 1.0.41 persisted that answer to `~/.grok/trusted_folders.toml`, keyed by the path the dialog prints.
 That is the same store `../../../bin/fm-spawn.sh` deliberately does not write and calls a high-blast-radius write.
 In a linked worktree the trust therefore lands on the primary checkout, not the disposable copy, and it persists for every later Grok run there.
@@ -56,11 +56,12 @@ It is a knowing exception to the store-avoidance stance, not an oversight, so ex
 
 Grok stops a worker at its weekly limit with a dialog headed "You hit your weekly limit".
 The dialog offers "Buy more credits" and "Try Again".
-On 2026-10-25 the captain reported that Escape cleared the dialog back to the composer.
-Re-checked live the same day on Grok 1.0.70, Escape only moved focus to scrollback, as the dialog's `Esc:scrollback` hint says, and the dialog stayed; C-c left it too.
+Escape does not clear the dialog on Grok 1.0.70.
+Re-checked live on 2026-10-25, Escape only moved focus to scrollback, as the dialog's `Esc:scrollback` hint says, and the dialog stayed; C-c left it too.
 While it stays, the composer is not proven empty, so `exit` and `relaunch` refuse.
-The dialog's own `Shift+x:dismiss` returned it to the empty composer; `../../../bin/fm-send.sh <task> --key X` delivered that key on tmux and Herdr on 2026-10-25, although fm-send documents only Escape, Enter and C-c.
-Firstmate never chooses Buy more credits.
+Dismiss it with the dialog's own `Shift+x` through the documented key route, `../../../bin/fm-send.sh <task> --key X`, which passes `X` to the pane unchanged on tmux and Herdr.
+Orca rejects `X`, so that route is unavailable there.
+Firstmate never chooses "Buy more credits".
 
 ## Training opt-in
 
