@@ -1217,6 +1217,26 @@ test_worker_role_scope() {
   pass "fm-brief: scaffolds leave the worker role scope to the launch boundary and keep the secondmate contract"
 }
 
+test_context_discipline() {
+  local kind home brief
+  home="$TMP_ROOT/context-discipline"
+  for kind in no-mistakes direct-PR local-only scout; do
+    if [ "$kind" = scout ]; then
+      FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "discipline-$kind" arbitrary-project-name --scout >/dev/null || fail "scout scaffold failed"
+    else
+      FM_HOME="$home" "$ROOT/bin/fm-brief.sh" "discipline-$kind" arbitrary-project-name --mode "$kind" >/dev/null || fail "$kind scaffold failed"
+    fi
+    brief="$home/data/discipline-$kind/brief.md"
+    assert_grep '# Worker context discipline' "$brief" "$kind brief missing the context discipline"
+    assert_grep 'Cap search and grep output near 50 lines' "$brief" "$kind brief missing the search cap"
+    assert_grep 'Do not read skills at session start' "$brief" "$kind brief missing the no-start-skill-read rule"
+  done
+  FM_HOME="$home" FM_SECONDMATE_CHARTER='Supervise assigned work.' \
+    "$ROOT/bin/fm-brief.sh" discipline-supervisor --secondmate --no-projects >/dev/null || fail "secondmate scaffold failed"
+  assert_no_grep '# Worker context discipline' "$home/data/discipline-supervisor/brief.md" "secondmate received the worker context discipline"
+  pass "fm-brief: ship and scout scaffolds carry the worker context discipline, secondmate charters do not"
+}
+
 # A home can carry standing worker instructions in its gitignored
 # config/brief-include.md. The include must land last on ship and scout
 # scaffolds, stay out of charters, change nothing when absent or blank, and stop
@@ -1503,6 +1523,7 @@ test_branch_prefix_command_is_shell_safe() {
 }
 
 test_worker_role_scope
+test_context_discipline
 
 # Rule 2 governs file edits rather than pool administration, so every crewmate
 # scaffold must prohibit the administrative act itself. The rule is emitted from

@@ -151,6 +151,23 @@ EOF
   printf "If the \`firstmate-coding-guidelines\` skill name does not resolve in this session, read \`%s/.agents/skills/firstmate-coding-guidelines/SKILL.md\` instead.\n" "$root"
 }
 
+# Short tool-output and skill-loading discipline every crewmate and scout
+# brief carries, so exploration before the first edit stays small.
+# bin/fm-brief.sh renders it into ship and scout scaffolds, and
+# bin/fm-grok-worker-lib.sh renders the identical text into the slim Grok
+# launch brief, so this function is the one owner of the wording.
+fm_worker_context_rules() {
+  cat <<'EOF'
+# Worker context discipline
+Keep the context before your first edit small.
+Read files in ranges that cover what you need; do not dump a whole file when a range will do.
+Cap search and grep output near 50 lines, and narrow the pattern or path when it returns more.
+Tail or head long command output instead of capturing all of it.
+Do not read skills at session start.
+Load a skill only when a step needs it, by reading that skill's SKILL.md at that point.
+EOF
+}
+
 # Closed-set gate shared by every forge-aware renderer and bin/fm-brief.sh, so a
 # caller cannot reach a half-rendered contract. local-only is refused rather than
 # rendered with an inert annotation: it publishes nothing, and its landing

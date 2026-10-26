@@ -575,6 +575,11 @@
 # that count. A viewport read that fails outright fails readiness at once.
 # grok uses a firstmate-owned global hook under ${GROK_HOME:-$HOME/.grok}/hooks
 # plus a gitignored .fm-grok-turnend worktree pointer and a state token.
+# A grok crewmate or scout additionally runs under a per-task worker home
+# (state/<id>.grok-home, bin/fm-grok-worker-lib.sh) that trims its skills
+# index, MCP servers, and media tools, and receives a slim launch brief
+# that links the full brief instead of inlining it; a grok secondmate
+# keeps the operator configuration and the full charter launch.
 # muse installs no hook at all - its plugin engine is off in the default build - so
 # it writes state/<id>.muse-session to bind the pane to muse's own session event
 # log; muse, gemini, agy, and devin are crewmate/scout only and are refused for --secondmate.
@@ -847,6 +852,8 @@ fm_backlog_directory_present "$STATE" "state directory" || {
 . "$SCRIPT_DIR/fm-pr-lib.sh"
 # shellcheck source=/dev/null
 . "$SCRIPT_DIR/fm-dod-lib.sh"
+# shellcheck source=bin/fm-grok-worker-lib.sh
+. "$SCRIPT_DIR/fm-grok-worker-lib.sh"
 # shellcheck source=bin/fm-role-lib.sh
 . "$SCRIPT_DIR/fm-role-lib.sh"
 # shellcheck source=bin/fm-trace-context-lib.sh
@@ -4210,12 +4217,17 @@ if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
   BRIEF="$DATA/$ID/launch-brief.md"
   BRIEF_TMP="$DATA/$ID/.launch-brief.md.${BASHPID:-$$}"
   {
-    fm_brief_worker_role "$STATE" "$ID" "$FM_ROOT" &&
-      printf '\nDecision owner for this dispatch: %s\n\n' "$DECISION_OWNER" &&
-      cat "$SOURCE_BRIEF" &&
-      if [ "$KIND" = ship ] && [ "$MODE" = no-mistakes ]; then
-        fm_brief_intent_overlay "$CAPTAIN_INTENT"
-      fi
+    if [ "$HARNESS" = grok ] && [ "$KIND" != secondmate ] &&
+      fm_grok_slim_launch_brief "$SOURCE_BRIEF" "$STATE" "$ID" "$FM_ROOT" "$KIND" "$DECISION_OWNER"; then
+      true
+    else
+      fm_brief_worker_role "$STATE" "$ID" "$FM_ROOT" &&
+        printf '\nDecision owner for this dispatch: %s\n\n' "$DECISION_OWNER" &&
+        cat "$SOURCE_BRIEF" &&
+        if [ "$KIND" = ship ] && [ "$MODE" = no-mistakes ]; then
+          fm_brief_intent_overlay "$CAPTAIN_INTENT"
+        fi
+    fi
   } >"$BRIEF_TMP" || {
     rm -f -- "$BRIEF_TMP"
     echo "error: could not render current launch contract for $SOURCE_BRIEF" >&2
@@ -6770,6 +6782,23 @@ fi
 # worktree's root: the worker must read the CODEX_HOME that registration wrote.
 if [ "$HARNESS" = codex ] && [ "$KIND" != secondmate ]; then
   LAUNCH="CODEX_HOME=$(shell_quote "$CODEX_STORE_DIR") $LAUNCH"
+fi
+# A Grok crewmate or scout runs under a per-task worker home so it does not
+# inherit the operator seat's skills index, MCP servers, or media tools.
+# bin/fm-grok-worker-lib.sh owns that home; the operator's own Grok home is
+# only read there (config discovery and auth/hooks symlinks), never written
+# beyond the turn-end hook wiring above that already targets it.
+# A Grok secondmate is a supervisor seat and keeps the full configuration.
+if [ "$HARNESS" = grok ] && [ "$KIND" != secondmate ]; then
+  GROK_WORKER_HOME=$(fm_grok_worker_home "$STATE" "$ID") || {
+    echo "error: could not resolve the Grok worker home for $ID" >&2
+    exit 1
+  }
+  fm_grok_worker_provision "${GROK_HOME:-$HOME/.grok}" "$GROK_WORKER_HOME" "$WT" || {
+    echo "error: could not provision the Grok worker home for $ID at $GROK_WORKER_HOME" >&2
+    exit 1
+  }
+  LAUNCH="GROK_HOME=$(shell_quote "$GROK_WORKER_HOME") GROK_CLAUDE_SKILLS_ENABLED=false GROK_CURSOR_SKILLS_ENABLED=false GROK_CLAUDE_MCPS_ENABLED=false GROK_CURSOR_MCPS_ENABLED=false $LAUNCH"
 fi
 if [ "$KIND" = secondmate ]; then
   sq_home=$(shell_quote "$PROJ_ABS")

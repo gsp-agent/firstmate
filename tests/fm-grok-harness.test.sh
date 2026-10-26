@@ -112,6 +112,35 @@ SH
   pass "fm-lock recognizes grok harness processes"
 }
 
+test_grok_worker_home_trims_launch_context() {
+  local rec case_dir home proj wt fakebin grok_home id out status worker_home
+  rec=$(make_spawn_case worker-home)
+  IFS='|' read -r case_dir home proj wt fakebin grok_home id <<EOF
+$rec
+EOF
+  printf '%s\n' 'dummy-test-credential' > "$grok_home/auth.json"
+  out=$(run_grok_spawn "$home" "$proj" "$wt" "$fakebin" "$grok_home" "$id")
+  status=$?
+  expect_code 0 "$status" "grok worker spawn should succeed"
+  worker_home="$home/state/$id.grok-home"
+  assert_present "$worker_home/config.toml" "grok worker config was not generated"
+  assert_grep 'skills = false' "$worker_home/config.toml" "grok worker config did not disable compat skills"
+  assert_grep 'mcps = false' "$worker_home/config.toml" "grok worker config did not disable compat MCP servers"
+  assert_grep 'image_gen = false' "$worker_home/config.toml" "grok worker config did not disable image tools"
+  assert_grep 'video_gen = false' "$worker_home/config.toml" "grok worker config did not disable video tools"
+  assert_grep 'output_byte_limit = 8000' "$worker_home/config.toml" "grok worker config did not cap bash output"
+  assert_no_grep 'dummy-test-credential' "$worker_home/config.toml" "grok worker config copied credential material"
+  [ -L "$worker_home/auth.json" ] || fail "grok worker auth is not a symlink to the operator sign-in"
+  [ "$(readlink "$worker_home/auth.json")" = "$grok_home/auth.json" ] || fail "grok worker auth symlink does not reference the operator sign-in"
+  assert_absent "$grok_home/config.toml" "spawn wrote a worker config into the operator grok home"
+  assert_grep 'The complete brief is at' "$home/data/$id/launch-brief.md" "grok launch brief did not link the full brief"
+  assert_grep "$home/data/$id/brief.md" "$home/data/$id/launch-brief.md" "grok launch brief did not name the full brief"
+  assert_grep '# Worker context discipline' "$home/data/$id/launch-brief.md" "grok launch brief missing the context discipline"
+  assert_grep 'Exercise the spawn behavior under test' "$home/data/$id/launch-brief.md" "grok launch brief missing the task spec"
+  pass "grok worker home trims launch context and slim launch brief links the full brief"
+}
+
 test_grok_hook_requires_registered_token
 test_grok_teardown_removes_pointer_and_token
 test_fm_lock_recognizes_grok_holder
+test_grok_worker_home_trims_launch_context
