@@ -21,9 +21,10 @@
 #   arrays by spendPriority or apply rule approvals or floors.
 #   Prints "status: clear ... source: label|default" and the profile line, exit 0.
 #   Missing configuration, no matching route and no default, an exhausted
-#   ep-opus route, or every default rung concretely exhausted prints escalate,
-#   exit 0. Combining docs-only and ep-opus prints refused with no profile,
-#   exit 1. Usage and configuration errors exit 2, as in brief mode.
+#   ep-opus route, an exhausted label route with no eligible default rung, or
+#   every default rung concretely exhausted prints escalate, exit 0.
+#   Combining docs-only and ep-opus prints refused with no profile, exit 1.
+#   Usage and configuration errors exit 2, as in brief mode.
 #
 # Brief-mode opt-in gate: TYPESAFE_API_KEY non-empty in this environment, else a
 #   TYPESAFE_API_KEY= line in $FM_HOME/.env read with fmx_env_get, the same
