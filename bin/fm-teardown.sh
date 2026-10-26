@@ -1915,14 +1915,22 @@ cleanup_stale_lock_for_safety_check() {
 }
 
 # Destroy a returned pool slot whose pool is not the project's configured pool
-# (fm_treehouse_configured_pool). Warns and keeps the slot when Treehouse skips
-# or refuses it; never fails the teardown, which already finished its return.
+# (fm_treehouse_configured_pool). A configured pool that reads empty (status
+# `[]`, as right after a root switch to a fresh pool) is outside it too: a slot
+# in that pool would be listed (chip, PR 164 review 5654811326). Only an
+# unreadable status decides nothing. Warns and keeps the slot when Treehouse
+# skips or refuses it; never fails the teardown, which already finished its
+# return.
 teardown_destroy_out_of_root_slot() {  # <worktree> <project-dir>
-  local wt=$1 project=$2 slot pool configured out
+  local wt=$1 project=$2 slot pool configured out rc=0
   slot=$(CDPATH='' cd -- "$wt" 2>/dev/null && pwd -P) || return 0
   pool=$(dirname "$(dirname "$slot")")
-  configured=$(fm_treehouse_configured_pool "$project") || return 0
-  [ "$pool" != "$configured" ] || return 0
+  configured=$(fm_treehouse_configured_pool "$project") || rc=$?
+  case "$rc" in
+    0) [ "$pool" != "$configured" ] || return 0 ;;
+    2) configured="(it lists no slot yet)" ;;
+    *) return 0 ;;
+  esac
   if out=$( (cd "$project" && treehouse destroy "$slot" --yes) 2>&1 </dev/null); then
     echo "teardown: destroyed pool slot $slot, which is outside the configured pool $configured"
   else

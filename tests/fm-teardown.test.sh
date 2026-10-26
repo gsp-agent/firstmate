@@ -1604,19 +1604,25 @@ EOF
 # never enters again (fm_treehouse_free_own_slot takes only the configured
 # pool). Teardown destroys that slot with Treehouse's safe default instead of
 # returning it to sit on disk; a slot inside the configured pool is returned as
-# before and never destroyed. <configured> is new (another pool) or same.
-add_treehouse_root_switch() {  # <case-dir> <new|same>
-  local case_dir=$1 which=$2 listed
-  if [ "$which" = new ]; then
-    mkdir -p "$case_dir/newpool/1/repo"
-    listed="$case_dir/newpool/1/repo"
-  else
-    listed="$case_dir/pool/6/repo"
-  fi
+# before and never destroyed. The configured pool is new (another pool with a
+# slot), empty (a fresh pool that lists none yet) or same.
+add_treehouse_root_switch() {  # <case-dir> <new|empty|same>
+  local case_dir=$1 which=$2 listed status
+  case "$which" in
+    new)
+      mkdir -p "$case_dir/newpool/1/repo"
+      listed="$case_dir/newpool/1/repo"
+      ;;
+    same) listed="$case_dir/pool/6/repo" ;;
+    empty) listed= ;;
+  esac
+  # A fresh configured pool with no slot yet reads as an empty array.
+  status='[]'
+  [ -z "$listed" ] || status="[{\"name\":\"1\",\"path\":\"$listed\",\"status\":\"in-use\"}]"
   cat > "$case_dir/fakebin/treehouse" <<SH
 #!/usr/bin/env bash
 case "\${1:-}" in
-  status) printf '[{"name":"1","path":"%s","status":"in-use"}]\n' "$listed" ;;
+  status) printf '%s\n' '$status' ;;
   destroy) printf '%s\n' "\$*" >> "$case_dir/destroy.log" ;;
 esac
 exit 0
@@ -1626,7 +1632,7 @@ SH
 
 test_out_of_root_slot_is_destroyed_not_returned() {
   local case_dir wt rc slot
-  for which in new same; do
+  for which in new empty same; do
     case_dir=$(make_case "root-switch-$which")
     wt=$(move_case_to_pool_slot "$case_dir" 6)
     write_meta "$case_dir" no-mistakes scout "$wt"
@@ -1639,15 +1645,15 @@ test_out_of_root_slot_is_destroyed_not_returned() {
     set -e
     expect_code 0 "$rc" "root-switch-$which: teardown should finish: $(cat "$case_dir/stderr")"
     assert_absent "$case_dir/state/task-x1.meta" "root-switch-$which: task record was not removed"
-    if [ "$which" = new ]; then
-      assert_grep "destroy $slot --yes" "$case_dir/destroy.log" "root-switch-new: the out-of-root slot was not destroyed"
-      assert_no_grep "--include" "$case_dir/destroy.log" "root-switch-new: destroy went past Treehouse's safe default"
-      assert_grep "outside the configured pool" "$case_dir/stdout" "root-switch-new: teardown did not say why it destroyed the slot"
+    if [ "$which" != same ]; then
+      assert_grep "destroy $slot --yes" "$case_dir/destroy.log" "root-switch-$which: the out-of-root slot was not destroyed"
+      assert_no_grep "--include" "$case_dir/destroy.log" "root-switch-$which: destroy went past Treehouse's safe default"
+      assert_grep "outside the configured pool" "$case_dir/stdout" "root-switch-$which: teardown did not say why it destroyed the slot"
     else
       assert_absent "$case_dir/destroy.log" "root-switch-same: a slot in the configured pool was destroyed"
     fi
   done
-  pass "a slot left outside the configured treehouse pool is destroyed with the safe default; one inside it is only returned"
+  pass "a slot left outside the configured treehouse pool, empty or not, is destroyed with the safe default; one inside it is only returned"
 }
 
 test_dirty_return_warns_which_slot_was_lost() {
