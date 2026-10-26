@@ -147,3 +147,5 @@ pr: 149
 pr: 150
 # Failing-first review-wait rule in tests/fm-brief.test.sh: on 6c90cd9f the ship brief fails with "brief left a review wait outside the merge-only pause"; after the fix ship and scout briefs teach the review wait as part of [awaits=merge] under the configured pause verb.
 pr: 151
+# Failing-first replays in tests/fm-claude-wake.test.sh: test_stop_claim_loses_to_waker_rewake_committed_after_pending_read commits a second rewake on the base (STOP_RC=2, ledger epoch 3) and test_waker_banner_carries_away_line_on_host_home misses the away-posture line on the base; both pass after the fix.
+pr: 153

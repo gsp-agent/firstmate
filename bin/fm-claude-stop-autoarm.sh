@@ -321,17 +321,21 @@ fi
 # delivers. A micro-mutex contention with a bare hold is another participant's
 # short ledger section, held only for a ledger write, so the claim is retried
 # a few times over about a second before the contention exit: an idle main
-# may fire no next Stop. A role-carrying hold is a legacy lock-holding claim
+# may fire no next Stop. The claim carries the generation the rewake-pending
+# read above saw, so a waker rewake committed between that read and the
+# claim (or the legacy re-claim below) makes the claim fail instead of
+# committing a second rewake. A role-carrying hold is a legacy lock-holding claim
 # from a pre-generation build (or the guard's own terminal-check), which the
 # legacy shim defers to while genuinely deciding and reclaims once when proven
 # abandoned.
 if fm_claude_rewake_pending "$STATE" require-record; then
   REWAKE_TURN="$FM_CLAUDE_TURN_EPOCH $FM_CLAUDE_TURN_PID $FM_CLAUDE_TURN_SESSION"
 fi
+PENDING_GEN=${FM_AUTOARM_GEN:-}
 fm_autoarm_claim_open "$STATE" "$GRACE" && exit 0
 CLAIM_TRIES=0
 while :; do
-  fm_autoarm_claim_next "$STATE" "$GRACE"
+  fm_autoarm_claim_next "$STATE" "$GRACE" "$PENDING_GEN"
   CLAIM_RC=$?
   [ "$CLAIM_RC" -eq 1 ] || break
   [ -z "$(fm_lock_role "$OWNER_LOCK" 2>/dev/null || true)" ] || break
@@ -344,7 +348,7 @@ if [ "$CLAIM_RC" -ne 0 ]; then
   ROLE=$(fm_lock_role "$OWNER_LOCK" 2>/dev/null || true)
   [ -n "$ROLE" ] || exit 0
   fm_autoarm_release_abandoned "$STATE" "$GRACE" || exit 0
-  fm_autoarm_claim_next "$STATE" "$GRACE" || exit 0
+  fm_autoarm_claim_next "$STATE" "$GRACE" "$PENDING_GEN" || exit 0
 fi
 MY_GEN=$FM_AUTOARM_MY_GEN
 [ -n "$MY_GEN" ] || exit 0
@@ -656,10 +660,7 @@ if [ "$ACTIONABLE" -eq 1 ]; then
         }
       }
     ' "${OUT:-/dev/null}" 2>/dev/null
-    if [ "$HOST_MODE" -eq 1 ] && [ -e "$STATE/.afk-contract" ] \
-      && [ "$(FM_STATE_OVERRIDE="$STATE" "$SCRIPT_DIR/fm-afk-contract.sh" mode 2>/dev/null)" != quiet ]; then
-      printf 'This wake comes from automatic supervision under the away-posture record, not from the captain: it is not a return, so handle it under the away posture.\n'
-    fi
+    fm_claude_away_wake_line "$STATE" "$CONFIG" || true
     [ -z "$SUCCESSOR_FAILURE" ] || printf '%s\n' "$SUCCESSOR_FAILURE"
     printf 'Run bin/fm-wake-drain.sh first, handle the wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. Until that post-handling acknowledgement, interruption leaves the wake durable for idempotent re-handling. This Stop hook owns watcher continuity: when the handling turn ends, the next needed cycle arms automatically - do NOT run bin/fm-watch-arm.sh after an ordinary wake.\n'
   )

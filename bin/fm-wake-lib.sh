@@ -2305,6 +2305,30 @@ fm_claude_rewake_pending() {  # <state-dir> [require-record]
   [ "$updated" -gt "$turn_epoch" ]
 }
 
+# Print the away-posture wake line and return 0 when this home runs the
+# supervision host for a Claude primary and a live away record (mode away)
+# stands; otherwise print nothing and return 1. This is the one source for
+# both the condition and the line, shared by the Stop hook's rewake banner
+# (bin/fm-claude-stop-autoarm.sh) and the waker's banner
+# (bin/fm-claude-wake.sh), so the two cannot drift. The host gate stays owned
+# by fm_supervision_host_enabled and the away reading by
+# fm_afk_contract_away_present; both load lazily because most wake-library
+# consumers source neither owner.
+fm_claude_away_wake_line() {  # <state-dir> <config-dir>
+  local state=$1 config=$2
+  if ! command -v fm_supervision_host_enabled >/dev/null 2>&1; then
+    # shellcheck source=/dev/null
+    . "$FM_WAKE_LIB_DIR/fm-supervision-engine-lib.sh" || return 1
+  fi
+  if ! command -v fm_afk_contract_away_present >/dev/null 2>&1; then
+    # shellcheck source=/dev/null
+    . "$FM_WAKE_LIB_DIR/fm-afk-contract.sh" || return 1
+  fi
+  fm_supervision_host_enabled "$config" claude || return 1
+  fm_afk_contract_away_present "$state" || return 1
+  printf 'This wake comes from automatic supervision under the away-posture record, not from the captain: it is not a return, so handle it under the away posture.\n'
+}
+
 fm_autoarm_reset_owned() {  # <state-dir> <gen>
   local state=$1 gen=$2 lock pid
   lock="$state/.claude-autoarm.lock"
