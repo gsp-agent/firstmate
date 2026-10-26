@@ -22,7 +22,12 @@
 # stderr, while fm_nm_run keeps the fail-open query contract for read-only callers.
 # bin/fm-timeout-lib.sh's fm_run_timed owns timeout mechanisms, exit-status
 # normalization, and process-group cleanup; its header defines their limits.
-_FM_NM_RUN_LIB_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# An absolute, already-normal path is its own logical directory; only a
+# relative or unnormalized one needs the cd/pwd subshell.
+_FM_NM_RUN_LIB_DIR=${BASH_SOURCE[0]%/*}
+case "$_FM_NM_RUN_LIB_DIR/" in
+  */./*|*/../*|*//*|[!/]*|/) _FM_NM_RUN_LIB_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd) ;;
+esac
 # That library declares `set -u` for its own hygiene, which a sourced sibling
 # must not impose on this library's consumers, so the caller's setting is
 # restored around the source.

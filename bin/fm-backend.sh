@@ -47,10 +47,22 @@
 # does not change the loop's behavior. The pull primitives also stay available
 # on their own for on-demand reads (fm-peek.sh, fm-crew-state.sh).
 
+# An absolute, already-normal path is its own logical directory and its parent
+# the logical root, so loading this library starts no process; only a relative
+# or unnormalized path needs the cd/pwd subshells.
 FM_BACKEND_SCRIPT=${BASH_SOURCE[0]:-$0}
-FM_BACKEND_LIB_DIR="$(cd "$(dirname "$FM_BACKEND_SCRIPT")" && pwd)"
+FM_BACKEND_LIB_DIR=${FM_BACKEND_SCRIPT%/*}
+case "$FM_BACKEND_LIB_DIR/" in
+  */./*|*/../*|*//*|[!/]*|/) FM_BACKEND_LIB_DIR="$(cd "$(dirname "$FM_BACKEND_SCRIPT")" && pwd)" ;;
+esac
 unset FM_BACKEND_SCRIPT
-FM_BACKEND_DEFAULT_ROOT="$(cd "$FM_BACKEND_LIB_DIR/.." && pwd)"
+case "$FM_BACKEND_LIB_DIR/" in
+  */./*|*/../*|*//*|[!/]*|/) FM_BACKEND_DEFAULT_ROOT="$(cd "$FM_BACKEND_LIB_DIR/.." && pwd)" ;;
+  *)
+    FM_BACKEND_DEFAULT_ROOT=${FM_BACKEND_LIB_DIR%/*}
+    [ -n "$FM_BACKEND_DEFAULT_ROOT" ] || FM_BACKEND_DEFAULT_ROOT=/
+    ;;
+esac
 FM_ROOT="${FM_ROOT_OVERRIDE:-${FM_ROOT:-$FM_BACKEND_DEFAULT_ROOT}}"
 FM_HOME="${FM_HOME:-${FM_ROOT_OVERRIDE:-$FM_ROOT}}"
 FM_BACKEND_CONFIG_DIR="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
