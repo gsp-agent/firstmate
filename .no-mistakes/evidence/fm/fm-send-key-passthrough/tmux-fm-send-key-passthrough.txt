@@ -1,0 +1,27 @@
+== tmux tmux 3.8; lab socket dir under the disposable lab home
+== keys pane before any send:
+KEYLOG READY - raw mode, one line per byte received
+== fm-send output, run from a pane inside the lab tmux server:
+driver TMUX socket: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.g3Yr8z/tmux/tmux-501/fm-lab
+--- fm-send.sh keys:0 --key X
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.g3Yr8z
+exit=0
+--- fm-send.sh keys:0 --key Enter
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.g3Yr8z
+exit=0
+--- fm-send.sh keys:0 --key C-c
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.g3Yr8z
+exit=0
+--- fm-send.sh keys:0 --key Escape
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.g3Yr8z
+exit=0
+DRIVER-DONE
+== keys pane after the sends (each line is one byte the pane received):
+KEYLOG READY - raw mode, one line per byte received
+KEY 0x58 'X'
+KEY 0x0d Enter(CR)
+KEY 0x03 C-c
+KEY 0x1b Escape
+== default tmux server untouched check: lab server list-sessions
+keys
+== lab tmux server killed

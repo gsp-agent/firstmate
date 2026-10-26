@@ -1,0 +1,29 @@
+== herdr 0.9.1; lab session fm-lab-keypass-5176-31309
+== pane w1:p1; fm-send target fm-lab-keypass-5176-31309:w1:p1
+== keys pane before any send:
+KEYLOG READY - raw mode, one line per byte received
+--- fm-send.sh fm-lab-keypass-5176-31309:w1:p1 --key X
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.g3Yr8z
+exit=0
+--- fm-send.sh fm-lab-keypass-5176-31309:w1:p1 --key Enter
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.g3Yr8z
+exit=0
+--- fm-send.sh fm-lab-keypass-5176-31309:w1:p1 --key C-c
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.g3Yr8z
+exit=0
+--- fm-send.sh fm-lab-keypass-5176-31309:w1:p1 --key Escape
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.g3Yr8z
+exit=0
+== herdr send-keys calls fm-send made (routed to the lab session):
+pane send-keys w1:p1 X
+pane send-keys w1:p1 enter
+pane send-keys w1:p1 ctrl+c
+pane send-keys w1:p1 escape
+== keys pane after the sends (each line is one byte the pane received):
+KEYLOG READY - raw mode, one line per byte received
+KEY 0x58 'X'
+KEY 0x0d Enter(CR)
+KEY 0x03 C-c
+KEY 0x1b Escape
+== teardown of fm-lab-keypass-5176-31309 (guarded; tripwire requires the default session unchanged)
+teardown ok

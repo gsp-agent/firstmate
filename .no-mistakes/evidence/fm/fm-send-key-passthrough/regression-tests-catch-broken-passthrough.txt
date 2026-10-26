@@ -1,0 +1,45 @@
+== original: tests/fm-backend.test.sh test_send_tmux_contract
+ok - fm-send.sh: explicit tmux targets are verified; text types once and submits with Enter
+exit=0
+== original: tests/fm-backend-herdr.test.sh test_send_key_passes_unlisted_key_through
+ok - fm_backend_herdr_send_key: passes X through unchanged and still delivers Enter and C-c
+exit=0
+== mutated copy diff:
+diff -ru /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-keytest-mut.B7vOdJ/original/bin/backends/herdr.sh /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-keytest-mut.B7vOdJ/mutated/bin/backends/herdr.sh
+--- /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-keytest-mut.B7vOdJ/original/bin/backends/herdr.sh	2026-10-26 01:11:55
++++ /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-keytest-mut.B7vOdJ/mutated/bin/backends/herdr.sh	2026-10-26 01:44:57
+@@ -3235,7 +3235,7 @@
+     # C-u clears a composer line. fm-send.sh's muse interrupt path needs it to
+     # drop the prompt muse restores into the composer after Escape.
+     C-u|c-u|ctrl+u|Ctrl+U) printf 'ctrl+u' ;;
+-    *) printf '%s' "$1" ;;
++    *) return 1 ;;
+   esac
+ }
+ 
+@@ -3244,7 +3244,7 @@
+ fm_backend_herdr_send_key() {  # <target> <key>
+   fm_backend_herdr_target_ready "$1" || return 1
+   local key
+-  key=$(fm_backend_herdr_normalize_key "$2")
++  key=$(fm_backend_herdr_normalize_key "$2") || return 1
+   fm_backend_herdr_cli "$FM_BACKEND_HERDR_SESSION" pane send-keys "$FM_BACKEND_HERDR_PANE" "$key" >/dev/null 2>&1
+ }
+ 
+diff -ru /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-keytest-mut.B7vOdJ/original/bin/backends/tmux.sh /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-keytest-mut.B7vOdJ/mutated/bin/backends/tmux.sh
+--- /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-keytest-mut.B7vOdJ/original/bin/backends/tmux.sh	2026-10-26 01:11:55
++++ /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-keytest-mut.B7vOdJ/mutated/bin/backends/tmux.sh	2026-10-26 01:44:56
+@@ -54,6 +54,7 @@
+ # `tmux display-message -p -t "$T" '#{pane_id}' >/dev/null`, then
+ # `tmux send-keys -t "$T" "$2"`.
+ fm_backend_tmux_send_key() {  # <target> <key>
++  case "$2" in Escape|Enter|C-c|C-u) ;; *) echo "error: unsupported tmux key '$2'" >&2; return 1 ;; esac
+   tmux display-message -p -t "$1" '#{pane_id}' >/dev/null
+   tmux send-keys -t "$1" "$2"
+ }
+== mutated: tests/fm-backend.test.sh test_send_tmux_contract
+not ok - fm-send --key X should succeed against a live fake pane: expected exit 0, got 1
+exit=1
+== mutated: tests/fm-backend-herdr.test.sh test_send_key_passes_unlisted_key_through
+not ok - send_key X should succeed: expected exit 0, got 1
+exit=1

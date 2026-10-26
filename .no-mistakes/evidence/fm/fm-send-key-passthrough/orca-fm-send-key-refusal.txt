@@ -1,0 +1,35 @@
+== recorded task fm-orcakeylab1: backend=orca terminal=term-lab harness=grok
+--- fm-send.sh fm-orcakeylab1 --key X
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.g3Yr8z
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the requested message WILL still be sent.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: unsupported Orca key 'X'
+error: key 'X' not sent to term-lab (orca send failed; tried meta=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.g3Yr8z/state/orcakeylab1.meta; backend=from-meta)
+exit=1
+orca CLI calls made:
+  (none)
+--- fm-send.sh fm-orcakeylab1 --key Escape
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.g3Yr8z
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+error: unsupported Orca key 'Escape'
+error: key 'Escape' not sent to term-lab (orca send failed; tried meta=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.g3Yr8z/state/orcakeylab1.meta; backend=from-meta)
+exit=1
+orca CLI calls made:
+  (none)
+--- fm-send.sh fm-orcakeylab1 --key Enter
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.g3Yr8z
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+exit=0
+orca CLI calls made:
+  orca terminal send --terminal term-lab --text  --enter --json
+--- fm-send.sh fm-orcakeylab1 --key C-c
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.g3Yr8z
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+exit=0
+orca CLI calls made:
+  orca terminal send --terminal term-lab --interrupt --json
