@@ -222,14 +222,21 @@ emit() {  # <state> <source> [detail]
 
 [ -f "$META" ] || emit unknown none "no metadata for $ID"
 
-meta_value() {  # <key>
-  grep "^$1=" "$META" 2>/dev/null | tail -1 | cut -d= -f2- || true
+# The LAST value of <key>= in the task metadata, assigned to <out-var>.
+# fm_meta_get (bin/fm-backend.sh) owns the read, which mirrors the
+# grep | tail -1 | cut -d= -f2- this replaced; the out-var form starts no
+# process. Every supervisor that polls crews calls this reader per crew, so its
+# fixed reads stay fork-free (.agent-config-ks05d.4,
+# tests/fm-crew-state-fork-budget.test.sh).
+meta_value() {  # <key> <out-var>
+  fm_meta_get "$META" "$1" "$2"
 }
 
-WT=$(meta_value worktree)
-KIND=$(meta_value kind)
-HARNESS=$(meta_value harness)
-REMOTE_HOST=$(meta_value remote_host)
+WT='' KIND='' HARNESS='' REMOTE_HOST=''
+meta_value worktree WT
+meta_value kind KIND
+meta_value harness HARNESS
+meta_value remote_host REMOTE_HOST
 [ -n "$KIND" ] || KIND=ship
 
 # A torn-down (or never-created) worktree has no current state to read. A
@@ -250,30 +257,38 @@ fi
 # named-head reachability gate: that claim is blocked so a disposable copy is
 # not treated as finished-and-safe.
 emit_ship_status_done() {  # [extra-detail]
-  local extra=${1:-} reason
-  if reason=$(fm_dod_accept_ship_done "$KIND" "$(meta_value mode)" "$WT" "$(meta_value project)" "$LOG_LINE" "$STATE" "$ID" "$META"); then
-    emit "done" status-log "$(status_line_note "$LOG_LINE")${extra:+${SEP}$extra}"
+  local extra=${1:-} reason mode project
+  meta_value mode mode
+  meta_value project project
+  if reason=$(fm_dod_accept_ship_done "$KIND" "$mode" "$WT" "$project" "$LOG_LINE" "$STATE" "$ID" "$META"); then
+    emit "done" status-log "$LOG_NOTE${extra:+${SEP}$extra}"
   fi
   emit blocked status-log "$reason"
 }
 
-map_log_state() {  # <line>
+# Assigned to <out-var> rather than printed, so no reading forks for it.
+map_log_state() {  # <line> <out-var>
+  local mapped_verb mapped_state
   if status_is_paused "$1"; then
-    echo paused
-    return
+    mapped_state=paused
+  else
+    status_line_verb "$1" mapped_verb
+    case "$mapped_verb" in
+      working)        mapped_state=working ;;
+      needs-decision) mapped_state=parked ;;
+      blocked)        mapped_state=blocked ;;
+      done)           mapped_state="done" ;;
+      failed)         mapped_state=failed ;;
+      *)              mapped_state=unknown ;;
+    esac
   fi
-  case "$(status_line_verb "$1")" in
-    working)        echo working ;;
-    needs-decision) echo parked ;;
-    blocked)        echo blocked ;;
-    done)           echo "done" ;;
-    failed)         echo failed ;;
-    *)              echo unknown ;;
-  esac
+  printf -v "$2" '%s' "$mapped_state"
 }
 
 LOG_LINE=$(status_current_line "$LOG" "$KIND")
-LOG_VERB=$(status_line_verb "$LOG_LINE")
+LOG_VERB='' LOG_NOTE=''
+status_line_verb "$LOG_LINE" LOG_VERB
+status_line_note "$LOG_LINE" LOG_NOTE
 
 # --- remote secondmate: the true source is the remote endpoint ---------------
 # A remote mate's recorded worktree and backend target live on its own host, so
@@ -295,9 +310,9 @@ if [ -n "$REMOTE_HOST" ]; then
   case "$REMOTE_STATE" in
     alive)
       if [ -n "$LOG_VERB" ]; then
-        LOG_STATE=$(map_log_state "$LOG_LINE")
+        map_log_state "$LOG_LINE" LOG_STATE
         if [ "$LOG_STATE" != unknown ]; then
-          emit "$LOG_STATE" status-log "$(status_line_note "$LOG_LINE")${SEP}remote endpoint alive on $REMOTE_HOST"
+          emit "$LOG_STATE" status-log "$LOG_NOTE${SEP}remote endpoint alive on $REMOTE_HOST"
         fi
       fi
       emit unknown remote-endpoint "alive on $REMOTE_HOST (an idle secondmate is healthy)"
@@ -320,8 +335,13 @@ fi
 # state (e.g. done) instead of being masked as unknown. Backend-aware
 # (fm_backend_of_meta defaults absent backend= to tmux, the P1 contract): a
 # herdr task is read through fm_backend_capture instead of a bare tmux probe.
-TASK_BACKEND=$(fm_backend_of_meta "$META")
-BACKEND_TARGET=$(fm_backend_target_of_meta "$META")
+# fm_backend_endpoint_of_fields owns the rule fm_backend_of_meta and
+# fm_backend_target_of_meta apply; given these three fields it starts no process.
+TASK_BACKEND='' BACKEND_WINDOW='' BACKEND_TERMINAL='' BACKEND_TARGET=''
+meta_value backend TASK_BACKEND
+meta_value window BACKEND_WINDOW
+meta_value terminal BACKEND_TERMINAL
+fm_backend_endpoint_of_fields "$TASK_BACKEND" "$BACKEND_WINDOW" "$BACKEND_TERMINAL" TASK_BACKEND BACKEND_TARGET
 EXPECTED_LABEL="fm-$ID"
 pane_readable() {  # <target>
   case "$TASK_BACKEND" in
@@ -681,7 +701,7 @@ EOF
 }
 log_reports_ci_ready() {
   [ "$LOG_VERB" = "done" ] || return 1
-  fm_dod_note_reports_ci_ready "$(status_line_note "$LOG_LINE")"
+  fm_dod_note_reports_ci_ready "$LOG_NOTE"
 }
 
 # 0 when a status-log line reports positive daemon socket failure rather than a
@@ -1235,15 +1255,16 @@ if [ "$HAVE_RUN" = 1 ]; then
       if [ "$LOG_VERB" = blocked ] \
         && [ "$(status_line_verb "$LOG_LATEST")" = blocked ] \
         && log_reports_daemon_socket_down "$LOG_LATEST"; then
-        emit blocked status-log "$(status_line_note "$LOG_LATEST")${SEP}daemon socket down despite attributed run record"
+        status_line_note "$LOG_LATEST" LOG_LATEST_NOTE
+        emit blocked status-log "$LOG_LATEST_NOTE${SEP}daemon socket down despite attributed run record"
       fi
       # An UNVERIFIED record cannot close an open decision. The crew observed
       # its gate or its blocker first hand; a record the dead instrument left
       # behind is the weaker witness, so the log answers and the unverified
       # record is reported as the reason rather than replacing it.
-      LOG_TIP_STATE=$(map_log_state "$LOG_LINE")
+      map_log_state "$LOG_LINE" LOG_TIP_STATE
       if [ -n "$RUN_DEAD_DAEMON" ]; then
-        emit "$LOG_TIP_STATE" status-log "$(status_line_note "$LOG_LINE")${SEP}${RUN_DEAD_DAEMON}${SELECTED_RUN_ID:+${SEP}run: $SELECTED_RUN_ID}"
+        emit "$LOG_TIP_STATE" status-log "$LOG_NOTE${SEP}${RUN_DEAD_DAEMON}${SELECTED_RUN_ID:+${SEP}run: $SELECTED_RUN_ID}"
       fi
       if [ "$RUN_STATE" != parked ]; then
         if [ "$RUN_STATE" = working ]; then
@@ -1307,9 +1328,9 @@ if ! pane_readable "$BACKEND_TARGET"; then
       ;;
     herdr:missing)
       if [ "$KIND" != secondmate ] && status_is_context_paused "$LOG_LINE"; then
-        emit paused status-log "$(status_line_note "$LOG_LINE")"
+        emit paused status-log "$LOG_NOTE"
       fi
-      closed_spawn_gen=$(meta_value spawn_gen)
+      meta_value spawn_gen closed_spawn_gen
       if [ -n "$closed_spawn_gen" ] && [ ! -L "$STATE/terminal-outcomes" ]; then
         for closed_record in "$STATE/terminal-outcomes"/*.pending "$STATE/terminal-outcomes"/*.reported "$STATE/terminal-outcomes"/*.presented; do
           [ -f "$closed_record" ] && [ ! -L "$closed_record" ] || continue
@@ -1369,9 +1390,9 @@ if [ -n "$LOG_VERB" ]; then
   if [ "$LOG_VERB" = "done" ]; then
     emit_ship_status_done
   fi
-  LOG_STATE=$(map_log_state "$LOG_LINE")
+  map_log_state "$LOG_LINE" LOG_STATE
   if [ "$LOG_STATE" != unknown ]; then
-    emit "$LOG_STATE" status-log "$(status_line_note "$LOG_LINE")"
+    emit "$LOG_STATE" status-log "$LOG_NOTE"
   fi
 fi
 
