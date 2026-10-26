@@ -1,0 +1,6 @@
+fm-pr-made-with: task record <fixture>/unreg/state/delivery.meta names no harness
+actionable: PR https://github.com/o/r/pull/8 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh delivery https://github.com/o/r/pull/8
+== fm-check-unregister.sh retires the contributions check after the watcher read its trust
+sweep rc=0 elapsed=37s unregister ran mid-sweep: unregistered: state/contributions.check.sh
+    | check: <fixture>/unreg/state/z-stop.check.sh: stop-cycle
+check present after: no  queued rejection wakes: 0  marker: absent

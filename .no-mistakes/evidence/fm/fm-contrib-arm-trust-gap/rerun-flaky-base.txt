@@ -1,0 +1,4 @@
+not ok - watcher did not surface contribution diagnostics: 
+not ok - watcher did not surface the new contribution signal: 
+ok - rotation preserves timed-out records and refreshes every slow PR on successive cycles
+not ok - 2 contribution regressions

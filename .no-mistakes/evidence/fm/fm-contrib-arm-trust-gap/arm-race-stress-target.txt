@@ -1,0 +1,13 @@
+label=target-06132187 seconds=240
+changed-shim arms completed: 28
+/Users/dalecarman/.no-mistakes/evidence/01M5VAGRTWESV0W7W3VXW3MS83/drivers/arm-race-stress.sh: line 56: <tmp>/fix-target/target-06132187/arm.fail: No such file or directory
+arm failures: 
+authenticated contributions-check runs (forge polls): 8
+watcher checkpoints: 1 (ended on a wake: 0)
+queued rejection wakes for the contributions check: 0
+watcher rejection lines:
+leftover stage dirs: 0
+leftover publish lock: no
+final pair authenticates: yes
+watcher stderr (non-empty lines): 0
+0

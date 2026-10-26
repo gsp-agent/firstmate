@@ -1,0 +1,9 @@
+fm-pr-made-with: task record <fixture>/busy/state/delivery.meta names no harness
+actionable: PR https://github.com/o/r/pull/8 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh delivery https://github.com/o/r/pull/8
+== Live writer holds the publish lock for 120s; the check is tampered
+holder pid alive: yes; lock pid file: holder
+sweep rc=0 elapsed=34s (lock still held by live holder: yes)
+watcher 0.1s lock-wait sleeps while the lock was busy: 7
+    | check: <fixture>/busy/state/z-stop.check.sh: stop-cycle
+    | check: rejected unauthenticated state checks: <fixture>/busy/state/contributions.check.sh
+queued rejection wakes: 1

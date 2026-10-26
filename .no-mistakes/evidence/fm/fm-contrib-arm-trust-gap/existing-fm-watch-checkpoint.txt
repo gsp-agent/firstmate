@@ -1,0 +1,3 @@
+ok - quiet checkpoint exits 124 with a clean checkpoint line and no live lock
+ok - Perl fallback honors the cleanup bound before escalating an INT-ignoring direct watcher
+not ok - first recovery checkpoint exit: expected exit 0, got 124

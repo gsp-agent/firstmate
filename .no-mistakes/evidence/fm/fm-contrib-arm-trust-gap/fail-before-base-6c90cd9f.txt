@@ -1,0 +1,7 @@
+fm-pr-made-with: task record /private<tmp>/fm-contributions.Pc7joJ/arm-race/state/delivery.meta names no harness
+actionable: PR https://github.com/o/r/pull/8 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh delivery https://github.com/o/r/pull/8
+not ok - a watcher sweep during arm rejected the contributions check: check: rejected unauthenticated state checks: /private<tmp>/fm-contributions.Pc7joJ/arm-race/state/contributions.check.sh
+fm-pr-made-with: task record /private<tmp>/fm-contributions.Pc7joJ/arm-tamper/state/delivery.meta names no harness
+actionable: PR https://github.com/o/r/pull/8 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh delivery https://github.com/o/r/pull/8
+ok - a check changed without the publish lock is still rejected, exactly once
+not ok - 1 contribution regressions

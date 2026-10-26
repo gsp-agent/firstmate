@@ -1,0 +1,82 @@
+ok - only required-captain contributions are rows; other actors are counted
+ok - replaced-head verdict is stale and cannot create a captain requirement
+ok - unchecked ownership is disclosed and cannot prove silence
+ok - newest check with no verdict is distinct from passing and pending
+fm-pr-made-with: task record /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-contributions.MoxILM/incoming-comment/state/delivery.meta names no harness
+actionable: PR https://github.com/o/r/pull/8 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh delivery https://github.com/o/r/pull/8
+ok - new maintainer comment wakes once and stays pending until acknowledged
+fm-pr-made-with: task record /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-contributions.MoxILM/incoming-review/state/delivery.meta names no harness
+actionable: PR https://github.com/o/r/pull/8 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh delivery https://github.com/o/r/pull/8
+ok - new maintainer review wakes once and stays pending until acknowledged
+fm-pr-made-with: task record /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-contributions.MoxILM/incoming-inline/state/delivery.meta names no harness
+actionable: PR https://github.com/o/r/pull/8 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh delivery https://github.com/o/r/pull/8
+ok - new maintainer inline wakes once and stays pending until acknowledged
+fm-pr-made-with: task record /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-contributions.MoxILM/ready/state/delivery.meta names no harness
+actionable: PR https://github.com/o/r/pull/8 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh delivery https://github.com/o/r/pull/8
+ok - ready-for-pr on a filed issue becomes a planning wake
+ok - a fresh open issue remains measured maintainer triage
+ok - an absent check lane remains missing across repeated observations
+ok - mixed freshness retains measured captain work and discloses the gap
+ok - malformed durable evidence cannot prove silence
+ok - a transient ready-for-pr label wakes and its exact acknowledgement survives replay
+fm-pr-made-with: task record /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-contributions.MoxILM/verdict-roundtrip/state/delivery.meta names no harness
+actionable: PR https://github.com/o/r/pull/8 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh delivery https://github.com/o/r/pull/8
+ok - recorded judgment keeps its exact head and is stale immediately on a published replacement
+fm-pr-made-with: task record /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-contributions.MoxILM/verdict-actors/state/delivery.meta names no harness
+actionable: PR https://github.com/o/r/pull/8 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh delivery https://github.com/o/r/pull/8
+ok - verdict help and refusal name exactly the actors the command accepts
+fm-pr-made-with: task record /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-contributions.MoxILM/observed-replacement/state/delivery.meta names no harness
+actionable: PR https://github.com/o/r/pull/8 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh delivery https://github.com/o/r/pull/8
+ok - a current forge observation refreshes a verdict after a replacement
+ok - an unavailable current head leaves verdict freshness unknown
+fm-pr-made-with: task record /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-contributions.MoxILM/away-yolo/state/delivery.meta names no harness
+actionable: PR https://github.com/o/r/pull/8 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh delivery https://github.com/o/r/pull/8
+ok - away yolo delivery is fleet work without granting merge authority
+fm-pr-made-with: task record /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-contributions.MoxILM/away-yolo-child/state/delivery.meta names no harness
+actionable: PR https://github.com/o/r/pull/8 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh delivery https://github.com/o/r/pull/8
+actionable: PR https://github.com/o/r/pull/8 is registered but its ready line did not reach the parent channel (rc=3)
+ok - cross-home away yolo delivery is fleet work
+ok - retired ownership persists and unsupported forge remains visibly unmeasured
+ok - unsupported forge coverage is disclosed without inventing fleet work
+ok - held unsupported forge coverage remains unmeasured
+fm-pr-made-with: task record /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-contributions.MoxILM/shared-contribution-signal/state/delivery.meta names no harness
+actionable: PR https://github.com/o/r/pull/8 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh delivery https://github.com/o/r/pull/8
+ok - shared contribution signal wakes once while retaining both acknowledgements
+fm-pr-made-with: task record /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-contributions.MoxILM/watcher-diagnostics/state/delivery.meta names no harness
+actionable: PR https://github.com/o/r/pull/8 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh delivery https://github.com/o/r/pull/8
+not ok - watcher did not surface contribution diagnostics: 
+ok - expired child unsupported-forge coverage remains unmeasured
+fm-pr-made-with: task record /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-contributions.MoxILM/watcher-contribution/state/delivery.meta names no harness
+actionable: PR https://github.com/o/r/pull/8 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh delivery https://github.com/o/r/pull/8
+not ok - watcher did not surface the new contribution signal: 
+ok - parent consumes measured child coverage and refuses expired child silence
+ok - unreadable pending signals refuse an empty-inbox claim
+ok - an unreadable sibling or failed batch read costs one error and keeps healthy records whole
+ok - record task identity is the directory dirname/basename named
+ok - snapshot and pending create nothing in a home without state
+ok - budget exhausted mid-observation (exhaust) keeps the prior record and stays silent
+ok - budget exhausted mid-observation (hang) keeps the prior record and stays silent
+ok - a genuine forge failure inside the budget still records the error and wakes
+ok - a URL owned by two tasks is observed once and every owner receives the result
+ok - a merged or closed contribution settles once, is not re-read, and never wakes again
+ok - a late owner inherits a terminal observation without a forge read or wake
+ok - a retry converges every owner whose saved row is not terminal, keeping its own acknowledgement state
+ok - an open PR linked from a done task keeps being observed
+ok - a later URL waits when fewer than fifteen seconds remain for its observation
+ok - eight 3-second PR reads complete fresh within one 20-second poll cycle
+ok - a read killed at the five-second bound is budget refusal and stays silent
+not ok - slow successful poll did not respect its elapsed budget: 30 seconds
+ok - the effective budget is cut down to the watcher per-check bound with margin
+ok - generated checks enforce configured and inherited budgets at runtime
+ok - a genuinely unavailable forge records an error and wakes once per failure episode
+ok - a late owner does not restart a shared forge failure episode
+ok - retire stops the unavailable check, leaves rotation and restores complete coverage
+ok - a late owner settled beside a retired final record stays unretired and known
+ok - retire is idempotent and refuses non-captain, unknown, malformed and signal-bearing pairs
+fm-pr-made-with: task record /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-contributions.MoxILM/arm-race/state/delivery.meta names no harness
+actionable: PR https://github.com/o/r/pull/8 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh delivery https://github.com/o/r/pull/8
+ok - a watcher sweep that straddles an arm sees the old or new pair and rejects nothing
+fm-pr-made-with: task record /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-contributions.MoxILM/arm-tamper/state/delivery.meta names no harness
+actionable: PR https://github.com/o/r/pull/8 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh delivery https://github.com/o/r/pull/8
+ok - a check changed without the publish lock is still rejected, exactly once
+not ok - 3 contribution regressions

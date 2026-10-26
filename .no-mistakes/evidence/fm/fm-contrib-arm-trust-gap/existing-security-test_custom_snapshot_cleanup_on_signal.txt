@@ -1,0 +1,1 @@
+ok - watcher signals promptly stop custom checks and clean private state

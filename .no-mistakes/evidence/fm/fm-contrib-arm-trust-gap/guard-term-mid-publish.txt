@@ -1,0 +1,14 @@
+fm-pr-made-with: task record <fixture>/term/state/delivery.meta names no harness
+actionable: PR https://github.com/o/r/pull/8 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh delivery https://github.com/o/r/pull/8
+== TERM lands on arm between publishing the check and publishing its trust
+paused mid-publish: yes; publish lock held: yes
+arm exit after TERM: 1
+check present: yes  new shim published: 1  trust still old hash: yes
+publish lock left: no  stage dirs left: 0
+next sweep rc=0 elapsed=66s
+    | check: <fixture>/term/state/z-stop.check.sh: stop-cycle
+    | check: rejected unauthenticated state checks: <fixture>/term/state/contributions.check.sh
+re-arm rc=0 pair authenticates: yes
+sweep after re-arm rc=0 elapsed=65s marker: absent
+    | check: <fixture>/term/state/z-stop.check.sh: stop-cycle
+queued rejection wakes total: 1

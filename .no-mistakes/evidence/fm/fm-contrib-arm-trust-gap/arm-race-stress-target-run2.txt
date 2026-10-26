@@ -1,0 +1,12 @@
+label=target-06132187-run2 seconds=300
+changed-shim arms completed: 52
+arm failures: 0
+authenticated contributions-check runs (forge polls): 21
+watcher checkpoints: 1 (ended on a wake: 0)
+queued rejection wakes for the contributions check: 0
+watcher rejection lines:
+leftover stage dirs: 0
+leftover publish lock: no
+final pair authenticates: yes
+watcher stderr (non-empty lines): 0
+0

@@ -1,0 +1,7 @@
+fm-pr-made-with: task record <fixture>/stale/state/delivery.meta names no harness
+actionable: PR https://github.com/o/r/pull/8 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh delivery https://github.com/o/r/pull/8
+== A crashed writer left the publish lock (owner killed -9); a changed arm follows
+/Users/dalecarman/.no-mistakes/evidence/01M5VAGRTWESV0W7W3VXW3MS83/drivers/arm-guards.sh: line 49: 19542 Killed: 9                  ( FM_STATE_OVERRIDE="$h/state" . "$ROOT/bin/fm-wake-lib.sh"; fm_lock_acquire_wait "$lock"; kill -9 "$BASHPID" )
+stale lock present: yes
+arm rc=0 elapsed=18s budget line published: 1 pair authenticates: yes
+publish lock left: no

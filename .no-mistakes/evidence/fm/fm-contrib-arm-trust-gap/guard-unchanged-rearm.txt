@@ -1,0 +1,14 @@
+fm-pr-made-with: task record <fixture>/unchanged/state/delivery.meta names no harness
+actionable: PR https://github.com/o/r/pull/8 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh delivery https://github.com/o/r/pull/8
+== Re-arm with an unchanged shim through fm-pr-check.sh (the per-PR-record path)
+fm-pr-made-with: task record <fixture>/unchanged/state/delivery.meta names no harness
+actionable: PR https://github.com/o/r/pull/8 is registered but its body may not name every engine that wrote it; rerun bin/fm-pr-made-with.sh delivery https://github.com/o/r/pull/8
+fm-pr-check.sh rc=0
+check inode before/after: 3323091700 / 3323091700   trust inode before/after: 3323091747 / 3323091747   trust digest: 063e6e7ec25f8e5b / 063e6e7ec25f8e5b
+stage dirs left: 0  publish lock left: no
+== Changed shim via arm (budget 20) then arm --if-owned (bootstrap path) with the same budget
+changed arm rc=0 new check inode=3323094514 (was 3323091700); --if-owned rc=0 inode after=3323094514
+budget line published: 1
+pair authenticates: yes
+watcher sweep rc=0 elapsed=35s rejection wakes=0
+    | check: <fixture>/unchanged/state/z-stop.check.sh: stop-cycle
