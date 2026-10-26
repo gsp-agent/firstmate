@@ -145,3 +145,5 @@ pr: 147
 pr: 149
 # Failing-first Claude self-wake replays in tests/fm-claude-wake.test.sh: on the base the suite fails because bin/fm-claude-turn.sh and bin/fm-claude-wake.sh are absent; after the fix all 16 cases pass, including the 07:06Z sequence, reset-followup expiry, rows queued before /clear, busy-turn Stop delivery, parked-hook deferral, single-rewake burst, foreign-host exits, and the present-only session-start drain.
 pr: 150
+# Failing-first race replays in tests/fm-contributions.test.sh: on the base a watcher sweep that straddles an arm rejects the contributions check, and a changed arm publishes its check before its trust; after the fix the sweep sees the old pair or the new one and rejects nothing, while a check changed without the publish lock is still rejected exactly once.
+pr: 154
