@@ -2255,6 +2255,73 @@ test_watcher_exits_when_its_home_is_removed() {
   pass "watch-arm: a watcher exits when its home is removed"
 }
 
+# The arm follows the same rule. The leaked arms of 2026-10-26
+# (.agent-config-ks05d.5) were covering successors whose fixture home a test
+# removed while main's harness still ran: each one polled on for up to fifty
+# minutes, waiting on a lock under its deleted state directory. Main stays
+# alive here, so only the deletion can end the arm: a covering successor left
+# for main with its whole home removed, a covering arm attached to a peer
+# watcher with its state directory removed, and a plain attached arm with its
+# home removed while its state directory survives elsewhere.
+test_arm_exits_when_its_world_is_removed() {
+  local shape dir home state fakebin armout cover watcher gone i limit
+  for shape in covering-successor covering-attached plain-attached-home; do
+    dir=$(make_case "arm-world-removed-$shape")
+    home="$dir/home"
+    state="$dir/state"
+    fakebin="$dir/fakebin"
+    # Outside the removed tree, so the exit line stays readable.
+    armout="$TMP_ROOT/arm-world-removed-$shape.out"
+    mkdir -p "$home/data"
+    printf '%s\n' "$$" > "$state/.lock"
+    if [ "$shape" = covering-successor ]; then
+      start_cover_arm "$home" "$state" "$fakebin" "$armout" left \
+        || fail "fixture: the left successor did not start its watcher: $(cat "$armout")"
+      watcher=$(cat "$state/.watch.lock/pid")
+    else
+      cover=0
+      [ "$shape" != covering-attached ] || cover=1
+      FM_HOME="$home" start_seed_watcher "$state" "$fakebin" "$dir/watch.out" 1
+      watcher=$SEED_PID
+      PATH="$fakebin:$PATH" FM_HOME="$home" FM_STATE_OVERRIDE="$state" FM_ARM_ATTACH_POLL=0.1 \
+        FM_ARM_CONFIRM_TIMEOUT="$REARM_CONFIRM_SECONDS" FM_WATCH_COVER=$cover \
+        "$WATCH_ARM" > "$armout" 2>&1 &
+      ARM_PID=$!
+      fm_test_track_pid "$ARM_PID"
+      i=0
+      while [ "$i" -lt "$REARM_REPORT_POLLS" ] && ! grep -qF "watcher: attached pid=$SEED_PID" "$armout" 2>/dev/null; do
+        is_live_non_zombie "$ARM_PID" || break
+        sleep 0.05
+        i=$((i + 1))
+      done
+      grep -qF "watcher: attached pid=$SEED_PID" "$armout" \
+        || fail "fixture: the $shape arm did not attach: $(cat "$armout")"
+    fi
+    case "$shape" in
+      covering-successor) gone='(home|state directory)'; rm -rf "$dir" ;;
+      covering-attached) gone='state directory'; rm -rf "$state" ;;
+      plain-attached-home) gone='home'; rm -rf "$home" ;;
+    esac
+    # An attached arm ends within one poll; the ceiling is for load, and stays
+    # well under the confirmation window it would otherwise wait out first. An
+    # arm owning its watcher ends once that watcher closes on the same
+    # deletion, or stops it after one watcher poll plus the confirmation
+    # window, which its ceiling outlasts.
+    limit=100
+    [ "$shape" != covering-successor ] || limit=$(( (REARM_CONFIRM_SECONDS + 15) * 10 ))
+    wait_for_pid_gone "$ARM_PID" "$limit" \
+      || { kill -KILL "$ARM_PID" 2>/dev/null; fail "the $shape arm (pid $ARM_PID) outlived its deleted $gone: $(cat "$armout")"; }
+    grep -Eq "^watcher: arm exiting - $gone no longer exists: " "$armout" \
+      || fail "the $shape arm did not log what of its world was gone: $(cat "$armout")"
+    wait_for_pid_gone "$watcher" 100 || fail "the $shape arm's watcher (pid $watcher) outlived its deleted $gone"
+    if [ "$shape" = plain-attached-home ]; then
+      assert_grep 'reason=arm-world-gone' "$state/.watch-cycle-exits.log" "the home-gone arm must close its cycle row"
+    fi
+    fm_test_stop_processes
+  done
+  pass "watch-arm: an arm exits when its state directory or its home is removed"
+}
+
 # tests/lib.sh's exit-time reaper must stop a watcher a suite armed for a
 # temporary home, through the home-scoped stop, so no test leaves one behind.
 # The reaper is driven with a private registry so this suite's own registry
@@ -2535,6 +2602,7 @@ run_case test_arm_refuses_an_unusable_launch_confirm_window
 run_case test_arm_refuses_a_disposable_validation_checkout
 run_case test_watcher_exits_when_its_state_directory_is_removed
 run_case test_watcher_exits_when_its_home_is_removed
+run_case test_arm_exits_when_its_world_is_removed
 run_case test_reaper_stops_a_tracked_watcher
 run_case test_attached_arm_still_fails_on_a_wake_it_did_not_deliver
 run_case test_attached_arm_follows_a_slow_live_holder

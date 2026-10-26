@@ -341,7 +341,7 @@ fm_supervision_engine_turn() {
   local pid_file=${10:-} bin grace i ledger watched rc home_phys root_phys state_phys identity recorded
   local -a args
   bin=$(fm_supervision_engine_bin "$engine" 2>"$errors") || return 127
-  case "$timeout" in ''|0*|*[!0-9]*) timeout=1200 ;; esac
+  case "$timeout" in ''|0*|*[!0-9]*) timeout=540 ;; esac
   grace=${FM_SUPERVISION_ENGINE_GRACE:-30}
   case "$grace" in ''|0*|*[!0-9]*) grace=30 ;; esac
   case "$engine" in

@@ -61,8 +61,8 @@ FAKE_CLAUDE="$FAKEBIN/claude"
 #               the turn reports verdict captain
 #   fail        exit nonzero at once, with no result and no report (an engine
 #               error the latch counts)
-#   hang        before anything else, start a descendant in a process group of
-#               its own, then block
+#   hang        before anything else, record its pid in $FM_HOME/engine-pid and
+#               start a descendant in a process group of its own, then block
 STUB="$TMP_ROOT/engine-stub"
 cat > "$STUB" <<'SH'
 #!/usr/bin/env bash
@@ -82,6 +82,7 @@ result() {
   printf '"usage":{"input_tokens":5,"cache_read_input_tokens":100,"cache_creation_input_tokens":10,"output_tokens":20},"session_id":"stub"}\n'
 }
 if [ "$mode" = hang ]; then
+  printf '%s\n' "$$" > "$FM_HOME/engine-pid"
   perl -e 'setpgrp(0, 0); exec "sleep", $ARGV[0]' "$FM_TEST_STUB_MAX_BLOCK_SECONDS" &
   printf '%s\n' "$!" > "$FM_HOME/orphan-pid"
   sleep "$FM_TEST_STUB_MAX_BLOCK_SECONDS"
@@ -168,9 +169,15 @@ unset FM_SUPERVISION_ACTOR FM_BRANCH_REPORT_TURN FM_LEASE_HOLDER_PID PI_CODING_A
 # Homes are registered in a file: make_home runs in a command substitution,
 # whose variables never reach this shell.
 HOMES_FILE="$TMP_ROOT/homes"
-# Stop whatever a case left running, by the exact pids its home recorded.
+# Stop whatever a case left running, by the exact pids its home recorded, and
+# wait for it, since the caller may remove the home next
+# (test_home_teardown_leaves_no_arm_or_watcher_running). A successor a host
+# left for main is in no host record: the home-scoped stop that follows claims
+# that covering arm and stops it and the home's watcher, each by its recorded
+# identity.
 stop_home_processes() {  # <home>
-  local home=$1 pid arms='' i=0
+  local home=$1 pid arms='' cover watcher arm_bin i=0
+  cover=$(cut -f1 "$home/state/.watch-cover" 2>/dev/null || true)
   if [ -f "$home/state/.supervision-host" ]; then
     arms=$(awk -F '\t' '$1 == "arm" { print $2 }' "$home/state/.supervision-host")
     pid=$(awk -F '\t' '$1 == "host" { print $2; exit }' "$home/state/.supervision-host")
@@ -183,8 +190,8 @@ stop_home_processes() {  # <home>
   for pid in $arms; do
     kill -TERM "$pid" 2>/dev/null || true
   done
-  pid=$(cat "$home/state/.watch.lock/pid" 2>/dev/null || true)
-  [ -z "$pid" ] || kill -TERM "$pid" 2>/dev/null || true
+  watcher=$(cat "$home/state/.watch.lock/pid" 2>/dev/null || true)
+  [ -z "$watcher" ] || kill -TERM "$watcher" 2>/dev/null || true
   while IFS= read -r pid; do
     if [ -e "$home/session.stop" ]; then
       wait "$pid" 2>/dev/null || true
@@ -195,6 +202,18 @@ stop_home_processes() {  # <home>
   while IFS= read -r pid; do
     kill -TERM "$pid" 2>/dev/null || true
   done < <(cat "$home/orphan-pid" 2>/dev/null)
+  if [ -d "$home/state" ]; then
+    arm_bin="$home/bin/fm-watch-arm.sh"
+    [ -x "$arm_bin" ] || arm_bin="$ROOT/bin/fm-watch-arm.sh"
+    FM_HOME="$home" "$arm_bin" --stop >/dev/null 2>&1 || true
+  fi
+  i=0
+  for pid in $arms $cover $watcher; do
+    while [ "$i" -lt 100 ] && is_live_non_zombie "$pid"; do
+      sleep 0.1
+      i=$((i + 1))
+    done
+  done
 }
 suite_cleanup() {
   local home
@@ -2843,6 +2862,42 @@ test_engine_turn_is_bounded_and_its_descendants_reaped() {
   pass "host: an engine turn is bounded, and tool processes outside its process group are reaped"
 }
 
+# The leak of 2026-10-26 (.agent-config-ks05d.5): covering arms started for
+# this suite's homes kept polling for up to fifty minutes after the suite had
+# removed those homes. The cleanup signalled what each home recorded and
+# removed the tree at once; the successor a host leaves for main is in no host
+# record, and a covering arm still closing when its state directory went away
+# never finished. A home's teardown stops every arm and watcher it started,
+# that successor included, and waits for them before the tree goes.
+test_home_teardown_leaves_no_arm_or_watcher_running() {
+  local home left watcher survivors=''
+  home=$(make_home teardown-left away)
+  echo noreport > "$home/stub-mode"
+  start_session "$home"
+  park_again "$home"
+  append_status "$home" 'needs a look'
+  wait_until 250 host_exited "$home" || fail "teardown: the host did not hand the wake to main"
+  left=$(cut -f1 "$home/state/.supervision-host-left" 2>/dev/null)
+  watcher=$(cat "$home/state/.watch.lock/pid" 2>/dev/null)
+  if [ -z "$left" ] || ! kill -0 "$left" 2>/dev/null; then
+    fail "fixture: the host left no covering successor running for main"
+  fi
+  if [ -z "$watcher" ] || [ "$(parent_of "$watcher")" != "$left" ]; then
+    fail "fixture: the successor left for main does not own the home's watcher"
+  fi
+  # The suite's own order: stop what the home started, then remove the tree.
+  stop_home_processes "$home"
+  ! kill -0 "$left" 2>/dev/null || survivors="$survivors successor=$left"
+  ! kill -0 "$watcher" 2>/dev/null || survivors="$survivors watcher=$watcher"
+  fm_test_remove_tree "$home"
+  if [ -n "$survivors" ]; then
+    wait_until 50 sh -c '! kill -0 "$1" 2>/dev/null && ! kill -0 "$2" 2>/dev/null' _ "$left" "$watcher" \
+      || kill -KILL "$left" "$watcher" 2>/dev/null || true
+    fail "the home's teardown returned before what the home started had stopped:$survivors"
+  fi
+  pass "host: a home's teardown stops the successor left for main and its watcher before the home is removed"
+}
+
 test_restarted_host_stops_what_a_killed_predecessor_left() {
   local home first_host arm watcher
   home=$(make_home away-crash away)
@@ -3092,14 +3147,14 @@ test_park_test_clock_requires_the_marker() {
   pass "host: the park's test clock is inert without the test marker"
 }
 
-# A park at or beyond the hook registration is refused for the default. The
-# default is observable through the pre-turn margin: a turn bound plus grace of
-# 27000 seconds crosses a 27000-second park, so the close goes to main at the
-# boundary, while under a 28799-second park the same turn runs.
-park_outcome() {  # <name> <park-seconds>; sets PARK_OUTCOME to boundary or handled
+# One close meets the pre-turn margin with the park clock held at zero: a turn
+# whose bound plus grace crosses the park boundary is refused there, so the
+# close goes to main before any engine turn starts, while a turn with room runs.
+park_outcome() {  # <name> <park-seconds>; the turn bound and grace come from the caller's environment; sets PARK_OUTCOME to boundary or handled
   local home
   home=$(make_home "$1" away)
-  FM_SUPERVISION_HOST_PARK_SECONDS=$2 FM_SUPERVISION_HOST_TURN_TIMEOUT=26990 FM_SUPERVISION_ENGINE_GRACE=10 start_host "$home"
+  echo 0 > "$home/park-clock"
+  FM_TEST_SUPERVISION_HOST_CLOCK="$home/park-clock" FM_SUPERVISION_HOST_PARK_SECONDS=$2 start_host "$home"
   wait_until 150 watcher_live "$home" || fail "$1: the host never started a watcher cycle"
   append_status "$home" 'one close'
   wait_until 250 sh -c '[ -s "$1/host.rc" ] || grep -q "	handled	" "$1/state/.supervision-host.log" 2>/dev/null' _ "$home" \
@@ -3115,7 +3170,12 @@ park_outcome() {  # <name> <park-seconds>; sets PARK_OUTCOME to boundary or hand
   fi
 }
 
+# A park at or beyond the hook registration is refused for the default: a turn
+# bound plus grace of 27000 seconds crosses a 27000-second park, so the close
+# goes to main at the boundary, while under a 28799-second park the same turn
+# runs.
 test_park_seconds_at_or_beyond_the_hook_registration_fall_back_to_the_default() {
+  local -x FM_SUPERVISION_HOST_TURN_TIMEOUT=26990 FM_SUPERVISION_ENGINE_GRACE=10
   park_outcome park-28799 28799
   [ "$PARK_OUTCOME" = handled ] || fail "a park just under the registration must be honored"
   park_outcome park-28800 28800
@@ -3123,6 +3183,64 @@ test_park_seconds_at_or_beyond_the_hook_registration_fall_back_to_the_default() 
   park_outcome park-huge 100000000000000000000
   [ "$PARK_OUTCOME" = boundary ] || fail "a park far beyond the registration must fall back to the default"
   pass "host: a park at or beyond the Stop-hook registration falls back to the default boundary"
+}
+
+# The default turn bound, with the engine grace at its 30-second default: a
+# park of 571 seconds leaves room for a 540-second turn plus the grace, so the
+# turn runs, and a park of 570 seconds leaves no such room, so the turn is
+# refused at the boundary and no engine turn starts. Together the two parks
+# pin the default at exactly 540 seconds.
+test_default_turn_timeout_is_540_seconds() {
+  local -x FM_SUPERVISION_ENGINE_GRACE=30
+  park_outcome default-turn-571 571
+  [ "$PARK_OUTCOME" = handled ] || fail "a park with room for the default cap plus its grace must run the turn"
+  park_outcome default-turn-570 570
+  [ "$PARK_OUTCOME" = boundary ] || fail "a park without room for the default cap plus its grace must refuse the turn at the boundary"
+  pass "host: the default turn bound is 540 seconds, so a park with room for it runs the turn and a park without is refused at the boundary"
+}
+
+# A running turn is cut by its watchdog when it reaches the default 540-second
+# cap, not before. PERL5OPT preloads a clock into every perl the host starts,
+# and only the watchdog whose command is the engine takes it: the watchdog's
+# first reading, its deadline, is the turn's start, and every later reading is
+# that start plus the seconds in $home/turn-clock. The case moves that clock
+# to 539 seconds, where the turn must still run, then to 540, where it must be
+# cut, so machine load cannot move either reading.
+test_turn_past_the_default_cap_is_cut_at_540_seconds() {
+  local home engine
+  home=$(make_home default-turn-cut away)
+  echo hang > "$home/stub-mode"
+  echo 0 > "$home/turn-clock"
+  mkdir "$home/perl"
+  cat > "$home/perl/FmTestTurnClock.pm" <<'PL'
+package FmTestTurnClock;
+use Time::HiRes ();
+if ($0 eq '-e' && ($ARGV[5] // '') eq $ENV{FM_SUPERVISION_ENGINE_CLAUDE_BIN}) {
+  my ($start, $read) = (Time::HiRes::time(), 0);
+  no warnings 'redefine';
+  *main::time = sub () {
+    return $start unless $read++;
+    open my $clock, '<', $ENV{FM_TEST_TURN_CLOCK} or return $start;
+    return $start + (<$clock> // 0);
+  };
+}
+1;
+PL
+  PERL5LIB="$home/perl" PERL5OPT=-MFmTestTurnClock FM_TEST_TURN_CLOCK="$home/turn-clock" start_host "$home"
+  wait_until 150 watcher_live "$home" || fail "default-turn-cut: the host never started a watcher cycle"
+  append_status "$home" 'a turn past the cap'
+  wait_until 400 test -s "$home/engine-pid" || fail "default-turn-cut: the engine turn never started: $(cat "$home/state/.supervision-host.log")"
+  engine=$(cat "$home/engine-pid")
+  echo 539 > "$home/turn-clock"
+  sleep 1
+  kill -0 "$engine" 2>/dev/null || fail "a turn 539 seconds in was cut under the default cap: $(cat "$home/host.out")"
+  ! host_exited "$home" || fail "a turn 539 seconds in ended the park: $(cat "$home/host.out")"
+  echo 540 > "$home/turn-clock"
+  wait_until 400 host_exited "$home" || fail "a turn 540 seconds in was not cut: $(cat "$home/state/.supervision-host.log")"
+  assert_re '^supervision-host: .*the engine turn hit its 540s bound; this wake is yours$' "$home/host.out" \
+    "a turn cut at the default cap must hand its wake to main"
+  assert_re '	failed	turn=.*	rc=124	' "$home/state/.supervision-host.log" "the turn must end on its watchdog's bound"
+  pass "host: a running turn is cut when it reaches the default 540-second cap, not before, and its wake goes to main"
 }
 
 # An owner whose own bound is the park lets a turn run past the boundary up to
@@ -3599,6 +3717,7 @@ supervision_host_lane_b() {
   test_latch_keeps_attended_closes_on_main_and_skips_unopted_homes
   test_attended_latch_keeps_closes_on_main_and_records_recovery_off_main
   test_engine_turn_is_bounded_and_its_descendants_reaped
+  test_home_teardown_leaves_no_arm_or_watcher_running
   test_restarted_host_stops_what_a_killed_predecessor_left
   test_teardown_lease_lock_at_activation_still_starts_the_watcher
   test_teardown_lease_lock_after_an_engine_turn_still_parks_on_the_successor
@@ -3608,6 +3727,8 @@ supervision_host_lane_b() {
   test_park_boundary_rechecked_just_before_the_engine_turn
   test_park_test_clock_requires_the_marker
   test_park_seconds_at_or_beyond_the_hook_registration_fall_back_to_the_default
+  test_default_turn_timeout_is_540_seconds
+  test_turn_past_the_default_cap_is_cut_at_540_seconds
   test_park_limit_lets_a_turn_outlive_the_boundary
   test_first_cycle_status_streams_and_owner_options_reach_it
   test_unchanged_held_outcome_reaches_the_captain_once_until_a_new_event

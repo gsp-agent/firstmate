@@ -169,5 +169,7 @@ pr: 161
 pr: 162
 # Failing-first cases in tests/fm-crew-state.test.sh: on the base a ship task whose run failed only in ci on monitor recovery and whose merge the merge poll recorded reads failed under FM_CREW_STATE_NO_FORGE=1 and the inactive reconciler queues it as failed; after the fix it reads done with the merged PR, the reconciler queues no failed outcome for it, and a merge marker for a different PR still reads failed. The no-recorded-merge and closed-unmerged controls are the existing cases in test_terminal_green_delivery_disposition.
 pr: 163
+# Failing-first default-cap tests in tests/fm-supervision-host.test.sh: on the base a 571-second park refuses the turn under the old default; after the fix the park pair pins 540 seconds and a running hung turn is cut at 540 seconds.
+pr: 165
 # Failing-first pool-tree, freed-place and captain-row replays: tests/fm-project-capacity.test.sh (a full worktree pool beside free places defers 75 and names the pool; base launches), tests/fm-dispatch-ready.test.sh (full pool, captain row, --freed-by), tests/fm-supervision-host.test.sh (a paused worker hands main its Dispatch line) and tests/fm-teardown.test.sh (an out-of-root slot is destroyed with the safe default); each fails on its base and passes here.
 pr: 164

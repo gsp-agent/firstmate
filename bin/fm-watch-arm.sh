@@ -62,6 +62,17 @@
 # liveness checks use `kill -0`, so they start no process. A covering arm
 # (FM_WATCH_COVER below) outlives its parent only with a recorded harness;
 # without one it still reports to its caller and must stop when that caller dies.
+# Nobody reads the close of an arm whose world is gone either: its home (when
+# it existed at start) or its state directory, as when a temporary home is torn
+# down. The same polls check both with builtin tests, so they still start no
+# process. An arm whose own watcher still runs lets that watcher close first,
+# since it follows the same rule with its own logged reason (bin/fm-watch.sh),
+# and stops it once one watcher poll plus the confirmation window has passed.
+# The arm then logs "watcher: arm exiting - <what> no longer exists: <path>"
+# to stderr and ends as a lost caller does, with an arm-world-gone cycle row
+# while its state directory remains. A wait for the covering record's lock
+# gives up once the state directory is gone, since a lock there can never be
+# taken.
 # A parent of pid 1 at launch is already lost. A launcher with TERM ignored would
 # leave its TERM trap a silent no-op, since bash cannot trap a signal ignored at
 # entry, so the arm first re-execs itself once, under the same pid, with TERM
@@ -189,6 +200,13 @@ case "${OSTYPE:-}" in
   *) ARM_CONFIRM_DEFAULT=10 ;;
 esac
 CONFIRM_TIMEOUT=${FM_ARM_CONFIRM_TIMEOUT:-$ARM_CONFIRM_DEFAULT}
+# How long a watcher of the arm's own gets to close on its own world check
+# before the arm stops it (exit_if_world_gone): one watcher poll plus the
+# confirmation window.
+WORLD_GONE_GRACE=${FM_POLL:-15}
+case "$WORLD_GONE_GRACE" in ''|*[!0-9]*) WORLD_GONE_GRACE=15 ;; esac
+case "$CONFIRM_TIMEOUT" in ''|*[!0-9]*) ;; *) WORLD_GONE_GRACE=$((WORLD_GONE_GRACE + CONFIRM_TIMEOUT)) ;; esac
+WORLD_GONE_AT=
 # Poll interval while attached to an existing healthy watcher.
 ATTACH_POLL=${FM_ARM_ATTACH_POLL:-0.5}
 # The arm waits ATTACH_POLL between checks for its whole cycle, so those waits
@@ -215,6 +233,10 @@ if [ -f "$STATE/.lock" ]; then
   IFS= read -r ARM_HARNESS_PID < "$STATE/.lock" || true
 fi
 case "$ARM_HARNESS_PID" in ''|*[!0-9]*|0|1) ARM_HARNESS_PID= ;; esac
+# A home that never existed (a state-only fixture) is not a home that went
+# away, so the home half of the world check applies only when it did.
+ARM_HOME_EXISTED=0
+[[ ! -d $FM_HOME ]] || ARM_HOME_EXISTED=1
 case "$CYCLE_LOG_MAX_BYTES" in ''|*[!0-9]*|0) CYCLE_LOG_MAX_BYTES=262144 ;; esac
 case "$CYCLE_LOG_KEEP_LINES" in ''|*[!0-9]*|0) CYCLE_LOG_KEEP_LINES=1000 ;; esac
 
@@ -273,6 +295,8 @@ cycle_signal_name() {
 cycle_log_append() {
   local exit_code=$1 signal=$2 reason=$3 successor=$4 ended_at beacon_age lock_after size tmp raw i
   [ "$cycle_active" -eq 1 ] || return 0
+  # A deleted state directory has no ledger left to write.
+  [[ -d $STATE ]] || return 0
   ended_at=$(date +%s)
   beacon_age=$(fm_path_age "$BEAT")
   lock_after=$(lock_snapshot)
@@ -401,7 +425,7 @@ wait_for_healthy_successor() {
   # second cannot collapse to a few milliseconds when called near a boundary.
   deadline=$(( $(date +%s) + CONFIRM_TIMEOUT + 1 ))
   while :; do
-    exit_if_caller_gone
+    exit_if_orphaned
     healthy_watcher && return 0
     [ "$(date +%s)" -ge "$deadline" ] && return 1
     sleep 0.2
@@ -471,7 +495,7 @@ attached_holder_live() {
 attach_and_wait() {
   local attached_pid=$1 age
   while :; do
-    exit_if_caller_gone
+    exit_if_orphaned
     if healthy_watcher; then
       if [ "$HEALTHY_PID" != "$attached_pid" ] || [ "$HEALTHY_IDENTITY" != "$cycle_watcher_identity" ]; then
         cycle_log_append unknown unknown lock-replaced "attached:$HEALTHY_PID"
@@ -630,10 +654,22 @@ cover_owner_released() {
   [ "$3" = handed-over ] || [ "$(parent_of "$1")" != "$2" ]
 }
 
+# fm_lock_acquire_wait for the covering record's lock, but failing once the
+# state directory is gone (header): no lock can be created under a deleted
+# directory, so that wait would spin for the rest of the process's life. The
+# leaked arms of 2026-10-26 (.agent-config-ks05d.5) spun there, in
+# cover_chains and in cover_release on EXIT.
+cover_lock_wait() {
+  while ! fm_lock_try_acquire "$COVER_LOCK"; do
+    [[ -d $STATE ]] || return 1
+    sleep 0.1
+  done
+}
+
 if [ "$mode" = cover-handoff ]; then
   cover_pid='' cover_identity='' cover_parent='' cover_handover=''
   trap 'fm_lock_release "$COVER_LOCK"' EXIT
-  fm_lock_acquire_wait "$COVER_LOCK" || exit 1
+  cover_lock_wait || exit 1
   [ -f "$COVER_RECORD" ] && [ ! -L "$COVER_RECORD" ] || exit 1
   IFS=$'\t' read -r cover_pid cover_identity cover_parent cover_handover < "$COVER_RECORD" || exit 1
   [ "$cover_pid" = "$cover_handoff_pid" ] && [ "$cover_parent" = "$PPID" ] \
@@ -709,7 +745,7 @@ take_over_cycle() {  # <owner-arm-pid> <watcher-pid> <identity> [arm|watcher]
 CLAIMED_COVER_PID=
 claim_cover_cycle() {
   local pid='' identity='' parent='' handover=''
-  fm_lock_acquire_wait "$COVER_LOCK" || return 1
+  cover_lock_wait || return 1
   if [ ! -f "$COVER_RECORD" ]; then
     fm_lock_release "$COVER_LOCK"
     return 0
@@ -807,9 +843,11 @@ handle_arm_signal() {  # <signal|none> <rc> [reason]
     # publishing the home-bound lock identity. Do not TERM it in the middle of
     # stale-lock acquisition: that can abandon the steal mutex. Let startup
     # reach that cleanup-ready point (or exit naturally) before forwarding TERM,
-    # but never past the startup confirmation deadline.
+    # but never past the startup confirmation deadline. A deleted state
+    # directory has no lock to match and no mutex left to abandon.
     while fm_pid_alive "$child"; do
-      if fm_watcher_lock_matches_pid "$STATE" "$WATCH" "$child" "$FM_HOME" \
+      if [[ ! -d $STATE ]] \
+        || fm_watcher_lock_matches_pid "$STATE" "$WATCH" "$child" "$FM_HOME" \
         || [ "$(date +%s)" -ge "$deadline" ]; then
         kill -TERM "$child" 2>/dev/null || true
         break
@@ -823,8 +861,31 @@ handle_arm_signal() {  # <signal|none> <rc> [reason]
   exit "$rc"
 }
 
-# Close this arm the way a signal does once its caller is gone (header).
-exit_if_caller_gone() {
+# Close this arm the way a signal does once its home or its state directory is
+# gone (header).
+exit_if_world_gone() {
+  local gone
+  if [ "$ARM_HOME_EXISTED" -eq 1 ] && [[ ! -d $FM_HOME ]]; then
+    gone="home no longer exists: $FM_HOME"
+  elif [[ ! -d $STATE ]]; then
+    gone="state directory no longer exists: $STATE"
+  else
+    return 0
+  fi
+  # A watcher of its own lives in the same world and closes on the same check
+  # with its own logged reason, so the arm waits for that close, within a
+  # bound: a watcher blocked mid-poll on its deleted state is stopped instead.
+  if [ -n "${child:-}" ] && fm_pid_alive "$child"; then
+    [ -n "$WORLD_GONE_AT" ] || WORLD_GONE_AT=$SECONDS
+    [ $((SECONDS - WORLD_GONE_AT)) -ge "$WORLD_GONE_GRACE" ] || return 0
+  fi
+  echo "watcher: arm exiting - $gone" >&2
+  handle_arm_signal none 1 arm-world-gone
+}
+
+# The same once its world or its caller is gone (header).
+exit_if_orphaned() {
+  exit_if_world_gone
   if { { [ "$COVER" -eq 0 ] || [ -z "$ARM_HARNESS_PID" ]; } && { [ "$ARM_CALLER_PID" -le 1 ] \
       || ! kill -0 "$ARM_CALLER_PID" 2>/dev/null; }; } \
     || { [ -n "$ARM_HARNESS_PID" ] && ! kill -0 "$ARM_HARNESS_PID" 2>/dev/null; }; then
@@ -834,7 +895,7 @@ exit_if_caller_gone() {
 
 wait_for_owned_child() {
   while fm_pid_alive "$child"; do
-    exit_if_caller_gone
+    exit_if_orphaned
     fm_sleep "$ATTACH_POLL"
   done
   wait "$child"
@@ -854,7 +915,7 @@ cover_record() {
   local identity tmp
   [ "$COVER" -eq 1 ] && [ "$COVER_RECORDED" -eq 0 ] || return 0
   trap cover_release EXIT
-  fm_lock_acquire_wait "$COVER_LOCK" || return 1
+  cover_lock_wait || return 1
   if ! identity=$(fm_pid_identity "$ARM_PID" 2>/dev/null) \
     || ! tmp=$(mktemp "$COVER_RECORD.tmp.XXXXXX" 2>/dev/null); then
     fm_lock_release "$COVER_LOCK"
@@ -878,7 +939,7 @@ cover_names_me() {
 
 # shellcheck disable=SC2329 # Invoked indirectly by the EXIT trap.
 cover_release() {
-  fm_lock_acquire_wait "$COVER_LOCK" || return 1
+  cover_lock_wait || return 1
   ! cover_names_me || rm -f "$COVER_RECORD" 2>/dev/null || true
   fm_lock_release "$COVER_LOCK"
 }
@@ -886,7 +947,7 @@ cover_release() {
 cover_chains() {
   local pid='' parent='' handover='' rc=1
   [ "$COVER_RECORDED" -eq 1 ] || return 1
-  fm_lock_acquire_wait "$COVER_LOCK" || return 1
+  cover_lock_wait || return 1
   IFS=$'\t' read -r pid _ parent handover 2>/dev/null < "$COVER_RECORD" || true
   if [ "$pid" = "$ARM_PID" ]; then
     if [ "$1" -eq 0 ] && [ "$CLOSED_ON_WAKE" -eq 1 ] \
@@ -902,6 +963,9 @@ cover_chains() {
 
 owned_child_finished() {
   local rc=$1 signal reason_type status
+  # The watcher is reaped by now. Its close on a deletion has no reader either.
+  child=
+  exit_if_world_gone
   signal=$(cycle_signal_name "$rc")
   if [ "$rc" -eq 0 ] && watch_output_has_wake "$child_out"; then
     reason_type=$(watch_output_reason_type "$child_out")
@@ -997,7 +1061,7 @@ run_owned_cycle() {
   # until some other watcher legitimately holds the singleton (a startup race), or
   # until the child gives up. Only then print the honest line.
   while :; do
-    exit_if_caller_gone
+    exit_if_orphaned
     [ "$(date +%s)" -ge "$deadline" ] && break
     if healthy_watcher; then
       if [ "$HEALTHY_PID" = "$child" ]; then
