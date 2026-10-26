@@ -361,7 +361,7 @@ print_status_outcome_backstop_section() {  # <task-and-endpoint-snapshot>
   STATUS_OUTCOME_BACKSTOP_ACKNOWLEDGED=
   while IFS=$'\t' read -r task endpoint ident; do
     [ -n "$task" ] || continue
-    receipt=$(status_outcome_backstop_cursor_offset "$STATE/$task.status") || { rc=1; break; }
+    status_outcome_backstop_cursor_offset_to receipt "$STATE/$task.status" || { rc=1; break; }
     [ "$receipt" -lt "$endpoint" ] || continue
     status_snapshot_latest_event "$STATE/$task.status" "$endpoint" "$ident" || continue
     event=$FM_STATUS_SNAPSHOT_EVENT_LINE

@@ -219,10 +219,11 @@ for _ in 1 2 3 4 5; do
   _fm_open_decisions_file_ident "$4" >/dev/null || printf 'identity unreadable\n'
 done
 calls=$(grep -c . "$3" || true)
-[ "$calls" -eq 1 ] || printf 'uname ran %s times for 15 stat reads\n' "$calls"
+# None where a Bash built for Darwin names the kernel (fm-classify-lib.sh).
+[ "$calls" -le 1 ] || printf 'uname ran %s times for 15 stat reads\n' "$calls"
 SH
   run_everywhere "classify stat helpers" "$script" "$shim" "$log" "$file"
-  pass "classify stat helpers resolve the kernel name once per process"
+  pass "classify stat helpers resolve the kernel name at most once per process"
 }
 
 test_read_text_helper_matches_cat() {
