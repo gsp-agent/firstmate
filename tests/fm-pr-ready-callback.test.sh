@@ -155,3 +155,34 @@ for mode in lost-ack kill-after-accept; do
   if grep -Eq '^pr (create|review)' "$CASE_DIR/home/forge-calls"; then fail "replay republished to the forge"; fi
   pass "$mode preserves the native target and replay causes one consumer action with no publication"
 done
+
+# A recorded pr= frees the task's place in a project that declares a limit, so
+# registration ends with bin/fm-dispatch-ready.sh's Dispatch line for it; an
+# unlimited project and the merge-time re-record print none.
+make_case dispatch-capped
+fm_git_init_commit "$CASE_DIR/proj"
+fm_git_add_origin "$CASE_DIR/proj" "$CASE_DIR/proj.origin.git"
+printf 'project=%s\n' "$CASE_DIR/proj" >> "$CASE_DIR/home/state/ship-one.meta"
+printf '%s\n' "proj 2" > "$CASE_DIR/home/config/project-capacity"
+run_check || fail "capped registration failed: $(cat "$CASE_DIR/err")"
+assert_registered
+grep -q "^Dispatch: proj has 2 of 2 places free by bin/fm-spawn.sh's own count" "$CASE_DIR/out" \
+  || fail "capped registration did not print the Dispatch line: $(cat "$CASE_DIR/out")"
+pass "a PR handoff in a capped project prints the Dispatch line for the place it freed"
+
+make_case dispatch-merge-rerecord
+fm_git_init_commit "$CASE_DIR/proj"
+fm_git_add_origin "$CASE_DIR/proj" "$CASE_DIR/proj.origin.git"
+printf 'project=%s\n' "$CASE_DIR/proj" >> "$CASE_DIR/home/state/ship-one.meta"
+printf '%s\n' "proj 2" > "$CASE_DIR/home/config/project-capacity"
+FM_PR_CHECK_MERGE=1 run_check || fail "merge-time re-record failed: $(cat "$CASE_DIR/err")"
+if grep -q '^Dispatch:' "$CASE_DIR/out"; then fail "merge-time re-record printed a Dispatch line"; fi
+pass "the merge-time re-record frees nothing new and prints no Dispatch line"
+
+make_case dispatch-uncapped
+fm_git_init_commit "$CASE_DIR/proj"
+fm_git_add_origin "$CASE_DIR/proj" "$CASE_DIR/proj.origin.git"
+printf 'project=%s\n' "$CASE_DIR/proj" >> "$CASE_DIR/home/state/ship-one.meta"
+run_check || fail "uncapped registration failed: $(cat "$CASE_DIR/err")"
+if grep -q '^Dispatch:' "$CASE_DIR/out"; then fail "an unlimited project's PR handoff printed a Dispatch line"; fi
+pass "a PR handoff in an unlimited project prints no Dispatch line"
