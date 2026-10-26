@@ -52,6 +52,13 @@ This silently enables Grok project hooks for that checkout.
 Answering the gate is nonetheless the sanctioned route, because `../../../bin/fm-send.sh` has no other way to clear it.
 It is a knowing exception to the store-avoidance stance, not an oversight, so expect the new entry to appear in that file.
 
+## Weekly limit
+
+Grok stops a worker at its weekly limit with a dialog headed "You hit your weekly limit".
+The dialog offers "Buy more credits" and "Try Again".
+Escape cleared the dialog back to the composer.
+Firstmate never chooses Buy more credits.
+
 ## Training opt-in
 
 On 2026-09-24, on the first dispatches after Grok was added to this fleet, Grok 1.0.41 offered "Help improve Grok".

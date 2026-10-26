@@ -710,7 +710,7 @@ test_matrix_grok_titled_bottom_border() {
   # content rows. This is the idle capture from issue #3436; Herdr has no
   # cursor anchor, so the geometry mismatch used to make the proven box
   # ambiguous and the verdict unknown, stranding away-mode injection.
-  local titled plain_border typed malformed placeholder_draft
+  local titled plain_border typed malformed placeholder_draft suffixed suffixed_typed bad_suffix
   titled=$'  ╭──────────────────────────────────────────────────────────────────────────╮\n  │ ❯                                                                        │\n  ╰────────────────────────────────────────────────────────── Grok 4.6 (xhigh) ─╯\n\n  Shift+Tab:mode  │  Ctrl+x:shortcuts'
   plain_border=$'  ╭──────────────────────────────────────╮\n  │ ❯                                    │\n  ╰──────────────────────────────────────╯'
   assert_screen "grok titled on tmux" empty "$CAPS_TMUX" "$titled" 1
@@ -728,6 +728,16 @@ test_matrix_grok_titled_bottom_border() {
   assert_screen "grok typed on herdr" pending "$CAPS_STYLED" "$typed"
   malformed=$'  ╭──────────────────────────────────────────────────────────────────────────╮\n  │ ❯                                                                        │\n  ╰────────────────────────────────────────────────────────── unknown surface ─╯'
   assert_screen "oversized unknown title on herdr" unknown "$CAPS_STYLED" "$malformed"
+  suffixed=$'  ╭──────────────────────────────────────────────────────────────────────────╮\n  │ ❯                                                                        │\n  ╰───────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯\n\n  Shift+Tab:mode  │  Ctrl+x:shortcuts'
+  assert_screen "grok mode-suffixed titled on tmux" empty "$CAPS_TMUX" "$suffixed" 1
+  assert_screen "grok mode-suffixed titled on herdr" empty "$CAPS_STYLED" "$suffixed"
+  assert_screen "grok mode-suffixed titled on cmux/orca" empty "$CAPS_PLAIN" "$suffixed"
+  assert_screen "grok mode-suffixed titled on zellij" empty "$CAPS_STYLED_NOID" "$suffixed"
+  suffixed_typed=$'  ╭──────────────────────────────────────────────────────────────────────────╮\n  │ ❯ deploy the fix                                                         │\n  ╰───────────────────────────────────────── Grok 4.7 (xhigh) · always-approve ─╯'
+  assert_screen "grok mode-suffixed typed on tmux" pending "$CAPS_TMUX" "$suffixed_typed" 1
+  assert_screen "grok mode-suffixed typed on herdr" pending "$CAPS_STYLED" "$suffixed_typed"
+  bad_suffix=$'  ╭──────────────────────────────────────────────────────────────────────────╮\n  │ ❯                                                                        │\n  ╰────────────────────────────────────────────── Grok 4.7 (xhigh) · bad mode! ─╯'
+  assert_screen "grok bad mode suffix on herdr" unknown "$CAPS_STYLED" "$bad_suffix"
   pass "matrix: grok's real oversized titled bottom is empty while typed and unproved panes stay safe"
 }
 

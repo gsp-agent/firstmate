@@ -1080,6 +1080,7 @@ _fm_composer_titled_bottom_ok() {  # <family> <bottom-inner> <top-spaces>
     *) return 1 ;;
   esac
   spaces=${inner//"$dash"/ }
+  spaces=${spaces//·/ }
   spaces=$(printf '%s' "$spaces" | LC_ALL=C sed 's/[!-~]/ /g')
   case "$spaces" in
     *[![:space:]]*) return 1 ;;
@@ -1090,21 +1091,32 @@ _fm_composer_titled_bottom_ok() {  # <family> <bottom-inner> <top-spaces>
   # columns wider than the otherwise aligned top and content rows (issue
   # #3436; see the constant's definition for provenance and caveats). Accept
   # only that exact overhang and only the typed Grok model/effort title
-  # shape. This keeps arbitrary malformed bottoms ambiguous while preserving
-  # the complete-box proof around a genuinely idle or pending Grok composer.
+  # shape, optionally followed by one ` · <mode>` suffix such as
+  # ` · always-approve`. This keeps arbitrary malformed bottoms ambiguous
+  # while preserving the complete-box proof around a genuinely idle or
+  # pending Grok composer.
   local overhang
   overhang=$(printf '%*s' "$FM_COMPOSER_GROK_TITLE_OVERHANG" '')
   [ "$spaces" = "$expected$overhang" ] || return 1
   title=${inner//"$dash"/}
   fm_composer_normalize_trim_var title
+  local base=$title mode=''
   case "$title" in
+    *') · '?*)
+      mode=${title##*') · '}
+      base=${title% · *}
+      [ -n "$mode" ] || return 1
+      case "$mode" in *[!A-Za-z0-9._-]*) return 1 ;; esac
+      ;;
+  esac
+  case "$base" in
     'Grok '*\ \(low\)) effort=low ;;
     'Grok '*\ \(medium\)) effort=medium ;;
     'Grok '*\ \(high\)) effort=high ;;
     'Grok '*\ \(xhigh\)) effort=xhigh ;;
     *) return 1 ;;
   esac
-  model=${title#Grok }
+  model=${base#Grok }
   model=${model%" ($effort)"}
   [ -n "$model" ] || return 1
   case "$model" in *[!A-Za-z0-9._-]*) return 1 ;; esac
