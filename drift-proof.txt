@@ -152,4 +152,4 @@ pr: 151
 # Key-passthrough regressions in tests/fm-backend.test.sh, tests/fm-backend-herdr.test.sh and tests/fm-backend-orca.test.sh: X reaches the tmux and Herdr panes unchanged, Escape, Enter and C-c still pass, and Orca refuses X; the pipeline mutation-checked each test failing when its backend key path is broken.
 pr: 152
 # Failing-first replays in tests/fm-claude-wake.test.sh: test_stop_claim_loses_to_waker_rewake_committed_after_pending_read commits a second rewake on the base (STOP_RC=2, ledger epoch 3), test_stop_claim_loses_to_inflight_waker_rewake commits a second rewake on the base (STOP_RC=2, ledger epoch 2), and test_waker_banner_carries_away_line_on_host_home misses the away-posture line on the base; all three pass after the fix.
-pr: 157
+pr: 158

@@ -533,6 +533,9 @@ ok - foreign hosts: Cursor and pi-code FileChanged and SessionStart payloads exi
 ok - turn boundary: Stop admission parks while a rewake is pending
 ok - turn boundary across a park: after rewake R's own turn has run, the parked hook still delivers a later row
 ok - restart: a rewake committed by an earlier Claude process is not pending in the new one
+ok - stop race: a waker rewake committed between the pending read and the claim yields exactly one rewake
+ok - stop race: a waker rewake committed at the generation the pending read saw arming yields exactly one rewake
+ok - waker banner: a host home with a live away record carries the away-posture line, quiet and no record do not
 ok - session-start drain presents without claiming; digest-only ack refused
 ok - session-start drain presents only main's rows and names rows a live branch grant holds
 ```
