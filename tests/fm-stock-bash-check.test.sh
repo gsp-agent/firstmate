@@ -176,11 +176,52 @@ test_the_wall_bound_grows_with_load_and_still_stops_a_hang() {
   run_check "$repo" FM_STOCK_BASH_STEP_SECONDS=3 FM_STOCK_BASH_LOAD_FACTOR=3
   elapsed=$(($(date +%s) - started))
   expect_code 1 "$RC" "a step past the load-grown wall bound"
-  assert_contains "$OUT" "fork-free-helpers: stopped at the 9s wall bound (3s at idle load)" \
-    "the failure names the grown bound and the idle bound"
+  assert_contains "$OUT" "fork-free-helpers: stopped at the 9s wall bound (load factor 3 times 3s at idle load)" \
+    "the failure names the grown bound, its load factor, and the idle bound"
   [ "$elapsed" -ge 6 ] || fail "the load-grown wall stopped a hung step after only ${elapsed}s"
   [ "$elapsed" -lt 90 ] || fail "the load-grown wall took ${elapsed}s to stop a step sleeping 120s"
   pass "the wall bound grows with load and still stops a hung step"
+}
+
+test_a_load_rise_mid_step_grows_the_wall_for_the_rest_of_the_step() {
+  stock_only "a load rise mid-step grows the wall for the rest of the step" || return 0
+  local repo="$TMP_ROOT/time-rise" stub="$TMP_ROOT/time-rise-bin" load="$TMP_ROOT/time-rise-load" started elapsed
+  make_fixture "$repo"
+  mkdir -p "$stub"
+  printf '0.50\n' > "$load"
+  # A stand-in sysctl: one CPU, the load average in $FM_TEST_LOAD, and a
+  # marker once it has reported the raised load.
+  cat > "$stub/sysctl" <<'EOF2'
+#!/bin/sh
+[ "$2" = hw.ncpu ] && { echo 1; exit 0; }
+read -r load < "$FM_TEST_LOAD"
+[ "$load" != 50.00 ] || : > "$FM_TEST_LOAD.seen"
+printf '{ %s 0.00 0.00 }\n' "$load"
+EOF2
+  chmod +x "$stub/sysctl"
+  # The step starts at factor 1 (a 3s wall), raises the load to factor 6,
+  # drops it back once the check has read it, then outlives the 3s wall.
+  cat > "$repo/tests/fm-fork-free-helpers.test.sh" <<'EOF2'
+#!/usr/bin/env bash
+printf '50.00\n' > "$FM_TEST_LOAD"
+while [ ! -e "$FM_TEST_LOAD.seen" ]; do sleep 0.1; done
+printf '0.50\n' > "$FM_TEST_LOAD"
+sleep 5
+i=0
+while [ "$i" -lt 16 ]; do
+  i=$((i + 1))
+  echo "ok - stand-in $i"
+done
+EOF2
+  started=$(date +%s)
+  run_check "$repo" PATH="$stub:$TOOLS:$PATH" FM_STOCK_BASH_STEP_SECONDS=3 FM_TEST_LOAD="$load"
+  elapsed=$(($(date +%s) - started))
+  expect_code 0 "$RC" "a step that outlives its starting wall after load rose"$'\n'"$OUT"
+  assert_not_contains "$OUT" "FAIL fork-free-helpers" "the step is not stopped at its starting wall"
+  printf '%s\n' "$OUT" | grep -q '^fork-free-helpers: [0-9]*s, load factor 6, ' \
+    || fail "the step reports the highest load factor it ran under"$'\n'"$OUT"
+  [ "$elapsed" -ge 5 ] || fail "the rising-load step finished after only ${elapsed}s"
+  pass "a load rise mid-step grows the wall for the rest of the step"
 }
 
 test_refuses_an_interpreter_that_is_not_stock_bash
@@ -191,3 +232,4 @@ test_the_memory_cap_stops_a_growing_step
 test_a_failed_process_list_fails_the_step
 test_the_wall_bound_stops_a_hung_step
 test_the_wall_bound_grows_with_load_and_still_stops_a_hang
+test_a_load_rise_mid_step_grows_the_wall_for_the_rest_of_the_step
