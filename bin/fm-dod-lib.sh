@@ -100,7 +100,8 @@
 # Every heredoc here stays outside a command substitution: `VAR=$(cat <<EOF ...)`
 # breaks parsing of the whole file on Bash 3.2 (tests/fm-brief.test.sh).
 # fm_brief_worker_role owns the ship/scout role scope. bin/fm-spawn.sh is its one
-# emitter, supplying it first in every ship/scout launch brief and never to a
+# emitter, supplying it first in every ship/scout launch brief (a Grok worker's
+# slim launch brief through fm_grok_slim_launch_brief) and never to a
 # secondmate charter. It names the one task-owned steering inbox without
 # relaxing isolation from every other home's endpoint namespace. Like
 # fm_brief_intent_overlay it is a distinctly titled launch section that states

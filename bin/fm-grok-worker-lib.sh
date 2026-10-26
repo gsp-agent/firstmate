@@ -36,6 +36,10 @@
 # when it is absent, so the link never dangles.
 # The worker home, and the operator sessions directory when provisioning
 # creates it, are private (mode 0700), matching Grok's own home.
+# No operator config.toml setting reaches the worker except `[models] default`,
+# which the generated config carries when python3 can parse that file
+# (tomllib, Python 3.11 or later); the config written when grok or python3 is
+# not on PATH carries none.
 # When discovery fails or is unavailable (no grok or python3 on PATH), the
 # generated config still carries the compat, managed-connector, media, and
 # output-cap sections, and a one-line warning on stderr names the failure and
