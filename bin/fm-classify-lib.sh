@@ -1673,7 +1673,7 @@ EOF
 
 status_presentation_snapshot() {  # <state>
   local state=$1 f task size ident exclude manifest rows="" row_task row_ident row_presented
-  local hint hint_ident hint_at
+  local hint hint_ident hint_at row_count=0 row_list
   exclude=$(status_scan_parent_channel_exclude "$state")
   # Each task's manifest identity and presented offset only lets an unchanged
   # log keep its identity without the birth-time read
@@ -1681,10 +1681,13 @@ status_presentation_snapshot() {  # <state>
   # owns whether that manifest is valid.
   manifest="$state/.status-presentation-cursor"
   if [ -f "$manifest" ] && [ -r "$manifest" ] && [ ! -L "$manifest" ]; then
+    row_list=()
     while IFS=$'\t' read -r row_task row_ident row_presented _ || [ -n "$row_task" ]; do
       [ -n "$row_task" ] && [ -n "$row_ident" ] || continue
-      rows="$rows$row_task"$'\t'"$row_ident"$'\t'"$row_presented"$'\n'
+      row_list[row_count]="$row_task"$'\t'"$row_ident"$'\t'"$row_presented"
+      row_count=$((row_count + 1))
     done 2>/dev/null < "$manifest"
+    [ "$row_count" -eq 0 ] || printf -v rows '%s\n' "${row_list[@]}"
   fi
   for f in "$state"/*.status; do
     [ -e "$f" ] || continue
@@ -1733,7 +1736,7 @@ status_presentation_snapshot() {  # <state>
 _FM_STATUS_LATEST_LINE=
 _FM_STATUS_LATEST_END=
 _fm_status_latest_line_read() {  # <status-file> <endpoint> <limit>
-  local LC_ALL=C content='' rest line pos=0 latest='' end=''
+  local LC_ALL=C content='' line pos=0 latest='' end=''
   [ "$2" -gt 0 ] && [ "$2" -le "$3" ] || return 2
   [ -z "${FM_STATUS_SPAN_READER:-}" ] || return 2
   [ "${BASH_VERSINFO[0]:-0}" -ge 5 ] \
@@ -1743,23 +1746,14 @@ _fm_status_latest_line_read() {  # <status-file> <endpoint> <limit>
   IFS= read -r -N "$2" content < "$1" 2>/dev/null
   [ "${#content}" = "$2" ] || return 2
   _fm_status_lstat "$1" && [ "$_FM_STATUS_ST_SIZE" = "$2" ] || return 2
-  rest=$content
-  while [ -n "$rest" ]; do
-    case "$rest" in
-      *$'\n'*)
-        line=${rest%%$'\n'*}
-        rest=${rest#*$'\n'}
-        pos=$((pos + ${#line} + 1))
-        ;;
-      *)
-        line=$rest
-        rest=''
-        pos=$((pos + ${#line}))
-        ;;
-    esac
+  # One pass, linear in the span. The here-string adds a final newline, so a
+  # last line without one ends at <endpoint>, not one byte past it.
+  while IFS= read -r line; do
+    pos=$((pos + ${#line} + 1))
     case "$line" in *[![:space:]]*) latest=$line; end=$pos ;; esac
-  done
+  done <<< "$content"
   [ -n "$end" ] || return 1
+  [ "$end" -le "$2" ] || end=$2
   while [ "${latest%$'\r'}" != "$latest" ]; do latest=${latest%$'\r'}; done
   _FM_STATUS_LATEST_LINE=$latest
   _FM_STATUS_LATEST_END=$end
@@ -2413,6 +2407,7 @@ status_new_lines_since_cursor() {  # <status-file> [<captured-end-offset>]
 # <out-var>, which must not be named like a local here.
 status_new_lines_since_cursor_to() {  # <out-var> <status-file> [<captured-end-offset>]
   local _snl_out=$1 f=$2 captured_end=${3:-} cf offset size actual_size chunk_file line lines='' _snl_offset
+  local _snl_count=0 _snl_lines
   printf -v "$_snl_out" '%s' ''
   [ -f "$f" ] && [ -r "$f" ] && [ ! -L "$f" ] || return 0
   _fm_open_decisions_cursor_path_to cf "$f"
@@ -2433,12 +2428,19 @@ status_new_lines_since_cursor_to() {  # <out-var> <status-file> [<captured-end-o
   [ "$offset" -lt "$size" ] || return 0
   _fm_status_read_span "$f" "$offset" "$((size - offset))" > "$chunk_file" 2>/dev/null \
     || { rm -f "$chunk_file"; return 1; }
+  # Collected in an array and joined once: appending to one string would copy
+  # it again for every line, quadratic in the unread span.
+  _snl_lines=()
   while IFS= read -r line || [ -n "$line" ]; do
     case "$line" in
-      *[![:space:]]*) lines="$lines${lines:+$'\n'}$line" ;;
+      *[![:space:]]*) _snl_lines[_snl_count]=$line; _snl_count=$((_snl_count + 1)) ;;
     esac
   done < "$chunk_file"
   rm -f "$chunk_file"
+  if [ "$_snl_count" -gt 0 ]; then
+    printf -v lines '%s\n' "${_snl_lines[@]}"
+    lines=${lines%$'\n'}
+  fi
   printf -v "$_snl_out" '%s' "$lines"
 }
 

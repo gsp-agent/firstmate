@@ -203,6 +203,55 @@ if [ "$STAT_BUILTIN" = 1 ]; then
   pass "the latest-event read is bounded to its endpoint and matches the perl reader"
 fi
 
+# Reading a long unread span stays linear in its bytes. A log of only routine
+# working: lines keeps its presentation cursor at byte 0, a reachable settled
+# state that every drain reads twice, so 2,000 vs 10,000 such lines must take
+# about five times as long, not twenty-five (chip's review of ddb65445: 0.14 s on
+# 2f8ac29b, 7.76 s there). The same holds for the 64 KiB latest-event read.
+# A ratio of best-of-three timings, not an absolute bound, so machine load
+# cannot fail it. Needs EPOCHREALTIME (Bash 5).
+cat > "$TMP_ROOT/scale-probe.sh" <<'SH'
+# A C locale keeps EPOCHREALTIME's decimal point a dot.
+export LC_ALL=C
+. "$1/bin/fm-classify-lib.sh"
+best=
+for _ in 1 2 3; do
+  start=$EPOCHREALTIME
+  case "$2" in
+    unread) status_new_lines_since_cursor "$3" > /dev/null || exit 1 ;;
+    latest) _fm_status_latest_line_read "$3" "$4" 65536 || exit 1 ;;
+  esac
+  end=$EPOCHREALTIME
+  took=$(( (${end%.*} - ${start%.*}) * 1000000 + 10#${end#*.} - 10#${start#*.} ))
+  if [ -z "$best" ] || [ "$took" -lt "$best" ]; then best=$took; fi
+done
+printf '%s\n' "$best"
+SH
+if [ -n "${EPOCHREALTIME:-}" ]; then
+  scale="$TMP_ROOT/scale"
+  mkdir -p "$scale"
+  awk 'BEGIN { for (i = 1; i <= 2000; i++) printf "working: step %d of the routine loop\n", i }' > "$scale/small.status"
+  awk 'BEGIN { for (i = 1; i <= 10000; i++) printf "working: step %d of the routine loop\n", i }' > "$scale/large.status"
+  small=$("$BASH" "$TMP_ROOT/scale-probe.sh" "$ROOT" unread "$scale/small.status") || fail "scale: unread read failed"
+  large=$("$BASH" "$TMP_ROOT/scale-probe.sh" "$ROOT" unread "$scale/large.status") || fail "scale: unread read failed"
+  printf 'unread span: 2,000 lines %s us, 10,000 lines %s us (budget 10x)\n' "$small" "$large"
+  [ "$large" -le $((small * 10 + 20000)) ] \
+    || fail "unread span: 10,000 lines took $large us against $small us for 2,000; the read is not linear"
+  pass "an unread span of routine lines is read in time linear in its length"
+  if [ "$STAT_BUILTIN" = 1 ]; then
+    awk 'BEGIN { for (i = 1; i <= 3200; i++) printf "w %d\n", i % 10 }' > "$scale/small-latest.status"
+    awk 'BEGIN { for (i = 1; i <= 16000; i++) printf "w %d\n", i % 10 }' > "$scale/large-latest.status"
+    small=$("$BASH" "$TMP_ROOT/scale-probe.sh" "$ROOT" latest "$scale/small-latest.status" 12800) || fail "scale: latest read failed"
+    large=$("$BASH" "$TMP_ROOT/scale-probe.sh" "$ROOT" latest "$scale/large-latest.status" 64000) || fail "scale: latest read failed"
+    printf 'latest-event span: 12,800 bytes %s us, 64,000 bytes %s us (budget 10x)\n' "$small" "$large"
+    [ "$large" -le $((small * 10 + 20000)) ] \
+      || fail "latest-event span: 64,000 bytes took $large us against $small us for 12,800; the read is not linear"
+    pass "the latest-event read is linear in its 64 KiB span"
+  fi
+else
+  echo "skip: no EPOCHREALTIME in $BASH, so the linear-read ratios are not measured"
+fi
+
 # A changed log still takes the full read and its new line is presented.
 printf 'note: follow-up 7\n' >> "$fifty/state/task7.status"
 drain_once "$fifty" fifty-appended
