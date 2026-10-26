@@ -109,6 +109,7 @@ SH
   chmod +x "$fakebin/tmux"
   cat > "$fakebin/treehouse" <<'SH'
 #!/usr/bin/env bash
+printf '%s\n' "$*" >> "${FM_TREEHOUSE_LOG:-/dev/null}"
 if [ "${1:-}" = enter ] && [ "${2:-}" = --print-path ]; then
   path=$(jq -r --arg n "${3:-}" '.worktrees[]? | select(.name == $n) | .path' \
     "${FM_FAKE_TREEHOUSE_POOL:-/nonexistent}/treehouse-state.json" 2>/dev/null)
@@ -659,6 +660,38 @@ test_mixed_pool_enters_free_own_slot() {
   pass "a mixed pool with a free own-clone slot is entered by exact slot name"
 }
 
+# With several free own-clone slots, only the winning lowest-named slot is
+# looked up through Treehouse: each `treehouse enter --print-path` lists
+# the whole pool under its lock while the spawn holds the project lock.
+test_free_own_slots_look_up_only_the_winner() {
+  local rec id out status pool own_slot pane_log th_log lookups
+  id=settle-pool-own-many-z16
+  rec=$(make_pool_case settle-pool-own-many "$id")
+  read_settle_record "$rec"
+  pool="$TMP_ROOT/settle-pool-own-many/pool"
+  own_slot="$pool/2/repo"
+  pane_log="$TMP_ROOT/settle-pool-own-many/pane.log"
+  th_log="$TMP_ROOT/settle-pool-own-many/treehouse.log"
+  mkdir -p "$pool/3"
+  git -C "$PROJ_DIR" worktree add --quiet -b "ownslot3-$id" "$pool/3/repo"
+  printf '{"worktrees":[{"name":"1","path":"%s"},{"name":"2","path":"%s"},{"name":"3","path":"%s"}]}' \
+    "$pool/1/repo" "$pool/2/repo" "$pool/3/repo" > "$pool/treehouse-state.json"
+  WT_DIR="$own_slot"
+
+  out=$(FM_FAKE_PANE_LOG="$pane_log" FM_TREEHOUSE_LOG="$th_log" FM_FAKE_TREEHOUSE_POOL="$pool" run_settle_spawn "$id")
+  status=$?
+  expect_code 0 "$status" "spawn should succeed in the lowest free own-clone slot"$'\n'"$out"
+  assert_grep "worktree=$own_slot" "$HOME_DIR/state/$id.meta" \
+    "meta did not record the lowest free own-clone slot"
+  assert_grep "treehouse enter '2'" "$pane_log" \
+    "spawn did not enter the lowest free own-clone slot by name"
+  lookups=$(grep -c '^enter --print-path ' "$th_log" || true)
+  [ "$lookups" = 1 ] || fail "spawn looked up $lookups slots through treehouse enter, not only the winner"$'\n'"$(cat "$th_log")"
+  grep -Fxq 'enter --print-path 2' "$th_log" ||
+    fail "spawn did not look up the winning slot through treehouse enter"$'\n'"$(cat "$th_log")"
+  pass "several free own-clone slots cost one treehouse lookup, for the winner"
+}
+
 # When the pool's own-clone slot is already claimed by another task, the
 # spawn keeps the plain `treehouse get` path and lands where the pane settles.
 test_mixed_pool_claimed_own_slot_uses_treehouse_get() {
@@ -952,6 +985,7 @@ test_foreign_clone_slot_is_never_accepted
 test_root_switched_pool_enters_configured_pool_slot
 test_root_switched_empty_pool_uses_treehouse_get
 test_mixed_pool_enters_free_own_slot
+test_free_own_slots_look_up_only_the_winner
 test_mixed_pool_claimed_own_slot_uses_treehouse_get
 test_mixed_pool_makes_new_own_slot_when_none_free
 test_allocator_claimed_slot_is_never_returned

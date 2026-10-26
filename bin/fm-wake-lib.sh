@@ -1751,20 +1751,22 @@ fm_treehouse_slot_owner_marker() {  # <worktree>
 # allocator's reuse test the caller cannot undo by entering it directly:
 # a clean worktree whose HEAD is already in the fetched reset target, so
 # the spawn's base freshen never has to refuse residue or reset away
-# commits. The lowest slot name wins so the choice is stable.
-# A candidate qualifies only when `treehouse enter --print-path <name>`
-# run in the project resolves its name back to the candidate itself:
+# commits. Those candidates are tried lowest slot name first, so the
+# choice is stable, and the first whose name `treehouse enter --print-path
+# <name>` run in the project resolves back to the candidate itself wins:
 # `git worktree list` names own-clone slots in every pool, while the
 # caller's `treehouse enter <name>` resolves that name only in the
 # configured pool, so a free slot left in an old pool after a root change
-# would be entered nowhere and the spawn would refuse.
+# would be entered nowhere and the spawn would refuse. Each lookup lists
+# the whole configured pool, so only candidates up to the winner are
+# looked up.
 # Any doubt - no jq, no pool layout, a live owner, an existing claim,
 # residue, an unverifiable reset target, or a name `treehouse enter` does
 # not resolve to the candidate - prints nothing, and the caller keeps the
 # plain `treehouse get` path, whose candidate screening still refuses a
 # foreign-clone slot.
 fm_treehouse_free_own_slot() {  # <project-dir> [<base-branch>]
-  local project=$1 base=${2:-} listed line wt slot pool state owner_pid marker name best="" best_key=""
+  local project=$1 base=${2:-} listed line wt slot pool state owner_pid marker name candidates="" key
   local target_branch="" target_ref="" target_ready=0 status candidate entered
   command -v jq >/dev/null 2>&1 || return 0
   listed=$(git -C "$project" -c core.quotePath=false worktree list --porcelain 2>/dev/null) || return 0
@@ -1817,21 +1819,28 @@ fm_treehouse_free_own_slot() {  # <project-dir> [<base-branch>]
     status=$(git -C "$wt" -c core.quotePath=false status --porcelain 2>/dev/null) || continue
     [ -z "$status" ] || continue
     git -C "$wt" merge-base --is-ancestor HEAD "$target_ref" 2>/dev/null || continue
-    entered=$(cd "$project" 2>/dev/null && treehouse enter --print-path "$name" </dev/null 2>/dev/null) || continue
-    [ -n "$entered" ] || continue
-    entered=$(CDPATH='' cd -- "$entered" 2>/dev/null && pwd -P) || continue
-    [ "$entered" = "$slot" ] || continue
     case "$name" in
-      *[!0-9]* | "") name=999999 ;;
+      *[!0-9]* | "") key=999999 ;;
+      *) key=$name ;;
     esac
-    if [ -z "$best" ] || [ "$name" -lt "$best_key" ]; then
-      best=$slot
-      best_key=$name
-    fi
+    candidates="$candidates$key"$'\t'"$slot"$'\n'
   done <<EOF
 $listed
 EOF
-  [ -z "$best" ] || printf '%s\n' "$best"
+  [ -n "$candidates" ] || return 0
+  while IFS=$'\t' read -r key slot; do
+    [ -n "$slot" ] || continue
+    name=$(basename "$(dirname "$slot")")
+    entered=$(cd "$project" 2>/dev/null && treehouse enter --print-path "$name" </dev/null 2>/dev/null) || continue
+    [ -n "$entered" ] || continue
+    entered=$(CDPATH='' cd -- "$entered" 2>/dev/null && pwd -P) || continue
+    if [ "$entered" = "$slot" ]; then
+      printf '%s\n' "$slot"
+      return 0
+    fi
+  done <<EOF
+$(printf '%s' "$candidates" | sort -s -n -k1,1)
+EOF
 }
 
 # Claim a pool slot for a task, replacing whatever the previous holder left.
