@@ -169,8 +169,16 @@
 # of state; exit 2 only on a usage error (no id).
 set -u
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-FM_ROOT="${FM_ROOT_OVERRIDE:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+# An absolute, already-normal script path is its own logical directory, so only
+# a relative or unnormalized one needs the cd/pwd subshell; every supervisor
+# calls this reader per crew (.agent-config-ks05d.4).
+SCRIPT_DIR=${BASH_SOURCE[0]%/*}
+case "$SCRIPT_DIR/" in
+  */./*|*/../*|*//*|[!/]*|/) SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" ;;
+esac
+FM_ROOT=${SCRIPT_DIR%/*}
+[ -n "$FM_ROOT" ] || FM_ROOT=/
+FM_ROOT="${FM_ROOT_OVERRIDE:-$FM_ROOT}"
 FM_HOME="${FM_HOME:-${FM_ROOT_OVERRIDE:-$FM_ROOT}}"
 STATE="${FM_STATE_OVERRIDE:-$FM_HOME/state}"
 

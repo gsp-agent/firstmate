@@ -94,7 +94,13 @@ CALL_PROCS=0
 count_call startup no-such-task
 assert_equals "state: unknown · source: none · no metadata for no-such-task" "$CALL_LINE" "startup: no-metadata verdict"
 STARTUP=$CALL_PROCS
-printf 'crew-state startup (no metadata): %s processes\n' "$STARTUP"
+printf 'crew-state startup (no metadata): %s processes (budget 3)\n' "$STARTUP"
+# Base c78421c3: 22, of which 21 were library loads resolving their own
+# directory through cd/pwd subshells, two glyph lists and a uname per load.
+# Now only the script itself runs, plus one uname read where Bash is not built
+# for Darwin (a substitution and its child).
+[ "$STARTUP" -le 3 ] || fail "startup: fm-crew-state.sh started $STARTUP processes before its first read; budget is 3"
+pass "loading fm-crew-state.sh and its libraries starts no directory, glyph or repeat uname process"
 
 budget() {  # <label> <task-id> <expected-line> <budget>
   local extra
@@ -105,8 +111,8 @@ budget() {  # <label> <task-id> <expected-line> <budget>
   [ "$extra" -le "$4" ] || fail "$1: fm-crew-state.sh started $extra processes beyond startup; budget is $4"
 }
 
-# Startup is 22 on both. Base 11c85a6c: 16 beyond startup, the four metadata
-# reads at four processes each.
+# Base 11c85a6c: 16 beyond startup, the four metadata reads at four processes
+# each.
 budget torn-down gone "state: unknown · source: none · worktree gone (torn down?)" 0
 pass "a torn-down crew's metadata reads start no process"
 
@@ -117,3 +123,53 @@ pass "a secondmate's status-log read starts no metadata, mapping or note process
 # Base 11c85a6c: 141 beyond startup; changed 122 (three bounded run reads and their fields).
 budget attributed-run crew-run "state: working · source: run-step · validating (running) · run: 01RUN" 130
 pass "an attributed run read starts no metadata or backend-field process"
+
+# The fork-free directory reads must resolve exactly what the cd/pwd subshells
+# did, for a normal absolute path (the fast path) and for every shape that still
+# takes the subshell: relative, dot and dot-dot components, a doubled slash,
+# and a symlinked directory, whose logical path both keep.
+ln -s "$ROOT/bin" "$TMP_ROOT/linked-bin" || fail "load: could not link the bin directory"
+cat > "$TMP_ROOT/load-probe.sh" <<'SH'
+# load-probe.sh <library-path>: source one library by exactly that path and
+# print "<name> same" or "<name> differ" for each value it resolves at load.
+src=$1
+unset FM_ROOT FM_ROOT_OVERRIDE FM_HOME _FM_UNAME _FM_CLASSIFY_UNAME_S
+want_dir=$(cd "$(dirname "$src")" && pwd)
+want_root=$(cd "$(dirname "$src")/.." && pwd)
+. "$src" || { echo "load failed"; exit 1; }
+same() {  # <name> <got> <want>
+  if [ "$2" = "$3" ]; then echo "$1 same"; else echo "$1 differ"; fi
+}
+case "${src##*/}" in
+  fm-nm-run-lib.sh) same nm-run-dir "$_FM_NM_RUN_LIB_DIR" "$want_dir" ;;
+  fm-classify-lib.sh)
+    same classify-dir "$_FM_CLASSIFY_LIB_DIR" "$want_dir"
+    same crew-state-bin "$FM_CREW_STATE_BIN" "$want_dir/fm-crew-state.sh"
+    same kernel-name "$_FM_CLASSIFY_UNAME_S" "$(uname -s 2>/dev/null)"
+    ;;
+  fm-backend.sh)
+    same backend-dir "$FM_BACKEND_LIB_DIR" "$want_dir"
+    same backend-root "$FM_BACKEND_DEFAULT_ROOT" "$want_root"
+    same fm-root "$FM_ROOT" "$want_root"
+    ;;
+  fm-dod-lib.sh)
+    same dod-siblings "$(declare -F fm_pr_url_parse status_current_line fm_nm_field fm_brief_heading_parse 2>/dev/null | wc -l | tr -d ' ')" 4
+    same dod-scratch "${_fm_dod_lib_dir-unset}" unset
+    ;;
+  fm-composer-lib.sh)
+    same agent-glyphs "$FM_COMPOSER_AGENT_PROMPT_GLYPHS" "$(printf '%s\n' '❯' '›' '⟩' '→' '❭')"
+    same shell-glyphs "$FM_COMPOSER_SHELL_PROMPT_GLYPHS" "$(printf '%s\n' '>' '$' '%' '#')"
+    ;;
+esac
+SH
+LOAD_OUT=
+for lib in fm-nm-run-lib.sh fm-classify-lib.sh fm-backend.sh fm-dod-lib.sh fm-composer-lib.sh; do
+  for src in "$ROOT/bin/$lib" "$ROOT/bin/../bin/$lib" "$ROOT/bin/./$lib" "$ROOT//bin/$lib" \
+    "$TMP_ROOT/linked-bin/$lib" "bin/$lib" "./bin/$lib"; do
+    LOAD_OUT="$LOAD_OUT$(cd "$ROOT" && "$BASH" "$TMP_ROOT/load-probe.sh" "$src" 2>&1)"$'\n'
+  done
+done
+assert_not_contains "$LOAD_OUT" "differ" "load: a library resolved a different value than its cd/pwd subshell"
+assert_not_contains "$LOAD_OUT" "load failed" "load: a library failed to load"
+[ "$(printf '%s' "$LOAD_OUT" | grep -c ' same$')" -eq 77 ] || fail "load: expected 77 matching values$(printf '\n%s' "$LOAD_OUT")"
+pass "library directories, root, kernel name and glyph lists resolve as the subshells did for all path shapes"

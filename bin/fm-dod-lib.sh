@@ -117,14 +117,22 @@
 # It takes the same optional trailing forge argument, because the rule that keeps
 # a worker off a remote is exactly the rule that changes when the forge does.
 
+# Resolved once: an absolute, already-normal path is its own logical directory,
+# so loading these siblings starts no process; only a relative or unnormalized
+# path needs the cd/pwd subshell. No sibling changes directory while it loads.
+_fm_dod_lib_dir=${BASH_SOURCE[0]%/*}
+case "$_fm_dod_lib_dir/" in
+  */./*|*/../*|*//*|[!/]*|/) _fm_dod_lib_dir="$(d=${BASH_SOURCE[0]%/*}; [ "$d" != "${BASH_SOURCE[0]}" ] || d=.; cd "${d:-/}" && pwd)" ;;
+esac
 # shellcheck source=bin/fm-pr-lib.sh
-. "$(d=${BASH_SOURCE[0]%/*}; [ "$d" != "${BASH_SOURCE[0]}" ] || d=.; cd "${d:-/}" && pwd)/fm-pr-lib.sh"
+. "$_fm_dod_lib_dir/fm-pr-lib.sh"
 # shellcheck source=bin/fm-classify-lib.sh
-. "$(d=${BASH_SOURCE[0]%/*}; [ "$d" != "${BASH_SOURCE[0]}" ] || d=.; cd "${d:-/}" && pwd)/fm-classify-lib.sh"
+. "$_fm_dod_lib_dir/fm-classify-lib.sh"
 # shellcheck source=bin/fm-nm-run-lib.sh
-. "$(d=${BASH_SOURCE[0]%/*}; [ "$d" != "${BASH_SOURCE[0]}" ] || d=.; cd "${d:-/}" && pwd)/fm-nm-run-lib.sh"
+. "$_fm_dod_lib_dir/fm-nm-run-lib.sh"
 # shellcheck source=bin/fm-brief-heading-lib.sh
-. "$(d=${BASH_SOURCE[0]%/*}; [ "$d" != "${BASH_SOURCE[0]}" ] || d=.; cd "${d:-/}" && pwd)/fm-brief-heading-lib.sh"
+. "$_fm_dod_lib_dir/fm-brief-heading-lib.sh"
+unset _fm_dod_lib_dir
 
 fm_brief_worker_role() {  # <state-dir> <task-id> <code-root>
   local state=$1 task_id=$2 root=$3
