@@ -147,6 +147,25 @@ section_of() {  # <file> <level-1 heading>
   awk -v h="$2" '$0 == h { on = 1; print; next } on && /^# / { exit } on { print }' "$1"
 }
 
+# The Grok-only context discipline is in the launch text, never in the scaffold.
+assert_launch_context_discipline() {  # <brief> <launch-brief>
+  local discipline line
+  assert_no_grep '# Worker context discipline' "$1" "the scaffold carries the Grok-only context discipline"
+  discipline=$(section_of "$2" '# Worker context discipline')
+  for line in 'Cap search and grep output near 50 lines' 'Tail or head long command output' \
+    'Do not read skills at session start' "the project's \`.agents/skills/<name>/SKILL.md\`"; do
+    assert_contains "$discipline" "$line" "grok launch brief context discipline lacks: $line"
+  done
+}
+
+# The no-mistakes intent contract reads to the end of the brief, so it is last.
+assert_intent_contract_last() {  # <launch-brief>
+  assert_contains "$(section_of "$1" '# Current no-mistakes intent contract')" 'Trim the worker launch context.' \
+    "grok launch brief dropped the no-mistakes intent contract"
+  assert_equals '## Captain intent authorized for --intent' "$(grep '^#' "$1" | tail -n 1)" \
+    "the no-mistakes intent contract is not the last section of the grok launch brief"
+}
+
 test_grok_worker_home_trims_launch_context() {
   local rec case_dir home proj wt fakebin grok_home id out status worker_home operator_config launch seen
   rec=$(make_spawn_case worker-home)
@@ -192,6 +211,37 @@ PY
   seen=$(cat "$case_dir/grok-home.seen" 2>/dev/null)
   assert_equals "$worker_home" "$seen" "grok worker launch did not run under the per-task worker home"
   pass "grok worker home trims the discovered launch context and the launch runs under it"
+}
+
+test_grok_worker_home_resolves_operator_trust_and_policy() {
+  local rec case_dir home proj wt fakebin grok_home id out status worker_home
+  rec=$(make_spawn_case worker-trust)
+  IFS='|' read -r case_dir home proj wt fakebin grok_home id <<EOF
+$rec
+EOF
+  install_fake_grok "$fakebin"
+  printf '%s\n' '[[folders]]' 'path = "/trusted/root"' > "$grok_home/trusted_folders.toml"
+  printf '%s\n' 'Operator global rule.' > "$grok_home/AGENTS.md"
+  mkdir -p "$grok_home/rules"
+  printf '%s\n' 'Operator rule file.' > "$grok_home/rules/style.md"
+  printf '%s\n' '[policy]' > "$grok_home/managed_config.toml"
+  out=$(run_grok_spawn "$home" "$proj" "$wt" "$fakebin" "$grok_home" "$id")
+  status=$?
+  expect_code 0 "$status" "grok worker spawn should succeed: $out"
+  worker_home="$home/state/$id.grok-home"
+  assert_equals "$(cat "$grok_home/trusted_folders.toml")" "$(cat "$worker_home/trusted_folders.toml" 2>/dev/null)" \
+    "grok worker home does not resolve the operator trust store"
+  printf '%s\n' '[[folders]]' 'path = "/trusted/later"' >> "$grok_home/trusted_folders.toml"
+  assert_contains "$(cat "$worker_home/trusted_folders.toml" 2>/dev/null)" '/trusted/later' \
+    "a folder the operator trusts after spawn does not reach the grok worker home"
+  assert_equals 'Operator global rule.' "$(cat "$worker_home/AGENTS.md" 2>/dev/null)" \
+    "grok worker home does not resolve the operator global instructions"
+  assert_equals 'Operator rule file.' "$(cat "$worker_home/rules/style.md" 2>/dev/null)" \
+    "grok worker home does not resolve the operator rules directory"
+  assert_equals '[policy]' "$(cat "$worker_home/managed_config.toml" 2>/dev/null)" \
+    "grok worker home does not resolve the operator managed policy"
+  assert_absent "$worker_home/requirements.toml" "grok worker home has a policy file the operator does not have"
+  pass "grok worker home resolves the operator trust store, global instructions, and policy"
 }
 
 test_grok_worker_skills_file_keeps_listed_skills() {
@@ -258,25 +308,28 @@ EOF
   expect_code 0 "$status" "grok worker spawn should succeed: $out"
   brief="$home/data/$id/brief.md"
   launch_brief="$home/data/$id/launch-brief.md"
-  for heading in '# Rules' '# Waiting' '# Project memory' '# Definition of done'; do
+  for heading in '# Waiting' '# Project memory' '# Definition of done'; do
     grep -qxF -- "$heading" "$brief" || fail "ship scaffold has no $heading section to defer"
     ! grep -qxF -- "$heading" "$launch_brief" || fail "grok launch brief inlined the later-read $heading section"
     assert_grep "- \`$heading\` before " "$launch_brief" "grok launch brief does not point at the deferred $heading section"
   done
-  for heading in '# Task' '# Herdr lifecycle declaration - NOT ENABLED' '# Setup' \
-    '# Firstmate instruction inbox' '# Worker context discipline' '# Home brief additions'; do
+  for heading in '# Task' '# Herdr lifecycle declaration - NOT ENABLED' '# Setup' '# Rules' \
+    '# Firstmate instruction inbox' '# Home brief additions'; do
     [ -n "$(section_of "$brief" "$heading")" ] || fail "ship scaffold has no $heading section"
     assert_equals "$(section_of "$brief" "$heading")" "$(section_of "$launch_brief" "$heading")" \
       "grok launch brief did not carry the $heading section verbatim"
   done
+  for heading in '# Setup' '# Rules' '# Home brief additions'; do
+    assert_contains "$(section_of "$launch_brief" '# Full brief')" "\`$heading\`" \
+      "grok launch brief pointer does not name the carried $heading section"
+  done
   status_cmd=$(awk 'found { sub(/^[[:space:]]+/, ""); print; exit } /^4\. Report status by appending one line:$/ { found = 1 }' "$brief")
   assert_contains "$status_cmd" 'fm-fleet-ledger.sh' "ship scaffold status command has no fleet-ledger call"
-  grep -qxF -- "$status_cmd" "$launch_brief" || fail "grok launch brief does not carry the brief's own status command"
+  assert_contains "$(section_of "$launch_brief" '# Rules')" "$status_cmd" "grok launch brief does not carry the brief's own status command"
   grep -qxF -- 'Delivery contract: mode=no-mistakes' "$launch_brief" || fail "grok launch brief does not carry the delivery contract"
   assert_grep "The complete brief is at \`$brief\`." "$launch_brief" "grok launch brief did not name the full brief"
-  assert_grep "the project's \`.agents/skills/<name>/SKILL.md\`" "$launch_brief" "grok launch brief does not say where an unlisted skill is found"
-  assert_contains "$(section_of "$launch_brief" '# Current no-mistakes intent contract')" 'Trim the worker launch context.' \
-    "grok launch brief dropped the no-mistakes intent contract"
+  assert_launch_context_discipline "$brief" "$launch_brief"
+  assert_intent_contract_last "$launch_brief"
   [ "$(wc -c < "$launch_brief")" -lt "$(wc -c < "$brief")" ] || fail "grok launch brief is not smaller than the full brief"
 
   printf '\n## Progress note (2026-10-26T00:00:00Z)\n\nThis task was relaunched. Continue from here.\nprogress-marker-relaunch\n' >> "$brief"
@@ -296,9 +349,9 @@ SH
   status=$?
   expect_code 0 "$status" "grok relaunch should succeed: $out"
   assert_grep 'progress-marker-relaunch' "$launch_brief" "grok relaunch dropped the progress note"
-  grep -qxF -- '# Rules' "$launch_brief" || fail "grok relaunch did not take the full launch brief"
-  assert_contains "$(section_of "$launch_brief" '# Current no-mistakes intent contract')" 'Trim the worker launch context.' \
-    "grok relaunch dropped the no-mistakes intent contract"
+  grep -qxF -- '# Definition of done' "$launch_brief" || fail "grok relaunch did not take the full launch brief"
+  assert_launch_context_discipline "$brief" "$launch_brief"
+  assert_intent_contract_last "$launch_brief"
   pass "grok slim launch brief defers only later-read sections and a relaunch takes the full brief"
 }
 
@@ -306,6 +359,7 @@ test_grok_hook_requires_registered_token
 test_grok_teardown_removes_pointer_and_token
 test_fm_lock_recognizes_grok_holder
 test_grok_worker_home_trims_launch_context
+test_grok_worker_home_resolves_operator_trust_and_policy
 test_grok_worker_skills_file_keeps_listed_skills
 test_grok_worker_transcripts_survive_teardown
 test_grok_slim_launch_brief_defers_only_later_sections

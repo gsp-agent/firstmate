@@ -577,10 +577,11 @@
 # plus a gitignored .fm-grok-turnend worktree pointer and a state token.
 # A grok crewmate or scout additionally runs under a per-task worker home
 # (state/<id>.grok-home, bin/fm-grok-worker-lib.sh) that trims its skills
-# index, MCP servers, and media tools; a fresh one also receives a slim
-# launch brief that links the brief's later-read sections instead of
-# inlining them. A grok secondmate keeps the operator configuration and the
-# full charter launch.
+# index, MCP servers, and media tools, and whose launch brief carries the
+# Grok-only worker context discipline; a fresh one receives a slim launch
+# brief that links the brief's later-read sections instead of inlining them.
+# A grok secondmate keeps the operator configuration and the full charter
+# launch.
 # muse installs no hook at all - its plugin engine is off in the default build - so
 # it writes state/<id>.muse-session to bind the pane to muse's own session event
 # log; muse, gemini, agy, and devin are crewmate/scout only and are refused for --secondmate.
@@ -4226,6 +4227,9 @@ if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
         printf '\nDecision owner for this dispatch: %s\n\n' "$DECISION_OWNER" &&
         cat "$SOURCE_BRIEF"
     fi &&
+      if [ "$HARNESS" = grok ]; then
+        printf '\n' && fm_grok_worker_context_rules
+      fi &&
       if [ "$KIND" = ship ] && [ "$MODE" = no-mistakes ]; then
         fm_brief_intent_overlay "$CAPTAIN_INTENT"
       fi
@@ -6787,9 +6791,10 @@ fi
 # A Grok crewmate or scout runs under a per-task worker home so it does not
 # inherit the operator seat's skills index, MCP servers, or media tools.
 # bin/fm-grok-worker-lib.sh owns that home; the operator's own Grok home is
-# only read there (config discovery and auth, hooks, and sessions symlinks),
-# and its one write beyond the turn-end hook wiring above is creating the
-# sessions directory when absent.
+# only read there (config discovery and symlinks to its sign-in, trust,
+# global-instruction, policy, hooks, and sessions entries), and its one write
+# beyond the turn-end hook wiring above is creating the sessions directory
+# when absent.
 # A Grok secondmate is a supervisor seat and keeps the full configuration.
 if [ "$HARNESS" = grok ] && [ "$KIND" != secondmate ]; then
   GROK_WORKER_HOME=$(fm_grok_worker_home "$STATE" "$ID") || {

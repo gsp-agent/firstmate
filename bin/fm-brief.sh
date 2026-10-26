@@ -460,7 +460,6 @@ ASK_USER_BLOCK=
 if [ "$KIND" = ship ] && [ "$MODE" = no-mistakes ]; then
   ASK_USER_BLOCK=$(fm_ask_user_escalation_block "$DATA" "$ID")
 fi
-CONTEXT_RULES=$(fm_worker_context_rules)
 
 shell_quote() {
   printf "'"
@@ -750,8 +749,6 @@ $SHARED_INFRA_RULE
 
 $WAIT_BLOCK$INBOX_SECTION
 
-$CONTEXT_RULES
-
 # Definition of done
 Write your findings to \`$DATA/$ID/report.md\`.
 The report must stand alone: what you did, what you found, the evidence (commands run, output, file:line references), and what you recommend.
@@ -842,8 +839,6 @@ $WAIT_BLOCK$INBOX_SECTION
 # Project memory
 A project's \`AGENTS.md\` or \`CLAUDE.md\` is loaded into every agent session in that project, so edit it only to correct information that is factually wrong - including information your own change made wrong - and never to add knowledge because it is missing.
 A correction edits only the wrong text: do not run \`$FM_ROOT/bin/fm-ensure-agents-md.sh\`, create either file, or add sections, headings, or pointers alongside it.
-
-$CONTEXT_RULES
 
 $DOD
 EOF

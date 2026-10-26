@@ -1,44 +1,59 @@
 #!/usr/bin/env bash
-# Worker-only Grok configuration and slim launch rendering for crewmate and
-# scout spawns (bin/fm-spawn.sh is the one caller).
+# Worker-only Grok configuration and launch text for crewmate and scout
+# spawns. bin/fm-spawn.sh provisions the worker home and renders the launch
+# brief; bin/fm-control.sh runs fm_grok_worker_skills as a relaunch
+# pre-check, so a skills file the launch would refuse stops the relaunch
+# before the running worker is stopped.
 # Usage: . bin/fm-grok-worker-lib.sh
+#
+# fm_grok_worker_skills <skills-file> prints the skill names the spawning
+# home's optional config/grok-worker-skills lists: one name per line, with
+# surrounding whitespace trimmed and blank and `#` lines ignored. An absent
+# file prints nothing; a present one that cannot be read as UTF-8 text
+# prints a cannot-read error on stderr and returns 1.
 #
 # fm_grok_worker_provision <operator-grok-home> <worker-home> <worktree>
 #   <skills-file>
 # creates a per-task Grok home that trims the fixed launch context a worker
 # otherwise inherits from the operator's seat: the discovered skills index
-# (all but the built-in allowlist below and the names <skills-file> lists),
-# compat and user-config MCP servers, plugin skills, image/video tools, and
-# oversized tool output.
-# <skills-file> is the spawning home's optional config/grok-worker-skills:
-# one skill name per line, with blank lines and `#` lines ignored. An absent
-# file keeps only the built-in allowlist; one that cannot be read fails
-# provisioning.
+# (all but the built-in allowlist below and the names fm_grok_worker_skills
+# reads from <skills-file>), compat and user-config MCP servers, plugin
+# skills, image/video tools, and oversized tool output.
 # Discovery is `grok inspect --json` in the worktree at spawn time, so no
 # operator-specific server, skill, or plugin name is ever recorded here.
-# The worker home carries a generated config.toml plus symlinks to the
-# operator's auth.json (sign-in is referenced, never copied), hooks
-# directory (the turn-end hook bin/fm-spawn.sh installs there keeps loading
-# unchanged), and sessions directory (worker transcripts land with the
-# operator's and outlive teardown, which removes only the link).
+# The worker home carries a generated config.toml plus a symlink to each of
+# these operator Grok home entries that exists: auth.json (sign-in is
+# referenced, never copied), trusted_folders.toml (folder trust, so project
+# instructions and global hooks load as they do for the operator), the
+# AGENTS.md and rules global instructions, the managed_config.toml and
+# requirements.toml policy files, the hooks directory (the turn-end hook
+# bin/fm-spawn.sh installs there keeps loading unchanged), and the sessions
+# directory (worker transcripts land with the operator's and outlive
+# teardown, which removes only the link).
 # The one write to the operator's home is creating that sessions directory
 # when it is absent, so the link never dangles.
 # When discovery is unavailable (no grok or python3 on PATH), the generated
 # config still carries the compat, media, and output-cap sections.
 #
+# fm_grok_worker_context_rules prints the tool-output and skill-loading
+# discipline every Grok ship and scout launch brief carries, so exploration
+# before the first edit stays small; bin/fm-spawn.sh renders it into Grok
+# launches only, and no other harness receives it.
+#
 # fm_grok_slim_launch_brief <source-brief> <state> <task-id> <code-root>
 #   <decision-owner>
 # prints the launch brief the full path prints, minus the source brief's
-# Rules, Waiting, Project memory, and Definition of done sections. It carries
-# the rule-4 status lines and the Definition of done's delivery lines, and
-# names each left-out section with the point at which the worker reads it
-# from the full brief. Every other section (Task, the Herdr declaration or
-# contract, Setup, the instruction inbox, the context discipline, and home
-# brief additions) is carried verbatim.
-# It returns 1 without printing when the source has no rule-4 status lines
-# or none of those sections, so the caller falls back to the full launch
-# brief. bin/fm-spawn.sh also takes the full launch brief on a relaunch,
-# because the progress note bin/fm-control.sh appends ends the source brief.
+# Waiting, Project memory, and Definition of done sections. It carries the
+# Definition of done's delivery lines and names each left-out section with
+# the point at which the worker reads it from the full brief, along with
+# the Setup, Rules, and home brief additions sections it carries. Every
+# other section (Task, the Herdr declaration or contract, Setup, Rules with
+# its status command, the instruction inbox, and home brief additions) is
+# carried verbatim.
+# It returns 1 without printing when the source has none of the left-out
+# sections, so the caller falls back to the full launch brief.
+# bin/fm-spawn.sh also takes the full launch brief on a relaunch, because the
+# progress note bin/fm-control.sh appends ends the source brief.
 # Secondmate charters never take either path: fm-spawn.sh gates both on
 # KIND != secondmate, so a supervisor seat keeps its full configuration.
 
@@ -48,36 +63,43 @@ fm_grok_worker_home() {  # <state-dir> <task-id>
   printf '%s/%s.grok-home\n' "$1" "$2"
 }
 
+fm_grok_worker_skills() {  # <skills-file>
+  [ -e "$1" ] || [ -L "$1" ] || return 0
+  python3 -I - "$1" <<'PY'
+import sys
+
+path = sys.argv[1]
+try:
+    with open(path, encoding="utf-8") as fh:
+        lines = fh.read().splitlines()
+except OSError as exc:
+    sys.exit(f"error: cannot read {path}: {exc.strerror}")
+except UnicodeDecodeError:
+    sys.exit(f"error: cannot read {path}: not UTF-8 text")
+for line in lines:
+    line = line.strip()
+    if line and not line.startswith("#"):
+        print(line)
+PY
+}
+
 fm_grok_worker_provision() {  # <operator-grok-home> <worker-home> <worktree> <skills-file>
-  local op_home=$1 worker_home=$2 worktree=$3 skills_file=$4 name
+  local op_home=$1 worker_home=$2 worktree=$3 skills_file=$4 extra_skills name
   [ -n "$op_home" ] && [ -n "$worker_home" ] && [ -n "$worktree" ] && [ -n "$skills_file" ] || return 1
+  extra_skills=$(fm_grok_worker_skills "$skills_file") || return 1
   mkdir -p "$worker_home" "$op_home/sessions" || return 1
-  if [ -e "$op_home/auth.json" ] || [ -L "$op_home/auth.json" ]; then
-    if [ ! -e "$worker_home/auth.json" ] && [ ! -L "$worker_home/auth.json" ]; then
-      ln -s "$op_home/auth.json" "$worker_home/auth.json" || return 1
-    fi
-  fi
-  for name in hooks sessions; do
+  for name in auth.json trusted_folders.toml AGENTS.md rules managed_config.toml requirements.toml hooks sessions; do
+    [ -e "$op_home/$name" ] || [ -L "$op_home/$name" ] || continue
     if [ ! -e "$worker_home/$name" ] && [ ! -L "$worker_home/$name" ]; then
       ln -s "$op_home/$name" "$worker_home/$name" || return 1
     fi
   done
   if command -v python3 >/dev/null 2>&1 && command -v grok >/dev/null 2>&1; then
-    FM_GROK_ALLOW="$FM_GROK_WORKER_ALLOW_SKILLS" python3 -I - "$op_home" "$worker_home" "$worktree" "$skills_file" <<'PY' || return 1
+    FM_GROK_ALLOW="$FM_GROK_WORKER_ALLOW_SKILLS $extra_skills" python3 -I - "$op_home" "$worker_home" "$worktree" <<'PY' || return 1
 import json, os, subprocess, sys
 
-op_home, worker_home, worktree, skills_file = sys.argv[1:5]
+op_home, worker_home, worktree = sys.argv[1:4]
 allow = set(os.environ.get("FM_GROK_ALLOW", "").split())
-try:
-    with open(skills_file, encoding="utf-8") as fh:
-        for line in fh:
-            line = line.strip()
-            if line and not line.startswith("#"):
-                allow.add(line)
-except FileNotFoundError:
-    pass
-except OSError as exc:
-    sys.exit(f"error: cannot read {skills_file}: {exc.strerror}")
 skills, mcps, plugins = set(), set(), set()
 try:
     out = subprocess.run(
@@ -165,16 +187,23 @@ EOF
   return 0
 }
 
+fm_grok_worker_context_rules() {
+  cat <<'EOF'
+# Worker context discipline
+Keep the context before your first edit small.
+Read files in ranges that cover what you need; do not dump a whole file when a range will do.
+Cap search and grep output near 50 lines, and narrow the pattern or path when it returns more.
+Tail or head long command output instead of capturing all of it.
+Do not read skills at session start.
+Load a skill only when a step needs it, by reading that skill's SKILL.md at that point.
+A skill your session does not list is at the project's `.agents/skills/<name>/SKILL.md`, or at the path the instruction naming it gives.
+EOF
+}
+
 fm_grok_slim_launch_brief() {  # <source-brief> <state> <task-id> <code-root> <decision-owner>
   local source_brief=$1 state=$2 task_id=$3 root=$4 decision_owner=$5
-  local body status_lines done_lines pointer='' heading when
+  local body done_lines pointer='' carried='' heading when
   body=$(cat "$source_brief") || return 1
-  status_lines=$(awk '
-    /^4\. Report status by appending one line:$/ { grab = 1 }
-    grab { sub(/^4\. /, ""); sub(/^   /, ""); out = out $0 "\n" }
-    grab && /^Substitute `<epoch>`/ { printf "%s", out; exit }
-  ' "$source_brief")
-  [ -n "$status_lines" ] || return 1
   done_lines=$(fm_brief_heading_body "$source_brief" "# Definition of done" |
     grep -E '^(Delivery contract: |Ship branch: |Write your findings to )')
   while IFS='|' read -r heading when; do
@@ -182,19 +211,21 @@ fm_grok_slim_launch_brief() {  # <source-brief> <state> <task-id> <code-root> <d
     body=$(fm_brief_heading_omit - "$heading" <<<"$body") || return 1
     pointer+="- \`$heading\` $when"$'\n'
   done <<'SECTIONS'
-# Rules|before you act beyond the Setup section above.
 # Waiting|before you wait on anything.
 # Project memory|before you edit a project's AGENTS.md or CLAUDE.md.
 # Definition of done|before you report done.
 SECTIONS
   [ -n "$pointer" ] || return 1
+  for heading in '# Setup' '# Rules' '# Home brief additions'; do
+    fm_brief_heading_present - "$heading" <<<"$body" && carried+="${carried:+, }\`$heading\`"
+  done
   fm_brief_worker_role "$state" "$task_id" "$root" || return 1
   printf '\nDecision owner for this dispatch: %s\n\n' "$decision_owner"
   printf '%s\n' "$body"
-  printf '\n# Status\n%s\n' "$status_lines"
   printf '\n# Full brief\n'
   printf 'The complete brief is at `%s`.\n' "$source_brief"
-  printf 'This launch text leaves out the sections below; they remain the contract, so read each one from that file at the point named:\n%s' "$pointer"
+  [ -z "$carried" ] || printf 'This launch text already carries its %s sections in full above.\n' "$carried"
+  printf 'It leaves out the sections below; they remain the contract, so read each one from that file at the point named:\n%s' "$pointer"
   [ -z "$done_lines" ] || printf 'Its Definition of done opens with:\n%s\n' "$done_lines"
   return 0
 }
