@@ -196,6 +196,7 @@ checks = {
     "skills.disabled": cfg["skills"]["disabled"] == ["deslop", "poteto-mode"],
     "disabled_mcp_servers": cfg["disabled_mcp_servers"] == ["gmail", "notion"],
     "plugins.disabled": cfg["plugins"]["disabled"] == ["cursor-plugin"],
+    "managed_mcps": cfg["managed_mcps"] == {"enabled": False, "gateway_tools_enabled": False},
     "features": cfg["features"] == {"image_gen": False, "video_gen": False},
     "mcp.max_output_bytes": cfg["mcp"]["max_output_bytes"] == 8000,
     "toolset.bash.output_byte_limit": cfg["toolset"]["bash"]["output_byte_limit"] == 8000,
@@ -272,6 +273,32 @@ PY
   pass "grok worker skills file keeps a listed skill enabled while an unlisted one is disabled"
 }
 
+test_grok_worker_unreadable_skills_file_refuses_before_wiring() {
+  local rec case_dir home proj wt fakebin grok_home id out status
+  rec=$(make_spawn_case skills-refuse)
+  IFS='|' read -r case_dir home proj wt fakebin grok_home id <<EOF
+$rec
+EOF
+  install_fake_grok "$fakebin"
+  printf '\377\376not utf-8\n' > "$home/config/grok-worker-skills"
+  out=$(FM_FAKE_LAUNCH_LOG="$case_dir/launch.log" run_grok_spawn "$home" "$proj" "$wt" "$fakebin" "$grok_home" "$id")
+  status=$?
+  expect_code 1 "$status" "a grok spawn with an unreadable skills file should refuse: $out"
+  assert_contains "$out" "grok-worker-skills: not UTF-8 text" "the refusal does not name the unreadable skills file"
+  assert_absent "$home/state/$id.grok-turnend-token" "a refused grok spawn left its turn-end token"
+  assert_absent "$wt/.fm-grok-turnend" "a refused grok spawn left its worktree turn-end pointer"
+  assert_absent "$grok_home/hooks" "a refused grok spawn wrote to the operator grok hooks"
+  assert_absent "$home/state/$id.grok-home" "a refused grok spawn left a worker home"
+  assert_absent "$home/state/$id.meta" "a refused grok spawn left a task record"
+  [ ! -s "$case_dir/launch.log" ] || fail "a refused grok spawn sent a launch"
+
+  printf '%s\n' 'deslop' > "$home/config/grok-worker-skills"
+  out=$(run_grok_spawn "$home" "$proj" "$wt" "$fakebin" "$grok_home" "$id")
+  status=$?
+  expect_code 0 "$status" "a grok spawn retried after fixing the skills file should succeed: $out"
+  pass "an unreadable grok skills file refuses the spawn before any wiring, and a retry succeeds"
+}
+
 test_grok_worker_discovery_failure_warns_and_launches() {
   local rec case_dir home proj wt fakebin grok_home id out status
   rec=$(make_spawn_case discovery-fail)
@@ -284,11 +311,14 @@ EOF
   expect_code 0 "$status" "a grok worker spawn whose discovery fails should still launch: $out"
   assert_contains "$out" "warning: Grok worker home $home/state/$id.grok-home: grok inspect --json failed" \
     "a failed grok discovery did not warn that the worker is untrimmed"
-  python3 -I - "$home/state/$id.grok-home/config.toml" <<'PY' || fail "a failed grok discovery did not leave the untrimmed worker config"
+  python3 -I - "$home/state/$id.grok-home/config.toml" <<'PY' || fail "a failed grok discovery did not leave the untrimmed worker config with managed connectors off"
 import sys, tomllib
 with open(sys.argv[1], "rb") as fh:
     cfg = tomllib.load(fh)
 if cfg["skills"]["disabled"] != [] or cfg["disabled_mcp_servers"] != []:
+    sys.exit(1)
+if cfg["managed_mcps"] != {"enabled": False, "gateway_tools_enabled": False}:
+    print("managed_mcps = %r" % cfg["managed_mcps"], file=sys.stderr)
     sys.exit(1)
 PY
   pass "a failed grok discovery warns that the worker is untrimmed and still launches it"
@@ -412,6 +442,7 @@ test_fm_lock_recognizes_grok_holder
 test_grok_worker_home_trims_launch_context
 test_grok_worker_home_resolves_operator_trust_and_policy
 test_grok_worker_skills_file_keeps_listed_skills
+test_grok_worker_unreadable_skills_file_refuses_before_wiring
 test_grok_worker_discovery_failure_warns_and_launches
 test_grok_worker_transcripts_survive_teardown
 test_grok_slim_launch_brief_defers_only_later_sections

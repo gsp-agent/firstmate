@@ -17,8 +17,10 @@
 # creates a per-task Grok home that trims the fixed launch context a worker
 # otherwise inherits from the operator's seat: the discovered skills index
 # (all but the built-in allowlist below and the names fm_grok_worker_skills
-# reads from <skills-file>), compat and user-config MCP servers, plugin
-# skills, image/video tools, and oversized tool output.
+# reads from <skills-file>), compat and user-config MCP servers, the
+# account-managed MCP connectors that arrive with the sign-in rather than
+# with any config discovery reports, plugin skills, image/video tools, and
+# oversized tool output.
 # Discovery is `grok inspect --json` in the worktree at spawn time, so no
 # operator-specific server, skill, or plugin name is ever recorded here.
 # The worker home carries a generated config.toml plus a symlink to each of
@@ -35,9 +37,9 @@
 # The worker home, and the operator sessions directory when provisioning
 # creates it, are private (mode 0700), matching Grok's own home.
 # When discovery fails or is unavailable (no grok or python3 on PATH), the
-# generated config still carries the compat, media, and output-cap sections,
-# and a one-line warning on stderr names the failure and the worker home
-# whose skills index and MCP servers stay untrimmed.
+# generated config still carries the compat, managed-connector, media, and
+# output-cap sections, and a one-line warning on stderr names the failure and
+# the worker home whose skills index and MCP servers stay untrimmed.
 #
 # fm_grok_worker_context_rules prints the tool-output and skill-loading
 # discipline every Grok ship and scout launch brief carries, so exploration
@@ -149,6 +151,10 @@ lines = [
     "[plugins]",
     "disabled = " + toml_list(plugins),
     "",
+    "[managed_mcps]",
+    "enabled = false",
+    "gateway_tools_enabled = false",
+    "",
     "[features]",
     "image_gen = false",
     "video_gen = false",
@@ -177,6 +183,10 @@ mcps = false
 [compat.cursor]
 skills = false
 mcps = false
+
+[managed_mcps]
+enabled = false
+gateway_tools_enabled = false
 
 [features]
 image_gen = false

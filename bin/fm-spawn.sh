@@ -3322,6 +3322,11 @@ EXCLUDE_TOOLS=
 if [ "$KIND" != secondmate ]; then
   EXCLUDE_TOOLS=$(fm_exclude_tools_check "$HARNESS" "$RAW_LAUNCH" "$CONFIG") || exit 1
 fi
+# Likewise config/grok-worker-skills, which Grok worker provisioning reads only
+# after the window and turn-end wiring exist.
+if [ "$HARNESS" = grok ] && [ "$KIND" != secondmate ]; then
+  fm_grok_worker_skills "$CONFIG/grok-worker-skills" >/dev/null || exit 1
+fi
 
 case "$HARNESS" in
 devin)
