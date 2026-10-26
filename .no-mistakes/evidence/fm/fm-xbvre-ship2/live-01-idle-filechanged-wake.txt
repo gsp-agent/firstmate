@@ -1,0 +1,46 @@
+# Scenario: idle primary, one append, no Stop hook running (live lab, Claude Code 2.1.310)
+== before
+now=1792983642
+lock=93543
+session-start-complete=93543
+claude-turn=idle 1792983603 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2
+ledger=
+afk=no
+main-eligible-rows=ABSENT
+queue-rows=
+== append at 1792983644.064
+== transitions
+1792983643.069 turn=[idle 1792983603 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[] presented=[ABSENT] queue=[] complete=[93543/3321842896]
+1792983644.532 turn=[idle 1792983603 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[] presented=[ABSENT] queue=[1 ] complete=[93543/3321842896]
+1792983645.500 turn=[idle 1792983603 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=1 owner_pid=43257 outcome=rewake updated_at=1792983645 session_pid=93543] presented=[ABSENT] queue=[1 ] complete=[93543/3321842896]
+1792983645.759 turn=[busy 1792983646 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=1 owner_pid=43257 outcome=rewake updated_at=1792983645 session_pid=93543] presented=[ABSENT] queue=[1 ] complete=[93543/3321842896]
+1792983650.066 turn=[busy 1792983646 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=1 owner_pid=43257 outcome=rewake updated_at=1792983645 session_pid=93543] presented=[1 ] queue=[1 ] complete=[93543/3321842896]
+1792983653.441 turn=[busy 1792983646 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=1 owner_pid=43257 outcome=rewake updated_at=1792983645 session_pid=93543] presented=[ABSENT] queue=[] complete=[93543/3321842896]
+1792983654.936 turn=[idle 1792983646 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=1 owner_pid=43257 outcome=rewake updated_at=1792983645 session_pid=93543] presented=[ABSENT] queue=[] complete=[93543/3321842896]
+== after
+now=1792983718
+lock=93543
+session-start-complete=93543
+claude-turn=idle 1792983646 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2
+ledger=epoch=1 owner_pid=43257 outcome=rewake updated_at=1792983645 session_pid=93543
+afk=no
+main-eligible-rows=ABSENT
+queue-rows=
+
+# Lab primary pane after the wake
+ ▐▛███▛█   Claude Code v2.1.310
+▝▜██████▀  Sonnet 5.5 with low effort · Claude Max
+ ▝▝   ▝▝   /private/tmp/fmlab-xbvre-1792983586/home
+❯ Lab readiness probe from bin/fm-live-lab.sh. Run no tool or command for this message. Reply with only the word LABREADY, a hyphen, and then 7274335cca55, with no spaces.
+⏺ LABREADY-7274335cca55
+✻ Crunched for 7s · done 10:00 PM
+⏺ Stop hook feedback
+  Ran 1 shell command
+⏺ This is a lab probe wake with nothing to act on, so I'm acknowledging it.
+  Ran 1 shell command
+⏺ Captain, shipshape.
+✻ Brewed for 9s · done 10:00 PM
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 3 agents

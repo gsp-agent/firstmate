@@ -1,0 +1,88 @@
+# Scenario: rows queued before /clear (no hook parked), then /clear (live lab)
+# Also: away posture keeps the waker inert; the session-open digest presents without claiming; a digest-only acknowledgement from the old context is refused.
+== before
+now=1792984221
+lock=93543
+session-start-complete=93543
+claude-turn=idle 1792984064 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2
+ledger=epoch=5 owner_pid=4037 outcome=rewake updated_at=1792984063 session_pid=93543
+afk=no
+main-eligible-rows=ABSENT
+queue-rows=
+== 1792984221.959 touch state/.afk
+== 1792984221.983 append two rows while away
+== 1792984228.522 6 s after the away appends: ledger=epoch=5 owner_pid=4037 outcome=rewake updated_at=1792984063 session_pid=93543 turn=idle 1792984064 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2
+== 1792984228.558 the pre-/clear context drains (claims) the rows, as main
+old-context ack command: bin/fm-wake-drain.sh --ack-through 25 --recovery-generation 769.1792984222.LweLlq
+presented set now: 24 25 
+== 1792984229.901 remove state/.afk
+completion inode before /clear: 3321842896
+== 1792984229.946 send /clear
+== 1792984235.407 completion record rewritten: pid=93543 inode=3321889453
+presented set right after the digest: ABSENT
+== 1792984235.441 type the old context's acknowledgement (digest-only) as main:
+ack rc=1
+wake drain: row 24 was not presented to main in a turn, so this acknowledgement is refused; re-run bin/fm-wake-drain.sh in a turn and use the WAKE_ACK_REQUIRED command it prints
+queue after refused ack: 24 25 
+== transitions
+1792984222.003 turn=[idle 1792984064 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=5 owner_pid=4037 outcome=rewake updated_at=1792984063 session_pid=93543] presented=[ABSENT] queue=[] complete=[93543/3321842896]
+1792984222.260 turn=[idle 1792984064 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=5 owner_pid=4037 outcome=rewake updated_at=1792984063 session_pid=93543] presented=[ABSENT] queue=[24 ] complete=[93543/3321842896]
+1792984222.505 turn=[idle 1792984064 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=5 owner_pid=4037 outcome=rewake updated_at=1792984063 session_pid=93543] presented=[ABSENT] queue=[24 25 ] complete=[93543/3321842896]
+1792984228.819 turn=[idle 1792984064 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=5 owner_pid=4037 outcome=rewake updated_at=1792984063 session_pid=93543] presented=[24 25 ] queue=[24 25 ] complete=[93543/3321842896]
+1792984231.656 turn=[idle 1792984231 93543 0562c19b-c5a1-406f-8faf-7165e9dd486e] ledger=[epoch=5 owner_pid=4037 outcome=rewake updated_at=1792984063 session_pid=93543] presented=[24 25 ] queue=[24 25 ] complete=[93543/3321842896]
+1792984234.247 turn=[idle 1792984231 93543 0562c19b-c5a1-406f-8faf-7165e9dd486e] ledger=[epoch=5 owner_pid=4037 outcome=rewake updated_at=1792984063 session_pid=93543] presented=[ABSENT] queue=[24 25 ] complete=[93543/3321842896]
+1792984235.422 turn=[idle 1792984231 93543 0562c19b-c5a1-406f-8faf-7165e9dd486e] ledger=[epoch=5 owner_pid=4037 outcome=rewake updated_at=1792984063 session_pid=93543] presented=[ABSENT] queue=[24 25 ] complete=[93543/3321889453]
+1792984235.686 turn=[idle 1792984231 93543 0562c19b-c5a1-406f-8faf-7165e9dd486e] ledger=[epoch=6 owner_pid=8201 outcome=arming updated_at=1792984235] presented=[ABSENT] queue=[24 25 ] complete=[93543/3321889453]
+1792984235.937 turn=[idle 1792984231 93543 0562c19b-c5a1-406f-8faf-7165e9dd486e] ledger=[epoch=6 owner_pid=8201 outcome=rewake updated_at=1792984235 session_pid=93543] presented=[ABSENT] queue=[24 25 ] complete=[93543/3321889453]
+1792984236.189 turn=[busy 1792984236 93543 0562c19b-c5a1-406f-8faf-7165e9dd486e] ledger=[epoch=6 owner_pid=8201 outcome=rewake updated_at=1792984235 session_pid=93543] presented=[ABSENT] queue=[24 25 ] complete=[93543/3321889453]
+1792984239.049 turn=[busy 1792984236 93543 0562c19b-c5a1-406f-8faf-7165e9dd486e] ledger=[epoch=6 owner_pid=8201 outcome=rewake updated_at=1792984235 session_pid=93543] presented=[24 25 ] queue=[24 25 ] complete=[93543/3321889453]
+1792984242.585 turn=[busy 1792984236 93543 0562c19b-c5a1-406f-8faf-7165e9dd486e] ledger=[epoch=6 owner_pid=8201 outcome=rewake updated_at=1792984235 session_pid=93543] presented=[ABSENT] queue=[] complete=[93543/3321889453]
+1792984243.801 turn=[idle 1792984236 93543 0562c19b-c5a1-406f-8faf-7165e9dd486e] ledger=[epoch=6 owner_pid=8201 outcome=rewake updated_at=1792984235 session_pid=93543] presented=[ABSENT] queue=[] complete=[93543/3321889453]
+== after
+now=1792984371
+lock=93543
+session-start-complete=93543
+claude-turn=idle 1792984236 93543 0562c19b-c5a1-406f-8faf-7165e9dd486e
+ledger=epoch=6 owner_pid=8201 outcome=rewake updated_at=1792984235 session_pid=93543
+afk=no
+main-eligible-rows=ABSENT
+queue-rows=
+
+# Session-open digest as Claude received it from the SessionStart hook (head, from the new session's saved hook output)
+================================================================================
+SESSION START (CONTEXT RE-EMIT) - /private/tmp/fmlab-xbvre-1792983586/home
+================================================================================
+This session already took the helm at its own startup and has only lost its
+context. Lock ownership is re-verified and the durable records below are
+reprinted, but the sweeps startup already reconciled - project clone refresh,
+secondmate convergence and liveness, pending remote handoff
+retry, X-mode artifact writes, and stale Herdr child cleanup - are NOT repeated.
+Queued wakes below are presented only: drain them with bin/fm-wake-drain.sh in a turn before handling them.
+
+LOCK
+--------------------------------------------------------------------------------
+lock acquired: harness pid 93543
+
+HOME ROLE
+--------------------------------------------------------------------------------
+fm-role: user (default)
+
+BOOTSTRAP
+--------------------------------------------------------------------------------
+(silent - all good)
+
+WAKE QUEUE
+--------------------------------------------------------------------------------
+1792984222	24	check	reset-a	check: live post-reset row A (queued before /clear)
+1792984222	25	check	reset-b	check: live post-reset row B (queued before /clear)
+================================================================================
+...(rest of digest omitted)
+lines in the digest starting with 'WAKE_ACK_REQUIRED:': 0
+
+# Every rewake turn Claude started in this lab, with the hook event that woke it
+2026-10-26T03:00:45.453Z session=e2bae5c7-d763-48b3-a46f-012bff99ede2 woken-by=FileChanged first-row=check: live idle wake probe (append while main is idle, no Stop hook running)
+2026-10-26T03:02:23.580Z session=e2bae5c7-d763-48b3-a46f-012bff99ede2 woken-by=FileChanged first-row=check: live burst row 3 of 10
+2026-10-26T03:03:45.247Z session=e2bae5c7-d763-48b3-a46f-012bff99ede2 woken-by=FileChanged first-row=check: live burst row 1 of 10
+2026-10-26T03:05:23.944Z session=e2bae5c7-d763-48b3-a46f-012bff99ede2 woken-by=FileChanged first-row=check: live busy-turn probe (appended mid-turn)
+2026-10-26T03:07:43.050Z session=e2bae5c7-d763-48b3-a46f-012bff99ede2 woken-by=Stop first-row=check: live busy-turn probe (appended mid-turn)
+2026-10-26T03:10:35.796Z session=0562c19b-c5a1-406f-8faf-7165e9dd486e woken-by=SessionStart:clear first-row=check: live post-reset row A (queued before /clear)

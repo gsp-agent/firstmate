@@ -1,0 +1,17 @@
+ok - turn record: real UserPromptSubmit, Stop, and StopFailure payloads; only the lock owner writes
+ok - 07:06Z replay: after /clear and a covering watcher close, the waker exits 2 within a second of the +150 s and +330 s appends
+ok - reset-followup expiry: the waker exits 2 at the +350 s undelivered close append
+ok - post-reset rows already queued: the /clear session-open check exits 2 once the digest completes
+ok - fresh startup: the session-open check waits for its own lock and digest, then exits 2
+ok - interrupt then /clear: session open records idle, so the session-open check exits 2
+ok - busy turn: the waker exits 0, the Stop hook delivers at turn end, exactly one rewake follows
+ok - parked hook present: the waker exits 0 and the parked hook delivers
+ok - burst: ten appends whose ten waker firings run concurrently produce exactly one rewake
+ok - burst race: a firing that waited on the ledger mutex never supersedes the rewake committed meanwhile
+ok - foreign hosts: Cursor and pi-code FileChanged and SessionStart payloads exit 0 at once and never wait
+ok - turn boundary: Stop admission parks while a rewake is pending
+ok - turn boundary across a park: after rewake R's own turn has run, the parked hook still delivers a later row
+ok - restart: a rewake committed by an earlier Claude process is not pending in the new one
+ok - session-start drain presents without claiming; digest-only ack refused
+ok - session-start drain presents only main's rows and names rows a live branch grant holds
+bash tests/fm-claude-wake.test.sh  9.84s user 19.24s system 76% cpu 38.244 total

@@ -1,0 +1,28 @@
+# Scenario: away mode (state/.afk) - a main-actor drain presents a row, Claude /clear opens a new context, then that drain's acknowledgement runs (live lab 2)
+# The drain and acknowledgement were run from the test shell with the same command and actor the away daemon uses; the daemon itself was not running.
+== 1792985288.838 before
+  turn=idle 1792985270 4968 bcd57b45-2044-439a-b49e-dac611f182da | ledger= | presented=[ABSENT] | queue=[]
+== 1792985288.872 state/.afk set
+== 1792985289.036 row appended under away mode
+  turn=idle 1792985270 4968 bcd57b45-2044-439a-b49e-dac611f182da | ledger= | presented=[ABSENT] | queue=[1 ]
+== 1792985289.998 away drain (main actor, as bin/fm-supervise-daemon.sh runs it) printed: bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 14588.1792985288.mGuURZ
+  turn=idle 1792985270 4968 bcd57b45-2044-439a-b49e-dac611f182da | ledger= | presented=[1 ] | queue=[1 ]
+== 1792985290.042 send /clear while away
+== 1792985294.788 session-open digest completed (completion inode 3321999371 -> 3321999904)
+  turn=idle 1792985291 4968 16410cd9-2ee1-423b-877a-ed3b07608fe3 | ledger= | presented=[1 ] | queue=[1 ]
+== 1792985302.990 8 s later, still away (no rewake expected)
+  turn=idle 1792985291 4968 16410cd9-2ee1-423b-877a-ed3b07608fe3 | ledger= | presented=[1 ] | queue=[1 ]
+== 1792985303.290 the away drain's acknowledgement: rc=0
+
+  turn=idle 1792985291 4968 16410cd9-2ee1-423b-877a-ed3b07608fe3 | ledger= | presented=[ABSENT] | queue=[]
+== 1792985303.331 state/.afk removed
+
+# Lab primary pane
+ ▐▛███▛█   Claude Code v2.1.310
+▝▜██████▀  Sonnet 5.5 with low effort · Claude Max
+ ▝▝   ▝▝   /private/tmp/fmlab-xbvre-afk-1792985254/home
+❯ /clear
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 3 agents

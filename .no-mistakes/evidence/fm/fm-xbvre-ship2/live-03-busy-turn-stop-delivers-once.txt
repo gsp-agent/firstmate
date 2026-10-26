@@ -1,0 +1,76 @@
+# Scenario: busy turn, a row appended mid-turn (live lab)
+# The primary writes a ~1200-word essay with no tools; a row is appended 4 s into that turn.
+== before
+now=1792984037
+lock=93543
+session-start-complete=93543
+claude-turn=idle 1792983924 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2
+ledger=epoch=4 owner_pid=7504 outcome=rewake updated_at=1792983923 session_pid=93543
+afk=no
+main-eligible-rows=ABSENT
+queue-rows=
+== prompt sent 1792984037.163
+== turn busy seen 1792984038.814: busy 1792984038 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2
+== mid-turn append 1792984042.993
+== 3 s after append: busy 1792984038 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2 | ledger: epoch=4 owner_pid=7504 outcome=rewake updated_at=1792983923 session_pid=93543
+== transitions
+1792984037.198 turn=[idle 1792983924 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=4 owner_pid=7504 outcome=rewake updated_at=1792983923 session_pid=93543] presented=[ABSENT] queue=[] complete=[93543/3321842896]
+1792984038.852 turn=[busy 1792984038 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=4 owner_pid=7504 outcome=rewake updated_at=1792983923 session_pid=93543] presented=[ABSENT] queue=[] complete=[93543/3321842896]
+1792984043.234 turn=[busy 1792984038 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=4 owner_pid=7504 outcome=rewake updated_at=1792983923 session_pid=93543] presented=[ABSENT] queue=[23 ] complete=[93543/3321842896]
+1792984062.244 turn=[idle 1792984038 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=4 owner_pid=7504 outcome=rewake updated_at=1792983923 session_pid=93543] presented=[ABSENT] queue=[23 ] complete=[93543/3321842896]
+1792984062.708 turn=[idle 1792984038 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=5 owner_pid=4037 outcome=arming updated_at=1792984062] presented=[ABSENT] queue=[23 ] complete=[93543/3321842896]
+1792984063.181 turn=[idle 1792984038 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=5 owner_pid=4037 outcome=rewake updated_at=1792984063 session_pid=93543] presented=[ABSENT] queue=[23 ] complete=[93543/3321842896]
+1792984063.429 turn=[busy 1792984064 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=5 owner_pid=4037 outcome=rewake updated_at=1792984063 session_pid=93543] presented=[ABSENT] queue=[23 ] complete=[93543/3321842896]
+1792984065.854 turn=[busy 1792984064 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=5 owner_pid=4037 outcome=rewake updated_at=1792984063 session_pid=93543] presented=[23 ] queue=[23 ] complete=[93543/3321842896]
+1792984069.698 turn=[busy 1792984064 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=5 owner_pid=4037 outcome=rewake updated_at=1792984063 session_pid=93543] presented=[ABSENT] queue=[] complete=[93543/3321842896]
+1792984071.145 turn=[idle 1792984064 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=5 owner_pid=4037 outcome=rewake updated_at=1792984063 session_pid=93543] presented=[ABSENT] queue=[] complete=[93543/3321842896]
+== after
+now=1792984147
+lock=93543
+session-start-complete=93543
+claude-turn=idle 1792984064 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2
+ledger=epoch=5 owner_pid=4037 outcome=rewake updated_at=1792984063 session_pid=93543
+afk=no
+main-eligible-rows=ABSENT
+queue-rows=
+
+# Every rewake turn Claude started in this session, with the hook event that woke it (from the session transcript)
+2026-10-26T03:00:45.453Z session=e2bae5c7-d763-48b3-a46f-012bff99ede2 woken-by=FileChanged first-row=check: live idle wake probe (append while main is idle, no Stop hook running)
+2026-10-26T03:02:23.580Z session=e2bae5c7-d763-48b3-a46f-012bff99ede2 woken-by=FileChanged first-row=check: live burst row 3 of 10
+2026-10-26T03:03:45.247Z session=e2bae5c7-d763-48b3-a46f-012bff99ede2 woken-by=FileChanged first-row=check: live burst row 1 of 10
+2026-10-26T03:05:23.944Z session=e2bae5c7-d763-48b3-a46f-012bff99ede2 woken-by=FileChanged first-row=check: live busy-turn probe (appended mid-turn)
+2026-10-26T03:07:43.050Z session=e2bae5c7-d763-48b3-a46f-012bff99ede2 woken-by=Stop first-row=check: live busy-turn probe (appended mid-turn)
+
+# Note: the first busy attempt (sleep 30) was refused by the harness's foreground-sleep rule and ended before its append, so that row became a second idle FileChanged wake (03:05:23Z):
+== before
+now=1792983912
+lock=93543
+session-start-complete=93543
+claude-turn=idle 1792983826 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2
+ledger=epoch=3 owner_pid=36372 outcome=rewake updated_at=1792983825 session_pid=93543
+afk=no
+main-eligible-rows=ABSENT
+queue-rows=
+== prompt sent 1792983912.888
+== turn busy seen 1792983914.528: busy 1792983914 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2
+== mid-turn append 1792983922.724
+== 3 s after append: busy 1792983924 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2 | ledger: epoch=4 owner_pid=7504 outcome=rewake updated_at=1792983923 session_pid=93543
+== transitions
+1792983912.925 turn=[idle 1792983826 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=3 owner_pid=36372 outcome=rewake updated_at=1792983825 session_pid=93543] presented=[ABSENT] queue=[] complete=[93543/3321842896]
+1792983914.576 turn=[busy 1792983914 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=3 owner_pid=36372 outcome=rewake updated_at=1792983825 session_pid=93543] presented=[ABSENT] queue=[] complete=[93543/3321842896]
+1792983920.665 turn=[idle 1792983914 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=3 owner_pid=36372 outcome=rewake updated_at=1792983825 session_pid=93543] presented=[ABSENT] queue=[] complete=[93543/3321842896]
+1792983923.066 turn=[idle 1792983914 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=3 owner_pid=36372 outcome=rewake updated_at=1792983825 session_pid=93543] presented=[ABSENT] queue=[22 ] complete=[93543/3321842896]
+1792983924.011 turn=[idle 1792983914 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=4 owner_pid=7504 outcome=rewake updated_at=1792983923 session_pid=93543] presented=[ABSENT] queue=[22 ] complete=[93543/3321842896]
+1792983924.261 turn=[busy 1792983924 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=4 owner_pid=7504 outcome=rewake updated_at=1792983923 session_pid=93543] presented=[ABSENT] queue=[22 ] complete=[93543/3321842896]
+1792983927.998 turn=[busy 1792983924 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=4 owner_pid=7504 outcome=rewake updated_at=1792983923 session_pid=93543] presented=[22 ] queue=[22 ] complete=[93543/3321842896]
+1792983931.370 turn=[busy 1792983924 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=4 owner_pid=7504 outcome=rewake updated_at=1792983923 session_pid=93543] presented=[ABSENT] queue=[] complete=[93543/3321842896]
+1792983932.757 turn=[idle 1792983924 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=4 owner_pid=7504 outcome=rewake updated_at=1792983923 session_pid=93543] presented=[ABSENT] queue=[] complete=[93543/3321842896]
+== after
+now=1792984022
+lock=93543
+session-start-complete=93543
+claude-turn=idle 1792983924 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2
+ledger=epoch=4 owner_pid=7504 outcome=rewake updated_at=1792983923 session_pid=93543
+afk=no
+main-eligible-rows=ABSENT
+queue-rows=

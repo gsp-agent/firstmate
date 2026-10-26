@@ -1,0 +1,122 @@
+# Scenario: a turn interrupted with Escape (no Stop hook runs), a row appended, then /clear (live lab)
+## Clean run (no Stop hook parked)
+== before
+now=1792985056
+lock=82358
+session-start-complete=82358
+claude-turn=idle 1792984934 82358 6494ce9d-0cad-4329-80b5-e52e3ac383a9
+ledger=epoch=11 owner_pid=55228 outcome=rewake updated_at=1792984933 session_pid=82358
+afk=no
+main-eligible-rows=ABSENT
+queue-rows=
+== 1792985056.217 prompt a long no-tool turn
+== 1792985061.946 press Escape
+== 1792985066.131 after Escape: turn=busy 1792985057 82358 6494ce9d-0cad-4329-80b5-e52e3ac383a9 gen=11
+== 1792985066.170 append a row after the interrupt
+== 1792985072.519 6 s later: turn=busy 1792985057 82358 6494ce9d-0cad-4329-80b5-e52e3ac383a9 gen=11 (unchanged from 11 means the waker stayed inert)
+== 1792985072.554 send /clear
+== transitions
+1792985056.250 turn=[idle 1792984934 82358 6494ce9d-0cad-4329-80b5-e52e3ac383a9] ledger=[epoch=11 owner_pid=55228 outcome=rewake updated_at=1792984933 session_pid=82358] presented=[ABSENT] queue=[] complete=[82358/3321993525]
+1792985057.901 turn=[busy 1792985057 82358 6494ce9d-0cad-4329-80b5-e52e3ac383a9] ledger=[epoch=11 owner_pid=55228 outcome=rewake updated_at=1792984933 session_pid=82358] presented=[ABSENT] queue=[] complete=[82358/3321993525]
+1792985066.550 turn=[busy 1792985057 82358 6494ce9d-0cad-4329-80b5-e52e3ac383a9] ledger=[epoch=11 owner_pid=55228 outcome=rewake updated_at=1792984933 session_pid=82358] presented=[ABSENT] queue=[31 ] complete=[82358/3321993525]
+1792985074.238 turn=[idle 1792985073 82358 44b96b71-92fb-437c-8ed1-30d8ab7b9cb3] ledger=[epoch=11 owner_pid=55228 outcome=rewake updated_at=1792984933 session_pid=82358] presented=[ABSENT] queue=[31 ] complete=[82358/3321993525]
+1792985077.331 turn=[idle 1792985073 82358 44b96b71-92fb-437c-8ed1-30d8ab7b9cb3] ledger=[epoch=11 owner_pid=55228 outcome=rewake updated_at=1792984933 session_pid=82358] presented=[ABSENT] queue=[31 ] complete=[82358/3321995592]
+1792985077.574 turn=[idle 1792985073 82358 44b96b71-92fb-437c-8ed1-30d8ab7b9cb3] ledger=[epoch=12 owner_pid=8319 outcome=rewake updated_at=1792985077 session_pid=82358] presented=[ABSENT] queue=[31 ] complete=[82358/3321995592]
+1792985077.793 turn=[busy 1792985078 82358 44b96b71-92fb-437c-8ed1-30d8ab7b9cb3] ledger=[epoch=12 owner_pid=8319 outcome=rewake updated_at=1792985077 session_pid=82358] presented=[ABSENT] queue=[31 ] complete=[82358/3321995592]
+1792985082.302 turn=[busy 1792985078 82358 44b96b71-92fb-437c-8ed1-30d8ab7b9cb3] ledger=[epoch=12 owner_pid=8319 outcome=rewake updated_at=1792985077 session_pid=82358] presented=[31 ] queue=[31 ] complete=[82358/3321995592]
+1792985086.522 turn=[busy 1792985078 82358 44b96b71-92fb-437c-8ed1-30d8ab7b9cb3] ledger=[epoch=12 owner_pid=8319 outcome=rewake updated_at=1792985077 session_pid=82358] presented=[ABSENT] queue=[] complete=[82358/3321995592]
+1792985088.903 turn=[idle 1792985078 82358 44b96b71-92fb-437c-8ed1-30d8ab7b9cb3] ledger=[epoch=12 owner_pid=8319 outcome=rewake updated_at=1792985077 session_pid=82358] presented=[ABSENT] queue=[] complete=[82358/3321995592]
+== after
+now=1792985176
+lock=82358
+session-start-complete=82358
+claude-turn=idle 1792985078 82358 44b96b71-92fb-437c-8ed1-30d8ab7b9cb3
+ledger=epoch=12 owner_pid=8319 outcome=rewake updated_at=1792985077 session_pid=82358
+afk=no
+main-eligible-rows=ABSENT
+queue-rows=
+
+## Earlier run: the previous scenario's parked Stop hook was still alive, so the session-open check deferred to it and the parked hook delivered (woken-by=Stop at 03:22:13Z)
+== before
+now=1792984911
+lock=82358
+session-start-complete=82358
+claude-turn=idle 1792984726 82358 528ff058-7ada-4fe4-b1ee-59b39f781f29
+ledger=epoch=11 owner_pid=55228 outcome=arming updated_at=1792984733
+afk=no
+main-eligible-rows=ABSENT
+queue-rows=
+== 1792984911.691 prompt a long no-tool turn
+== 1792984917.390 press Escape
+== 1792984921.595 after Escape: turn=busy 1792984913 82358 528ff058-7ada-4fe4-b1ee-59b39f781f29 gen=11
+== 1792984921.629 append a row after the interrupt
+== 1792984927.960 6 s later: turn=busy 1792984913 82358 528ff058-7ada-4fe4-b1ee-59b39f781f29 gen=11 (unchanged from 11 means the waker stayed inert)
+== 1792984927.989 send /clear
+== transitions
+1792984911.725 turn=[idle 1792984726 82358 528ff058-7ada-4fe4-b1ee-59b39f781f29] ledger=[epoch=11 owner_pid=55228 outcome=arming updated_at=1792984733] presented=[ABSENT] queue=[] complete=[82358/3321972446]
+1792984913.355 turn=[busy 1792984913 82358 528ff058-7ada-4fe4-b1ee-59b39f781f29] ledger=[epoch=11 owner_pid=55228 outcome=arming updated_at=1792984733] presented=[ABSENT] queue=[] complete=[82358/3321972446]
+1792984921.876 turn=[busy 1792984913 82358 528ff058-7ada-4fe4-b1ee-59b39f781f29] ledger=[epoch=11 owner_pid=55228 outcome=arming updated_at=1792984733] presented=[ABSENT] queue=[30 ] complete=[82358/3321972446]
+1792984929.543 turn=[idle 1792984929 82358 6494ce9d-0cad-4329-80b5-e52e3ac383a9] ledger=[epoch=11 owner_pid=55228 outcome=arming updated_at=1792984733] presented=[ABSENT] queue=[30 ] complete=[82358/3321972446]
+1792984932.671 turn=[idle 1792984929 82358 6494ce9d-0cad-4329-80b5-e52e3ac383a9] ledger=[epoch=11 owner_pid=55228 outcome=arming updated_at=1792984733] presented=[ABSENT] queue=[30 ] complete=[82358/3321993525]
+1792984933.794 turn=[idle 1792984929 82358 6494ce9d-0cad-4329-80b5-e52e3ac383a9] ledger=[epoch=11 owner_pid=55228 outcome=rewake updated_at=1792984933 session_pid=82358] presented=[ABSENT] queue=[30 ] complete=[82358/3321993525]
+1792984934.026 turn=[busy 1792984934 82358 6494ce9d-0cad-4329-80b5-e52e3ac383a9] ledger=[epoch=11 owner_pid=55228 outcome=rewake updated_at=1792984933 session_pid=82358] presented=[ABSENT] queue=[30 ] complete=[82358/3321993525]
+1792984938.004 turn=[busy 1792984934 82358 6494ce9d-0cad-4329-80b5-e52e3ac383a9] ledger=[epoch=11 owner_pid=55228 outcome=rewake updated_at=1792984933 session_pid=82358] presented=[30 ] queue=[30 ] complete=[82358/3321993525]
+1792984941.748 turn=[busy 1792984934 82358 6494ce9d-0cad-4329-80b5-e52e3ac383a9] ledger=[epoch=11 owner_pid=55228 outcome=rewake updated_at=1792984933 session_pid=82358] presented=[ABSENT] queue=[] complete=[82358/3321993525]
+1792984942.899 turn=[idle 1792984934 82358 6494ce9d-0cad-4329-80b5-e52e3ac383a9] ledger=[epoch=11 owner_pid=55228 outcome=rewake updated_at=1792984933 session_pid=82358] presented=[ABSENT] queue=[] complete=[82358/3321993525]
+== after
+now=1792985031
+lock=82358
+session-start-complete=82358
+claude-turn=idle 1792984934 82358 6494ce9d-0cad-4329-80b5-e52e3ac383a9
+ledger=epoch=11 owner_pid=55228 outcome=rewake updated_at=1792984933 session_pid=82358
+afk=no
+main-eligible-rows=ABSENT
+queue-rows=
+
+# Scenario: the acknowledgement replaces the watched queue file by rename (new inode) and the next append still fires FileChanged
+rename-1: queue inode before append: 3321995745
+rename-1: queue inode after append: 3321995745
+rename-1: rewake committed (gen 12 -> 13) 1.24 s after the append started
+rename-1: acknowledged by 1792985198.288; queue inode after the acknowledgement: 3321997231
+rename-2: queue inode before append: 3321997231
+rename-2: queue inode after append: 3321997231
+rename-2: rewake committed (gen 13 -> 14) 1.27 s after the append started
+rename-2: acknowledged by 1792985212.911; queue inode after the acknowledgement: 3321997563
+
+# Every rewake turn Claude started in this lab, with the hook event that woke it
+2026-10-26T03:00:45.453Z session=e2bae5c7-d763-48b3-a46f-012bff99ede2 woken-by=FileChanged first-row=check: live idle wake probe (append while main is idle, no Stop hook running)
+2026-10-26T03:02:23.580Z session=e2bae5c7-d763-48b3-a46f-012bff99ede2 woken-by=FileChanged first-row=check: live burst row 3 of 10
+2026-10-26T03:03:45.247Z session=e2bae5c7-d763-48b3-a46f-012bff99ede2 woken-by=FileChanged first-row=check: live burst row 1 of 10
+2026-10-26T03:05:23.944Z session=e2bae5c7-d763-48b3-a46f-012bff99ede2 woken-by=FileChanged first-row=check: live busy-turn probe (appended mid-turn)
+2026-10-26T03:07:43.050Z session=e2bae5c7-d763-48b3-a46f-012bff99ede2 woken-by=Stop first-row=check: live busy-turn probe (appended mid-turn)
+2026-10-26T03:10:35.796Z session=0562c19b-c5a1-406f-8faf-7165e9dd486e woken-by=SessionStart:clear first-row=check: live post-reset row A (queued before /clear)
+2026-10-26T03:13:38.101Z session=0562c19b-c5a1-406f-8faf-7165e9dd486e woken-by=FileChanged first-row=check: live 07:06Z-shape note row note-1 (after /clear, no Stop hook parked)
+2026-10-26T03:14:08.174Z session=0562c19b-c5a1-406f-8faf-7165e9dd486e woken-by=FileChanged first-row=check: live 07:06Z-shape note row note-2 (after /clear, no Stop hook parked)
+2026-10-26T03:15:20.344Z session=528ff058-7ada-4fe4-b1ee-59b39f781f29 woken-by=SessionStart:startup first-row=check: live row queued while no Claude runs (before a fresh startup)
+2026-10-26T03:18:45.494Z session=528ff058-7ada-4fe4-b1ee-59b39f781f29 woken-by=Stop first-row=check: live row appended while a Stop hook is parked
+2026-10-26T03:22:13.673Z session=6494ce9d-0cad-4329-80b5-e52e3ac383a9 woken-by=Stop first-row=check: live row appended after an Escape interrupt
+2026-10-26T03:24:37.490Z session=44b96b71-92fb-437c-8ed1-30d8ab7b9cb3 woken-by=SessionStart:clear first-row=check: live row appended after an Escape interrupt
+2026-10-26T03:26:30.053Z session=44b96b71-92fb-437c-8ed1-30d8ab7b9cb3 woken-by=FileChanged first-row=check: live rename-survival row rename-1
+2026-10-26T03:26:44.715Z session=44b96b71-92fb-437c-8ed1-30d8ab7b9cb3 woken-by=FileChanged first-row=check: live rename-survival row rename-2
+
+# Final lab primary pane
+ ▐▛███▛█   Claude Code v2.1.310
+▝▜██████▀  Sonnet 5.5 with low effort · Claude Max
+ ▝▝   ▝▝   /private/tmp/fmlab-xbvre-1792983586/home
+❯ /clear
+⏺ Stop hook feedback
+  Ran 2 shell commands
+⏺ Captain, shipshape.
+✻ Crunched for 11s · done 10:24 PM
+⏺ Stop hook feedback
+  Ran 2 shell commands
+⏺ Captain, shipshape.
+✻ Brewed for 8s · done 10:26 PM
+⏺ Stop hook feedback
+  Ran 2 shell commands
+⏺ Captain, shipshape.
+✻ Churned for 8s · done 10:26 PM
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 3 agents

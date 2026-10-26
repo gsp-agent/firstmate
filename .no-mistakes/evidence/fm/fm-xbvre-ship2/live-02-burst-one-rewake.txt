@@ -1,0 +1,108 @@
+# Scenario: burst while idle (live lab). Run 1: ten parallel appenders (lock-serialized over about 3 s). Run 2: ten appends from one process over about 1.3 s.
+## Run 1
+== before
+now=1792983737
+lock=93543
+session-start-complete=93543
+claude-turn=idle 1792983646 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2
+ledger=epoch=1 owner_pid=43257 outcome=rewake updated_at=1792983645 session_pid=93543
+afk=no
+main-eligible-rows=ABSENT
+queue-rows=
+stop-hook-feedback-count-before=1
+== burst start 1792983739.306
+== burst end 1792983742.348
+== transitions
+1792983738.173 turn=[idle 1792983646 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=1 owner_pid=43257 outcome=rewake updated_at=1792983645 session_pid=93543] presented=[ABSENT] queue=[] complete=[93543/3321842896]
+1792983739.709 turn=[idle 1792983646 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=1 owner_pid=43257 outcome=rewake updated_at=1792983645 session_pid=93543] presented=[ABSENT] queue=[2 ] complete=[93543/3321842896]
+1792983739.984 turn=[idle 1792983646 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=1 owner_pid=43257 outcome=rewake updated_at=1792983645 session_pid=93543] presented=[ABSENT] queue=[2 3 ] complete=[93543/3321842896]
+1792983740.513 turn=[idle 1792983646 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=1 owner_pid=43257 outcome=rewake updated_at=1792983645 session_pid=93543] presented=[ABSENT] queue=[2 3 4 ] complete=[93543/3321842896]
+1792983740.789 turn=[idle 1792983646 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=1 owner_pid=43257 outcome=rewake updated_at=1792983645 session_pid=93543] presented=[ABSENT] queue=[2 3 4 5 ] complete=[93543/3321842896]
+1792983741.072 turn=[idle 1792983646 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=1 owner_pid=43257 outcome=rewake updated_at=1792983645 session_pid=93543] presented=[ABSENT] queue=[2 3 4 5 6 ] complete=[93543/3321842896]
+1792983741.336 turn=[idle 1792983646 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=1 owner_pid=43257 outcome=rewake updated_at=1792983645 session_pid=93543] presented=[ABSENT] queue=[2 3 4 5 6 7 ] complete=[93543/3321842896]
+1792983741.593 turn=[idle 1792983646 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=1 owner_pid=43257 outcome=rewake updated_at=1792983645 session_pid=93543] presented=[ABSENT] queue=[2 3 4 5 6 7 8 ] complete=[93543/3321842896]
+1792983741.840 turn=[idle 1792983646 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=1 owner_pid=43257 outcome=rewake updated_at=1792983645 session_pid=93543] presented=[ABSENT] queue=[2 3 4 5 6 7 8 9 ] complete=[93543/3321842896]
+1792983742.095 turn=[idle 1792983646 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=1 owner_pid=43257 outcome=rewake updated_at=1792983645 session_pid=93543] presented=[ABSENT] queue=[2 3 4 5 6 7 8 9 10 ] complete=[93543/3321842896]
+1792983742.362 turn=[idle 1792983646 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=1 owner_pid=43257 outcome=rewake updated_at=1792983645 session_pid=93543] presented=[ABSENT] queue=[2 3 4 5 6 7 8 9 10 11 ] complete=[93543/3321842896]
+1792983743.557 turn=[idle 1792983646 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=2 owner_pid=89433 outcome=arming updated_at=1792983743] presented=[ABSENT] queue=[2 3 4 5 6 7 8 9 10 11 ] complete=[93543/3321842896]
+1792983743.824 turn=[idle 1792983646 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=2 owner_pid=89433 outcome=rewake updated_at=1792983743 session_pid=93543] presented=[ABSENT] queue=[2 3 4 5 6 7 8 9 10 11 ] complete=[93543/3321842896]
+1792983744.085 turn=[busy 1792983744 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=2 owner_pid=89433 outcome=rewake updated_at=1792983743 session_pid=93543] presented=[ABSENT] queue=[2 3 4 5 6 7 8 9 10 11 ] complete=[93543/3321842896]
+1792983747.441 turn=[busy 1792983744 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=2 owner_pid=89433 outcome=rewake updated_at=1792983743 session_pid=93543] presented=[2 3 4 5 6 7 8 9 10 11 ] queue=[2 3 4 5 6 7 8 9 10 11 ] complete=[93543/3321842896]
+1792983751.084 turn=[busy 1792983744 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=2 owner_pid=89433 outcome=rewake updated_at=1792983743 session_pid=93543] presented=[ABSENT] queue=[] complete=[93543/3321842896]
+1792983752.486 turn=[idle 1792983744 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=2 owner_pid=89433 outcome=rewake updated_at=1792983743 session_pid=93543] presented=[ABSENT] queue=[] complete=[93543/3321842896]
+== after
+now=1792983808
+lock=93543
+session-start-complete=93543
+claude-turn=idle 1792983744 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2
+ledger=epoch=2 owner_pid=89433 outcome=rewake updated_at=1792983743 session_pid=93543
+afk=no
+main-eligible-rows=ABSENT
+queue-rows=
+stop-hook-feedback-count-after=2
+
+## Run 2
+== before
+now=1792983821
+lock=93543
+session-start-complete=93543
+claude-turn=idle 1792983744 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2
+ledger=epoch=2 owner_pid=89433 outcome=rewake updated_at=1792983743 session_pid=93543
+afk=no
+main-eligible-rows=ABSENT
+queue-rows=
+stop-hook-feedback-count-before=2
+== burst start 1792983822.372
+== burst end 1792983891.111
+== transitions
+1792983821.230 turn=[idle 1792983744 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=2 owner_pid=89433 outcome=rewake updated_at=1792983743 session_pid=93543] presented=[ABSENT] queue=[] complete=[93543/3321842896]
+1792983822.683 turn=[idle 1792983744 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=2 owner_pid=89433 outcome=rewake updated_at=1792983743 session_pid=93543] presented=[ABSENT] queue=[12 ] complete=[93543/3321842896]
+1792983822.930 turn=[idle 1792983744 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=2 owner_pid=89433 outcome=rewake updated_at=1792983743 session_pid=93543] presented=[ABSENT] queue=[12 13 14 ] complete=[93543/3321842896]
+1792983823.185 turn=[idle 1792983744 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=2 owner_pid=89433 outcome=rewake updated_at=1792983743 session_pid=93543] presented=[ABSENT] queue=[12 13 14 15 16 ] complete=[93543/3321842896]
+1792983823.434 turn=[idle 1792983744 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=2 owner_pid=89433 outcome=rewake updated_at=1792983743 session_pid=93543] presented=[ABSENT] queue=[12 13 14 15 16 17 ] complete=[93543/3321842896]
+1792983823.709 turn=[idle 1792983744 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=2 owner_pid=89433 outcome=rewake updated_at=1792983743 session_pid=93543] presented=[ABSENT] queue=[12 13 14 15 16 17 18 19 ] complete=[93543/3321842896]
+1792983823.962 turn=[idle 1792983744 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=2 owner_pid=89433 outcome=rewake updated_at=1792983743 session_pid=93543] presented=[ABSENT] queue=[12 13 14 15 16 17 18 19 20 21 ] complete=[93543/3321842896]
+1792983825.213 turn=[idle 1792983744 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=3 owner_pid=36372 outcome=arming updated_at=1792983825] presented=[ABSENT] queue=[12 13 14 15 16 17 18 19 20 21 ] complete=[93543/3321842896]
+1792983825.470 turn=[idle 1792983744 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=3 owner_pid=36372 outcome=rewake updated_at=1792983825 session_pid=93543] presented=[ABSENT] queue=[12 13 14 15 16 17 18 19 20 21 ] complete=[93543/3321842896]
+1792983825.730 turn=[busy 1792983826 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=3 owner_pid=36372 outcome=rewake updated_at=1792983825 session_pid=93543] presented=[ABSENT] queue=[12 13 14 15 16 17 18 19 20 21 ] complete=[93543/3321842896]
+1792983837.461 turn=[busy 1792983826 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=3 owner_pid=36372 outcome=rewake updated_at=1792983825 session_pid=93543] presented=[12 13 14 15 16 17 18 19 20 21 ] queue=[12 13 14 15 16 17 18 19 20 21 ] complete=[93543/3321842896]
+1792983840.897 turn=[busy 1792983826 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=3 owner_pid=36372 outcome=rewake updated_at=1792983825 session_pid=93543] presented=[ABSENT] queue=[] complete=[93543/3321842896]
+1792983842.075 turn=[idle 1792983826 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2] ledger=[epoch=3 owner_pid=36372 outcome=rewake updated_at=1792983825 session_pid=93543] presented=[ABSENT] queue=[] complete=[93543/3321842896]
+== after
+now=1792983891
+lock=93543
+session-start-complete=93543
+claude-turn=idle 1792983826 93543 e2bae5c7-d763-48b3-a46f-012bff99ede2
+ledger=epoch=3 owner_pid=36372 outcome=rewake updated_at=1792983825 session_pid=93543
+afk=no
+main-eligible-rows=ABSENT
+queue-rows=
+stop-hook-feedback-count-after=3
+
+# Lab primary pane after both bursts
+ ▐▛███▛█   Claude Code v2.1.310
+▝▜██████▀  Sonnet 5.5 with low effort · Claude Max
+ ▝▝   ▝▝   /private/tmp/fmlab-xbvre-1792983586/home
+❯ Lab readiness probe from bin/fm-live-lab.sh. Run no tool or command for this message. Reply with only the word LABREADY, a hyphen, and then 7274335cca55, with no spaces.
+⏺ LABREADY-7274335cca55
+✻ Crunched for 7s · done 10:00 PM
+⏺ Stop hook feedback
+  Ran 1 shell command
+⏺ This is a lab probe wake with nothing to act on, so I'm acknowledging it.
+  Ran 1 shell command
+⏺ Captain, shipshape.
+✻ Brewed for 9s · done 10:00 PM
+⏺ Stop hook feedback
+  Ran 1 shell command
+⏺ All 10 burst rows are lab probes with nothing to act on, so I'm acknowledging them.
+  Ran 1 shell command
+⏺ Captain, shipshape.
+✻ Cooked for 8s · done 10:02 PM
+⏺ Stop hook feedback
+  Ran 2 shell commands
+⏺ Captain, shipshape.
+✻ Worked for 16s · done 10:04 PM
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 3 agents

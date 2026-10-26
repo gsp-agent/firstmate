@@ -1,0 +1,11 @@
+# Scenario: foreign hosts against the lab home with the lab's real bin/fm-claude-wake.sh
+# A Claude-shaped SessionStart control (FM_CLAUDE_WAKE_SESSION_WAIT=4) waits for its own digest; Cursor, pi-code and Grok payloads exit at once and commit nothing.
+# The FileChanged rows run outside Claude's process tree, so a Claude-shaped FileChanged would also exit 0 there; the replay suite's foreign-host case covers FileChanged under a lock-owning harness.
+ledger before: epoch=8 owner_pid=58296 outcome=rewake updated_at=1792984448 session_pid=93543
+control: Claude SessionStart startup (waits for its digest) exit=0 elapsed=3.38 s stderr_bytes=0
+Cursor SessionStart startup                                exit=0 elapsed=0.08 s stderr_bytes=0
+Cursor FileChanged                                         exit=0 elapsed=0.08 s stderr_bytes=0
+pi-code SessionStart startup (transcript under /.pi/)      exit=0 elapsed=0.08 s stderr_bytes=0
+pi-code FileChanged (transcript under /.pi/)               exit=0 elapsed=0.08 s stderr_bytes=0
+Grok environment, Claude-shaped SessionStart startup       exit=0 elapsed=0.04 s stderr_bytes=0
+ledger after:  epoch=8 owner_pid=58296 outcome=rewake updated_at=1792984448 session_pid=93543
