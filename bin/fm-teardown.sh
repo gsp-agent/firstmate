@@ -1914,6 +1914,32 @@ cleanup_stale_lock_for_safety_check() {
   return "$TEARDOWN_TREEHOUSE_LOCK_REFUSED"
 }
 
+# Destroy a returned pool slot whose pool is not the project's configured pool
+# (fm_treehouse_configured_pool). A configured pool that reads empty (status
+# `[]`, as right after a root switch to a fresh pool) is outside it too: a slot
+# in that pool would be listed (chip, PR 164 review 5654811326). Only an
+# unreadable status decides nothing. Warns and keeps the slot when Treehouse
+# skips or refuses it; never fails the teardown, which already finished its
+# return.
+teardown_destroy_out_of_root_slot() {  # <worktree> <project-dir>
+  local wt=$1 project=$2 slot pool configured out rc=0
+  slot=$(CDPATH='' cd -- "$wt" 2>/dev/null && pwd -P) || return 0
+  pool=$(dirname "$(dirname "$slot")")
+  configured=$(fm_treehouse_configured_pool "$project") || rc=$?
+  case "$rc" in
+    0) [ "$pool" != "$configured" ] || return 0 ;;
+    2) configured="(it lists no slot yet)" ;;
+    *) return 0 ;;
+  esac
+  if out=$( (cd "$project" && treehouse destroy "$slot" --yes) 2>&1 </dev/null); then
+    echo "teardown: destroyed pool slot $slot, which is outside the configured pool $configured"
+  else
+    echo "warning: pool slot $slot is outside the configured pool $configured and was kept; treehouse destroy said:" >&2
+    printf '%s\n' "$out" | sed 's/^/  /' >&2
+  fi
+  return 0
+}
+
 # Return a worktree/home via `treehouse return --force`, tolerating a transient or
 # stale git index.lock left by a killed crew process. See the script header.
 teardown_treehouse_return() {
@@ -3651,6 +3677,14 @@ elif [ -d "$WT" ] && [ "$KIND" != secondmate ]; then
   # unclaimed until its next holder claims it, and leaves the claim in place
   # whenever the return did not actually happen.
   fm_treehouse_slot_owner_release "$WT" "$ID"
+  # A slot left in a pool the project no longer uses (a treehouse root switch)
+  # is never entered again: the spawn takes slots only from the configured pool
+  # (fm_treehouse_free_own_slot). Returning it there would keep its disk for
+  # nothing, so it is destroyed instead, with Treehouse's safe default: a bare
+  # destroy removes only a merged, clean, idle, unleased tree and skips (and
+  # names) anything else, so uncommitted work is never removed and stays for a
+  # bundle first. A pool that cannot be read decides nothing.
+  [ "$wt_pool_slot" = 0 ] || teardown_destroy_out_of_root_slot "$WT" "$PROJ"
 fi
 
 HERDR_PRESENTATION_JOURNAL="$STATE/$ID.herdr-presentation"

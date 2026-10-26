@@ -126,6 +126,7 @@ It also passes the close through unchanged, with no added line, when any of thes
 A close the engine takes is handled as in [One wake](#one-wake), with the dialog mirror at the head of the wake message.
 A handled wake with only routine outcomes never reaches main.
 A handled wake that recorded a captain outcome while the captain is still attended exits with one `supervision-host: branch-outcome:` line naming its store rows, without the close it handled; see [Captain outcomes](#captain-outcomes).
+A handled attended wake whose `signal:` rows name a worker that its own status line took off working, with no cleanup or recorded PR, exits with one `supervision-host: freed-place:` line followed by that project's `Dispatch:` line when the line names work to start (`bin/fm-dispatch-ready.sh --freed-by` decides), because the branch cannot start work and a place freed that way has no other event.
 A turn that fails hands its close to main with one `supervision-host:` line, as away.
 Main-only rows that share the queue with the branch's rows stay queued for main, which is woken for each on its own triggering close, as on Pi.
 The engine turn runs beside a captain who is present, so its guarded actions take the task leases that keep it and main off the same task.

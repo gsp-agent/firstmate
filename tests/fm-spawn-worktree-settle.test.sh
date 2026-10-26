@@ -363,10 +363,14 @@ test_pool_full_herdr_cleanup_is_confirmed() (
   if [ -n "$left" ]; then
     jq -e --arg label "fm-$id" 'any(.tabs[]; .label == $label)' "$CASE_DIR/herdr.json" >/dev/null || fail "the refusal closed a tab its cleanup refused to close"$'\n'"$out"
     assert_not_contains "$out" "was closed" "the refusal reported a close it was not allowed to make"$'\n'"$out"
+    [ "$status" -ne 75 ] || fail "a full-pool refusal that left its endpoint was reported as a clean deferral"$'\n'"$out"
     assert_contains "$out" "could not confirm closure of its endpoint; inspect window $HERDR_SESSION:$left" "the refusal did not name the exact endpoint it left"$'\n'"$out"
   elif [ "$close_mode" = closed ]; then
     jq -e --arg label "fm-$id" 'all(.tabs[]; .label != $label) and (.workspaces | length) == 1 and (.panes | length) == 1 and .panes[0].pane_id == "w1:p0"' "$CASE_DIR/herdr.json" >/dev/null || fail "Herdr refusal left its tab, pane, or workspace behind"$'\n'"$out"
     assert_contains "$out" "was closed" "the refusal did not confirm the closed endpoint"
+    # Confirmed closed and nothing launched: a full pool is a capacity deferral.
+    [ "$status" -eq 75 ] || fail "a confirmed-closed full-pool refusal did not defer with 75 (got $status)"$'\n'"$out"
+    assert_contains "$out" "deferred: the worktree pool of project" "the confirmed-closed refusal did not say it deferred"
   else
     if [ "$close_mode" != unknown ]; then
       jq -e --arg label "fm-$id" 'any(.tabs[]; .label == $label)' "$CASE_DIR/herdr.json" >/dev/null || fail "the refused close did not leave a pane to report"

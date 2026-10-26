@@ -597,6 +597,26 @@ emit() {  # [line...]
   [ -z "$text" ] || printf '%s\n' "$text"
 }
 
+# The Dispatch lines for places freed by the signal rows in <reason>: each task
+# a signal row names (fm_wake_signal_task_ids reads every coalesced file in the
+# row), through bin/fm-dispatch-ready.sh --freed-by, which prints that task's
+# project line only when its worker stopped working and the line says to start
+# something. One line per project, in task order.
+freed_place_dispatch_lines() {  # <reason>
+  local id dispatch out=''
+  while IFS= read -r id; do
+    [ -n "$id" ] || continue
+    dispatch=$(fm_run_timed 300 env FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" \
+      "$SCRIPT_DIR/fm-dispatch-ready.sh" --freed-by "$id" </dev/null 2>/dev/null) || dispatch=
+    [ -n "$dispatch" ] || continue
+    case "$out" in *"$dispatch"*) continue ;; esac
+    out=${out:+$out$'\n'}$dispatch
+  done <<FREED
+$(fm_wake_signal_task_ids "$1")
+FREED
+  [ -z "$out" ] || printf '%s\n' "$out"
+}
+
 exit_to_main() {  # <why> [further lines]
   local lines=${2:-} rc=0 generation=$SUCCESSOR_GENERATION
   leave_successor_for_main || rc=1
@@ -1203,6 +1223,19 @@ while :; do
     exit_to_main "the captain returned while the away session was handling this wake, but the recorded outcomes could not be verified; main must review them" \
       "$(turn_outcome_lookup_warning)"
   fi
+  # A worker whose own status line took it off working freed its place with no
+  # cleanup or PR handoff, and the branch that handled that signal has already
+  # acknowledged it and cannot start work. Read that freed place first, so every
+  # hand-back to main below carries its Dispatch line, whichever of them fires
+  # (bin/fm-dispatch-ready.sh --freed-by owns the test). Away, the away
+  # session's own dispatch rules apply instead.
+  FREED_DISPATCH=
+  FREED_LINES=
+  if ! fm_afk_contract_away_present "$STATE"; then
+    FREED_DISPATCH=$(freed_place_dispatch_lines "$REASON")
+    [ -z "$FREED_DISPATCH" ] ||
+      FREED_LINES="supervision-host: freed-place: a worker's own status line took it off working and freed its place with no cleanup or PR; start the ready rows each Dispatch line below names with bin/fm-spawn.sh until a spawn defers with exit 75"$'\n'"$FREED_DISPATCH"
+  fi
   # Attended captain outcomes are main's to process; away they wait for the
   # return, including when the captain left while this turn ran. The close
   # itself was handled, so only the host's lines reach main.
@@ -1211,7 +1244,7 @@ while :; do
     if [ -n "$CAPTAIN_SEQS" ]; then
       ARM_TEXT=
       exit_to_main "branch-outcome: the supervision session handled this wake and recorded captain outcomes for you (store rows $CAPTAIN_SEQS); run bin/fm-wake-drain.sh, act on its BRANCH OUTCOMES section, and acknowledge them as it prints" \
-        "$HEALTH_NOTE"
+        "$FREED_LINES${FREED_LINES:+${HEALTH_NOTE:+$'\n'}}$HEALTH_NOTE"
     fi
   fi
   # The successor closes only on rows newer than its own start, so a main-only
@@ -1220,7 +1253,12 @@ while :; do
   if ! fm_afk_contract_away_present "$STATE" && fm_wake_main_unread "$STATE" main-only >/dev/null; then
     ARM_TEXT=
     exit_to_main "the supervision session handled this wake, and a main-only wake is queued for you; run bin/fm-wake-drain.sh and handle it" \
-      "$HEALTH_NOTE"
+      "$FREED_LINES${FREED_LINES:+${HEALTH_NOTE:+$'\n'}}$HEALTH_NOTE"
+  fi
+  if [ -n "$FREED_DISPATCH" ]; then
+    ARM_TEXT=
+    exit_to_main "freed-place: a worker's own status line took it off working and freed its place with no cleanup or PR; start the ready rows each Dispatch line below names with bin/fm-spawn.sh until a spawn defers with exit 75" \
+      "$FREED_DISPATCH${HEALTH_NOTE:+$'\n'$HEALTH_NOTE}"
   fi
 
   # Handled: park on the successor.
