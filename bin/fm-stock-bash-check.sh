@@ -13,18 +13,32 @@
 #      CI=true, the full set) with `bash -n`;
 #   2. runs each Bash 3.2 regression listed in fm_stock_bash_checks below and
 #      requires its exact count of `ok - ` lines.
-# It never runs ShellCheck. Each step runs under a wall-clock bound
-# (bin/fm-timeout-lib.sh's fm_exec_timed, which kills the step's process
-# group) and a resident-memory cap on the step's whole process tree, sampled
-# twice a second; past either, the step is stopped and fails naming the cap.
-# macOS cannot enforce an address-space rlimit, so the cap is that sampler.
+# It never runs ShellCheck. Each step runs under a wall-clock bound and a
+# resident-memory cap on the step's whole process tree, both checked by a
+# sampler twice a second; past either, the step is stopped and fails naming
+# the cap. A hard wall at 6 times the idle bound (bin/fm-timeout-lib.sh's
+# fm_exec_timed, which kills the step's process group) backs the sampler, so
+# a step stops even if sampling stalls. macOS cannot enforce an address-space
+# rlimit, so the memory cap is that sampler.
 # Every step runs even after one fails, and the summary names each failure.
 #
 # Environment:
-#   FM_STOCK_BASH_STEP_SECONDS  wall bound per step (default 900)
+#   FM_STOCK_BASH_STEP_SECONDS  wall bound per step at idle load (default
+#                               900). The effective wall for a step is this
+#                               bound times the highest load factor (below)
+#                               seen while the step runs, so a busy laptop
+#                               stretches the wall instead of stopping a step
+#                               that is only waiting for a core. A step that
+#                               makes no progress at idle still stops at the
+#                               idle bound.
 #   FM_STOCK_BASH_RSS_KIB       process-tree RSS cap per step, in KiB
 #                               (default 2097152 = 2 GiB)
 #   FM_STOCK_BASH               interpreter under test (default /bin/bash)
+#   FM_STOCK_BASH_LOAD_FACTOR   load factor override (positive integer,
+#                               capped at 6); default: the 1-minute load
+#                               average divided by the CPU count, rounded
+#                               up, at least 1 and at most 6, re-read at
+#                               each sample
 #
 # Exit status: 0 every step passed; 1 a step failed or hit a cap; 2 this host
 # cannot run the check (no Bash 3.2.57 interpreter, or jq or tasks-axi
@@ -42,7 +56,7 @@ ROOT="$(cd "$SELF_DIR/.." && pwd)"
 
 case "${1:-}" in
   -h | --help)
-    sed -n '2,35{s/^# \{0,1\}//;p;}' "$SELF"
+    sed -n '2,/--help   print this usage$/{s/^# \{0,1\}//;p;}' "$SELF"
     exit 0
     ;;
   '') ;;
@@ -59,6 +73,7 @@ STOCK_BASH=${FM_STOCK_BASH:-/bin/bash}
 STEP_SECONDS=${FM_STOCK_BASH_STEP_SECONDS:-900}
 RSS_KIB=${FM_STOCK_BASH_RSS_KIB:-2097152}
 GRACE_SECONDS=5
+LOAD_FACTOR_MAX=6
 for value in "$STEP_SECONDS" "$RSS_KIB"; do
   case "$value" in
     '' | 0* | *[!0-9]*)
@@ -67,6 +82,40 @@ for value in "$STEP_SECONDS" "$RSS_KIB"; do
       ;;
   esac
 done
+case "${FM_STOCK_BASH_LOAD_FACTOR:-}" in
+  '' | *[!0-9]* | 0*)
+    [ -z "${FM_STOCK_BASH_LOAD_FACTOR:-}" ] || {
+      printf 'fm-stock-bash-check.sh: FM_STOCK_BASH_LOAD_FACTOR must be a positive integer\n' >&2
+      exit 2
+    }
+    ;;
+esac
+
+# Print the load factor: how many idle wall bounds one wall bound buys on
+# this host right now. The 1-minute load average counts runnable work that
+# is waiting for a core, which is the delay a wall bound must not mistake
+# for a hang. Capped at LOAD_FACTOR_MAX so a wedged step still stops in
+# bounded time on a busy host.
+fm_stock_bash_load_factor() {
+  local ncpu=1 load1=${FM_STOCK_BASH_LOAD_FACTOR:-}
+  if [ -z "$load1" ]; then
+    ncpu=$(sysctl -n hw.ncpu 2>/dev/null) || ncpu=
+    case "$ncpu" in '' | *[!0-9]* | 0) ncpu=1 ;; esac
+    load1=$(sysctl -n vm.loadavg 2>/dev/null | awk '{gsub(/[{}]/, ""); print $1}') || load1=
+  fi
+  case "$load1" in '' | *[!0-9.]*)
+    printf '1\n'
+    return 0
+    ;;
+  esac
+  awk -v load="$load1" -v ncpu="$ncpu" -v max="$LOAD_FACTOR_MAX" 'BEGIN {
+    f = int(load / ncpu)
+    if (load > f * ncpu) f++
+    if (f < 1) f = 1
+    if (f > max) f = max
+    print f
+  }'
+}
 
 fm_stock_bash_refuse() {
   printf 'fm-stock-bash-check.sh: cannot run here: %s\n' "$1" >&2
@@ -136,14 +185,18 @@ fm_stock_bash_fail() {  # <step> <reason>
 }
 
 # Run one step's command under the wall bound and the tree RSS cap, with its
-# combined output in <log>. Sets STEP_STATUS and STEP_CAP (time, memory, or
-# empty) and prints the step's duration and peak tree RSS.
+# combined output in <log>. Each sample re-reads the load factor and grows
+# STEP_LOAD_FACTOR, never shrinking it, so the wall is the idle bound times
+# the highest factor seen. Sets STEP_STATUS, STEP_LOAD_FACTOR, and STEP_CAP
+# (time, memory, unmeasured, or empty) and prints the step's duration, load
+# factor, and peak tree RSS.
 fm_stock_bash_run_bounded() {  # <step> <log> <command...>
-  local step=$1 log=$2 pid rss peak=0 started
+  local step=$1 log=$2 pid rss peak=0 started factor
   shift 2
   STEP_CAP=
+  STEP_LOAD_FACTOR=$(fm_stock_bash_load_factor)
   started=$(date +%s)
-  (cd "$ROOT" && fm_exec_timed "$STEP_SECONDS" "$GRACE_SECONDS" env PATH="$STOCK_PATH" "$@") >"$log" 2>&1 &
+  (cd "$ROOT" && fm_exec_timed "$((STEP_SECONDS * LOAD_FACTOR_MAX))" "$GRACE_SECONDS" env PATH="$STOCK_PATH" "$@") >"$log" 2>&1 &
   pid=$!
   while kill -0 "$pid" 2>/dev/null; do
     if ! rss=$(fm_stock_bash_tree_rss_kib "$pid"); then
@@ -157,19 +210,31 @@ fm_stock_bash_run_bounded() {  # <step> <log> <command...>
       kill -TERM "$pid" 2>/dev/null
       break
     fi
+    factor=$(fm_stock_bash_load_factor)
+    [ "$factor" -le "$STEP_LOAD_FACTOR" ] || STEP_LOAD_FACTOR=$factor
+    if [ $(($(date +%s) - started)) -gt $((STEP_SECONDS * STEP_LOAD_FACTOR)) ]; then
+      STEP_CAP='time'
+      kill -TERM "$pid" 2>/dev/null
+      break
+    fi
     sleep 0.5
   done
   wait "$pid"
   STEP_STATUS=$?
   if [ -z "$STEP_CAP" ] && fm_timed_out "$STEP_STATUS"; then
     STEP_CAP='time'
+    STEP_LOAD_FACTOR=$LOAD_FACTOR_MAX
   fi
-  printf '%s: %ss, peak tree RSS %s KiB\n' "$step" "$(($(date +%s) - started))" "$peak"
+  printf '%s: %ss, load factor %s, peak tree RSS %s KiB\n' \
+    "$step" "$(($(date +%s) - started))" "$STEP_LOAD_FACTOR" "$peak"
 }
 
 fm_stock_bash_cap_reason() {
   case "$STEP_CAP" in
-    time) printf 'stopped at the %ss wall bound' "$STEP_SECONDS" ;;
+    time)
+      printf 'stopped at the %ss wall bound (load factor %s times %ss at idle load)' \
+        "$((STEP_SECONDS * STEP_LOAD_FACTOR))" "$STEP_LOAD_FACTOR" "$STEP_SECONDS"
+      ;;
     memory) printf 'stopped at the %s KiB process-tree memory cap' "$RSS_KIB" ;;
     unmeasured) printf 'process list could not be read, so the %s KiB tree cap was not enforced' "$RSS_KIB" ;;
   esac
@@ -238,8 +303,8 @@ fm_stock_bash_checks() {
     FM_TEST_ONLY=test_backend_source_requires_adapter_file FM_TEST_BASH="$STOCK_BASH"
 }
 
-printf 'fm-stock-bash-check.sh: %s (Bash %s); per step: %ss wall, %s KiB tree RSS\n' \
-  "$STOCK_BASH" "$STOCK_VERSION" "$STEP_SECONDS" "$RSS_KIB"
+printf 'fm-stock-bash-check.sh: %s (Bash %s); per step: %ss wall at idle load, grown with load up to %s times, %s KiB tree RSS\n' \
+  "$STOCK_BASH" "$STOCK_VERSION" "$STEP_SECONDS" "$LOAD_FACTOR_MAX" "$RSS_KIB"
 fm_stock_bash_parse_sweep
 fm_stock_bash_checks
 
