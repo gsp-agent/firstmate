@@ -155,3 +155,5 @@ pr: 152
 pr: 153
 # Failing-first per-call budget in tests/fm-crew-state-fork-budget.test.sh: on 11c85a6c a torn-down crew's read starts 16 processes beyond the script's startup (budget 0) and fails, a secondmate status-log read 37 (budget 20) and an attributed run read 141 (budget 130); the fork-free metadata and verdict reads start 0, 15 and 122 and pass, with tests/fm-crew-state.test.sh unchanged at 284 cases.
 pr: 157
+# Failing-first startup budget in tests/fm-crew-state-fork-budget.test.sh: on c78421c3 fm-crew-state.sh starts 22 processes before its first read (budget 3) and fails; fork-free library loads start 1 and pass, and the same file's probe finds all 77 resolved values across seven path shapes equal to the old cd/pwd subshells.
+pr: 158
