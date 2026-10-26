@@ -3086,6 +3086,42 @@ test_park_seconds_at_or_beyond_the_hook_registration_fall_back_to_the_default() 
   pass "host: a park at or beyond the Stop-hook registration falls back to the default boundary"
 }
 
+# The default turn bound is observable through the pre-turn margin, with the
+# park clock held at zero and the engine grace at its 30-second default.
+# A park of 571 seconds leaves room for a 540-second turn plus the grace, so
+# the turn runs.
+# A park of 570 seconds leaves no such room, so a turn that would run past
+# the default cap is refused at the boundary and no engine turn starts.
+# Together the two parks pin the default at exactly 540 seconds.
+default_turn_outcome() {  # <name> <park-seconds>; sets DEFAULT_TURN_OUTCOME to boundary or handled
+  local home
+  home=$(make_home "$1" away)
+  echo 0 > "$home/park-clock"
+  FM_TEST_SUPERVISION_HOST_CLOCK="$home/park-clock" FM_SUPERVISION_HOST_PARK_SECONDS=$2 \
+    FM_SUPERVISION_ENGINE_GRACE=30 start_host "$home"
+  wait_until 150 watcher_live "$home" || fail "$1: the host never started a watcher cycle"
+  append_status "$home" 'one close'
+  wait_until 250 sh -c '[ -s "$1/host.rc" ] || grep -q "	handled	" "$1/state/.supervision-host.log" 2>/dev/null' _ "$home" \
+    || fail "$1: the close was neither handled nor handed to main: $(cat "$home/state/.supervision-host.log")"
+  if host_exited "$home"; then
+    grep -q '^supervision-host: cycle boundary - ' "$home/host.out" || fail "$1: the host exited without the boundary: $(cat "$home/host.out")"
+    ! ls "$home"/engine-call.* >/dev/null 2>&1 || fail "$1: an engine turn ran before the boundary exit"
+    DEFAULT_TURN_OUTCOME=boundary
+  else
+    kill -TERM "$(awk -F '\t' '$1 == "host" { print $2 }' "$home/state/.supervision-host")"
+    wait_until 200 host_exited "$home" || fail "$1: the host did not stop on TERM"
+    DEFAULT_TURN_OUTCOME=handled
+  fi
+}
+
+test_default_turn_timeout_is_540_seconds() {
+  default_turn_outcome default-turn-571 571
+  [ "$DEFAULT_TURN_OUTCOME" = handled ] || fail "a turn under the default cap must run"
+  default_turn_outcome default-turn-570 570
+  [ "$DEFAULT_TURN_OUTCOME" = boundary ] || fail "a turn past the default cap must be cut at the boundary"
+  pass "host: the default turn bound is 540 seconds, so a turn under it runs and a turn past it is cut at the boundary"
+}
+
 # An owner whose own bound is the park lets a turn run past the boundary up to
 # its limit; a limit below the boundary or at the registration is the boundary.
 test_park_limit_lets_a_turn_outlive_the_boundary() {
@@ -3568,6 +3604,7 @@ supervision_host_lane_b() {
   test_park_boundary_rechecked_just_before_the_engine_turn
   test_park_test_clock_requires_the_marker
   test_park_seconds_at_or_beyond_the_hook_registration_fall_back_to_the_default
+  test_default_turn_timeout_is_540_seconds
   test_park_limit_lets_a_turn_outlive_the_boundary
   test_first_cycle_status_streams_and_owner_options_reach_it
   test_unchanged_held_outcome_reaches_the_captain_once_until_a_new_event
