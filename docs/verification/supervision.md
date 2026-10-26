@@ -537,8 +537,7 @@ ok - session-start drain presents without claiming; digest-only ack refused
 ok - session-start drain presents only main's rows and names rows a live branch grant holds
 ```
 
-Known limitation: Claude fires no hook for a manual interrupt, so a turn interrupted with Escape keeps its turn record busy, and the waker stays inert, until the next prompt or a clear, startup, or resume session open records idle.
-A busy record has no age bound; closing that window is follow-up work.
+[`watcher-continuity.md`](../watcher-continuity.md#claude-waker) owns the waker's known manual-interrupt limit.
 
 ## Watcher continuity
 

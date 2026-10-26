@@ -91,7 +91,19 @@ That owner delivers such a row at once with exit 2; otherwise it foregrounds `bi
 On a supervision-host home that needs supervision, main's rows are the main-only class, because the park runs the engine that owns routine rows; with no supervision need no park will run, so every unread row is main's.
 While that home's away record is present the host takes every close, so the hook delivers no unread row.
 While away mode remains inactive, an actionable close wakes the idle session through exit 2, including when the event itself ends supervision need.
-Known limit: nothing yet records when a turn started, so a parked hook that delivers during a turn the captain typed is followed at that turn's end by a second delivery of the same rows, which costs one short turn.
+While a rewake is pending, meaning the generation ledger holds a rewake committed after the last turn start in the [Claude turn record](#claude-waker), the owner skips delivery and parks instead, because two rewakes never merge and each costs its own turn.
+It reads the turn record again at each delivery attempt, so once that rewake's own turn has started, a later row is still delivered.
+
+### Claude waker
+
+An idle Claude primary holding an unread row with no running Stop hook is woken by `bin/fm-claude-wake.sh`, which `.claude/settings.json` runs as an `asyncRewake` hook for `FileChanged` on `state/.wake-queue` and at session open.
+A synchronous `SessionStart` entry registers that watch path, and a session-open firing that runs the digest first waits, within the digest's own 180-second budget, for this session open's digest to complete.
+The waker applies the Stop hook's foreign-host, primary-scope, session-lock, and away gates.
+It exits 2 only when `fm_wake_main_unread` finds a row, the turn record reads idle, no open Stop-hook claim exists because a parked hook delivers, and no rewake is pending.
+It commits through the same generation ledger as the Stop hook, so concurrent waker and Stop firings stay single-flight.
+`bin/fm-claude-turn.sh` writes the turn record, `state/.claude-turn`, from `UserPromptSubmit`, `Stop`, `StopFailure`, and a clear, startup, or resume session open, and a record from another Claude process reads as idle.
+Known limit: Claude fires no hook for a manual interrupt, and a busy record has no age bound, so an interrupted turn keeps its record busy, and the waker inert, until the next prompt or a clear, startup, or resume session open.
+[`verification/supervision.md`](verification/supervision.md#claude-wakes-itself-when-no-stop-hook-runs-2026-10-26) records the live hook evidence and the replay suite.
 
 ### Claude session-lock ownership
 
@@ -545,7 +557,7 @@ OpenCode support targets persistent TUI sessions rather than headless `opencode 
 
 The other harnesses rely on these mechanisms:
 
-- Claude depends on the Stop `asyncRewake` rewake.
+- Claude depends on the Stop `asyncRewake` rewake, plus the [waker](#claude-waker) for an idle session no Stop hook serves.
 - Cursor depends on its awaited stop-hook park.
 - Grok retains native background-completion notifications.
 - Codex retains bounded foreground checkpoints.

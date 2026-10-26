@@ -16,6 +16,9 @@
 # locked drain rotates such leftovers away before doing anything else.
 # FM_STATUS_PRESENTATION_LOCK_TIMEOUT sets the positive whole-second wait for
 # presentation-path locks (default 10); queue mutation locks remain blocking.
+# FM_WAKE_DRAIN_PRESENT_ONLY=1, set by the session-start digest when the
+# SessionStart hook runs it, makes a main drain print its rows while claiming
+# none and beginning no handling.
 set -u
 
 SCRIPT_DIR="$(d=${BASH_SOURCE[0]%/*}; [ "$d" != "${BASH_SOURCE[0]}" ] || d=.; cd "${d:-/}" && pwd)"

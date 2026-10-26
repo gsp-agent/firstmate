@@ -81,6 +81,7 @@ Hooks still run through cwd-sensitive `/bin/sh`, so tracked commands anchor thro
 `../../../docs/turnend-guard.md` owns details.
 
 The Stop-owned watcher hook runs every Stop, foregrounds `../../../bin/fm-watch-arm.sh` only when eligible, and uses exit-2 async reawakening as notification.
+An idle primary holding an unread wake with no running Stop hook is woken instead by `../../../bin/fm-claude-wake.sh` from `FileChanged` and `SessionStart`; [`watcher-continuity.md`](../../../../../docs/watcher-continuity.md#claude-waker) owns that waker and its turn record.
 The model handles notifications but never routine re-arm.
 Unless `config/supervision-host-off` opts the home out, the hook foregrounds the supervision host instead, which also runs Claude's print mode as its headless engine; [`supervision-host.md`](../../../../../docs/supervision-host.md#engines) owns the verified engine facts.
 Claude's PreToolUse seatbelt blocks directly, and its deny is honored only with empty stdout; `../../../docs/arm-pretool-check.md` owns that contract.
