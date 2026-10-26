@@ -505,6 +505,40 @@ The timeout hook trapped `TERM`, backgrounded `sleep 300`, waited, and on `TERM`
 | Control, exit 2 before the timeout | started +2, exited 2 at +12 | `Stop hook feedback` followed by the requested reply |
 | Timeout, exit 2 from the `TERM` handler | started +2, `TERM` and exit 2 at +32 | no `Stop hook feedback` and no reply, still idle at +111 |
 
+### Claude wakes itself when no Stop hook runs, 2026-10-26
+
+This supports the tracked `FileChanged` and `SessionStart` `asyncRewake` registration in `.claude/settings.json`, the turn record in `bin/fm-claude-turn.sh`, and the waker in `bin/fm-claude-wake.sh`.
+The Claude-side hook behavior it relies on was live-verified on Claude Code 2.1.310 in an isolated lab: a `FileChanged` hook with `asyncRewake` woke an idle session about one second after an append, before the first turn and after `/clear`, and an `asyncRewake` `SessionStart` entry woke a fresh and a cleared session.
+The same lab covered the watched file being replaced by rename, as every main acknowledgement and queue retirement does: an append, an atomic rename-replace of the watched file, and an append after the replace each fired `FileChanged` with `event=change` and woke the session within 0.1 s of the hook's exit, so the watch survives the replace.
+The portable replay suite runs every case in an isolated temporary home through the real scripts, with no live home or Claude session touched.
+
+```sh
+bash tests/fm-claude-wake.test.sh
+```
+
+Observed output:
+
+```text
+ok - turn record: real UserPromptSubmit, Stop, and StopFailure payloads; only the lock owner writes
+ok - 07:06Z replay: after /clear and a covering watcher close, the waker exits 2 within a second of the +150 s and +330 s appends
+ok - reset-followup expiry: the waker exits 2 at the +350 s undelivered close append
+ok - post-reset rows already queued: the /clear session-open check exits 2 once the digest completes
+ok - fresh startup: the session-open check waits for its own lock and digest, then exits 2
+ok - interrupt then /clear: session open records idle, so the session-open check exits 2
+ok - busy turn: the waker exits 0, the Stop hook delivers at turn end, exactly one rewake follows
+ok - parked hook present: the waker exits 0 and the parked hook delivers
+ok - burst: ten appends whose ten waker firings run concurrently produce exactly one rewake
+ok - burst race: a firing that waited on the ledger mutex never supersedes the rewake committed meanwhile
+ok - foreign hosts: Cursor and pi-code FileChanged and SessionStart payloads exit 0 at once and never wait
+ok - turn boundary: Stop admission parks while a rewake is pending
+ok - turn boundary across a park: after rewake R's own turn has run, the parked hook still delivers a later row
+ok - restart: a rewake committed by an earlier Claude process is not pending in the new one
+ok - session-start drain presents without claiming; digest-only ack refused
+ok - session-start drain presents only main's rows and names rows a live branch grant holds
+```
+
+[`watcher-continuity.md`](../watcher-continuity.md#claude-waker) owns the waker's known manual-interrupt limit.
+
 ## Watcher continuity
 
 The cross-harness evidence combines the 2026-07-17 live pass with Claude's replacement Stop-owned path revalidated on 2026-09-21, all against isolated project and home state.

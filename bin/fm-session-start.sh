@@ -38,8 +38,10 @@
 #                       handoff retry, X-mode artifact writes, fleet sync) also run only when
 #                       locked; the four network sweeps run in the deferred
 #                       stage rather than this synchronous bootstrap section.
-#   3. wake-drain     - presents durable wakes and advances recovery handling
-#                       state, so it only runs when locked. The local bounded
+#   3. wake-drain     - presents durable wakes, so it only runs when locked.
+#                       Run by hand it claims them and advances recovery
+#                       handling state; run from the SessionStart hook it only
+#                       presents them, claiming none. The local bounded
 #                       inactive-outcome startup scan runs in the deferred worker.
 #                       First, on every harness and away posture, it seeds the
 #                       outcome store's display tail copy when that is absent
@@ -221,7 +223,11 @@
 #             already treats a lock owned through shared ancestry or a trusted
 #             same-session Claude id as its own, so the re-emit proceeds, while
 #             a lock another live session took meanwhile still produces the
-#             ordinary read-only path.
+#             ordinary read-only path. When it finishes, it rewrites the
+#             completion record only while that record names the current lock
+#             pid, so bin/fm-claude-wake.sh sees this session open's digest
+#             finish without the record ever claiming a startup that did not
+#             complete.
 #
 #   --source  The native session-open source, supplied only by
 #             fm-sessionstart-run.sh. A genuine `startup` that owns the active
@@ -673,7 +679,11 @@ if [ "$REEMIT" -eq 1 ]; then
   printf 'reprinted, but the sweeps startup already reconciled - project clone refresh,\n'
   printf 'secondmate convergence and liveness, pending remote handoff\n'
   printf 'retry, X-mode artifact writes, and stale Herdr child cleanup - are NOT repeated.\n'
-  printf 'Queued wakes ARE still drained: they arrived after startup and are this turn work.\n'
+  if [ "${FM_SESSION_START_FROM_HOOK:-}" = 1 ]; then
+    printf 'Queued wakes below are presented only: drain them with bin/fm-wake-drain.sh in a turn before handling them.\n'
+  else
+    printf 'Queued wakes ARE still drained: they arrived after startup and are this turn work.\n'
+  fi
 else
   section "SESSION START - $FM_HOME"
 fi
@@ -800,7 +810,16 @@ else
       printf '%s\n' "$BRANCH_REPLAY_OUT"
     fi
   fi
-  DRAIN_OUT=$("$SCRIPT_DIR/fm-wake-drain.sh" 2>&1)
+  # Session open empties main's presented set: the context that read those
+  # rows is gone after a clear, a move, or a compaction, so they stay unread
+  # until main drains them in a turn. Under state/.afk the away daemon owns
+  # that set, and its context survives a Claude session open.
+  [ -e "$STATE/.afk" ] || rm -f "$STATE/.main-eligible-rows" 2>/dev/null || true
+  if [ "${FM_SESSION_START_FROM_HOOK:-}" = 1 ]; then
+    DRAIN_OUT=$(FM_WAKE_DRAIN_PRESENT_ONLY=1 "$SCRIPT_DIR/fm-wake-drain.sh" 2>&1)
+  else
+    DRAIN_OUT=$("$SCRIPT_DIR/fm-wake-drain.sh" 2>&1)
+  fi
   if [ -n "$DRAIN_OUT" ]; then
     printf '%s\n' "$DRAIN_OUT"
   else
@@ -1071,12 +1090,15 @@ The digest above is complete for this session start. The READ-ONCE CONTRACT
 section near the top of it governs what may still be read from disk.
 EOF
 
-if [ "$READ_ONLY" -eq 0 ] && [ "$REEMIT" -eq 0 ]; then
+if [ "$READ_ONLY" -eq 0 ]; then
   COMPLETION_RECORDED=0
   COMPLETION_PID=$(cat "$STATE/.lock" 2>/dev/null || true)
   case "$COMPLETION_PID" in
     ''|*[!0-9]*) COMPLETION_PID= ;;
   esac
+  if [ "$REEMIT" -eq 1 ] && [ "$(cat "$COMPLETION_FILE" 2>/dev/null || true)" != "$COMPLETION_PID" ]; then
+    COMPLETION_PID=
+  fi
   COMPLETION_TMP=$(mktemp "$STATE/.session-start-complete.XXXXXX" 2>/dev/null || true)
   if [ -n "$COMPLETION_PID" ] && [ -n "$COMPLETION_TMP" ] \
     && printf '%s\n' "$COMPLETION_PID" > "$COMPLETION_TMP" 2>/dev/null \

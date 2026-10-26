@@ -143,13 +143,13 @@ case "$SOURCE" in
     ;;
   clear|compact)
     if session_start_completed; then
-      "$SCRIPT_DIR/fm-session-start.sh" --reemit --source "$SOURCE" || true
+      FM_SESSION_START_FROM_HOOK=1 "$SCRIPT_DIR/fm-session-start.sh" --reemit --source "$SOURCE" || true
     else
-      "$SCRIPT_DIR/fm-session-start.sh" --source "$SOURCE" || true
+      FM_SESSION_START_FROM_HOOK=1 "$SCRIPT_DIR/fm-session-start.sh" --source "$SOURCE" || true
     fi
     ;;
   *)
-    "$SCRIPT_DIR/fm-session-start.sh" --source "$SOURCE" || true
+    FM_SESSION_START_FROM_HOOK=1 "$SCRIPT_DIR/fm-session-start.sh" --source "$SOURCE" || true
     ;;
 esac
 exit 0

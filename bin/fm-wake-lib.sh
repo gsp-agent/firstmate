@@ -2128,12 +2128,15 @@ fm_autoarm_midturn_healthy() {  # <state-dir> [grace]
 }
 
 # Atomically publish this process as the owner of generation N+1, under one
-# short micro-mutex hold. Returns 0 with FM_AUTOARM_MY_GEN set on success, 2
-# when a competing claimant won the race (the ledger holds an open claim), and
-# 1 when the micro-mutex is contended, the mandatory identity cannot be
+# short micro-mutex hold. With <expected-gen>, publish only while the ledger
+# still holds that generation, so a caller that decided against an earlier
+# ledger read never supersedes an entry written since. Returns 0 with
+# FM_AUTOARM_MY_GEN set on success, 2 when a competing claimant won the race
+# (the ledger holds an open claim, or a generation other than <expected-gen>),
+# and 1 when the micro-mutex is contended, the mandatory identity cannot be
 # computed, or the write failed.
-fm_autoarm_claim_next() {  # <state-dir> [grace]
-  local state=$1 grace=${2:-${FM_GUARD_GRACE:-300}} lock epoch pid gen identity tmp
+fm_autoarm_claim_next() {  # <state-dir> [grace] [expected-gen]
+  local state=$1 grace=${2:-${FM_GUARD_GRACE:-300}} expected=${3:-} lock epoch pid gen identity tmp
   lock="$state/.claude-autoarm.lock"
   epoch="$state/.claude-autoarm-epoch"
   FM_AUTOARM_MY_GEN=
@@ -2152,6 +2155,10 @@ fm_autoarm_claim_next() {  # <state-dir> [grace]
   case "$gen" in
     ''|*[!0-9]*) gen=0 ;;
   esac
+  if [ -n "$expected" ] && [ "$gen" != "$expected" ]; then
+    fm_lock_release "$lock"
+    return 2
+  fi
   gen=$((gen + 1))
   tmp="$epoch.tmp.$pid"
   if ! printf 'epoch=%s owner_pid=%s outcome=arming updated_at=%s\n%s\n' \
@@ -2220,6 +2227,82 @@ fm_autoarm_still_owner() {  # <state-dir> <gen>
   pid=${BASHPID:-$$}
   fm_autoarm_ledger_read "$state" || return 1
   [ "$FM_AUTOARM_GEN" = "$gen" ] && [ "$FM_AUTOARM_OWNER" = "$pid" ]
+}
+
+# --- Claude turn record -----------------------------------------------------
+# state/.claude-turn is one atomically replaced line written only by
+# bin/fm-claude-turn.sh, and only by the session that holds the fleet lock:
+#   <busy|idle> <turn-start-epoch> <claude-pid> <session-id>
+# The epoch is the turn's start: an idle write keeps the busy write's epoch,
+# so a rewake committed after that epoch is still pending after the turn ends
+# until a newer turn starts. A turn Claude starts for a rewake records an
+# epoch after that rewake's commit second, so its own turn orders after it.
+# A record from another pid reads as idle, so a turn left open by a dead
+# process cannot block the waker.
+FM_CLAUDE_TURN_STATE=
+FM_CLAUDE_TURN_EPOCH=
+FM_CLAUDE_TURN_PID=
+FM_CLAUDE_TURN_SESSION=
+fm_claude_turn_read() {  # <state-dir>
+  local line
+  FM_CLAUDE_TURN_STATE=
+  FM_CLAUDE_TURN_EPOCH=
+  FM_CLAUDE_TURN_PID=
+  FM_CLAUDE_TURN_SESSION=
+  [ -f "$1/.claude-turn" ] && [ ! -L "$1/.claude-turn" ] || return 1
+  IFS= read -r line < "$1/.claude-turn" 2>/dev/null || return 1
+  local extra
+  read -r FM_CLAUDE_TURN_STATE FM_CLAUDE_TURN_EPOCH FM_CLAUDE_TURN_PID \
+    FM_CLAUDE_TURN_SESSION extra <<EOF
+$line
+EOF
+  [ -z "$extra" ] || return 1
+  case "$FM_CLAUDE_TURN_STATE" in busy|idle) ;; *) return 1 ;; esac
+  case "$FM_CLAUDE_TURN_EPOCH" in ''|*[!0-9]*) return 1 ;; esac
+  case "$FM_CLAUDE_TURN_PID" in ''|*[!0-9]*) return 1 ;; esac
+  [ -n "$FM_CLAUDE_TURN_SESSION" ] || return 1
+  return 0
+}
+
+# True when no turn is running for Claude pid $2 in state dir $1: no record,
+# a record from another pid, or an idle record. Only a busy record from
+# that same pid blocks.
+fm_claude_turn_idle() {  # <state-dir> <claude-pid>
+  fm_claude_turn_read "$1" || return 0
+  [ "$FM_CLAUDE_TURN_PID" = "$2" ] || return 0
+  [ "$FM_CLAUDE_TURN_STATE" != busy ]
+}
+
+# True when the generation ledger holds a rewake that the session-lock pid
+# in state dir $1 committed after its last turn start. That rewake already
+# owns a delivery turn, so no second rewake may be committed for it. A
+# rewake bound to another Claude process belongs to a session that is gone.
+# With $2 = require-record, a missing turn record is not pending evidence:
+# the Stop hook's admission guard applies only once the turn wiring has
+# recorded a turn, so a pre-wiring session keeps ship 1's redelivery. A true
+# result with require-record leaves FM_CLAUDE_TURN_* describing the turn it
+# was judged against.
+fm_claude_rewake_pending() {  # <state-dir> [require-record]
+  local state=$1 updated lock_pid turn_epoch=0
+  fm_autoarm_ledger_read "$state" || return 1
+  [ "$FM_AUTOARM_OUTCOME" = rewake ] || return 1
+  lock_pid=$(sed -n '1p' "$state/.lock" 2>/dev/null || true)
+  [ -n "$FM_AUTOARM_SESSION" ] && [ "$FM_AUTOARM_SESSION" = "$lock_pid" ] || return 1
+  updated=$(_fm_autoarm_epoch_field "$state/.claude-autoarm-epoch" updated_at) || return 1
+  case "$updated" in ''|*[!0-9]*) return 1 ;; esac
+  if fm_claude_turn_read "$state" && [ "$FM_CLAUDE_TURN_PID" = "$lock_pid" ]; then
+    turn_epoch=$FM_CLAUDE_TURN_EPOCH
+    # Second granularity cannot order a user-typed turn against a rewake
+    # committed in its start second. Once the turn has ended, treat that
+    # rewake as pending: the safe direction is one park, not a duplicate.
+    if [ "$FM_CLAUDE_TURN_STATE" = idle ]; then
+      [ "$updated" -ge "$turn_epoch" ]
+      return
+    fi
+  elif [ "${2:-}" = require-record ]; then
+    return 1
+  fi
+  [ "$updated" -gt "$turn_epoch" ]
 }
 
 fm_autoarm_reset_owned() {  # <state-dir> <gen>

@@ -16,6 +16,9 @@
 # locked drain rotates such leftovers away before doing anything else.
 # FM_STATUS_PRESENTATION_LOCK_TIMEOUT sets the positive whole-second wait for
 # presentation-path locks (default 10); queue mutation locks remain blocking.
+# FM_WAKE_DRAIN_PRESENT_ONLY=1, set by the session-start digest when the
+# SessionStart hook runs it, makes a main drain print its rows while claiming
+# none and beginning no handling.
 set -u
 
 SCRIPT_DIR="$(d=${BASH_SOURCE[0]%/*}; [ "$d" != "${BASH_SOURCE[0]}" ] || d=.; cd "${d:-/}" && pwd)"
@@ -216,6 +219,9 @@ presented_max_row() { # <rows-file>
     printf '0\n'
   fi
 }
+
+PRESENT_ONLY=0
+[ "${FM_WAKE_DRAIN_PRESENT_ONLY:-}" = 1 ] && [ "$ACTOR" = main ] && PRESENT_ONLY=1
 
 case "${1:-}" in
   '') ;;
@@ -850,16 +856,31 @@ if [ -n "$ACK_THROUGH" ]; then
   else
     PRESENTED_MAX=$(presented_max_row "$MAIN_ROWS_FILE") || exit 1
   fi
-  if [ "$ACTOR" = main ]; then
-    # Preserve main's original whole-cutoff acknowledgement contract: a direct
-    # or replayed main ack still owns every unreserved row through its cutoff,
-    # so claim those again under the queue lock and none is stranded merely
-    # because it was not present during the earlier drain. A row above the
-    # cutoff arrived after presentation and was never shown to main, so it
-    # stays unowned for whichever actor presents it next; claiming it here
-    # would hand every later away-session wake back to main. A live branch
-    # grant remains excluded by claim_main_rows_locked.
-    claim_main_rows_locked "$ACK_THROUGH" || exit 1
+  if [ "$ACTOR" = main ] && [ "$ACK_THROUGH" -gt 0 ]; then
+    # A main acknowledgement consumes only rows main already owns: every
+    # unreserved queued row at or below its cutoff must have been presented
+    # to main by a claiming drain in a turn. A row main was never presented
+    # that way (for example one read only from the session-start digest,
+    # which claims nothing) refuses the acknowledgement, so main drains again
+    # in its turn. A row above the cutoff stays unowned for whichever actor
+    # presents it next, and a live branch grant stays excluded. A stale
+    # acknowledgement naming no queued row at or below its cutoff still
+    # degrades safely below.
+    GRANT_ROWS=/dev/null
+    if fm_wake_branch_grant_live "$ELIGIBLE_ROWS_FILE" "$ELIGIBLE_OWNER_FILE"; then
+      GRANT_ROWS=$ELIGIBLE_ROWS_FILE
+    fi
+    UNPRESENTED=$(awk -F '\t' -v cutoff="$ACK_THROUGH" -v rows="$MAIN_ROWS_FILE" -v grant="$GRANT_ROWS" '
+      BEGIN {
+        while ((getline line < rows) > 0) owned[line]=1
+        while ((getline line < grant) > 0) reserved[line]=1
+      }
+      NF >= 5 && $2 ~ /^[0-9]+$/ && $2 <= cutoff && !($2 in owned) && !($2 in reserved) { print $2; exit }
+    ' "$FM_WAKE_QUEUE" 2>/dev/null || true)
+    if [ -n "$UNPRESENTED" ]; then
+      echo "wake drain: row $UNPRESENTED was not presented to main in a turn, so this acknowledgement is refused; re-run bin/fm-wake-drain.sh in a turn and use the WAKE_ACK_REQUIRED command it prints" >&2
+      exit 1
+    fi
   fi
   if [ "$ACTOR" = branch ]; then
     # An away-posture grant can name check-kind rows - the attended
@@ -976,7 +997,7 @@ if [ ! -s "$FM_WAKE_QUEUE" ]; then
   RECOVERY_MARKER_TOKEN=$FM_RECOVERY_MARKER_TOKEN
   case "$RECOVERY_MARKER_TOKEN" in
     pending:downtime:*|announced:downtime:*)
-      fm_recovery_marker_begin_handling "$RECOVERY_MARKER" || {
+      [ "$PRESENT_ONLY" -eq 1 ] || fm_recovery_marker_begin_handling "$RECOVERY_MARKER" || {
         echo "wake drain: decision recovery could not begin handling safely" >&2
         exit 1
       }
@@ -992,6 +1013,35 @@ if [ ! -s "$FM_WAKE_QUEUE" ]; then
   if [ "$RECOVERY_ACK_REQUIRED" = true ]; then
     printf 'WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 0 --recovery-generation %s\n' "${RECOVERY_MARKER_TOKEN##*:}" >&2
   fi
+  assert_watcher_liveness
+  exit "$BRANCH_OUTCOMES_RC"
+fi
+
+if [ "$PRESENT_ONLY" -eq 1 ]; then
+  # Session-start presentation: print the rows a claiming main drain would
+  # present, but claim nothing and begin no handling. The rows stay unread
+  # until main drains them in a turn.
+  GRANT_ROWS=/dev/null
+  if fm_wake_branch_grant_live "$ELIGIBLE_ROWS_FILE" "$ELIGIBLE_OWNER_FILE"; then
+    GRANT_ROWS=$ELIGIBLE_ROWS_FILE
+  fi
+  DRAIN_VIEW_TMP=$(mktemp "$STATE/.wake-queue.actor-view.XXXXXX") || exit 1
+  awk -F '\t' -v grant="$GRANT_ROWS" '
+    BEGIN { while ((getline line < grant) > 0) reserved[line]=1 }
+    NF >= 5 && $2 ~ /^[0-9]+$/ && !($2 in reserved)
+  ' "$FM_WAKE_QUEUE" > "$DRAIN_VIEW_TMP" || exit 1
+  RAW_ROWS=$(fm_wake_print_deduped "$DRAIN_VIEW_TMP") || exit "$?"
+  rm -f -- "$DRAIN_VIEW_TMP" || exit 1
+  DRAIN_VIEW_TMP=
+  if [ -n "$RAW_ROWS" ]; then
+    printf '%s\n' "$RAW_ROWS" || exit "$?"
+  else
+    print_branch_held_notice
+  fi
+  fm_lock_release "$FM_WAKE_QUEUE_LOCK"
+  DRAIN_LOCK_HELD=false
+  (print_status_presentation "$RAW_ROWS") || true
+  print_branch_outcomes_section || BRANCH_OUTCOMES_RC=1
   assert_watcher_liveness
   exit "$BRANCH_OUTCOMES_RC"
 fi

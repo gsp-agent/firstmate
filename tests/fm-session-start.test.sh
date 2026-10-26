@@ -2393,7 +2393,7 @@ SH
 # --- context re-emit (--reemit) ----------------------------------------------
 
 test_reemit_skips_startup_sweeps_but_keeps_the_wake_drain() {
-  local rec root home fakebin network_report reemit sequence generation
+  local rec root home fakebin network_report reemit sequence generation completion_before
   rec=$(new_world reemit)
   IFS='|' read -r root home fakebin <<EOF
 $rec
@@ -2413,10 +2413,19 @@ EOF
     "the full startup fixture did not exercise a mutating sweep"
 
   append_wake "$home/state" signal task-r "done: queued after the re-emit too" || fail "seed second wake failed"
+  completion_before="${home%/*}/completion-before-reemit"
+  ln "$home/state/.session-start-complete" "$completion_before" \
+    || fail "the full startup fixture recorded no completion"
   reemit=$(FM_HOME="$home" FM_ROOT_OVERRIDE="$root" FM_FAKE_HARNESS_PID=$$ PATH="$fakebin:$BASE_PATH" \
     env -u CLAUDECODE -u PI_CODING_AGENT -u FM_PI_HARNESS -u GROK_AGENT \
     "$SESSION_START" --reemit)
 
+  if [ ! -f "$home/state/.session-start-complete" ] \
+    || [ "$home/state/.session-start-complete" -ef "$completion_before" ]; then
+    fail "--reemit did not rewrite the completion record when it finished"
+  fi
+  [ "$(cat "$home/state/.session-start-complete")" = "$(cat "$home/state/.lock")" ] \
+    || fail "--reemit's completion record does not name the lock owner"
   assert_contains "$reemit" "SESSION START (CONTEXT RE-EMIT) - $home" "--reemit did not label itself"
   assert_not_contains "$reemit" "SECONDMATE_LIVENESS" "--reemit repeated a mutating sweep startup already ran"
   assert_contains "$reemit" "done: queued after the re-emit too" "--reemit did not drain the wake queue"
@@ -2433,6 +2442,73 @@ EOF
   assert_contains "$reemit" "NEXT STEP" "--reemit dropped the closing reminder"
 
   pass "--reemit reprints the digest without repeating startup's mutating sweeps and still drains queued wakes"
+}
+
+# The away daemon drains and acknowledges as main without holding the fleet
+# lock, so a Claude session can open between its drain and its ack.
+test_away_daemon_ack_survives_a_hook_session_open() {
+  local rec root home fakebin out drain_err sequence generation
+  rec=$(new_world away-ack)
+  IFS='|' read -r root home fakebin <<EOF
+$rec
+EOF
+  make_fake_toolchain "$fakebin"
+  make_fake_ps_claude "$fakebin"
+  : > "$home/state/.afk"
+  append_wake "$home/state" check away-row "check: handled by the away daemon" || fail "seed wake failed"
+
+  drain_err=$(FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" "$ROOT/bin/fm-wake-drain.sh" 2>&1 >/dev/null)
+  sequence=$(printf '%s\n' "$drain_err" | sed -n 's/^WAKE_ACK_REQUIRED:.*--ack-through \([0-9][0-9]*\) .*$/\1/p' | tail -1)
+  generation=$(printf '%s\n' "$drain_err" | sed -n 's/^WAKE_ACK_REQUIRED:.*--recovery-generation \([A-Za-z0-9._-][A-Za-z0-9._-]*\)$/\1/p' | tail -1)
+  [ -n "$sequence" ] && [ -n "$generation" ] || fail "the away daemon's drain printed no acknowledgement: $drain_err"
+
+  out=$(FM_FAKE_HARNESS_PID=$$ FM_SESSION_START_FROM_HOOK=1 run_session_start "$home" "$root" "$fakebin:$BASE_PATH")
+  assert_not_contains "$out" "READ-ONLY SESSION" "the hook session open did not hold the fleet lock"
+
+  FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" "$ROOT/bin/fm-wake-drain.sh" --ack-through "$sequence" \
+    --recovery-generation "$generation" >/dev/null 2>&1 \
+    || fail "a hook session open under state/.afk broke the away daemon's acknowledgement"
+  [ ! -s "$home/state/.wake-queue" ] || fail "the away daemon's acknowledgement left its row queued"
+
+  pass "under state/.afk a hook session open keeps the away daemon's presented set, so its acknowledgement consumes the rows"
+}
+
+# Without state/.afk, a /clear through the SessionStart hook empties main's
+# presented set and its digest only presents the rows.
+test_hook_session_open_presents_only_and_refuses_a_digest_ack() {
+  local rec root home fakebin out drain_err sequence generation
+  rec=$(new_world hook-present-only)
+  IFS='|' read -r root home fakebin <<EOF
+$rec
+EOF
+  make_fake_toolchain "$fakebin"
+  make_fake_ps_claude "$fakebin"
+  FM_FAKE_HARNESS_PID=$$ run_session_start "$home" "$root" "$fakebin:$BASE_PATH" >/dev/null
+  append_wake "$home/state" check reset-row "check: drained before the reset" || fail "seed wake failed"
+
+  drain_err=$(FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" "$ROOT/bin/fm-wake-drain.sh" 2>&1 >/dev/null)
+  sequence=$(printf '%s\n' "$drain_err" | sed -n 's/^WAKE_ACK_REQUIRED:.*--ack-through \([0-9][0-9]*\) .*$/\1/p' | tail -1)
+  generation=$(printf '%s\n' "$drain_err" | sed -n 's/^WAKE_ACK_REQUIRED:.*--recovery-generation \([A-Za-z0-9._-][A-Za-z0-9._-]*\)$/\1/p' | tail -1)
+  [ -n "$sequence" ] && [ -n "$generation" ] || fail "the in-turn drain printed no acknowledgement: $drain_err"
+  assert_present "$home/state/.main-eligible-rows" "the in-turn drain recorded no presented set"
+
+  out=$(FM_HOME="$home" FM_ROOT_OVERRIDE="$root" FM_FAKE_HARNESS_PID=$$ FM_SESSION_START_FROM_HOOK=1 \
+    PATH="$fakebin:$BASE_PATH" env -u CLAUDECODE -u PI_CODING_AGENT -u FM_PI_HARNESS -u GROK_AGENT \
+    "$SESSION_START" --reemit --source clear 2>&1)
+  assert_contains "$out" "Queued wakes below are presented only: drain them with bin/fm-wake-drain.sh in a turn before handling them." \
+    "the hook-mode digest did not say its rows are presented only"
+  assert_not_contains "$out" "Queued wakes ARE still drained" "the hook-mode digest still claims it drained the queue"
+  assert_contains "$out" "check: drained before the reset" "the hook-mode digest did not present the queued row"
+  assert_not_contains "$out" "WAKE_ACK_REQUIRED:" "the hook-mode digest printed an acknowledgement command"
+  assert_absent "$home/state/.main-eligible-rows" "a session open without state/.afk kept main's presented set"
+
+  if FM_HOME="$home" FM_STATE_OVERRIDE="$home/state" "$ROOT/bin/fm-wake-drain.sh" --ack-through "$sequence" \
+    --recovery-generation "$generation" >/dev/null 2>&1; then
+    fail "an acknowledgement typed from before the reset was accepted for a row only the digest presented"
+  fi
+  [ -s "$home/state/.wake-queue" ] || fail "a refused acknowledgement consumed the row"
+
+  pass "a hook session open without state/.afk empties main's presented set, presents only, and refuses a digest-only acknowledgement"
 }
 
 test_agents_baseline_stays_at_true_start_and_reemits_on_every_drifted_pi_compact() {
@@ -3077,6 +3153,8 @@ test_portable_timeout_escalates_term_resistant_process
 test_runtime_bound_leaves_a_healthy_digest_untouched
 test_runtime_bound_leaves_harness_ancestry_headroom
 test_reemit_skips_startup_sweeps_but_keeps_the_wake_drain
+test_away_daemon_ack_survives_a_hook_session_open
+test_hook_session_open_presents_only_and_refuses_a_digest_ack
 test_agents_baseline_stays_at_true_start_and_reemits_on_every_drifted_pi_compact
 test_read_only_pi_compact_refreshes_against_its_own_session_identity
 test_codex_unreachable_reset_sources_do_not_claim_instruction_refresh

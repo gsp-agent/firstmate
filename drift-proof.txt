@@ -143,3 +143,5 @@ pr: 146
 pr: 147
 # Failing-first Grok mode-suffixed title replays in tests/fm-composer-lib.test.sh: on the base an idle empty composer titled Grok 4.7 (xhigh) · always-approve reads unknown; after the fix it reads empty, typed text reads pending, and a bad suffix or generic dotted title stays unknown.
 pr: 149
+# Failing-first Claude self-wake replays in tests/fm-claude-wake.test.sh: on the base the suite fails because bin/fm-claude-turn.sh and bin/fm-claude-wake.sh are absent; after the fix all 16 cases pass, including the 07:06Z sequence, reset-followup expiry, rows queued before /clear, busy-turn Stop delivery, parked-hook deferral, single-rewake burst, foreign-host exits, and the present-only session-start drain.
+pr: 150
