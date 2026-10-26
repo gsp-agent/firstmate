@@ -86,6 +86,18 @@ test_refuses_an_interpreter_that_is_not_stock_bash() {
   pass "refuses to run, and so cannot pass, without stock Bash 3.2.57"
 }
 
+test_help_prints_the_whole_header() {
+  local rc
+  OUT=$("$ROOT/bin/fm-stock-bash-check.sh" --help 2>&1)
+  rc=$?
+  expect_code 0 "$rc" "--help"
+  assert_contains "$OUT" "FM_STOCK_BASH_LOAD_FACTOR" "--help documents the load factor override"
+  assert_contains "$OUT" "Exit status: 0 every step passed" "--help documents the exit status"
+  assert_contains "$OUT" "fm-stock-bash-check.sh --help   print this usage" "--help reaches the usage lines"
+  assert_not_contains "$OUT" "shellcheck disable" "--help stops at the end of the header"
+  pass "--help prints the whole header through its usage lines"
+}
+
 test_passes_when_every_check_passes() {
   stock_only "every passing step yields exit 0" || return 0
   local repo="$TMP_ROOT/pass"
@@ -225,6 +237,7 @@ EOF2
 }
 
 test_refuses_an_interpreter_that_is_not_stock_bash
+test_help_prints_the_whole_header
 test_passes_when_every_check_passes
 test_a_bash4_only_construct_fails_the_parse_sweep
 test_a_count_mismatch_fails_naming_the_suite

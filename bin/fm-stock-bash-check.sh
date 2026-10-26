@@ -56,7 +56,7 @@ ROOT="$(cd "$SELF_DIR/.." && pwd)"
 
 case "${1:-}" in
   -h | --help)
-    sed -n '2,35{s/^# \{0,1\}//;p;}' "$SELF"
+    sed -n '2,/--help   print this usage$/{s/^# \{0,1\}//;p;}' "$SELF"
     exit 0
     ;;
   '') ;;
