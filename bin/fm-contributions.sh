@@ -492,8 +492,27 @@ arm() {
   FM_STATE_OVERRIDE="$STAGE_DIR" "$SCRIPT_DIR/fm-check-register.sh" contributions >/dev/null
   PUBLISH_LOCK=$(fm_custom_check_publish_lock "$STATE" contributions)
   fm_lock_acquire_wait "$PUBLISH_LOCK" || fail 'check publish lock unavailable'
+  # The lock wait can be long, so the destinations validated above may have
+  # changed: refuse a changed one here, and again before the trust rename,
+  # rather than let a rename drop a staged file inside a new directory.
+  if ! fm_pr_regular_destination_on_device_or_absent "$STATE/contributions.check.sh" "$device" \
+    || ! fm_pr_regular_destination_on_device_or_absent "$STATE/contributions.check-trust" "$device"; then
+    fm_lock_release "$PUBLISH_LOCK"
+    PUBLISH_LOCK=
+    fail 'unsafe check destination'
+  fi
   mv -f -- "$STAGE_DIR/contributions.check.sh" "$STATE/contributions.check.sh"
+  if ! fm_pr_regular_destination_on_device_or_absent "$STATE/contributions.check-trust" "$device"; then
+    fm_lock_release "$PUBLISH_LOCK"
+    PUBLISH_LOCK=
+    fail 'unsafe check trust destination'
+  fi
   mv -f -- "$STAGE_DIR/contributions.check-trust" "$STATE/contributions.check-trust"
+  if ! fm_custom_check_registered "$STATE" contributions; then
+    fm_lock_release "$PUBLISH_LOCK"
+    PUBLISH_LOCK=
+    fail 'the published check did not authenticate'
+  fi
   fm_lock_release "$PUBLISH_LOCK"
   PUBLISH_LOCK=
   rmdir -- "$STAGE_DIR"
