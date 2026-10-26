@@ -56,7 +56,10 @@ It is a knowing exception to the store-avoidance stance, not an oversight, so ex
 
 Grok stops a worker at its weekly limit with a dialog headed "You hit your weekly limit".
 The dialog offers "Buy more credits" and "Try Again".
-Escape cleared the dialog back to the composer.
+On 2026-10-25 the captain reported that Escape cleared the dialog back to the composer.
+Re-checked live the same day on Grok 1.0.70, Escape only moved focus to scrollback, as the dialog's `Esc:scrollback` hint says, and the dialog stayed; C-c left it too.
+While it stays, the composer is not proven empty, so `exit` and `relaunch` refuse.
+The dialog's own `Shift+x:dismiss` returned it to the empty composer, and `../../../bin/fm-send.sh` has no key for that.
 Firstmate never chooses Buy more credits.
 
 ## Training opt-in
