@@ -159,3 +159,5 @@ pr: 156
 pr: 157
 # Failing-first startup budget in tests/fm-crew-state-fork-budget.test.sh: on c78421c3 fm-crew-state.sh starts 22 processes before its first read (budget 3) and fails; fork-free library loads start 1 and pass, and the same file's probe finds all 77 resolved values across seven path shapes equal to the old cd/pwd subshells.
 pr: 158
+# Failing-first Dispatch line replays in tests/fm-dispatch-ready.test.sh: on the base the suite exits at its first case (the helper is absent, exit 127); after the fix all 9 cases pass, including 4 in-flight rows against a cap of 2 reading 1 of 2 places free by fm-spawn's own count.
+pr: 160
