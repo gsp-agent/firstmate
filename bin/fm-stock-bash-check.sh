@@ -232,12 +232,8 @@ fm_stock_bash_run_bounded() {  # <step> <log> <command...>
 fm_stock_bash_cap_reason() {
   case "$STEP_CAP" in
     time)
-      if [ "$STEP_LOAD_FACTOR" -ne 1 ]; then
-        printf 'stopped at the %ss wall bound (load factor %s times %ss at idle load)' \
-          "$((STEP_SECONDS * STEP_LOAD_FACTOR))" "$STEP_LOAD_FACTOR" "$STEP_SECONDS"
-      else
-        printf 'stopped at the %ss wall bound' "$STEP_SECONDS"
-      fi
+      printf 'stopped at the %ss wall bound (load factor %s times %ss at idle load)' \
+        "$((STEP_SECONDS * STEP_LOAD_FACTOR))" "$STEP_LOAD_FACTOR" "$STEP_SECONDS"
       ;;
     memory) printf 'stopped at the %s KiB process-tree memory cap' "$RSS_KIB" ;;
     unmeasured) printf 'process list could not be read, so the %s KiB tree cap was not enforced' "$RSS_KIB" ;;

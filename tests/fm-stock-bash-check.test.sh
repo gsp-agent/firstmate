@@ -93,8 +93,8 @@ test_help_prints_the_whole_header() {
   expect_code 0 "$rc" "--help"
   assert_contains "$OUT" "FM_STOCK_BASH_LOAD_FACTOR" "--help documents the load factor override"
   assert_contains "$OUT" "Exit status: 0 every step passed" "--help documents the exit status"
-  assert_contains "$OUT" "fm-stock-bash-check.sh --help   print this usage" "--help reaches the usage lines"
-  assert_not_contains "$OUT" "shellcheck disable" "--help stops at the end of the header"
+  assert_equals "  fm-stock-bash-check.sh --help   print this usage" "$(printf '%s\n' "$OUT" | tail -n 1)" \
+    "--help ends with the usage block's last line"
   pass "--help prints the whole header through its usage lines"
 }
 
