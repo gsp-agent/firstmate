@@ -702,6 +702,30 @@ assert_equals "supervised" "$(printf '%s' "$empty" | json_get wake_consumer reas
   "an empty queue keeps the consumer reason"
 assert_equals "None" "$(printf '%s' "$empty" | json_get delivery oldest_unread_age_seconds)" \
   "an empty queue has no unread age"
+
+# A holder with no turn record of its own keeps today's answer: no record,
+# or an idle record from another pid, reads unknown and never stalls.
+for turn_owner in none other; do
+  home=$(make_home "ready-delivery-$turn_owner")
+  printf '%s\n' "$holder_pid" > "$home/state/.lock"
+  touch "$home/state/.last-watcher-beat"
+  now=$(date +%s)
+  if [ "$turn_owner" = other ]; then
+    printf 'idle %s %s %s\n' "$now" "$pi_pid" "other-session" \
+      > "$home/state/.claude-turn"
+  fi
+  printf '%s\t%s\t%s\t%s\t%s\n' "$((now - 7200))" 1 check "inbox:delivery-note" \
+    "check: captain inbox note delivery-note - $turn_owner" \
+    > "$home/state/.wake-queue"
+  unowned=$(FM_WATCHER_STALE_GRACE=300 run_inbox "$home" ready) \
+    || fail "ready should succeed for a $turn_owner turn record"
+  assert_equals "True" "$(printf '%s' "$unowned" | json_get can_receive)" \
+    "a $turn_owner turn record with an old unread row can receive as today"
+  assert_equals "supervised" "$(printf '%s' "$unowned" | json_get wake_consumer reason)" \
+    "a $turn_owner turn record keeps the consumer reason"
+  assert_equals "unknown" "$(printf '%s' "$unowned" | json_get delivery turn_state)" \
+    "a $turn_owner turn record reads an unknown turn state"
+done
 pass "delivery stalls only for an idle main with an old unread row"
 
 # The model is the lock holder's, not the caller's: a codex primary still needs

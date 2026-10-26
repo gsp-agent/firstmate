@@ -73,11 +73,12 @@
 # persistent model, never the caller's FM_SUPERVISION_MODEL. The verdict's
 # stale-beacon mid-turn allowance does not apply.
 # After that verdict, one delivery rule reads the record itself: when the
-# Claude turn record reads idle and the oldest unread wake row has waited
-# longer than the same grace, `can_receive` is false with reason
-# `delivery-stalled`, whatever the beat says. The `delivery` object carries
-# the oldest unread age and the turn state, so a sender can tell a busy main
-# from a blocked one; a busy main and an empty queue keep their prior answer.
+# lock holder's own Claude turn record reads idle and the oldest unread wake
+# row has waited longer than the same grace, `can_receive` is false with
+# reason `delivery-stalled`, whatever the beat says. The `delivery` object
+# carries the oldest unread age and the turn state, so a sender can tell a
+# busy main from a blocked one; a busy main, an empty queue, and a holder with
+# no turn record of its own (`unknown`) keep their prior answer.
 #
 # Configuration. A region, a model id and an AWS profile name somebody's account
 # and somebody's choices, so this file carries no default for any of them. Each is
@@ -954,11 +955,8 @@ cmd_ready() {
   if [ "$lock_state" = held ] && [ -n "$lock_pid" ] \
     && command -v fm_claude_turn_read >/dev/null 2>&1; then
     if fm_claude_turn_read "$STATE" \
-      && [ "$FM_CLAUDE_TURN_PID" = "$lock_pid" ] \
-      && [ "$FM_CLAUDE_TURN_STATE" = busy ]; then
-      turn_state=busy
-    elif fm_claude_turn_idle "$STATE" "$lock_pid"; then
-      turn_state=idle
+      && [ "$FM_CLAUDE_TURN_PID" = "$lock_pid" ]; then
+      turn_state=$FM_CLAUDE_TURN_STATE
     fi
   fi
   if command -v fm_wake_main_unread >/dev/null 2>&1 \
