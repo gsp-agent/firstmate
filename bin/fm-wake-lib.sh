@@ -2130,13 +2130,16 @@ fm_autoarm_midturn_healthy() {  # <state-dir> [grace]
 # Atomically publish this process as the owner of generation N+1, under one
 # short micro-mutex hold. With <expected-gen>, publish only while the ledger
 # still holds that generation, so a caller that decided against an earlier
-# ledger read never supersedes an entry written since. Returns 0 with
+# ledger read never supersedes an entry written since. With <seen-outcome>,
+# the outcome that same read saw, also refuse when the entry it read has since
+# become a rewake, so an owner that was still arming at that read and has
+# committed its rewake since is never followed by a second one. Returns 0 with
 # FM_AUTOARM_MY_GEN set on success, 2 when a competing claimant won the race
-# (the ledger holds an open claim, or a generation other than <expected-gen>),
-# and 1 when the micro-mutex is contended, the mandatory identity cannot be
-# computed, or the write failed.
-fm_autoarm_claim_next() {  # <state-dir> [grace] [expected-gen]
-  local state=$1 grace=${2:-${FM_GUARD_GRACE:-300}} expected=${3:-} lock epoch pid gen identity tmp
+# (the ledger holds an open claim, a generation other than <expected-gen>, or
+# a rewake that <seen-outcome> was not), and 1 when the micro-mutex is
+# contended, the mandatory identity cannot be computed, or the write failed.
+fm_autoarm_claim_next() {  # <state-dir> [grace] [expected-gen] [seen-outcome]
+  local state=$1 grace=${2:-${FM_GUARD_GRACE:-300}} expected=${3:-} seen=${4:-} lock epoch pid gen identity tmp
   lock="$state/.claude-autoarm.lock"
   epoch="$state/.claude-autoarm-epoch"
   FM_AUTOARM_MY_GEN=
@@ -2156,6 +2159,11 @@ fm_autoarm_claim_next() {  # <state-dir> [grace] [expected-gen]
     ''|*[!0-9]*) gen=0 ;;
   esac
   if [ -n "$expected" ] && [ "$gen" != "$expected" ]; then
+    fm_lock_release "$lock"
+    return 2
+  fi
+  if [ -n "$seen" ] && [ "$seen" != rewake ] \
+    && [ "$(_fm_autoarm_epoch_field "$epoch" outcome 2>/dev/null || true)" = rewake ]; then
     fm_lock_release "$lock"
     return 2
   fi
@@ -2313,18 +2321,20 @@ fm_claude_rewake_pending() {  # <state-dir> [require-record]
 # (bin/fm-claude-wake.sh), so the two cannot drift. The host gate stays owned
 # by fm_supervision_host_enabled and the away reading by
 # fm_afk_contract_away_present; both load lazily because most wake-library
-# consumers source neither owner.
+# consumers source neither owner, the away reading only on a host home with a
+# record present.
 fm_claude_away_wake_line() {  # <state-dir> <config-dir>
   local state=$1 config=$2
   if ! command -v fm_supervision_host_enabled >/dev/null 2>&1; then
     # shellcheck source=/dev/null
     . "$FM_WAKE_LIB_DIR/fm-supervision-engine-lib.sh" || return 1
   fi
+  fm_supervision_host_enabled "$config" claude || return 1
+  [ -f "$state/.afk-contract" ] || return 1
   if ! command -v fm_afk_contract_away_present >/dev/null 2>&1; then
     # shellcheck source=/dev/null
     . "$FM_WAKE_LIB_DIR/fm-afk-contract.sh" || return 1
   fi
-  fm_supervision_host_enabled "$config" claude || return 1
   fm_afk_contract_away_present "$state" || return 1
   printf 'This wake comes from automatic supervision under the away-posture record, not from the captain: it is not a return, so handle it under the away posture.\n'
 }

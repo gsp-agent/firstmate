@@ -321,21 +321,25 @@ fi
 # delivers. A micro-mutex contention with a bare hold is another participant's
 # short ledger section, held only for a ledger write, so the claim is retried
 # a few times over about a second before the contention exit: an idle main
-# may fire no next Stop. The claim carries the generation the rewake-pending
-# read above saw, so a waker rewake committed between that read and the
-# claim (or the legacy re-claim below) makes the claim fail instead of
-# committing a second rewake. A role-carrying hold is a legacy lock-holding claim
+# may fire no next Stop. The claim carries the generation and outcome the
+# rewake-pending read above saw (a missing generation reads as 0, as the
+# waker reads it), so a waker rewake committed between that read and the
+# claim (or the legacy re-claim below), at a newer generation or at the one
+# that read saw still arming, makes the claim fail instead of committing a
+# second rewake. A role-carrying hold is a legacy lock-holding claim
 # from a pre-generation build (or the guard's own terminal-check), which the
 # legacy shim defers to while genuinely deciding and reclaims once when proven
 # abandoned.
 if fm_claude_rewake_pending "$STATE" require-record; then
   REWAKE_TURN="$FM_CLAUDE_TURN_EPOCH $FM_CLAUDE_TURN_PID $FM_CLAUDE_TURN_SESSION"
 fi
-PENDING_GEN=${FM_AUTOARM_GEN:-}
+PENDING_GEN=${FM_AUTOARM_GEN:-0}
+case "$PENDING_GEN" in ''|*[!0-9]*) PENDING_GEN=0 ;; esac
+PENDING_OUTCOME=${FM_AUTOARM_OUTCOME:-}
 fm_autoarm_claim_open "$STATE" "$GRACE" && exit 0
 CLAIM_TRIES=0
 while :; do
-  fm_autoarm_claim_next "$STATE" "$GRACE" "$PENDING_GEN"
+  fm_autoarm_claim_next "$STATE" "$GRACE" "$PENDING_GEN" "$PENDING_OUTCOME"
   CLAIM_RC=$?
   [ "$CLAIM_RC" -eq 1 ] || break
   [ -z "$(fm_lock_role "$OWNER_LOCK" 2>/dev/null || true)" ] || break
@@ -348,7 +352,7 @@ if [ "$CLAIM_RC" -ne 0 ]; then
   ROLE=$(fm_lock_role "$OWNER_LOCK" 2>/dev/null || true)
   [ -n "$ROLE" ] || exit 0
   fm_autoarm_release_abandoned "$STATE" "$GRACE" || exit 0
-  fm_autoarm_claim_next "$STATE" "$GRACE" "$PENDING_GEN" || exit 0
+  fm_autoarm_claim_next "$STATE" "$GRACE" "$PENDING_GEN" "$PENDING_OUTCOME" || exit 0
 fi
 MY_GEN=$FM_AUTOARM_MY_GEN
 [ -n "$MY_GEN" ] || exit 0

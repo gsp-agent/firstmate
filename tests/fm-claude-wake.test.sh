@@ -698,12 +698,13 @@ test_stop_claim_loses_to_waker_rewake_committed_after_pending_read() {
     "$HELPERS/append" "$S" race-note
     "$HELPERS/old-claim" "$S" || echo OLD_CLAIM_FAILED
     . "$FM_HOME/bin/fm-wake-lib.sh"
+    printf "epoch=2 owner_pid=%s outcome=rewake updated_at=%s session_pid=%s\n%s\n" \
+      "$$" "$(date +%s)" "$LOCK_PID" "$(fm_pid_identity "$$")" > "$S/.late-rewake"
     fm_lock_try_acquire "$S/.claude-autoarm.lock" || echo MUTEX_FAILED
     "$P" sess-1 Stop | "$FM_HOME/bin/fm-claude-stop-autoarm.sh" 2>"$S/stop-err" &
     h=$!
     "$HELPERS/wait-sleeping" "$h" || echo STOP_DID_NOT_WAIT
-    printf "epoch=2 owner_pid=%s outcome=rewake updated_at=%s session_pid=%s\n%s\n" \
-      "$$" "$(date +%s)" "$LOCK_PID" "$(fm_pid_identity "$$")" > "$S/.claude-autoarm-epoch"
+    mv -f "$S/.late-rewake" "$S/.claude-autoarm-epoch"
     fm_lock_release "$S/.claude-autoarm.lock"
     wait "$h"; echo "STOP_RC=$?"
     sed -n "1s/^epoch=\([0-9]*\) .*outcome=\([a-z-]*\).*/LEDGER=\1 \2/p" "$S/.claude-autoarm-epoch"
@@ -715,6 +716,36 @@ test_stop_claim_loses_to_waker_rewake_committed_after_pending_read() {
   expect "$out" "LEDGER=2 rewake" "the waker rewake committed after the pending read must stay the only rewake"
   expect "$out" "LATE_RC=0" "a later waker firing must still see the rewake pending"
   pass "stop race: a waker rewake committed between the pending read and the claim yields exactly one rewake"
+}
+
+test_stop_claim_loses_to_inflight_waker_rewake() {
+  local dir out
+  dir=$(make_home "$TMP_ROOT/stopinflight")
+  out=$(run_body "$dir" '
+    "$P" sess-1 UserPromptSubmit | "$FM_HOME/bin/fm-claude-turn.sh"
+    "$P" sess-1 Stop | "$FM_HOME/bin/fm-claude-turn.sh"
+    "$HELPERS/append" "$S" inflight-note
+    . "$FM_HOME/bin/fm-wake-lib.sh"
+    fm_autoarm_claim_next "$S" 300 || echo CLAIM_FAILED
+    printf "epoch=%s owner_pid=%s outcome=rewake updated_at=%s session_pid=%s\n%s\n" \
+      "$FM_AUTOARM_MY_GEN" "$$" "$(date +%s)" "$LOCK_PID" "$(sed -n 2p "$S/.claude-autoarm-epoch")" > "$S/.inflight-rewake"
+    "$HELPERS/set-mtime" "$S/.claude-autoarm-epoch" "$(( $(date +%s) - 1000 ))"
+    fm_lock_try_acquire "$S/.claude-autoarm.lock" || echo MUTEX_FAILED
+    "$P" sess-1 Stop | "$FM_HOME/bin/fm-claude-stop-autoarm.sh" 2>"$S/stop-err" &
+    h=$!
+    "$HELPERS/wait-sleeping" "$h" || echo STOP_DID_NOT_WAIT
+    mv -f "$S/.inflight-rewake" "$S/.claude-autoarm-epoch"
+    fm_lock_release "$S/.claude-autoarm.lock"
+    wait "$h"; echo "STOP_RC=$?"
+    sed -n "1s/^epoch=\([0-9]*\) .*outcome=\([a-z-]*\).*/LEDGER=\1 \2/p" "$S/.claude-autoarm-epoch"
+    "$P" sess-1 FileChanged | "$FM_HOME/bin/fm-claude-wake.sh" 2>/dev/null; echo "LATE_RC=$?"
+  ')
+  printf '%s\n' "$out" | grep -q 'CLAIM_FAILED\|MUTEX_FAILED\|STOP_DID_NOT_WAIT' \
+    && fail "inflight stop race setup failed, got: $out"
+  expect "$out" "STOP_RC=0" "a Stop hook whose pending read saw the waker claim still arming must not wake main again once that claim commits its rewake"
+  expect "$out" "LEDGER=1 rewake" "the waker rewake committed at the generation the pending read saw must stay the only rewake"
+  expect "$out" "LATE_RC=0" "a later waker firing must still see the rewake pending"
+  pass "stop race: a waker rewake committed at the generation the pending read saw arming yields exactly one rewake"
 }
 
 test_waker_banner_carries_away_line_on_host_home() {
@@ -843,6 +874,7 @@ test_stop_admission_parks_while_rewake_pending
 test_parked_rewake_then_later_row_still_delivered
 test_rewake_from_an_earlier_claude_is_not_pending
 test_stop_claim_loses_to_waker_rewake_committed_after_pending_read
+test_stop_claim_loses_to_inflight_waker_rewake
 test_waker_banner_carries_away_line_on_host_home
 test_session_start_drain_presents_without_claiming
 test_session_start_drain_excludes_branch_grant
