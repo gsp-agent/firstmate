@@ -330,9 +330,10 @@ fm_project_capacity_occupants() {  # <project-lock> <project-dir> <first-state> 
 # Pool trees: the second limit on a fresh worker. A Treehouse-backed spawn
 # also needs a free tree in the project's worktree pool, and a pool whose trees
 # are all held cannot start a worker however many places are free. The pool's
-# size is the project's own treehouse.toml `max_trees` (the last such line); a
-# project without that line declares no size here, so the pool is not counted
-# and `treehouse get` alone decides. Treehouse's state is read with
+# size is the project's own treehouse.toml top-level `max_trees` (the last such
+# line before the first table header, since Treehouse ignores the key inside a
+# table); a project without that line declares no size here, so the pool is not
+# counted and `treehouse get` alone decides. Treehouse's state is read with
 # `treehouse status --json` from the project directory, bounded by
 # FM_PROJECT_CAPACITY_POOL_TIMEOUT seconds. A tree is free when Treehouse
 # reports it `available`, and each tree the pool can still create below its
@@ -354,6 +355,10 @@ fm_project_capacity_pool() {  # <project-dir>
   [ -f "$toml" ] && [ -r "$toml" ] || return 0
   while IFS= read -r line || [ -n "$line" ]; do
     line=${line%%#*}
+    # Treehouse reads max_trees at the top level only; the same key under any
+    # [table] or [[table]] is that table's key, and Treehouse keeps its own
+    # default (chip, PR 164 review 5656106077). Stop at the first table header.
+    case "${line#"${line%%[![:space:]]*}"}" in '['*) break ;; esac
     case "$line" in
       *max_trees*=*) ;;
       *) continue ;;

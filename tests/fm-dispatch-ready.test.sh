@@ -201,7 +201,17 @@ test_full_pool_holds_ready_rows_beside_free_places() {
     fail "full-pool: helper failed with a free tree"
   assert_contains "$out" "and 3 of 4 worktree pool trees free" "full-pool: an available tree plus two creatable"
   assert_contains "$out" "start it now with bin/fm-spawn.sh" "full-pool: a free tree was not offered"
-  pass "a full worktree pool holds ready rows back beside free places, and a free tree offers them"
+  # Treehouse reads max_trees at the top level only: under a table it is that
+  # table's key and Treehouse keeps its own default, so the pool is not counted
+  # (chip, PR 164 review 5656106077).
+  printf '%s\n' 'root = ""' '[hooks]' 'max_trees = 1' > "$case_dir/proj/treehouse.toml"
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$GSP_FULL_POOL run_helper "$case_dir") || fail "full-pool: helper failed with a table-scoped key"
+  assert_not_contains "$out" "worktree pool trees" "full-pool: a max_trees inside a table was counted as the pool size"
+  assert_contains "$out" "start it now with bin/fm-spawn.sh" "full-pool: a table-scoped key held ready rows back"
+  printf '%s\n' 'max_trees = 4' '  [hooks]' 'max_trees = 1' > "$case_dir/proj/treehouse.toml"
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$GSP_FULL_POOL run_helper "$case_dir") || fail "full-pool: helper failed with a top-level key before a table"
+  assert_contains "$out" "and 0 of 4 worktree pool trees free" "full-pool: the top-level key before a table was not the pool size"
+  pass "a full worktree pool holds ready rows back beside free places, a free tree offers them, and only a top-level max_trees sizes the pool"
 }
 
 test_captain_rows_are_not_offered() {
