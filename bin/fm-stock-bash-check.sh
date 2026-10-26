@@ -21,10 +21,22 @@
 # Every step runs even after one fails, and the summary names each failure.
 #
 # Environment:
-#   FM_STOCK_BASH_STEP_SECONDS  wall bound per step (default 900)
+#   FM_STOCK_BASH_STEP_SECONDS  wall bound per step at idle load (default
+#                               900). The effective wall for a step is this
+#                               bound times the load factor below, so a busy
+#                               laptop stretches the wall instead of stopping
+#                               a step that is only waiting for a core. A step
+#                               that makes no progress at idle still stops at
+#                               the idle bound.
 #   FM_STOCK_BASH_RSS_KIB       process-tree RSS cap per step, in KiB
 #                               (default 2097152 = 2 GiB)
 #   FM_STOCK_BASH               interpreter under test (default /bin/bash)
+#   FM_STOCK_BASH_LOAD_FACTOR   load factor override (positive integer);
+#                               default: the 1-minute load average divided by
+#                               the CPU count, rounded up, at least 1 and at
+#                               most 6
+#   FM_STOCK_BASH_NCPU          CPU count for that division; default: the
+#                               host CPU count
 #
 # Exit status: 0 every step passed; 1 a step failed or hit a cap; 2 this host
 # cannot run the check (no Bash 3.2.57 interpreter, or jq or tasks-axi
@@ -67,6 +79,57 @@ for value in "$STEP_SECONDS" "$RSS_KIB"; do
       ;;
   esac
 done
+case "${FM_STOCK_BASH_LOAD_FACTOR:-}" in
+  '' | *[!0-9]* | 0*)
+    [ -z "${FM_STOCK_BASH_LOAD_FACTOR:-}" ] || {
+      printf 'fm-stock-bash-check.sh: FM_STOCK_BASH_LOAD_FACTOR must be a positive integer\n' >&2
+      exit 2
+    }
+    ;;
+esac
+case "${FM_STOCK_BASH_NCPU:-}" in
+  '' | *[!0-9]* | 0*)
+    [ -z "${FM_STOCK_BASH_NCPU:-}" ] || {
+      printf 'fm-stock-bash-check.sh: FM_STOCK_BASH_NCPU must be a positive integer\n' >&2
+      exit 2
+    }
+    ;;
+esac
+
+# Print the load factor: how many idle wall bounds one wall bound buys on
+# this host right now. The 1-minute load average counts runnable work that
+# is waiting for a core, which is the delay a wall bound must not mistake
+# for a hang. Capped at 6 so a wedged step still stops in bounded time on
+# a busy host.
+fm_stock_bash_load_factor() {
+  local ncpu load1
+  if [ -n "${FM_STOCK_BASH_LOAD_FACTOR:-}" ]; then
+    printf '%s\n' "$FM_STOCK_BASH_LOAD_FACTOR"
+    return 0
+  fi
+  ncpu=${FM_STOCK_BASH_NCPU:-}
+  if [ -z "$ncpu" ]; then
+    ncpu=$(sysctl -n hw.ncpu 2>/dev/null) || ncpu=
+    case "$ncpu" in '' | *[!0-9]* | 0) ncpu=$(getconf _NPROCESSORS_ONLN 2>/dev/null) || ncpu=1 ;; esac
+    case "$ncpu" in '' | *[!0-9]* | 0) ncpu=1 ;; esac
+  fi
+  load1=$(sysctl -n vm.loadavg 2>/dev/null | awk '{gsub(/[{}]/, ""); print $1}') || load1=
+  if [ -z "$load1" ] && [ -r /proc/loadavg ]; then
+    load1=$(awk '{print $1}' /proc/loadavg 2>/dev/null) || load1=
+  fi
+  case "$load1" in '' | *[!0-9.]*)
+    printf '1\n'
+    return 0
+    ;;
+  esac
+  awk -v load="$load1" -v ncpu="$ncpu" 'BEGIN {
+    f = int(load / ncpu)
+    if (load > f * ncpu) f++
+    if (f < 1) f = 1
+    if (f > 6) f = 6
+    print f
+  }'
+}
 
 fm_stock_bash_refuse() {
   printf 'fm-stock-bash-check.sh: cannot run here: %s\n' "$1" >&2
@@ -142,8 +205,9 @@ fm_stock_bash_run_bounded() {  # <step> <log> <command...>
   local step=$1 log=$2 pid rss peak=0 started
   shift 2
   STEP_CAP=
+  STEP_WALL_SECONDS=$((STEP_SECONDS * $(fm_stock_bash_load_factor)))
   started=$(date +%s)
-  (cd "$ROOT" && fm_exec_timed "$STEP_SECONDS" "$GRACE_SECONDS" env PATH="$STOCK_PATH" "$@") >"$log" 2>&1 &
+  (cd "$ROOT" && fm_exec_timed "$STEP_WALL_SECONDS" "$GRACE_SECONDS" env PATH="$STOCK_PATH" "$@") >"$log" 2>&1 &
   pid=$!
   while kill -0 "$pid" 2>/dev/null; do
     if ! rss=$(fm_stock_bash_tree_rss_kib "$pid"); then
@@ -169,7 +233,13 @@ fm_stock_bash_run_bounded() {  # <step> <log> <command...>
 
 fm_stock_bash_cap_reason() {
   case "$STEP_CAP" in
-    time) printf 'stopped at the %ss wall bound' "$STEP_SECONDS" ;;
+    time)
+      if [ "${STEP_WALL_SECONDS:-$STEP_SECONDS}" -ne "$STEP_SECONDS" ]; then
+        printf 'stopped at the %ss wall bound (%ss at idle load)' "$STEP_WALL_SECONDS" "$STEP_SECONDS"
+      else
+        printf 'stopped at the %ss wall bound' "$STEP_SECONDS"
+      fi
+      ;;
     memory) printf 'stopped at the %s KiB process-tree memory cap' "$RSS_KIB" ;;
     unmeasured) printf 'process list could not be read, so the %s KiB tree cap was not enforced' "$RSS_KIB" ;;
   esac
@@ -238,8 +308,8 @@ fm_stock_bash_checks() {
     FM_TEST_ONLY=test_backend_source_requires_adapter_file FM_TEST_BASH="$STOCK_BASH"
 }
 
-printf 'fm-stock-bash-check.sh: %s (Bash %s); per step: %ss wall, %s KiB tree RSS\n' \
-  "$STOCK_BASH" "$STOCK_VERSION" "$STEP_SECONDS" "$RSS_KIB"
+printf 'fm-stock-bash-check.sh: %s (Bash %s); per step: %ss wall at idle load (load factor %s), %s KiB tree RSS\n' \
+  "$STOCK_BASH" "$STOCK_VERSION" "$STEP_SECONDS" "$(fm_stock_bash_load_factor)" "$RSS_KIB"
 fm_stock_bash_parse_sweep
 fm_stock_bash_checks
 

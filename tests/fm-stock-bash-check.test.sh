@@ -159,12 +159,28 @@ test_the_wall_bound_stops_a_hung_step() {
   make_fixture "$repo"
   printf '#!/usr/bin/env bash\nsleep 120\n' > "$repo/tests/fm-fork-free-helpers.test.sh"
   started=$(date +%s)
-  run_check "$repo" FM_STOCK_BASH_STEP_SECONDS=3
+  run_check "$repo" FM_STOCK_BASH_STEP_SECONDS=3 FM_STOCK_BASH_LOAD_FACTOR=1
   elapsed=$(($(date +%s) - started))
   expect_code 1 "$RC" "a step past the wall bound"
   assert_contains "$OUT" "fork-free-helpers: stopped at the 3s wall bound" "the failure names the bound"
   [ "$elapsed" -lt 90 ] || fail "the wall bound took ${elapsed}s to stop a step sleeping 120s"
   pass "a step past the wall bound is stopped and fails naming the bound"
+}
+
+test_the_wall_bound_grows_with_load_and_still_stops_a_hang() {
+  stock_only "the wall bound grows with load and still stops a hung step" || return 0
+  local repo="$TMP_ROOT/time-load" started elapsed
+  make_fixture "$repo"
+  printf '#!/usr/bin/env bash\nsleep 120\n' > "$repo/tests/fm-fork-free-helpers.test.sh"
+  started=$(date +%s)
+  run_check "$repo" FM_STOCK_BASH_STEP_SECONDS=3 FM_STOCK_BASH_LOAD_FACTOR=3
+  elapsed=$(($(date +%s) - started))
+  expect_code 1 "$RC" "a step past the load-grown wall bound"
+  assert_contains "$OUT" "fork-free-helpers: stopped at the 9s wall bound (3s at idle load)" \
+    "the failure names the grown bound and the idle bound"
+  [ "$elapsed" -ge 6 ] || fail "the load-grown wall stopped a hung step after only ${elapsed}s"
+  [ "$elapsed" -lt 90 ] || fail "the load-grown wall took ${elapsed}s to stop a step sleeping 120s"
+  pass "the wall bound grows with load and still stops a hung step"
 }
 
 test_refuses_an_interpreter_that_is_not_stock_bash
@@ -174,3 +190,4 @@ test_a_count_mismatch_fails_naming_the_suite
 test_the_memory_cap_stops_a_growing_step
 test_a_failed_process_list_fails_the_step
 test_the_wall_bound_stops_a_hung_step
+test_the_wall_bound_grows_with_load_and_still_stops_a_hang
