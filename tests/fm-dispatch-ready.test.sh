@@ -234,6 +234,17 @@ test_freed_by_prints_only_for_a_worker_that_stopped() {
   printf '%s\n' 'pr=https://github.com/example/proj/pull/9' >> "$case_dir/home/state/stopper.meta"
   out=$(run_helper "$case_dir" --freed-by stopper) || fail "freed-by: helper failed with pr="
   assert_equals "" "$out" "freed-by: a worker whose PR already freed its place printed again"
+  # A backlog that cannot be read is handed on too (chip, PR 164 review
+  # 5654620391): the host acknowledges the signal, so dropping the line would
+  # leave the freed place with nothing to raise it.
+  sed -i.bak '/^pr=/d' "$case_dir/home/state/stopper.meta" && rm -f "$case_dir/home/state/stopper.meta.bak"
+  printf '%s\n' '#!/usr/bin/env bash' 'exit 1' > "$case_dir/fakebin/tasks-axi"
+  chmod +x "$case_dir/fakebin/tasks-axi"
+  out=$(run_helper "$case_dir" --freed-by stopper) || fail "freed-by: helper failed with an unreadable backlog"
+  assert_contains "$out" "Its ready rows could not be read" "freed-by: an unreadable backlog was dropped instead of handed to main"
+  assert_contains "$out" "start the rows for proj with bin/fm-spawn.sh" "freed-by: the unreadable-backlog line lost its instruction"
+  rm -f "$case_dir/fakebin/tasks-axi"
+  printf '%s\n' 'pr=https://github.com/example/proj/pull/9' >> "$case_dir/home/state/stopper.meta"
   out=$(run_helper "$case_dir" --freed-by no-such-task) || fail "freed-by: helper failed for a missing record"
   assert_equals "" "$out" "freed-by: a missing record printed a line"
   axi "$case_dir" rm ready-a

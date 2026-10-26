@@ -63,8 +63,9 @@ case "$DISPATCH_READY_TIMEOUT" in ''|*[!0-9]*|0) DISPATCH_READY_TIMEOUT=30 ;; es
 # branch cannot start work. Prints the project's first Dispatch line only when
 # the task's record is a worker (not a secondmate) with no recorded pr=, its
 # crew state no longer reads working (fm_project_capacity_is_working, the read
-# bin/fm-spawn.sh's count uses), and that line says to start something;
-# otherwise prints nothing. Exits 0 either way.
+# bin/fm-spawn.sh's count uses), and that line says to start something or that
+# the backlog could not be read (so main reads it itself); otherwise prints
+# nothing. Exits 0 either way.
 if [ "${1:-}" = --freed-by ]; then
   [ "$#" -eq 2 ] || { echo "usage: fm-dispatch-ready.sh --freed-by <task-id>" >&2; exit 2; }
   case "$2" in '' | *[!A-Za-z0-9._-]*) echo "error: invalid task id: $2" >&2; exit 2 ;; esac
@@ -81,7 +82,12 @@ if [ "${1:-}" = --freed-by ]; then
   fm_project_capacity_is_working "$STATE" "$2"
   [ "$?" -eq 1 ] || exit 0
   freed_line=$("$0" "$freed_project" 2>/dev/null | head -n 1)
-  case "$freed_line" in *"start it now"*) printf '%s\n' "$freed_line" ;; esac
+  # A line that says to start work, or that the backlog could not be read (it
+  # tells main to read and start the rows itself), goes to main: the host
+  # acknowledges the signal either way, so nothing later would raise it.
+  case "$freed_line" in
+    *"start it now"* | *"ready rows could not be read"*) printf '%s\n' "$freed_line" ;;
+  esac
   exit 0
 fi
 
