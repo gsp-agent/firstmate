@@ -1,0 +1,69 @@
+# S2 busy main keeps its answer, live: real Claude primary running 'sleep 90' in a turn
+$ FM_WATCHER_STALE_GRACE=30 fm-inbox.sh note 'lab captain note three'   # sent mid-turn
+queued 1793000852-HsNI0e
+  lab captain note three: please reply NOTE-THREE-SEEN
+  firstmate will pick this up at its next check.
+exit=0
+$ lab.sh state
+lock: 61507
+61507 /Users/dalecarman/.local/bin/claude
+turn: idle 1793000833 61507 ab0f6387-3776-4aa9-9133-ce7a8d41842b
+autoarm-epoch: epoch=2 owner_pid=362 outcome=rewake updated_at=1793000858 session_pid=61507
+now: 1793000860
+wake-queue:
+  epoch=1793000853 seq=3 kind=check key=inbox:1793000852-HsNI0e payload=check: captain inbox note 1793000852-HsNI0e - lab captain note three: please reply NOTE-THREE-SEEN
+main-eligible-rows: 
+$ FM_WATCHER_STALE_GRACE=30 fm-inbox.sh ready   # fresh row, busy main
+{"schema":"fm-primary-ready.v1","home":"fmlab.r4KQYn/home","observed_at":"2026-10-26T07:47:41Z","lock":{"state":"held","pid":61507,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":9},"posture":{"state":"present"},"delivery":{"turn_state":"busy","oldest_unread_age_seconds":null},"can_receive":true}
+
+# S2 (clean run): real Claude primary in a foreground 100s command (python3 time.sleep(100))
+$ FM_WATCHER_STALE_GRACE=30 fm-inbox.sh note 'lab captain note four'   # sent mid-turn
+queued 1793000982-kiVUs5
+  lab captain note four: please reply NOTE-FOUR-SEEN
+  firstmate will pick this up at its next check.
+exit=0
+$ lab.sh state
+lock: 61507
+61507 /Users/dalecarman/.local/bin/claude
+turn: busy 1793000954 61507 ab0f6387-3776-4aa9-9133-ce7a8d41842b
+autoarm-epoch: epoch=2 owner_pid=362 outcome=rewake updated_at=1793000858 session_pid=61507
+now: 1793000989
+wake-queue:
+  epoch=1793000983 seq=4 kind=check key=inbox:1793000982-kiVUs5 payload=check: captain inbox note 1793000982-kiVUs5 - lab captain note four: please reply NOTE-FOUR-SEEN
+main-eligible-rows: 
+$ FM_WATCHER_STALE_GRACE=30 fm-inbox.sh ready   # fresh row, busy main
+{"schema":"fm-primary-ready.v1","home":"fmlab.r4KQYn/home","observed_at":"2026-10-26T07:49:49Z","lock":{"state":"held","pid":61507,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":9},"posture":{"state":"present"},"delivery":{"turn_state":"busy","oldest_unread_age_seconds":10},"can_receive":true}
+
+## 45s later, same busy turn still running; row has outwaited the 30s grace
+turn: busy 1793000954 61507 ab0f6387-3776-4aa9-9133-ce7a8d41842b
+$ FM_WATCHER_STALE_GRACE=30 fm-inbox.sh ready   # long busy turn, old row
+{"schema":"fm-primary-ready.v1","home":"fmlab.r4KQYn/home","observed_at":"2026-10-26T07:50:32Z","lock":{"state":"held","pid":61507,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":3},"posture":{"state":"present"},"delivery":{"turn_state":"busy","oldest_unread_age_seconds":60},"can_receive":true}
+$ FM_WATCHER_STALE_GRACE=30 <base 6c90cd9>/bin/fm-inbox.sh ready   # before the change
+{"schema":"fm-primary-ready.v1","home":"fmlab.r4KQYn/home","observed_at":"2026-10-26T07:50:45Z","lock":{"state":"held","pid":61507,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":16},"posture":{"state":"present"},"can_receive":true}
+
+## the busy turn ended; the Stop hook (fm_wake_main_unread_scope path) delivered note four; main handled it
+lock: 61507
+61507 /Users/dalecarman/.local/bin/claude
+turn: idle 1793001074 61507 ab0f6387-3776-4aa9-9133-ce7a8d41842b
+autoarm-epoch: epoch=3 owner_pid=98926 outcome=rewake updated_at=1793001073 session_pid=61507
+now: 1793001093
+wake-queue:
+main-eligible-rows: 
+$ FM_WATCHER_STALE_GRACE=30 fm-inbox.sh ready   # after delivery
+{"schema":"fm-primary-ready.v1","home":"fmlab.r4KQYn/home","observed_at":"2026-10-26T07:51:33Z","lock":{"state":"held","pid":61507,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":1},"posture":{"state":"present"},"delivery":{"turn_state":"idle","oldest_unread_age_seconds":null},"can_receive":true}
+
+## lab pane (real Claude primary)
+⏺ BUSYDONE
+✻ Cooked for 8s · done 2:49 AM
+❯ Second lab busy-turn check. Run exactly this one shell command in the foreground (do not background it) and nothing else: python3 -c 'import time; time.sleep(100)' . When it returns, reply with only the word LONGDONE. 
+  Ran 1 shell command 
+⏺ LONGDONE
+✻ Worked for 1m 55s · done 2:51 AM
+⏺ Stop hook feedback
+  Ran 2 shell commands 
+⏺ Captain, the fourth inbox note is answered. I replied NOTE-FOUR-SEEN and marked it handled.
+✻ Cooked for 18s · done 2:51 AM                                                                                 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯                                                                                                                                                                          
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 3 agents                      

@@ -1,0 +1,15 @@
+# S4 adversarial checks on the live lab home (real Claude primary still idle behind /model picker, two notes unread)
+## A. live supervision-host grant (owner alive) naming row 1; note row 2 waits
+$ FM_WATCHER_STALE_GRACE=30 fm-inbox.sh ready   # grant owner live
+{"schema":"fm-primary-ready.v1","home":"fmlab.r4KQYn/home","observed_at":"2026-10-26T07:42:29Z","lock":{"state":"held","pid":61507,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":1},"posture":{"state":"present"},"delivery":{"turn_state":"idle","oldest_unread_age_seconds":53},"can_receive":true}
+## B. same grant files, owner now dead
+$ FM_WATCHER_STALE_GRACE=30 fm-inbox.sh ready   # grant owner dead
+{"schema":"fm-primary-ready.v1","home":"fmlab.r4KQYn/home","observed_at":"2026-10-26T07:42:35Z","lock":{"state":"held","pid":61507,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"delivery-stalled","beacon_age_seconds":1},"posture":{"state":"present"},"delivery":{"turn_state":"idle","oldest_unread_age_seconds":135},"can_receive":false}
+## C. turn record idle but written by another pid (not the lock holder)
+real record: idle 1793000321 61507 ab0f6387-3776-4aa9-9133-ce7a8d41842b
+foreign record: idle 1793000321 88234 ab0f6387-3776-4aa9-9133-ce7a8d41842b
+$ FM_WATCHER_STALE_GRACE=30 fm-inbox.sh ready   # foreign idle record
+{"schema":"fm-primary-ready.v1","home":"fmlab.r4KQYn/home","observed_at":"2026-10-26T07:42:40Z","lock":{"state":"held","pid":61507,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":0},"posture":{"state":"present"},"delivery":{"turn_state":"unknown","oldest_unread_age_seconds":139},"can_receive":true}
+restored record: idle 1793000321 61507 ab0f6387-3776-4aa9-9133-ce7a8d41842b
+$ FM_WATCHER_STALE_GRACE=30 fm-inbox.sh ready   # holder record restored
+{"schema":"fm-primary-ready.v1","home":"fmlab.r4KQYn/home","observed_at":"2026-10-26T07:42:44Z","lock":{"state":"held","pid":61507,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"delivery-stalled","beacon_age_seconds":0},"posture":{"state":"present"},"delivery":{"turn_state":"idle","oldest_unread_age_seconds":145},"can_receive":false}

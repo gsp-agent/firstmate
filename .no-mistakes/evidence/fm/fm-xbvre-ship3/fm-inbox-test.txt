@@ -1,0 +1,59 @@
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+ok - retirement refuses capture before any write and preserves read access
+ok - an invalid retirement destination cannot silently reopen capture
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+ok - plain note, list, and wake stay on the historical human path
+ok - plain note keeps exit 1 for a saved-but-unannounced failure
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+ok - the same request id returns the original note as a distinguishable replay
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+ok - a crash between recording the request id and publishing the note reuses the original id
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+ok - saved-but-unannounced notes are repairable without creating a second note
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+ok - repair and replay do not wake firstmate for an already-acknowledged note
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+ok - receipts JSON is bounded by fixed bounds and discloses what it omitted
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+ok - notes that predate the announcement marker are unknown, not re-announced
+ok - the reply channel is durable and its cursor is a strict order
+ok - the reply cursor never goes backwards when the sequence counter is lost
+ok - a reply without a valid sequence is reported as malformed
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+ok - a non-UTF-8 note does not break the receipts view
+ready 3603-second regression: {"schema":"fm-primary-ready.v1","home":"fm-inbox.BinTC2/ready-holder","observed_at":"2026-10-26T07:39:13Z","lock":{"state":"held","pid":71726,"live_harness":true},"wake_consumer":{"state":"down","reason":"stale-beacon","beacon_age_seconds":3604},"posture":{"state":"present"},"delivery":{"turn_state":"unknown","oldest_unread_age_seconds":null},"can_receive":false}
+ready live-watcher regression: {"schema":"fm-primary-ready.v1","home":"fm-inbox.BinTC2/ready-watcher","observed_at":"2026-10-26T07:39:57Z","lock":{"state":"held","pid":71769,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":1},"posture":{"state":"present"},"delivery":{"turn_state":"unknown","oldest_unread_age_seconds":null},"can_receive":true}
+ok - readiness follows the inspected home's supervision model, never the caller's or a stale beacon
+ready delivery-stalled regression: {"schema":"fm-primary-ready.v1","home":"fm-inbox.BinTC2/ready-delivery-stalled","observed_at":"2026-10-26T07:40:31Z","lock":{"state":"held","pid":71726,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"delivery-stalled","beacon_age_seconds":0},"posture":{"state":"present"},"delivery":{"turn_state":"idle","oldest_unread_age_seconds":7202},"can_receive":false}
+ok - delivery stalls only for an idle main with an old unread row
+ok - readiness reads the supervision model from the inspected home's lock holder
+ok - empty bodies and unsafe request ids are refused
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+ok - a note body that opens with a double dash is queued as text
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+ok - drain --ack still moves the note to handled
+bash tests/fm-inbox.test.sh  17.50s user 21.04s system 12% cpu 5:17.79 total

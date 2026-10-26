@@ -1,0 +1,32 @@
+ok - auto-arm: need vanishing mid-cycle closes without a rewake
+ok - auto-arm: mid-cycle AFK hands triage to the daemon with no rewake
+ok - auto-arm: active in a marked secondmate home
+ok - auto-arm: a long FM_POLL with FM_GUARD_GRACE unset reaches fm-watch-arm.sh with the derived grace
+ok - auto-arm: config/supervision-host-off keeps the hook on the arm exactly as before
+ok - auto-arm: a Claude home without config/supervision-host runs the host by default
+ok - auto-arm: an opted-in home runs the host bound to its generation, and a host line rewakes like a wake
+ok - auto-arm: a wake the host hands back under the away record says it is automatic supervision, not a return
+ok - auto-arm: a wake the host hands back beside a quiet record carries no away note
+ok - auto-arm: without the host the rewake banner is unchanged, eight wake lines at most
+ok - auto-arm: a host handback delivers every host line, while its wake lines keep their cap
+ok - auto-arm: a host that stood down closes silently without a retry
+ok - auto-arm: a host close after an acknowledged marker is a rewake and opens no failure episode
+ok - auto-arm: a host close while the marker is handling is a rewake
+ok - auto-arm: a host close while the marker is announced handling is a rewake
+ok - auto-arm: a host that died without a close is retried, then reported as a failure
+ok - auto-arm: --help, -h, and an unknown argument arm nothing; the Stop path still arms
+ok - fm-lock: shared session-lock lib preserves the status path
+ok - auto-arm: stands down only on a pi-code-delivered transcript_path (/.pi/)
+ok - auto-arm: a released probe row is delivered once need is gone, and a presented row stays quiet
+ok - auto-arm: a probe released during the cycle delivers its queued row
+ok - auto-arm: a close passed through while the marker is handling is a rewake
+ok - auto-arm: an alarm suppresses a new failure notice and still delivers the close and the queued row
+ok - auto-arm: a healthy foreign watcher leaves a queued main row delivered
+ok - auto-arm: a note passed through from a handling successor is a rewake
+ok - auto-arm: a rewake committed while the marker is handling lets the stop end
+ok - auto-arm: a plain or idle host home delivers every unread row, the park keeps routine rows, and the away record delivers none
+ok - auto-arm: the away record on a host home delivers no queued row to main and parks the host
+ok - auto-arm: an idle home admitted for a row main was already shown arms nothing
+ok - auto-arm: a refused failure notice is not delivered with the unread row that follows it
+ok - auto-arm: a queued close reason is shown once, and the banner keeps eight wake lines
+bash   21.55s user 28.30s system 18% cpu 4:33.29 total

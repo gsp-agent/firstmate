@@ -1,0 +1,13 @@
+# S3 empty queue, live lab primary (real Claude holds lock), default grace
+$ lab.sh state
+lock: 61507
+61507 /Users/dalecarman/.local/bin/claude
+turn: idle 1793000321 61507 ab0f6387-3776-4aa9-9133-ce7a8d41842b
+autoarm-epoch: 
+now: 1793000380
+wake-queue:
+main-eligible-rows: 
+$ FM_HOME=$LAB $LAB/bin/fm-inbox.sh ready   # target dd526830
+{"schema":"fm-primary-ready.v1","home":"fmlab.r4KQYn/home","observed_at":"2026-10-26T07:39:40Z","lock":{"state":"held","pid":61507,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":1},"posture":{"state":"present"},"delivery":{"turn_state":"idle","oldest_unread_age_seconds":null},"can_receive":true}
+$ FM_HOME=$LAB <base 6c90cd9>/bin/fm-inbox.sh ready
+{"schema":"fm-primary-ready.v1","home":"fmlab.r4KQYn/home","observed_at":"2026-10-26T07:39:46Z","lock":{"state":"held","pid":61507,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":7},"posture":{"state":"present"},"can_receive":true}

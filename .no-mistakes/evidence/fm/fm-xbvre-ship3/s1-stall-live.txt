@@ -1,0 +1,90 @@
+# S1 exit-picker replay, live: real Claude primary idle behind the /model picker
+$ date -u; lab.sh beat; FM_WATCHER_STALE_GRACE=30 fm-inbox.sh note 'lab captain note one'
+Mon Oct 26 07:40:23 UTC 2026
+queued 1793000423-bUWjkD
+  lab captain note one: please reply NOTE-ONE-SEEN
+  firstmate will pick this up at its next check.
+exit=0
+
+## 45s later, picker still open, backstop beat fresh
+$ lab.sh state
+lock: 61507
+61507 /Users/dalecarman/.local/bin/claude
+turn: idle 1793000321 61507 ab0f6387-3776-4aa9-9133-ce7a8d41842b
+autoarm-epoch: epoch=1 owner_pid=67294 outcome=rewake updated_at=1793000427 session_pid=61507
+now: 1793000470
+wake-queue:
+  epoch=1793000424 seq=1 kind=check key=inbox:1793000423-bUWjkD payload=check: captain inbox note 1793000423-bUWjkD - lab captain note one: please reply NOTE-ONE-SEEN
+main-eligible-rows: 
+$ FM_WATCHER_STALE_GRACE=30 fm-inbox.sh ready   # target dd526830
+{"schema":"fm-primary-ready.v1","home":"fmlab.r4KQYn/home","observed_at":"2026-10-26T07:41:10Z","lock":{"state":"held","pid":61507,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"delivery-stalled","beacon_age_seconds":1},"posture":{"state":"present"},"delivery":{"turn_state":"idle","oldest_unread_age_seconds":49},"can_receive":false}
+$ FM_WATCHER_STALE_GRACE=30 <base 6c90cd9>/bin/fm-inbox.sh ready   # before the change
+{"schema":"fm-primary-ready.v1","home":"fmlab.r4KQYn/home","observed_at":"2026-10-26T07:41:14Z","lock":{"state":"held","pid":61507,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":4},"posture":{"state":"present"},"can_receive":true}
+$ fm-inbox.sh ready   # default poll-derived grace (300s), row only ~45s old
+{"schema":"fm-primary-ready.v1","home":"fmlab.r4KQYn/home","observed_at":"2026-10-26T07:41:16Z","lock":{"state":"held","pid":61507,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":6},"posture":{"state":"present"},"delivery":{"turn_state":"idle","oldest_unread_age_seconds":56},"can_receive":true}
+
+## a second captain note while the first sits stalled (sender sees the warning)
+$ FM_WATCHER_STALE_GRACE=30 fm-inbox.sh note 'lab captain note two'   # target dd526830
+queued 1793000501-SV19ri
+  lab captain note two: please reply NOTE-TWO-SEEN
+  firstmate will pick this up at its next check.
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+exit=0
+
+## past the default poll-derived grace (300s), no FM_WATCHER_STALE_GRACE override, picker still open
+$ lab.sh state
+lock: 61507
+61507 /Users/dalecarman/.local/bin/claude
+turn: idle 1793000321 61507 ab0f6387-3776-4aa9-9133-ce7a8d41842b
+autoarm-epoch: epoch=1 owner_pid=67294 outcome=rewake updated_at=1793000427 session_pid=61507
+now: 1793000734
+wake-queue:
+  epoch=1793000424 seq=1 kind=check key=inbox:1793000423-bUWjkD payload=check: captain inbox note 1793000423-bUWjkD - lab captain note one: please reply NOTE-ONE-SEEN
+  epoch=1793000501 seq=2 kind=check key=inbox:1793000501-SV19ri payload=check: captain inbox note 1793000501-SV19ri - lab captain note two: please reply NOTE-TWO-SEEN
+main-eligible-rows: 
+$ fm-inbox.sh ready   # target dd526830, default grace
+{"schema":"fm-primary-ready.v1","home":"fmlab.r4KQYn/home","observed_at":"2026-10-26T07:45:35Z","lock":{"state":"held","pid":61507,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"delivery-stalled","beacon_age_seconds":1},"posture":{"state":"present"},"delivery":{"turn_state":"idle","oldest_unread_age_seconds":316},"can_receive":false}
+$ <base 6c90cd9>/bin/fm-inbox.sh ready   # before the change, default grace
+{"schema":"fm-primary-ready.v1","home":"fmlab.r4KQYn/home","observed_at":"2026-10-26T07:45:42Z","lock":{"state":"held","pid":61507,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":8},"posture":{"state":"present"},"can_receive":true}
+
+## after Esc closed the picker: Stop hook delivered, main busy
+lock: 61507
+61507 /Users/dalecarman/.local/bin/claude
+turn: busy 1793000756 61507 ab0f6387-3776-4aa9-9133-ce7a8d41842b
+autoarm-epoch: epoch=1 owner_pid=67294 outcome=rewake updated_at=1793000427 session_pid=61507
+now: 1793000771
+wake-queue:
+  epoch=1793000424 seq=1 kind=check key=inbox:1793000423-bUWjkD payload=check: captain inbox note 1793000423-bUWjkD - lab captain note one: please reply NOTE-ONE-SEEN
+  epoch=1793000501 seq=2 kind=check key=inbox:1793000501-SV19ri payload=check: captain inbox note 1793000501-SV19ri - lab captain note two: please reply NOTE-TWO-SEEN
+main-eligible-rows: 
+$ FM_WATCHER_STALE_GRACE=30 fm-inbox.sh ready   # main busy
+{"schema":"fm-primary-ready.v1","home":"fmlab.r4KQYn/home","observed_at":"2026-10-26T07:46:12Z","lock":{"state":"held","pid":61507,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":1},"posture":{"state":"present"},"delivery":{"turn_state":"busy","oldest_unread_age_seconds":null},"can_receive":true}
+
+## main handled both notes and is idle again (pane: 'both inbox notes are answered')
+lock: 61507
+61507 /Users/dalecarman/.local/bin/claude
+turn: idle 1793000756 61507 ab0f6387-3776-4aa9-9133-ce7a8d41842b
+autoarm-epoch: epoch=1 owner_pid=67294 outcome=rewake updated_at=1793000427 session_pid=61507
+now: 1793000815
+wake-queue:
+main-eligible-rows: 
+$ FM_WATCHER_STALE_GRACE=30 fm-inbox.sh ready   # recovered
+{"schema":"fm-primary-ready.v1","home":"fmlab.r4KQYn/home","observed_at":"2026-10-26T07:46:55Z","lock":{"state":"held","pid":61507,"live_harness":true},"wake_consumer":{"state":"healthy","reason":"supervised","beacon_age_seconds":1},"posture":{"state":"present"},"delivery":{"turn_state":"idle","oldest_unread_age_seconds":null},"can_receive":true}
+
+## lab pane (real Claude primary)
+▝▜██████▀  Sonnet 5.5 with medium effort · Claude Max
+ ▝▝   ▝▝   /private/tmp/fmlab.r4KQYn/home
+❯ Lab readiness probe from bin/fm-live-lab.sh. Run no tool or command for this message. Reply with only the word LABREADY, a hyphen, and then 713b22829109, with no spaces.                                                 
+⏺ LABREADY-713b22829109
+✻ Churned for 11s · done 2:38 AM
+❯ /model 
+  ⎿  Kept model as Sonnet 5.5
+⏺ Stop hook feedback
+  Ran 3 shell commands              
+⏺ Captain, both inbox notes are answered. I replied NOTE-ONE-SEEN to the first and NOTE-TWO-SEEN to the second, and both are now marked handled.
+  The command that clears the wake queue printed nothing, so I can't confirm from its output that the queue was cleared.
+✻ Cooked for 45s · done 2:46 AM
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯                                                                                                                                                                          
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 3 agents                    

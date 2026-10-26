@@ -1,0 +1,11 @@
+lab: /private/tmp/fmlab.r4KQYn (tear down with: bin/fm-live-lab.sh down /private/tmp/fmlab.r4KQYn)
+tree: dd526830aa74f52116228d130306d673b9e35be0 from /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5VBHP673GKRMT797AHY9VMH
+primary: claude --setting-sources project,local --model sonnet --effort medium --permission-mode auto
+ok primary: claude pid 61507 in /private/tmp/fmlab.r4KQYn/home
+ok probe: the primary answered LABREADY-713b22829109
+ok trust: /private/tmp/fmlab.r4KQYn/home is trusted in the Claude store
+ok mirror: verified writer, check passed, captain=1 main=1
+ok host: skipped (empty fleet arms no supervision)
+ok watcher: skipped (empty fleet)
+ok treehouse: ~/.treehouse unchanged
+ready: /private/tmp/fmlab.r4KQYn
