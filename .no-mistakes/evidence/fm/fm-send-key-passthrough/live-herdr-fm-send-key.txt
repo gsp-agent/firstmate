@@ -1,0 +1,76 @@
+herdr version: herdr 0.9.1
+lab session: fm-lab-sendkey-x-19507-30224 (non-default, provisioned by bin/fm-herdr-lab.sh)
+lab pane: w1:p1
+
+--- pane before any key ---
+╰─❯ python3 /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-sendkey-validate.IlWQki/dialog.py /var/folders/2j/3tf17
+x5d7pj10gdjbp1ydpf40000gn/T/fm-sendkey-validate.IlWQki/herdr-bytes.log
++------------------------------------------+
+| You hit your weekly limit                |
+|   > Buy more credits                     |
+|     Try Again                            |
+| Esc:scrollback   Shift+x:dismiss         |
++------------------------------------------+
+
+$ fm-send.sh fm-lab-sendkey-x-19507-30224:w1:p1 --key Escape
+  exit=0 elapsed=3.85s output=fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.1UZYLG
+  pane received bytes (hex): 1b 
+  PASS: exactly 0x1b reached the pane
+
+$ fm-send.sh fm-lab-sendkey-x-19507-30224:w1:p1 --key C-c
+  exit=0 elapsed=1.90s output=fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.1UZYLG
+  pane received bytes (hex): 03 
+  PASS: exactly 0x03 reached the pane
+
+$ fm-send.sh fm-lab-sendkey-x-19507-30224:w1:p1 --key X
+  exit=0 elapsed=1.23s output=fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.1UZYLG
+  pane received bytes (hex): 58 
+  PASS: exactly 0x58 reached the pane
+
+$ fm-send.sh fm-lab-sendkey-x-19507-30224:w1:p1 --key Enter
+  exit=0 elapsed=1.41s output=fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.1UZYLG
+  pane received bytes (hex): 0d 
+  PASS: exactly 0x0d reached the pane
+
+$ fm-send.sh fm-lab-sendkey-x-19507-30224:w1:p1 --key Esc
+  exit=0 elapsed=1.00s output=fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.1UZYLG
+  pane received bytes (hex): 1b 
+  PASS: exactly 0x1b reached the pane
+
+$ fm-send.sh fm-lab-sendkey-x-19507-30224:w1:p1 --key ctrl+c
+  exit=0 elapsed=1.05s output=fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.1UZYLG
+  pane received bytes (hex): 03 
+  PASS: exactly 0x03 reached the pane
+
+$ fm-send.sh fm-lab-sendkey-x-19507-30224:w1:p1 --key C-u
+  exit=0 elapsed=1.05s output=fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.1UZYLG
+  pane received bytes (hex): 15 
+  PASS: exactly 0x15 reached the pane
+
+--- pane after the keys ---
+╰─❯ python3 /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-sendkey-validate.IlWQki/dialog.py /var/folders/2j/3tf17
+x5d7pj10gdjbp1ydpf40000gn/T/fm-sendkey-validate.IlWQki/herdr-bytes.log
++------------------------------------------+
+| You hit your weekly limit                |
+|   > Buy more credits                     |
+|     Try Again                            |
+| Esc:scrollback   Shift+x:dismiss         |
++------------------------------------------+
+[key Escape] focus -> scrollback; dialog stays
+[key C-c] dialog stays
+[key X (Shift+x)] dialog dismissed -> empty composer
+> _
+[composer] received Enter
+[composer] received Escape
+[composer] received C-c
+[composer] received C-u
+
+--- adversarial: --key X to a pane id that does not exist in the lab ---
+$ fm-send.sh fm-lab-sendkey-x-19507-30224:w999:p999 --key X
+  exit=1 elapsed=2.22s
+  stderr: fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.1UZYLG
+error: explicit target 'fm-lab-sendkey-x-19507-30224:w999:p999' is not a live herdr endpoint (tried meta=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.1UZYLG/state/fm-lab-sendkey-x-19507-30224:w999:p999.meta; metadata window/terminal lookup; backend=herdr). Use fm-<id> for a recorded task/lane, or pass a target whose backend endpoint can be verified.
+  PASS: refused loudly, nothing reported delivered
+
+herdr scenario failures: 0
+lab teardown: fm-lab-sendkey-x-19507-30224 removed, default-session tripwire unchanged

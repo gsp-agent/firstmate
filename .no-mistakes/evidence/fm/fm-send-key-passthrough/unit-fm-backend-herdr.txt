@@ -1,0 +1,28 @@
+ok - fm_backend_herdr_version_check: accepts the current protocol (14)
+ok - fm_backend_herdr_version_check: refuses an old protocol loudly
+ok - fm_backend_herdr_version_check: refuses loudly when herdr is not installed
+ok - fm_backend_herdr_workspace_label: a primary home (no marker) resolves to 'firstmate'
+ok - fm_backend_herdr_workspace_label: a secondmate home (.fm-secondmate-home) resolves to '2ndmate-<id>'
+ok - fm_backend_herdr_workspace_label: trims whitespace around the marker's secondmate id
+ok - fm_backend_herdr_workspace_label: an empty marker file falls back to the primary label 'firstmate'
+ok - fm_backend_herdr_workspace_label: two different secondmate homes get two different, non-colliding labels
+ok - fm_backend_herdr_cli: sets HERDR_SESSION AND appends a trailing --session flag on every call
+ok - herdr client selection: a live pane behind a stale shadowing client reads alive
+ok - herdr recovery-grade read: a stopped server means missing there, and nowhere else
+ok - herdr stale registration: a shell-only pane with a lingering Pi record is agent-free with an explicit reason
+ok - herdr stale registration: no registered status can outrank a shell-only process view
+ok - herdr cleanup root: a live sleep labeled claude is not a root and is not signaled
+ok - herdr cleanup root: a live process whose argv0 is claude is still a root
+ok - herdr cleanup root: a reused shell pid that is not a shell contributes no roots
+ok - herdr cleanup root: an agent descendant of a live pane shell is still a root
+ok - cleanup stop walk: a reused non-agent root selects nothing, and an agent root still selects its shell
+ok - herdr pane agent session: a resumable reference is reported with the agent label that reported it
+ok - herdr pane agent session: anything unresumable degrades to a nonzero read with no output
+ok - herdr stale registration: a registered agent with a live Pi foreground process still reads alive
+ok - herdr stale registration: only a shell-only pane demotes a registration
+ok - herdr stale registration: a transient prompt helper settles into stale-agent instead of reading live
+ok - herdr stale registration: an exhausted settle window still reads a non-shell foreground as live
+ok - herdr stale registration: an agent process outside the foreground group still counts as alive
+sh: line 1:  1465 Terminated: 15          '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-backend-herdr-tests.Vqjw6e/stale-reg-spaced-bin/Application Support/Some Dir/pi' 300
+ok - herdr stale registration: the descendant walk reads a spaced executable path whole
+not ok - an empty foreground list must read unknown/unreadable, got 'stale-agent dead refused'

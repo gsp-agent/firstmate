@@ -1,0 +1,17 @@
+tmux unmodified (expect pass): test_send_tmux_contract exit=0
+    ok - fm-send.sh: explicit tmux targets are verified; text types once and submits with Enter
+tmux mutated: only Escape/Enter/C-c pass (expect FAIL): test_send_tmux_contract exit=1
+    not ok - fm-send --key X should succeed against a live fake pane: expected exit 0, got 1
+    mutant caught
+herdr unmodified (expect pass): test_send_key_passes_unlisted_key_through exit=0
+    ok - fm_backend_herdr_send_key: passes X through unchanged and still delivers Enter and C-c
+herdr mutated: unlisted keys lowercased (expect FAIL): test_send_key_passes_unlisted_key_through exit=1
+    not ok - send_key did not deliver X to the pane as X (missing: 'panesend-keysw1:p2X')
+    mutant caught
+orca unmodified (expect pass): test_send_key_refuses_unknown_key exit=0
+    ok - fm_backend_orca_send_key: refuses unsupported keys loudly
+orca mutated: X accepted (expect FAIL): test_send_key_refuses_unknown_key exit=1
+    not ok - send_key should refuse X, which Orca has no primitive for
+    mutant caught
+
+mutation-check problems: 0

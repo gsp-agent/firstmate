@@ -1,0 +1,53 @@
+tmux version: tmux 3.8
+lab pane: keylab:dlg (private socket under the lab home's tmux dir)
+
+--- pane before any key ---
++------------------------------------------+
+| You hit your weekly limit                |
+|   > Buy more credits                     |
+|     Try Again                            |
+| Esc:scrollback   Shift+x:dismiss         |
++------------------------------------------+
+
+$ fm-send.sh keylab:dlg --key Escape
+  exit=0 elapsed=1.22s output=fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.1UZYLG
+  pane received bytes (hex): 1b 
+  PASS: exactly 0x1b reached the pane
+
+$ fm-send.sh keylab:dlg --key C-c
+  exit=0 elapsed=1.09s output=fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.1UZYLG
+  pane received bytes (hex): 03 
+  PASS: exactly 0x03 reached the pane
+
+$ fm-send.sh keylab:dlg --key X
+  exit=0 elapsed=0.78s output=fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.1UZYLG
+  pane received bytes (hex): 58 
+  PASS: exactly 0x58 reached the pane
+
+$ fm-send.sh keylab:dlg --key Enter
+  exit=0 elapsed=0.69s output=fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.1UZYLG
+  pane received bytes (hex): 0d 
+  PASS: exactly 0x0d reached the pane
+
+--- pane after Escape, C-c, X, Enter ---
++------------------------------------------+
+| You hit your weekly limit                |
+|   > Buy more credits                     |
+|     Try Again                            |
+| Esc:scrollback   Shift+x:dismiss         |
++------------------------------------------+
+[key Escape] focus -> scrollback; dialog stays
+[key C-c] dialog stays
+[key X (Shift+x)] dialog dismissed -> empty composer
+> _
+[composer] received Enter
+
+--- adversarial: --key X to a window that does not exist ---
+$ fm-send.sh keylab:nope --key X
+  exit=1 elapsed=0.80s
+  stderr: fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.1UZYLG
+can't find window: nope
+error: key 'X' not sent to keylab:nope (tmux send failed; tried meta=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.1UZYLG/state/keylab:nope.meta; metadata window/terminal lookup; backend=tmux; endpoint=verified)
+  PASS: refused loudly, nothing reported delivered
+
+tmux scenario failures: 0
