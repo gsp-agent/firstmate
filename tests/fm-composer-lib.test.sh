@@ -710,7 +710,7 @@ test_matrix_grok_titled_bottom_border() {
   # content rows. This is the idle capture from issue #3436; Herdr has no
   # cursor anchor, so the geometry mismatch used to make the proven box
   # ambiguous and the verdict unknown, stranding away-mode injection.
-  local titled plain_border typed malformed placeholder_draft suffixed suffixed_typed bad_suffix
+  local titled plain_border typed malformed placeholder_draft suffixed suffixed_typed bad_suffix dotted_exact
   titled=$'  ╭──────────────────────────────────────────────────────────────────────────╮\n  │ ❯                                                                        │\n  ╰────────────────────────────────────────────────────────── Grok 4.6 (xhigh) ─╯\n\n  Shift+Tab:mode  │  Ctrl+x:shortcuts'
   plain_border=$'  ╭──────────────────────────────────────╮\n  │ ❯                                    │\n  ╰──────────────────────────────────────╯'
   assert_screen "grok titled on tmux" empty "$CAPS_TMUX" "$titled" 1
@@ -738,6 +738,8 @@ test_matrix_grok_titled_bottom_border() {
   assert_screen "grok mode-suffixed typed on herdr" pending "$CAPS_STYLED" "$suffixed_typed"
   bad_suffix=$'  ╭──────────────────────────────────────────────────────────────────────────╮\n  │ ❯                                                                        │\n  ╰────────────────────────────────────────────── Grok 4.7 (xhigh) · bad mode! ─╯'
   assert_screen "grok bad mode suffix on herdr" unknown "$CAPS_STYLED" "$bad_suffix"
+  dotted_exact=$'  ╭──────────────────────────────────────────────────────────────────────────╮\n  │ ❯                                                                        │\n  ╰──────────────────────────────────────────────────────────── foo · bar ───╯'
+  assert_screen "same-width middle-dot title on herdr" unknown "$CAPS_STYLED" "$dotted_exact"
   pass "matrix: grok's real oversized titled bottom is empty while typed and unproved panes stay safe"
 }
 

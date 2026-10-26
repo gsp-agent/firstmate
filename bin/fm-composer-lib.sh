@@ -779,8 +779,9 @@ _fm_composer_pi_separator_row() {  # <trimmed-row>
 # requires. Width is proven by comparing canonical space strings, never by
 # `${#row}`, which counts characters under UTF-8 and bytes under LC_ALL=C
 # (issue #1988). Title text is ASCII-printable only, the same boundary
-# _fm_composer_titled_bottom_ok holds; any other glyph leaves residue, and the
-# verdict stays `unknown`, the safe direction.
+# _fm_composer_titled_bottom_ok holds for an exact-width title (only its Grok
+# overhang path also admits the ` · <mode>` separator); any other glyph leaves
+# residue, and the verdict stays `unknown`, the safe direction.
 _fm_composer_titled_rule_row() {  # <trimmed-row> <plain-rule-spaces>
   local row=$1 expected=$2 spaces
   case "$row" in
@@ -1080,21 +1081,25 @@ _fm_composer_titled_bottom_ok() {  # <family> <bottom-inner> <top-spaces>
     *) return 1 ;;
   esac
   spaces=${inner//"$dash"/ }
-  spaces=${spaces//·/ }
   spaces=$(printf '%s' "$spaces" | LC_ALL=C sed 's/[!-~]/ /g')
   case "$spaces" in
-    *[![:space:]]*) return 1 ;;
+    *[![:space:]]*) ;;
+    "$expected") return 0 ;;
   esac
-  [ "$spaces" = "$expected" ] && return 0
 
   # Grok 1.0.5 renders its real model title FM_COMPOSER_GROK_TITLE_OVERHANG
   # columns wider than the otherwise aligned top and content rows (issue
   # #3436; see the constant's definition for provenance and caveats). Accept
   # only that exact overhang and only the typed Grok model/effort title
   # shape, optionally followed by one ` · <mode>` suffix such as
-  # ` · always-approve`. This keeps arbitrary malformed bottoms ambiguous
-  # while preserving the complete-box proof around a genuinely idle or
-  # pending Grok composer.
+  # ` · always-approve`. Only this path counts U+00B7 as one column; an
+  # exact-width title above stays ASCII-printable. This keeps arbitrary
+  # malformed bottoms ambiguous while preserving the complete-box proof
+  # around a genuinely idle or pending Grok composer.
+  spaces=${spaces//·/ }
+  case "$spaces" in
+    *[![:space:]]*) return 1 ;;
+  esac
   local overhang
   overhang=$(printf '%*s' "$FM_COMPOSER_GROK_TITLE_OVERHANG" '')
   [ "$spaces" = "$expected$overhang" ] || return 1
