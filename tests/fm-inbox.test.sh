@@ -780,6 +780,55 @@ assert_equals "unknown" "$(printf '%s' "$codex_signal" | json_get delivery turn_
   "a codex holder has no Claude turn state"
 [ "$(printf '%s' "$codex_signal" | json_get delivery oldest_unread_age_seconds)" -ge 7000 ] \
   || fail "a codex holder's unread signal row must show its oldest unread age"
+# A live supervision-host grant means the Stop hook is parked in a host that
+# hands main its rows when the engine turn ends, so an old note is no stall.
+# The same home with a dead grant owner still reads delivery-stalled.
+perl -e 'exit 0' &
+dead_owner_pid=$!
+wait "$dead_owner_pid" 2>/dev/null || true
+for grant_owner in live dead; do
+  home=$(make_home "ready-delivery-grant-$grant_owner")
+  printf '%s\n' "$holder_pid" > "$home/state/.lock"
+  touch "$home/state/.last-watcher-beat" "$home/state/worker.meta"
+  now=$(date +%s)
+  printf 'idle %s %s %s\n' "$now" "$holder_pid" "delivery-session" \
+    > "$home/state/.claude-turn"
+  {
+    printf '%s\t%s\t%s\t%s\t%s\n' "$((now - 500))" 1 signal worker.status \
+      "signal: worker done"
+    printf '%s\t%s\t%s\t%s\t%s\n' "$((now - 400))" 2 check "inbox:grant-note" \
+      "check: captain inbox note grant-note - $grant_owner"
+  } > "$home/state/.wake-queue"
+  printf '1\n' > "$home/state/.branch-eligible-rows"
+  if [ "$grant_owner" = live ]; then
+    grant_pid=$pi_pid
+    grant_identity=$(FM_STATE_OVERRIDE="$home/state" \
+      bash -c '. "$1/bin/fm-wake-lib.sh"; fm_pid_identity "$2"' _ "$ROOT" "$grant_pid")
+  else
+    grant_pid=$dead_owner_pid
+    grant_identity=gone
+  fi
+  printf 'fm-branch-eligible-owner-v1\n%s\n%s\ngrant-1\n' "$grant_pid" "$grant_identity" \
+    > "$home/state/.branch-eligible-owner"
+  granted=$(FM_WATCHER_STALE_GRACE=300 run_inbox "$home" ready) \
+    || fail "ready should succeed for a $grant_owner grant owner"
+  assert_equals "idle" "$(printf '%s' "$granted" | json_get delivery turn_state)" \
+    "a $grant_owner grant owner keeps the idle turn state"
+  [ "$(printf '%s' "$granted" | json_get delivery oldest_unread_age_seconds)" -ge 400 ] \
+    || fail "a $grant_owner grant owner must show the note's unread age"
+  if [ "$grant_owner" = live ]; then
+    assert_equals "True" "$(printf '%s' "$granted" | json_get can_receive)" \
+      "a live host grant is no delivery stall"
+    assert_equals "supervised" "$(printf '%s' "$granted" | json_get wake_consumer reason)" \
+      "a live host grant keeps the consumer reason"
+  else
+    assert_equals "False" "$(printf '%s' "$granted" | json_get can_receive)" \
+      "a dead grant owner still reads a delivery stall"
+    assert_equals "delivery-stalled" "$(printf '%s' "$granted" | json_get wake_consumer reason)" \
+      "a dead grant owner reports delivery-stalled"
+  fi
+done
+
 pass "delivery stalls only for an idle main with an old unread row"
 
 # The model is the lock holder's, not the caller's: a codex primary still needs

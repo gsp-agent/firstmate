@@ -77,7 +77,9 @@
 # row, in the scope the holder's Stop hook reads (fm_wake_main_unread_scope,
 # with the holder's harness), has waited longer than the same grace,
 # `can_receive` is false with reason `delivery-stalled`, whatever the beat
-# says. With no scope it never fires.
+# says. With no scope it never fires, nor while a supervision-host branch
+# grant is live (fm_wake_branch_grant_live): the Stop hook is then parked in
+# a host whose post-turn check hands main its rows when the engine turn ends.
 # The `delivery` object carries the oldest unread age and the turn state, so
 # a sender can tell a busy main from a blocked one; a busy main, an empty
 # queue, and a holder with no turn record of its own (`unknown`) keep their
@@ -982,7 +984,8 @@ cmd_ready() {
   fi
   if [ "$can_receive" = true ] && [ "$turn_state" = idle ] \
     && [ -n "$oldest_age" ] && [ -n "$grace" ] \
-    && [ "$oldest_age" -gt "$grace" ]; then
+    && [ "$oldest_age" -gt "$grace" ] \
+    && ! fm_wake_branch_grant_live "$STATE/.branch-eligible-rows" "$STATE/.branch-eligible-owner"; then
     can_receive=false
     consumer_reason="delivery-stalled"
   fi
