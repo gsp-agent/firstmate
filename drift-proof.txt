@@ -161,3 +161,5 @@ pr: 157
 pr: 158
 # Failing-first replays in tests/fm-claude-wake.test.sh: test_stop_claim_loses_to_waker_rewake_committed_after_pending_read commits a second rewake on the base (STOP_RC=2, ledger epoch 3), test_stop_claim_loses_to_inflight_waker_rewake commits a second rewake on the base (STOP_RC=2, ledger epoch 2), and test_waker_banner_carries_away_line_on_host_home misses the away-posture line on the base; all three pass after the fix.
 pr: 159
+# Failing-first per-log budget in tests/fm-wake-drain-fork-budget.test.sh: on 02ce380f a settled drain starts 53 processes per added unchanged status log (1 vs 50 logs, budget 3) and fails; built-in reads, out-var cursor helpers and the unchanged-file fast path start 2 and pass, an appended or recreated log is still presented, and a settled drain on a live-state copy drops from 21,698 to 3,049 processes.
+pr: 161
