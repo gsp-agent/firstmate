@@ -167,3 +167,5 @@ pr: 160
 pr: 161
 # Failing-first arm sleep budget in tests/fm-watch-arm-sleep-fork-budget.test.sh: on f9fab1d4 an owned arm starts 30 sleep processes in 2s of 0.05s waits (budget 0) and fails; fm_sleep starts none, owned or attached, and the forced sleep(1) fallback still waits (31 and 21).
 pr: 162
+# Failing-first cases in tests/fm-crew-state.test.sh: on the base a ship task whose run failed only in ci on monitor recovery and whose merge the merge poll recorded reads failed under FM_CREW_STATE_NO_FORGE=1 and the inactive reconciler queues it as failed; after the fix it reads done with the merged PR, the reconciler queues no failed outcome for it, and a merge marker for a different PR still reads failed. The no-recorded-merge and closed-unmerged controls are the existing cases in test_terminal_green_delivery_disposition.
+pr: 163
