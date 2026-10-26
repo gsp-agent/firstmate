@@ -74,9 +74,10 @@
 # stale-beacon mid-turn allowance does not apply.
 # After that verdict, one delivery rule reads the record itself: when the
 # lock holder's own Claude turn record reads idle and the oldest unread wake
-# row, in the scope the Stop hook reads (fm_wake_main_unread_scope), has waited
-# longer than the same grace, `can_receive` is false with reason
-# `delivery-stalled`, whatever the beat says. With no scope it never fires.
+# row, in the scope the holder's Stop hook reads (fm_wake_main_unread_scope,
+# with the holder's harness), has waited longer than the same grace,
+# `can_receive` is false with reason `delivery-stalled`, whatever the beat
+# says. With no scope it never fires.
 # The `delivery` object carries the oldest unread age and the turn state, so
 # a sender can tell a busy main from a blocked one; a busy main, an empty
 # queue, and a holder with no turn record of its own (`unknown`) keep their
@@ -968,7 +969,8 @@ cmd_ready() {
     fi
   fi
   if command -v fm_wake_main_unread_scope >/dev/null 2>&1 \
-    && unread_scope=$(fm_wake_main_unread_scope "$STATE" "$CONFIG" "$grace") \
+    && unread_scope=$(fm_wake_main_unread_scope "$STATE" "$CONFIG" "$grace" '' \
+      "${holder_harness:-unknown}") \
     && fm_wake_main_unread "$STATE" "$unread_scope" >/dev/null; then
     case "${FM_WAKE_MAIN_UNREAD_OLDEST_EPOCH:-}" in
       ''|*[!0-9]*) ;;

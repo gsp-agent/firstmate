@@ -766,6 +766,20 @@ for turn_owner in none other; do
   assert_equals "unknown" "$(printf '%s' "$unowned" | json_get delivery turn_state)" \
     "a $turn_owner turn record reads an unknown turn state"
 done
+# A non-Claude holder has no host by default, so main owns every row and its
+# oldest unread signal row reports its real age.
+home=$(make_home ready-delivery-codex-signal)
+printf '%s\n' "$codex_pid" > "$home/state/.lock"
+touch "$home/state/.last-watcher-beat" "$home/state/worker.meta"
+now=$(date +%s)
+printf '%s\t%s\t%s\t%s\t%s\n' "$((now - 7200))" 1 signal worker.status \
+  "signal: worker done" > "$home/state/.wake-queue"
+codex_signal=$(FM_WATCHER_STALE_GRACE=300 run_inbox "$home" ready) \
+  || fail "ready should succeed for a codex home with a signal row"
+assert_equals "unknown" "$(printf '%s' "$codex_signal" | json_get delivery turn_state)" \
+  "a codex holder has no Claude turn state"
+[ "$(printf '%s' "$codex_signal" | json_get delivery oldest_unread_age_seconds)" -ge 7000 ] \
+  || fail "a codex holder's unread signal row must show its oldest unread age"
 pass "delivery stalls only for an idle main with an old unread row"
 
 # The model is the lock holder's, not the caller's: a codex primary still needs

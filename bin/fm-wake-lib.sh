@@ -2835,8 +2835,9 @@ resurface_row_main_only() {  # <kind> <key> <payload>
   return 1
 }
 
-# fm_wake_main_unread_scope <state> <config> <grace> [idle|needed]
-# Print the scope a Claude primary's Stop hook reads unread rows with.
+# fm_wake_main_unread_scope <state> <config> <grace> [idle|needed] [primary]
+# Print the scope a primary's Stop hook reads unread rows with. The primary
+# harness decides the host default and is claude unless named.
 # main-only while an attended host home needs supervision, because the park
 # runs the engine that owns routine rows. Every row on a plain home, with the
 # host off, or on a host home with no supervision need, where no park will run
@@ -2846,10 +2847,10 @@ resurface_row_main_only() {  # <kind> <key> <payload>
 # not probed twice at one decision point.
 # Requires bin/fm-supervision-lib.sh, bin/fm-supervision-engine-lib.sh, and
 # bin/fm-afk-contract.sh to be sourced first.
-fm_wake_main_unread_scope() {  # <state> <config> <grace> [idle|needed]
+fm_wake_main_unread_scope() {  # <state> <config> <grace> [idle|needed] [primary]
   local state=$1 config=$2 grace=$3
   [ -e "$state/.afk" ] && return 1
-  if fm_supervision_host_enabled "$config" claude; then
+  if fm_supervision_host_enabled "$config" "${5:-claude}"; then
     fm_afk_contract_away_present "$state" && return 1
     case "${4:-}" in
       needed) printf 'main-only\n'; return 0 ;;
