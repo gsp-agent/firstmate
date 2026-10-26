@@ -61,8 +61,8 @@ FAKE_CLAUDE="$FAKEBIN/claude"
 #               the turn reports verdict captain
 #   fail        exit nonzero at once, with no result and no report (an engine
 #               error the latch counts)
-#   hang        before anything else, start a descendant in a process group of
-#               its own, then block
+#   hang        before anything else, record its pid in $FM_HOME/engine-pid and
+#               start a descendant in a process group of its own, then block
 STUB="$TMP_ROOT/engine-stub"
 cat > "$STUB" <<'SH'
 #!/usr/bin/env bash
@@ -82,6 +82,7 @@ result() {
   printf '"usage":{"input_tokens":5,"cache_read_input_tokens":100,"cache_creation_input_tokens":10,"output_tokens":20},"session_id":"stub"}\n'
 }
 if [ "$mode" = hang ]; then
+  printf '%s\n' "$$" > "$FM_HOME/engine-pid"
   perl -e 'setpgrp(0, 0); exec "sleep", $ARGV[0]' "$FM_TEST_STUB_MAX_BLOCK_SECONDS" &
   printf '%s\n' "$!" > "$FM_HOME/orphan-pid"
   sleep "$FM_TEST_STUB_MAX_BLOCK_SECONDS"
@@ -3116,10 +3117,54 @@ default_turn_outcome() {  # <name> <park-seconds>; sets DEFAULT_TURN_OUTCOME to 
 
 test_default_turn_timeout_is_540_seconds() {
   default_turn_outcome default-turn-571 571
-  [ "$DEFAULT_TURN_OUTCOME" = handled ] || fail "a turn under the default cap must run"
+  [ "$DEFAULT_TURN_OUTCOME" = handled ] || fail "a park with room for the default cap plus its grace must run the turn"
   default_turn_outcome default-turn-570 570
-  [ "$DEFAULT_TURN_OUTCOME" = boundary ] || fail "a turn past the default cap must be cut at the boundary"
-  pass "host: the default turn bound is 540 seconds, so a turn under it runs and a turn past it is cut at the boundary"
+  [ "$DEFAULT_TURN_OUTCOME" = boundary ] || fail "a park without room for the default cap plus its grace must refuse the turn at the boundary"
+  pass "host: the default turn bound is 540 seconds, so a park with room for it runs the turn and a park without is refused at the boundary"
+}
+
+# A running turn is cut by its watchdog when it reaches the default 540-second
+# cap, not before. PERL5OPT preloads a clock into every perl the host starts,
+# and only the watchdog whose command is the engine takes it: the watchdog's
+# first reading, its deadline, is the turn's start, and every later reading is
+# that start plus the seconds in $home/turn-clock. The case moves that clock
+# to 539 seconds, where the turn must still run, then to 540, where it must be
+# cut, so machine load cannot move either reading.
+test_turn_past_the_default_cap_is_cut_at_540_seconds() {
+  local home engine
+  home=$(make_home default-turn-cut away)
+  echo hang > "$home/stub-mode"
+  echo 0 > "$home/turn-clock"
+  mkdir "$home/perl"
+  cat > "$home/perl/FmTestTurnClock.pm" <<'PL'
+package FmTestTurnClock;
+use Time::HiRes ();
+if ($0 eq '-e' && ($ARGV[5] // '') eq $ENV{FM_SUPERVISION_ENGINE_CLAUDE_BIN}) {
+  my ($start, $read) = (Time::HiRes::time(), 0);
+  no warnings 'redefine';
+  *main::time = sub () {
+    return $start unless $read++;
+    open my $clock, '<', $ENV{FM_TEST_TURN_CLOCK} or return $start;
+    return $start + (<$clock> // 0);
+  };
+}
+1;
+PL
+  PERL5LIB="$home/perl" PERL5OPT=-MFmTestTurnClock FM_TEST_TURN_CLOCK="$home/turn-clock" start_host "$home"
+  wait_until 150 watcher_live "$home" || fail "default-turn-cut: the host never started a watcher cycle"
+  append_status "$home" 'a turn past the cap'
+  wait_until 400 test -s "$home/engine-pid" || fail "default-turn-cut: the engine turn never started: $(cat "$home/state/.supervision-host.log")"
+  engine=$(cat "$home/engine-pid")
+  echo 539 > "$home/turn-clock"
+  sleep 1
+  kill -0 "$engine" 2>/dev/null || fail "a turn 539 seconds in was cut under the default cap: $(cat "$home/host.out")"
+  ! host_exited "$home" || fail "a turn 539 seconds in ended the park: $(cat "$home/host.out")"
+  echo 540 > "$home/turn-clock"
+  wait_until 400 host_exited "$home" || fail "a turn 540 seconds in was not cut: $(cat "$home/state/.supervision-host.log")"
+  assert_re '^supervision-host: .*the engine turn hit its 540s bound; this wake is yours$' "$home/host.out" \
+    "a turn cut at the default cap must hand its wake to main"
+  assert_re '	failed	turn=.*	rc=124	' "$home/state/.supervision-host.log" "the turn must end on its watchdog's bound"
+  pass "host: a running turn is cut when it reaches the default 540-second cap, not before, and its wake goes to main"
 }
 
 # An owner whose own bound is the park lets a turn run past the boundary up to
@@ -3605,6 +3650,7 @@ supervision_host_lane_b() {
   test_park_test_clock_requires_the_marker
   test_park_seconds_at_or_beyond_the_hook_registration_fall_back_to_the_default
   test_default_turn_timeout_is_540_seconds
+  test_turn_past_the_default_cap_is_cut_at_540_seconds
   test_park_limit_lets_a_turn_outlive_the_boundary
   test_first_cycle_status_streams_and_owner_options_reach_it
   test_unchanged_held_outcome_reaches_the_captain_once_until_a_new_event
