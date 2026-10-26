@@ -1424,6 +1424,45 @@ SH
   pass "host: a main-only note queued while the successor starts reaches main after the handled turn"
 }
 
+# A worker whose own status line takes it off working frees its place with no
+# cleanup or PR, and the branch that handles that signal cannot start work, so
+# the host hands main the Dispatch line (bin/fm-dispatch-ready.sh --freed-by)
+# instead of parking. When the same turn also records a captain outcome, the
+# branch-outcome hand-back that fires first carries the freed place too (chip,
+# PR 164 review 5653545151): the branch already acknowledged the signal, so no
+# later wake would.
+test_attended_freed_place_hands_main_its_dispatch_line() {
+  local home proj mode
+  command -v tasks-axi >/dev/null 2>&1 || { pass "host: freed-place hand-back skipped without tasks-axi"; return 0; }
+  for mode in handle captain; do
+    home=$(make_home "attended-freed-place-$mode" attended)
+    echo "$mode" > "$home/stub-mode"
+    proj="$home/projects/freedproj"
+    fm_git_init_commit "$proj"
+    fm_git_add_origin "$proj" "$home/freedproj.origin.git"
+    printf 'project=%s\nwindow=fm-demo\nharness=claude\nkind=ship\n' "$proj" > "$home/state/demo.meta"
+    mkdir -p "$home/data"
+    fm_test_tasks_toml "$home/.tasks.toml"
+    printf '%s\n' '# Backlog' '' '## In flight' '' '## Queued' '' '## Done' > "$home/data/backlog.md"
+    tasks-axi add next-up "the next ready row" --kind ship --repo freedproj --file "$home/data/backlog.md" >/dev/null ||
+      fail "fixture: could not queue the ready row"
+    FM_PROJECT_CAPACITY_CREW_STATE="$home/fakebin/fm-crew-state.sh" start_host "$home"
+    wait_until 150 watcher_live "$home" || fail "freed-place $mode: the host never started a watcher cycle"
+    append_status "$home" 'waiting on review' paused
+    wait_until 250 host_exited "$home" ||
+      fail "freed-place $mode: the freed place never reached main: $(cat "$home/host.out"; cat "$home/state/.supervision-host.log")"
+    expect_code 0 "$(cat "$home/host.rc")" "freed-place $mode: the hand-back must exit 0 for the owner to deliver"
+    if [ "$mode" = captain ]; then
+      assert_re '^supervision-host: branch-outcome: ' "$home/host.out" "freed-place captain: the captain outcome must still reach main"
+    fi
+    assert_re '^supervision-host: freed-place: ' "$home/host.out" "freed-place $mode: the hand-back must name the freed place"
+    assert_re 'Dispatch: freedproj declares no place limit\. Ready for it, in backlog order: next-up\. .*start it now' \
+      "$home/host.out" "freed-place $mode: the hand-back must carry the project's Dispatch line"
+    stop_home_processes "$home"
+  done
+  pass "host: a worker's status line that frees its place hands main the Dispatch line, alone or beside a captain outcome"
+}
+
 # The file is read at every wake (docs/configuration.md "Supervision host"), so
 # an off written while the host is parked sends the next attended close to main
 # exactly as the arm printed it, with the ledger naming the opt-out.
@@ -3646,6 +3685,7 @@ supervision_host_lane_a() {
   test_captain_leaving_mid_turn_keeps_its_captain_outcome_for_the_return
   test_quiet_record_without_its_daemon_is_a_present_captain
   test_attended_main_only_close_passes_straight_to_main
+  test_attended_freed_place_hands_main_its_dispatch_line
   test_off_written_while_parked_passes_the_next_attended_close_to_main
   test_main_only_pass_through_leaves_the_successor_watcher_running
   test_attended_close_with_unidentified_main_session_passes_to_main

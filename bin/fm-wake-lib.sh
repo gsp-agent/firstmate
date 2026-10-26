@@ -1660,6 +1660,36 @@ fm_local_firstmate_state_dirs() {  # <first-state>
   done
 }
 
+# fm_wake_signal_task_ids <reason>: print each task id the `signal:` rows of a
+# wake reason name, once, in order. The watcher coalesces every pending signal
+# into ONE row, `signal: <file> <file>...` (bin/fm-watch.sh), whose files are
+# status logs (<id>.status) and turn-end markers (<id>.turn-ended), so every
+# whitespace-separated token is read, not just the row's last word. A token
+# whose basename is neither, or whose id is not a plain task id, is skipped.
+fm_wake_signal_task_ids() {  # <reason>
+  local line token id seen='|'
+  local -a tokens
+  while IFS= read -r line; do
+    case "$line" in 'signal:'*) ;; *) continue ;; esac
+    # Split on whitespace without pathname expansion of the paths.
+    read -r -a tokens <<<"${line#signal:}"
+    for token in ${tokens[@]+"${tokens[@]}"}; do
+      id=${token##*/}
+      case "$id" in
+        *.status) id=${id%.status} ;;
+        *.turn-ended) id=${id%.turn-ended} ;;
+        *) continue ;;
+      esac
+      case "$id" in '' | *[!A-Za-z0-9._-]*) continue ;; esac
+      case "$seen" in *"|$id|"*) continue ;; esac
+      seen="$seen$id|"
+      printf '%s\n' "$id"
+    done
+  done <<EOF
+$1
+EOF
+}
+
 # The one lock serializing Treehouse slot allocation and return for a project,
 # and project capacity admission (bin/fm-project-capacity-lib.sh), which a
 # fresh spawn evaluates under it on every backend.
@@ -1738,6 +1768,25 @@ fm_treehouse_slot_owner_marker() {  # <worktree>
   printf '%s/.fm-slot-owner\n' "$(dirname "$slot")"
 }
 
+# fm_treehouse_configured_pool: print the physical path of the pool Treehouse
+# is configured to use for <project> (its treehouse.toml root, TREEHOUSE_ROOT
+# or the default), read from `treehouse status --json` in the project: the
+# pool directory holding the first listed slot. Returns 1 when that cannot be
+# read (no jq, a Treehouse older than status --json, a failed call, or output
+# that is not a JSON array naming a slot path) and 2 when the configured pool
+# lists no slot yet, so its path is not established. Both mean "unknown": a
+# caller never treats a slot as inside or outside a pool it could not read.
+fm_treehouse_configured_pool() {  # <project-dir>
+  local project=$1 status_json configured
+  command -v jq >/dev/null 2>&1 || return 1
+  status_json=$(CDPATH='' cd -- "$project" 2>/dev/null && treehouse status --json </dev/null 2>/dev/null) || return 1
+  configured=$(printf '%s\n' "$status_json" | jq -er 'arrays | if . == [] then "" else .[0].path end' 2>/dev/null) || return 1
+  [ -n "$configured" ] || return 2
+  configured=$(CDPATH='' cd -- "$(dirname "$(dirname "$configured")")" 2>/dev/null && pwd -P) || return 1
+  [ -n "$configured" ] || return 1
+  printf '%s\n' "$configured"
+}
+
 # fm_treehouse_free_own_slot: print the worktree path of one free Treehouse
 # pool slot that belongs to the project's own clone, or nothing.
 #
@@ -1769,16 +1818,9 @@ fm_treehouse_slot_owner_marker() {  # <worktree>
 # still refuses a foreign-clone slot.
 fm_treehouse_free_own_slot() {  # <project-dir> [<base-branch>]
   local project=$1 base=${2:-} listed line wt slot pool state owner_pid lease_line marker name best="" best_key=""
-  local target_branch="" target_ref="" target_ready=0 status candidate status_json="" configured=""
+  local target_branch="" target_ref="" target_ready=0 status candidate configured=""
   command -v jq >/dev/null 2>&1 || return 0
-  if status_json=$(CDPATH='' cd -- "$project" 2>/dev/null && treehouse status --json </dev/null 2>/dev/null) &&
-    configured=$(printf '%s\n' "$status_json" | jq -er 'arrays | if . == [] then "" else .[0].path end' 2>/dev/null); then
-    [ -n "$configured" ] || return 0
-    configured=$(CDPATH='' cd -- "$(dirname "$(dirname "$configured")")" 2>/dev/null && pwd -P) || return 0
-    [ -n "$configured" ] || return 0
-  else
-    return 0
-  fi
+  configured=$(fm_treehouse_configured_pool "$project") || return 0
   listed=$(git -C "$project" -c core.quotePath=false worktree list --porcelain 2>/dev/null) || return 0
   while IFS= read -r line; do
     case "$line" in

@@ -103,12 +103,19 @@ case "$*" in
 esac
 case "${1:-}" in
   display-message) printf 'firstmate\n' ;;
-  capture-pane) printf '%s\n' '• Working (1s • esc to interrupt)' ;;
+  capture-pane)
+    # A pane whose `treehouse get` returned shows that command's own rows.
+    if [ -n "${FM_FAKE_CAPTURE:-}" ]; then cat "$FM_FAKE_CAPTURE"; else printf '%s\n' '• Working (1s • esc to interrupt)'; fi ;;
 esac
 exit 0
 SH
   cat > "$fakebin/treehouse" <<'SH'
 #!/usr/bin/env bash
+# A status read changes nothing in the pool, so it is answered, not logged.
+if [ "$*" = "status --json" ]; then
+  [ -z "${FM_FAKE_TREEHOUSE_STATUS:-}" ] || printf '%s\n' "$FM_FAKE_TREEHOUSE_STATUS"
+  exit 0
+fi
 printf 'treehouse %s\n' "$*" >> "$FM_FAKE_CALL_LOG"
 exit 0
 SH
@@ -219,6 +226,7 @@ run_spawn() {  # <case-dir> <home> <pane-path> <args...>
     FM_STATE_OVERRIDE='' FM_DATA_OVERRIDE='' FM_PROJECTS_OVERRIDE='' FM_CONFIG_OVERRIDE='' \
     FM_SPAWN_NO_GUARD=1 TMUX="fake,1,0" FM_BACKEND=tmux \
     FM_FAKE_PANE_PATH="$pane" FM_FAKE_CALL_LOG="$case_dir/calls.log" \
+    FM_FAKE_TREEHOUSE_STATUS="${FM_FAKE_TREEHOUSE_STATUS:-}" FM_FAKE_CAPTURE="${FM_FAKE_CAPTURE:-}" \
     FM_PROJECT_CAPACITY_CREW_STATE="$case_dir/fakebin/fm-crew-state-stub" \
     PATH="$case_dir/fakebin:$PATH" \
     "$SPAWN" "$@" 2>&1
@@ -251,6 +259,54 @@ call_count() { wc -l < "$1/calls.log" | tr -d ' '; }
 worktree_list() { git -C "$1/project" worktree list --porcelain; }
 
 # --- cases ------------------------------------------------------------------
+
+# The 10-26 07:19:45 GSP start, replayed: places free (cap 5, one holder), but
+# the project's worktree pool (max_trees 4) has every tree held. The spawn
+# defers with 75 and names the pool, leaving nothing behind, instead of
+# failing later in the pane with a treehouse error.
+POOL_FULL_STATUS='[{"name":"1","status":"in-use","lease_holder":""},{"name":"2","status":"in-use","lease_holder":""},{"name":"3","status":"in-use","lease_holder":""},{"name":"4","status":"leased","lease_holder":"fm-spawn-gsp-3oxvj"}]'
+test_full_pool_defers_beside_free_places() {
+  local case_dir home out rc=0 before worktrees
+  case_dir=$(make_case pool-full task-a)
+  home="$case_dir/home"
+  declare_capacity "$home" "project 5"
+  write_live "$home" live-a "$case_dir/project"
+  printf '%s\n' 'max_trees = 4' 'root = ""' > "$case_dir/project/treehouse.toml"
+  before=$(call_count "$case_dir")
+  worktrees=$(worktree_list "$case_dir")
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_FULL_STATUS spawn_ship "$case_dir" task-a "$case_dir/project") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a spawn into a full worktree pool did not defer: $out"
+  assert_contains "$out" "deferred: project project's worktree pool is full: max_trees 4" "the deferral did not name the pool"
+  assert_contains "$out" "4 leased by fm-spawn-gsp-3oxvj" "the deferral did not name the held trees"
+  assert_contains "$out" "its backlog item stays queued" "the deferral did not say the row stays queued"
+  assert_nothing_created "$case_dir" "$home" task-a "$before" "$worktrees"
+  pass "a full worktree pool beside free places defers with 75, names the pool and creates nothing"
+}
+
+# A pool whose trees read available can still refuse (Treehouse's reuse test is
+# stricter than its status). The pane's `treehouse get` reporting every tree in
+# use or dirty defers with 75 only once its endpoint is confirmed closed (the
+# Herdr cases in tests/fm-spawn-worktree-settle.test.sh); tmux confirms no
+# close, so here the refusal stays exit 1, names its window, and leaves the row
+# queued, because a deferral promises a retry finds nothing left behind.
+test_treehouse_full_pool_refusal_in_the_pane_defers() {
+  local case_dir home out rc=0
+  case_dir=$(make_case pool-refusal task-a)
+  home="$case_dir/home"
+  printf '%s\n' fm-treehouse-get-start \
+    "  all 4 worktrees are in use or dirty (max_trees = 4). Run 'treehouse status' to see details, or increase max_trees in treehouse.toml" \
+    fm-treehouse-get-end > "$case_dir/capture.txt"
+  out=$(FM_FAKE_CAPTURE="$case_dir/capture.txt" spawn_ship "$case_dir" task-a "$case_dir/project") || rc=$?
+  expect_code 1 "$rc" "a pane full-pool refusal with an unconfirmed close must stay a failure: $out"
+  assert_not_contains "$out" "deferred:" "an unconfirmed close was reported as a clean deferral"
+  assert_contains "$out" "could not confirm closure" "the refusal did not name its unconfirmed window"
+  assert_contains "$out" "all 4 worktrees are in use or dirty" "the refusal lost treehouse's reason"
+  assert_absent "$home/state/task-a.meta" "the pane refusal published a task record"
+  if [ "$HAVE_TASKS_AXI" = 1 ]; then
+    [ "$(row_state "$home" task-a)" = queued ] || fail "the pane deferral moved task-a's row: $(row_state "$home" task-a)"
+  fi
+  pass "a pane full-pool refusal whose close is unconfirmed stays exit 1 and leaves the row queued"
+}
 
 # The reported incident's shape before any declaration: the project is already
 # busy, and nothing caps a further launch. Absent a declaration that stays true.
@@ -1488,6 +1544,8 @@ SH
 
 test_unreadable_crew_state_holds_a_place
 test_undeclared_capacity_keeps_dispatch_uncapped
+test_full_pool_defers_beside_free_places
+test_treehouse_full_pool_refusal_in_the_pane_defers
 test_available_capacity_admits_the_worker
 test_exhausted_capacity_defers_without_leaving_anything_behind
 test_spaced_project_name_is_declared
