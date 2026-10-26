@@ -109,6 +109,14 @@ SH
   chmod +x "$fakebin/tmux"
   cat > "$fakebin/treehouse" <<'SH'
 #!/usr/bin/env bash
+if [ "${1:-}" = status ]; then
+  if [ -n "${FM_FAKE_TREEHOUSE_STATUS:-}" ]; then
+    cat "$FM_FAKE_TREEHOUSE_STATUS"
+  else
+    printf '[]\n'
+  fi
+  exit 0
+fi
 printf '%s\n' '🌳 Setting up worktree...' >&2
 if [ "${FM_FAKE_TREEHOUSE:-}" = pool-full ]; then
   printf '%s\n' "all 16 worktrees are in use or dirty (max_trees = 16). Run 'treehouse status' to see details, or increase max_trees in treehouse.toml" >&2
@@ -542,8 +550,92 @@ make_pool_case() {
   git -C "$foreign" worktree add --quiet -b "foreignslot-$name" "$pool/1/repo"
   printf '{"worktrees":[{"name":"1","path":"%s"},{"name":"2","path":"%s"}]}' \
     "$pool/1/repo" "$pool/2/repo" > "$pool/treehouse-state.json"
+  printf '[{"name":"1","path":"%s"},{"name":"2","path":"%s"}]' \
+    "$pool/1/repo" "$pool/2/repo" > "$case_dir/treehouse-status.json"
   fm_test_spawn_brief "$home" "$id" "Exercise mixed-pool slot steering for $id."
   printf '%s\n' "$case_dir|$home|$proj|$wt|$wt|$fakebin|$countfile|0"
+}
+
+# make_pool_root_switch_case <name> <id> <yes|no> builds the shape after a
+# project's Treehouse root has moved: a free own-clone slot still sits in
+# the old pool (slot 1), while `treehouse status` in the project reports
+# only the configured new pool - slot 2 there when <yes>, or an empty pool
+# when <no>. The old slot has the lower name, so a candidate picked from
+# `git worktree list` alone chooses the old pool first.
+make_pool_root_switch_case() {
+  local name=$1 id=$2 configured_slot=$3 case_dir home proj wt old_pool new_pool fakebin countfile
+  case_dir="$TMP_ROOT/$name"
+  home="$case_dir/home"
+  proj="$case_dir/project"
+  wt="$case_dir/wt"
+  old_pool="$case_dir/old-pool"
+  new_pool="$case_dir/new-pool"
+  countfile="$case_dir/pane-call-count"
+  fakebin=$(make_settle_fakebin "$case_dir/fake")
+  fm_test_spawn_home "$home" codex
+  fm_git_worktree "$proj" "$wt" "wt-$name"
+  mkdir -p "$old_pool/1" "$new_pool"
+  git -C "$proj" worktree add --quiet -b "oldslot-$name" "$old_pool/1/repo"
+  printf '{"worktrees":[{"name":"1","path":"%s"}]}' \
+    "$old_pool/1/repo" > "$old_pool/treehouse-state.json"
+  if [ "$configured_slot" = yes ]; then
+    mkdir -p "$new_pool/2"
+    git -C "$proj" worktree add --quiet -b "newslot-$name" "$new_pool/2/repo"
+    printf '{"worktrees":[{"name":"2","path":"%s"}]}' \
+      "$new_pool/2/repo" > "$new_pool/treehouse-state.json"
+    printf '[{"name":"2","path":"%s"}]' \
+      "$new_pool/2/repo" > "$case_dir/treehouse-status.json"
+  else
+    printf '[]' > "$case_dir/treehouse-status.json"
+  fi
+  fm_test_spawn_brief "$home" "$id" "Exercise Treehouse root-switch slot steering for $id."
+  printf '%s\n' "$case_dir|$home|$proj|$wt|$wt|$fakebin|$countfile|0"
+}
+
+# After a root switch, the free own-clone slot in the configured pool is
+# entered, never the lower-named free slot left in the old pool: entering
+# the old name looks it up only in the configured pool and lands nowhere.
+test_root_switched_pool_enters_configured_pool_slot() {
+  local rec id out status new_slot pane_log
+  id=settle-pool-root-switch-z14
+  rec=$(make_pool_root_switch_case settle-pool-root-switch "$id" yes)
+  read_settle_record "$rec"
+  new_slot="$TMP_ROOT/settle-pool-root-switch/new-pool/2/repo"
+  pane_log="$TMP_ROOT/settle-pool-root-switch/pane.log"
+  WT_DIR="$new_slot"
+
+  out=$(FM_FAKE_PANE_LOG="$pane_log" FM_FAKE_TREEHOUSE_STATUS="$TMP_ROOT/settle-pool-root-switch/treehouse-status.json" run_settle_spawn "$id")
+  status=$?
+  expect_code 0 "$status" "spawn should succeed in the configured pool's own-clone slot"$'\n'"$out"
+  assert_grep "worktree=$new_slot" "$HOME_DIR/state/$id.meta" \
+    "meta did not record the configured pool's own-clone slot"
+  assert_grep "treehouse enter '2'" "$pane_log" \
+    "spawn did not enter the configured pool's free own-clone slot by name"
+  assert_no_grep "treehouse enter '1'" "$pane_log" \
+    "spawn entered a free slot from the old pool after the root switch"
+  pass "a root switch enters the configured pool's slot, never the old pool's"
+}
+
+# After a root switch to an empty configured pool, no old-pool slot is
+# entered either: the spawn keeps the plain `treehouse get` path, which
+# creates or reuses a slot in the configured pool.
+test_root_switched_empty_pool_uses_treehouse_get() {
+  local rec id out status pane_log
+  id=settle-pool-root-switch-empty-z15
+  rec=$(make_pool_root_switch_case settle-pool-root-switch-empty "$id" no)
+  read_settle_record "$rec"
+  pane_log="$TMP_ROOT/settle-pool-root-switch-empty/pane.log"
+
+  out=$(FM_FAKE_PANE_LOG="$pane_log" FM_FAKE_TREEHOUSE_STATUS="$TMP_ROOT/settle-pool-root-switch-empty/treehouse-status.json" run_settle_spawn "$id")
+  status=$?
+  expect_code 0 "$status" "spawn should succeed through treehouse get when the configured pool is empty"$'\n'"$out"
+  assert_grep "worktree=$WT_DIR" "$HOME_DIR/state/$id.meta" \
+    "meta did not record the settled worktree"
+  assert_grep 'treehouse get' "$pane_log" \
+    "spawn did not fall back to treehouse get when the configured pool was empty"
+  assert_no_grep 'treehouse enter' "$pane_log" \
+    "spawn entered a free slot from the old pool after the root switch"
+  pass "a root switch to an empty configured pool uses treehouse get, never the old pool's slot"
 }
 
 # With a free slot of the project's own clone already in a mixed pool, the
@@ -559,7 +651,7 @@ test_mixed_pool_enters_free_own_slot() {
   pane_log="$TMP_ROOT/settle-pool-own/pane.log"
   WT_DIR="$own_slot"
 
-  out=$(FM_FAKE_PANE_LOG="$pane_log" run_settle_spawn "$id")
+  out=$(FM_FAKE_PANE_LOG="$pane_log" FM_FAKE_TREEHOUSE_STATUS="$TMP_ROOT/settle-pool-own/treehouse-status.json" run_settle_spawn "$id")
   status=$?
   expect_code 0 "$status" "spawn should succeed in the pool's own-clone slot"$'\n'"$out"
   assert_grep "worktree=$own_slot" "$HOME_DIR/state/$id.meta" \
@@ -582,7 +674,7 @@ test_mixed_pool_claimed_own_slot_uses_treehouse_get() {
   pane_log="$TMP_ROOT/settle-pool-claimed/pane.log"
   printf 'task=some-other-task\nhome=%s\n' "$HOME_DIR" > "$pool/2/.fm-slot-owner"
 
-  out=$(FM_FAKE_PANE_LOG="$pane_log" run_settle_spawn "$id")
+  out=$(FM_FAKE_PANE_LOG="$pane_log" FM_FAKE_TREEHOUSE_STATUS="$TMP_ROOT/settle-pool-claimed/treehouse-status.json" run_settle_spawn "$id")
   status=$?
   expect_code 0 "$status" "spawn should succeed through treehouse get when the own slot is claimed"$'\n'"$out"
   assert_grep "worktree=$WT_DIR" "$HOME_DIR/state/$id.meta" \
@@ -727,7 +819,7 @@ test_dirty_own_slot_is_not_entered() {
   pane_log="$TMP_ROOT/settle-pool-dirty/pane.log"
   printf 'residue\n' > "$pool/2/repo/untracked-residue"
 
-  out=$(FM_FAKE_PANE_LOG="$pane_log" run_settle_spawn "$id")
+  out=$(FM_FAKE_PANE_LOG="$pane_log" FM_FAKE_TREEHOUSE_STATUS="$TMP_ROOT/settle-pool-dirty/treehouse-status.json" run_settle_spawn "$id")
   status=$?
   expect_code 0 "$status" "spawn should succeed through treehouse get when the own slot is dirty"$'\n'"$out"
   assert_grep "worktree=$WT_DIR" "$HOME_DIR/state/$id.meta" \
@@ -753,7 +845,7 @@ test_unmerged_own_slot_is_not_entered() {
   git -C "$pool/2/repo" add README.md
   git -C "$pool/2/repo" -c user.name='Firstmate Tests' -c user.email='tests@example.invalid' commit -qm 'unmerged slot work'
 
-  out=$(FM_FAKE_PANE_LOG="$pane_log" run_settle_spawn "$id")
+  out=$(FM_FAKE_PANE_LOG="$pane_log" FM_FAKE_TREEHOUSE_STATUS="$TMP_ROOT/settle-pool-unmerged/treehouse-status.json" run_settle_spawn "$id")
   status=$?
   expect_code 0 "$status" "spawn should succeed through treehouse get when the own slot is unmerged"$'\n'"$out"
   assert_grep "worktree=$WT_DIR" "$HOME_DIR/state/$id.meta" \
@@ -861,6 +953,8 @@ test_already_settled_pane_costs_one_confirm_read
 test_transient_primary_checkout_is_not_accepted
 test_primary_checkout_that_never_settles_fails_at_the_deadline
 test_foreign_clone_slot_is_never_accepted
+test_root_switched_pool_enters_configured_pool_slot
+test_root_switched_empty_pool_uses_treehouse_get
 test_mixed_pool_enters_free_own_slot
 test_mixed_pool_claimed_own_slot_uses_treehouse_get
 test_mixed_pool_makes_new_own_slot_when_none_free
