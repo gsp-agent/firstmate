@@ -231,7 +231,14 @@ test_firstmate_rows_match_only_a_firstmate_lineage_project() {
   out=$(run_helper "$case_dir") || fail "self-repo: helper failed on the unrelated project"
   assert_contains "$out" "no ready backlog row names it" "self-repo: firstmate row matched an unrelated project"
   assert_contains "$out" "fm-ready (firstmate)" "self-repo: firstmate row missing from other projects"
-  pass "a repo: firstmate row belongs to a project of firstmate's lineage only"
+  # An unrelated repository whose directory is named firstmate is not
+  # firstmate's own (chip, review 5651219635).
+  fm_git_init_commit "$case_dir/unrelated/firstmate"
+  fm_git_add_origin "$case_dir/unrelated/firstmate" "$case_dir/unrelated.origin.git"
+  out=$(run_helper "$case_dir" "$case_dir/unrelated/firstmate") || fail "self-repo: helper failed on the namesake"
+  assert_contains "$out" "no ready backlog row names it" "self-repo: a repo merely named firstmate claimed the firstmate row"
+  assert_not_contains "$out" "start it now" "self-repo: the namesake was told to start the firstmate row"
+  pass "a repo: firstmate row belongs to a project of firstmate's lineage only, not to a directory named firstmate"
 }
 
 test_failed_reads_are_named_and_never_fail_the_caller() {

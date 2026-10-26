@@ -21,8 +21,9 @@
 #
 # Ready rows are `bin/fm-tasks-axi.sh ready` (unblocked, unheld, queued), in
 # backlog order. A row names this project when its repo is the project's
-# registered name (its directory's basename), or when its repo is `firstmate`
-# and the project shares this code root's lineage (fm_role_self_repo).
+# registered name (its directory's basename). A row whose repo is `firstmate`
+# names it only when the project shares this code root's lineage
+# (fm_role_self_repo), whatever the project's directory is called.
 #
 # Cost: the count is fm-spawn's own admission count and costs what one
 # admission costs, nearly all of it one bounded crew-state read per record that
@@ -117,13 +118,15 @@ if READY_OUT=$(fm_run_timed "$DISPATCH_READY_TIMEOUT" "$SCRIPT_DIR/fm-tasks-axi.
     rest=${rest#*,}
     repo=${rest%%,*}
     match=0
-    if [ "$repo" = "$NAME" ]; then
-      match=1
-    elif [ "$repo" = firstmate ]; then
+    # A `firstmate` row is decided by lineage alone, never by a directory that
+    # happens to be named firstmate: an unrelated repository can be.
+    if [ "$repo" = firstmate ]; then
       if [ "$SELF_REPO" = unknown ]; then
         if fm_role_self_repo "$PROJ" "$FM_ROOT"; then SELF_REPO=yes; else SELF_REPO=no; fi
       fi
       [ "$SELF_REPO" = no ] || match=1
+    elif [ "$repo" = "$NAME" ]; then
+      match=1
     fi
     if [ "$match" = 1 ]; then
       MINE="${MINE:+$MINE, }$id"
