@@ -126,7 +126,11 @@ BUDGET_CAP=$((CHECK_TIMEOUT - 3))
 [ "$BUDGET" -le "$BUDGET_CAP" ] || BUDGET=$BUDGET_CAP
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/fm-contributions.XXXXXX")
 LOCK_HELD=0
+PUBLISH_LOCK=
+STAGE_DIR=
 cleanup() {
+  [ -z "$PUBLISH_LOCK" ] || fm_lock_release "$PUBLISH_LOCK" || true
+  [ -z "$STAGE_DIR" ] || rm -rf -- "$STAGE_DIR"
   [ "$LOCK_HELD" = 0 ] || fm_lock_release "$STATE/.contributions.lock" || true
   rm -rf -- "$TMP"
 }
@@ -449,18 +453,8 @@ poll() {
   done < "$TMP/known.tsv"
 }
 
-arm_restore() { # <had-check> <had-trust>
-  rm -f -- "$STATE/contributions.check.sh" "$STATE/contributions.check-trust"
-  if [ "$2" = 1 ]; then
-    mv -f -- "$TMP/arm-old-trust" "$STATE/contributions.check-trust" || return 1
-  fi
-  if [ "$1" = 1 ]; then
-    mv -f -- "$TMP/arm-old-check" "$STATE/contributions.check.sh" || return 1
-  fi
-}
-
 arm() {
-  local device staged stage_dir had_check=0 had_trust=0
+  local device staged
   local -a shim
   acquire
   if [ "${1:-}" = --if-owned ]; then
@@ -490,46 +484,20 @@ arm() {
     rm -f -- "$staged"
     return 0
   fi
-  # Bind the staged bytes before they become visible under the check name.
-  # The watcher only authenticates a present check, so publishing the trust
-  # while no check is present leaves it the old pair, no pair, or the new pair.
-  stage_dir=$(umask 077; mktemp -d "$STATE/.contributions-arm.XXXXXX")
-  if ! mv -f -- "$staged" "$stage_dir/contributions.check.sh" \
-    || ! FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$stage_dir" \
-      "$SCRIPT_DIR/fm-check-register.sh" contributions >/dev/null; then
-    rm -rf -- "$stage_dir"
-    fail 'could not register the staged check'
-  fi
-  if [ -e "$STATE/contributions.check.sh" ]; then
-    had_check=1
-    if ! mv -f -- "$STATE/contributions.check.sh" "$TMP/arm-old-check"; then
-      rm -rf -- "$stage_dir"
-      fail 'could not set aside the existing check'
-    fi
-  fi
-  if [ -e "$STATE/contributions.check-trust" ]; then
-    had_trust=1
-    if ! mv -f -- "$STATE/contributions.check-trust" "$TMP/arm-old-trust"; then
-      [ "$had_check" = 0 ] || mv -f -- "$TMP/arm-old-check" "$STATE/contributions.check.sh"
-      rm -rf -- "$stage_dir"
-      fail 'could not set aside the existing check trust'
-    fi
-  fi
-  if ! mv -f -- "$stage_dir/contributions.check-trust" "$STATE/contributions.check-trust"; then
-    arm_restore "$had_check" "$had_trust" || true
-    rm -rf -- "$stage_dir"
-    fail 'could not publish the check trust'
-  fi
-  if ! mv -f -- "$stage_dir/contributions.check.sh" "$STATE/contributions.check.sh"; then
-    arm_restore "$had_check" "$had_trust" || true
-    rm -rf -- "$stage_dir"
-    fail 'could not publish the check'
-  fi
-  rm -rf -- "$stage_dir"
-  if ! fm_custom_check_registered "$STATE" contributions; then
-    arm_restore "$had_check" "$had_trust" || true
-    fail 'the published check did not authenticate'
-  fi
+  # Bind the staged bytes first, so the publish lock covers only two renames.
+  # The watcher retries a failed authentication under that lock, so a sweep
+  # that straddles the publish sees the old pair or the new one.
+  STAGE_DIR=$(umask 077; mktemp -d "$STATE/.contributions-arm.XXXXXX")
+  mv -f -- "$staged" "$STAGE_DIR/contributions.check.sh"
+  FM_STATE_OVERRIDE="$STAGE_DIR" "$SCRIPT_DIR/fm-check-register.sh" contributions >/dev/null
+  PUBLISH_LOCK=$(fm_custom_check_publish_lock "$STATE" contributions)
+  fm_lock_acquire_wait "$PUBLISH_LOCK" || fail 'check publish lock unavailable'
+  mv -f -- "$STAGE_DIR/contributions.check.sh" "$STATE/contributions.check.sh"
+  mv -f -- "$STAGE_DIR/contributions.check-trust" "$STATE/contributions.check-trust"
+  fm_lock_release "$PUBLISH_LOCK"
+  PUBLISH_LOCK=
+  rmdir -- "$STAGE_DIR"
+  STAGE_DIR=
 }
 
 case "${1:-}" in

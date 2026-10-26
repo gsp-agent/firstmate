@@ -67,6 +67,14 @@ fm_rejected_check_clear() {  # <state> <id>
   rm -f -- "$1/.rejected-check-$2"
 }
 
+# The lock a check's writer holds across publishing the check and its trust
+# record, and the watcher holds for its one retry of a failed authentication,
+# so that retry sees the old pair or the new one. It is not the task's
+# control lock.
+fm_custom_check_publish_lock() {  # <state> <id>
+  printf '%s/.check-publish-%s.lock' "$1" "$2"
+}
+
 fm_custom_check_trust_read() {
   local state=$1 id=$2 trust state_device version hash
   FM_CUSTOM_CHECK_HASH=

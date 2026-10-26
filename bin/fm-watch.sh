@@ -133,6 +133,8 @@
 #                          joined with `;` when more than one surfaces in a cycle
 #   check: rejected unauthenticated state checks: <paths>
 #                          unsafe state checks were refused without execution.
+#                          A custom check is refused only after one retry
+#                          under its publish lock (bin/fm-check-lib.sh).
 #                          Announced once per check id and fingerprint
 #                          (state/.rejected-check-<id>, bin/fm-check-lib.sh):
 #                          the wake names the owning task id, and the same
@@ -331,6 +333,8 @@ HEARTBEAT=${FM_HEARTBEAT:-600}        # base seconds between heartbeat scans
 HEARTBEAT_MAX=${FM_HEARTBEAT_MAX:-7200}  # heartbeat backoff cap
 CHECK_INTERVAL=${FM_CHECK_INTERVAL:-300}  # seconds between *.check.sh sweeps
 CHECK_TIMEOUT=${FM_CHECK_TIMEOUT:-30}     # seconds allowed per *.check.sh
+CUSTOM_CHECK_PUBLISH_WAIT=5  # seconds a failed custom check's retry waits on
+                             # its writer's publish lock before it announces
 HOME_SUMMARY_INTERVAL=${FM_HOME_SUMMARY_INTERVAL:-300}
 case "$HOME_SUMMARY_INTERVAL" in
   ''|*[!0-9]*|0) HOME_SUMMARY_INTERVAL=300 ;;
@@ -488,6 +492,24 @@ note_rejected_check() {  # <id> <path>
   fi
   rejected_checks="$rejected_checks $rpath"
   rejected_marks="${rejected_marks}${rid}"$'\t'"${rfp}"$'\n'
+}
+
+# Retry a custom check whose authentication just failed, once, holding its
+# publish lock (bin/fm-check-lib.sh), so a sweep that straddled a writer's
+# publish of the check and its trust sees the old pair or the new one.
+# Returns 0 with the snapshot prepared, 2 when the check is gone, and 1 when
+# it still fails or the lock stays busy past CUSTOM_CHECK_PUBLISH_WAIT.
+reauthenticate_custom_check() {  # <id>
+  local rid=$1 lock rc=0
+  lock=$(fm_custom_check_publish_lock "$STATE" "$rid")
+  fm_lock_acquire_wait_max "$lock" "$CUSTOM_CHECK_PUBLISH_WAIT" || return 1
+  if [ ! -e "$STATE/$rid.check.sh" ] && [ ! -L "$STATE/$rid.check.sh" ]; then
+    rc=2
+  else
+    fm_custom_check_snapshot_prepare "$STATE" "$rid" || rc=1
+  fi
+  fm_lock_release "$lock" || true
+  return "$rc"
 }
 
 # The PR-poll retirement-receipt rejection gets the same once-only rule,
@@ -3553,16 +3575,20 @@ EOF
             run_check_capture "$SCRIPT_DIR/fm-pr-poll.sh" --validated \
             "$provider" "$url" "$host" "$path" "$number" || exit 1
           out=$FM_CHECK_RESULT
-        elif fm_custom_check_snapshot_prepare "$STATE" "$id"; then
+        else
+          custom_check_rc=0
+          fm_custom_check_snapshot_prepare "$STATE" "$id" \
+            || reauthenticate_custom_check "$id" || custom_check_rc=$?
+          if [ "$custom_check_rc" -ne 0 ]; then
+            fm_custom_check_snapshot_cleanup
+            [ "$custom_check_rc" -eq 2 ] || note_rejected_check "$id" "$c"
+            continue
+          fi
           fm_rejected_check_clear "$STATE" "$id"
           custom_snapshot=$FM_CUSTOM_CHECK_SNAPSHOT
           run_check_capture "$custom_snapshot" || exit 1
           out=$FM_CHECK_RESULT
           fm_custom_check_snapshot_cleanup
-        else
-          fm_custom_check_snapshot_cleanup
-          note_rejected_check "$id" "$c"
-          continue
         fi
       fi
       if [ -n "$out" ]; then
