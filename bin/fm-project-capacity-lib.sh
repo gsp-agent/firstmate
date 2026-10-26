@@ -330,10 +330,11 @@ fm_project_capacity_occupants() {  # <project-lock> <project-dir> <first-state> 
 # Pool trees: the second limit on a fresh worker. A Treehouse-backed spawn
 # also needs a free tree in the project's worktree pool, and a pool whose trees
 # are all held cannot start a worker however many places are free. The pool's
-# size is the project's own treehouse.toml top-level `max_trees` (the last such
-# line before the first table header, since Treehouse ignores the key inside a
-# table); a project without that line declares no size here, so the pool is not
-# counted and `treehouse get` alone decides. Treehouse's state is read with
+# size is the project's own treehouse.toml top-level `max_trees`, read with a
+# real TOML parser (python3's tomllib) so it is the value Treehouse reads; a
+# project without that key, a key inside a table, or a host without tomllib
+# declares no size here, so the pool is not counted and `treehouse get` alone
+# decides. Treehouse's state is read with
 # `treehouse status --json` from the project directory, bounded by
 # FM_PROJECT_CAPACITY_POOL_TIMEOUT seconds. A tree is free when Treehouse
 # reports it `available`, and each tree the pool can still create below its
@@ -346,32 +347,31 @@ fm_project_capacity_occupants() {  # <project-lock> <project-dir> <first-state> 
 # the project declares no size or the pool cannot be read; never fails.
 FM_PROJECT_CAPACITY_POOL_TIMEOUT=${FM_PROJECT_CAPACITY_POOL_TIMEOUT:-20}
 fm_project_capacity_pool() {  # <project-dir>
-  local project=$1 toml line key value max="" json counts total avail
+  local project=$1 toml max="" json counts total avail
   FM_PROJECT_CAPACITY_POOL_KNOWN=0
   FM_PROJECT_CAPACITY_POOL_MAX=
   FM_PROJECT_CAPACITY_POOL_FREE=
   FM_PROJECT_CAPACITY_POOL_HELD=
   toml="$project/treehouse.toml"
   [ -f "$toml" ] && [ -r "$toml" ] || return 0
-  while IFS= read -r line || [ -n "$line" ]; do
-    line=${line%%#*}
-    # Treehouse reads max_trees at the top level only; the same key under any
-    # [table] or [[table]] is that table's key, and Treehouse keeps its own
-    # default (chip, PR 164 review 5656106077). Stop at the first table header.
-    case "${line#"${line%%[![:space:]]*}"}" in '['*) break ;; esac
-    case "$line" in
-      *max_trees*=*) ;;
-      *) continue ;;
-    esac
-    key=${line%%=*}
-    key=${key//[[:space:]]/}
-    [ "$key" = max_trees ] || continue
-    value=${line#*=}
-    value=${value//[[:space:]]/}
-    case "$value" in '' | *[!0-9]* | 0*) continue ;; esac
-    max=$value
-  done < "$toml"
-  [ -n "$max" ] || return 0
+  _fm_project_capacity_require_timeout || return 0
+  # A real TOML parse, so every spelling Treehouse accepts reads the same here:
+  # quoted keys, integer forms, comments, and the key only at the top level
+  # (under a [table] it is that table's, and Treehouse keeps its default; chip,
+  # PR 164 reviews 5656106077 and 5656246209). Without python3's tomllib, or
+  # for a file it cannot parse, the pool is not counted.
+  max=$(fm_run_timed "$FM_PROJECT_CAPACITY_POOL_TIMEOUT" python3 -I -c '
+import sys
+try:
+    import tomllib
+    with open(sys.argv[1], "rb") as f:
+        value = tomllib.load(f).get("max_trees")
+except Exception:
+    sys.exit(1)
+if type(value) is int and value > 0:
+    print(value)
+' "$toml" </dev/null 2>/dev/null) || max=""
+  case "$max" in '' | *[!0-9]*) return 0 ;; esac
   command -v jq >/dev/null 2>&1 && command -v treehouse >/dev/null 2>&1 || return 0
   _fm_project_capacity_require_timeout || return 0
   json=$(CDPATH='' cd -- "$project" 2>/dev/null &&

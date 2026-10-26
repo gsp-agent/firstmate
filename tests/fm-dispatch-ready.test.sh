@@ -208,9 +208,29 @@ test_full_pool_holds_ready_rows_beside_free_places() {
   out=$(FM_FAKE_TREEHOUSE_STATUS=$GSP_FULL_POOL run_helper "$case_dir") || fail "full-pool: helper failed with a table-scoped key"
   assert_not_contains "$out" "worktree pool trees" "full-pool: a max_trees inside a table was counted as the pool size"
   assert_contains "$out" "start it now with bin/fm-spawn.sh" "full-pool: a table-scoped key held ready rows back"
-  printf '%s\n' 'max_trees = 4' '  [hooks]' 'max_trees = 1' > "$case_dir/proj/treehouse.toml"
+  printf '%s\n' 'max_trees = 4' '  [hooks]' 'other = 1' > "$case_dir/proj/treehouse.toml"
   out=$(FM_FAKE_TREEHOUSE_STATUS=$GSP_FULL_POOL run_helper "$case_dir") || fail "full-pool: helper failed with a top-level key before a table"
   assert_contains "$out" "and 0 of 4 worktree pool trees free" "full-pool: the top-level key before a table was not the pool size"
+  # Every TOML spelling Treehouse accepts sizes the pool the same way (chip,
+  # PR 164 review 5656246209): quoted keys, a hex integer, a trailing comment.
+  for spelling in '"max_trees" = 4' "'max_trees' = 4" 'max_trees = 0x4' 'max_trees=4 # four'; do
+    printf '%s\n' 'root = ""' "$spelling" > "$case_dir/proj/treehouse.toml"
+    out=$(FM_FAKE_TREEHOUSE_STATUS=$GSP_FULL_POOL run_helper "$case_dir") || fail "full-pool: helper failed with $spelling"
+    assert_contains "$out" "and 0 of 4 worktree pool trees free" "full-pool: the spelling $spelling did not size the pool"
+  done
+  # A file TOML rejects (a key named twice) declares no size, as for Treehouse.
+  printf '%s\n' 'max_trees = 4' 'max_trees = 2' > "$case_dir/proj/treehouse.toml"
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$GSP_FULL_POOL run_helper "$case_dir") || fail "full-pool: helper failed with an invalid file"
+  assert_not_contains "$out" "worktree pool trees" "full-pool: an invalid treehouse.toml was counted"
+  # A host whose python3 has no tomllib (macOS's own 3.9) leaves the pool
+  # uncounted rather than guessing at the file.
+  printf '%s\n' 'max_trees = 4' > "$case_dir/proj/treehouse.toml"
+  printf '%s\n' '#!/usr/bin/env bash' 'echo "ModuleNotFoundError: No module named tomllib" >&2' 'exit 1' > "$case_dir/fakebin/python3"
+  chmod +x "$case_dir/fakebin/python3"
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$GSP_FULL_POOL run_helper "$case_dir") || fail "full-pool: helper failed without tomllib"
+  rm -f "$case_dir/fakebin/python3"
+  assert_not_contains "$out" "worktree pool trees" "full-pool: the pool was counted without tomllib"
+  assert_contains "$out" "start it now with bin/fm-spawn.sh" "full-pool: no tomllib held ready rows back"
   pass "a full worktree pool holds ready rows back beside free places, a free tree offers them, and only a top-level max_trees sizes the pool"
 }
 
