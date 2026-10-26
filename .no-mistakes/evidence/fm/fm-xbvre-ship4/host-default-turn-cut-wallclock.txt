@@ -1,0 +1,19 @@
+# 13:34:04Z worktree HEAD 8c678f48; FM_SUPERVISION_HOST_TURN_TIMEOUT unset; FM_SUPERVISION_ENGINE_GRACE=30
+# 13:34:06Z host parked on a live watcher (away posture)
+# 13:34:21Z engine turn started: pid=30922 at epoch 1793021661
+# 13:35:21Z t+60s: engine turn still running, host still parked
+# 13:39:21Z t+300s: engine turn still running, host still parked
+# 13:43:11Z t+530s: engine turn still running, host still parked
+# 13:43:21Z engine process gone at t+540s
+# 13:43:30Z host exited at t+549s with rc=0
+# 13:43:30Z --- host output (what the owner delivers to main) ---
+watcher: started pid=19367 (beacon fresh)
+signal: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-supervision-host.31t4xl/wallclock-cut/state/demo.status
+supervision-host: the away session could not take this wake: the engine turn hit its 540s bound; this wake is yours
+# 13:43:30Z --- host ledger: turn lines ---
+1793022207	failed	turn=host-18799-1793021645.1	posture=away	rc=124	reports=0	unacked=1 2	no-result		signal: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-supervision-host.31t4xl/wallclock-cut/state/demo.status
+# 13:43:30Z engine descendant in its own process group was reaped
+# 13:43:30Z RESULT: PASS - the hung turn ran to the 540 s default and was cut there; main got the wake
+rm: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-supervision-host.31t4xl/wallclock-cut/state: Directory not empty
+rm: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-supervision-host.31t4xl/wallclock-cut: Directory not empty
+rm: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-supervision-host.31t4xl: Directory not empty

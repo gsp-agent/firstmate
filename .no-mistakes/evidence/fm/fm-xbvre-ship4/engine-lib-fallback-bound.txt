@@ -1,0 +1,6 @@
+# 13:34:10Z fm_supervision_engine_turn with timeout='abc' (grace unset)
+# 13:34:10Z fm_supervision_engine_turn with timeout='' (grace unset)
+# 13:43:10Z turn returned rc=124 after 540s
+# 13:43:10Z turn returned rc=124 after 540s
+# 13:43:10Z RESULT: PASS - the library's fallback bound is 540 s
+# 13:43:10Z RESULT: PASS - the library's fallback bound is 540 s

@@ -1,0 +1,12 @@
+# 13:42:35Z lab home minted and marked; away posture recorded; config/supervision-host present (engine claude, default model)
+# 13:42:35Z claude CLI: 2.1.310 (Claude Code)
+# 13:42:38Z host parked on a live watcher
+# 13:42:38Z appended one routine status line to demo.status
+# 13:42:56Z real engine turn started
+# 13:43:25Z engine turn ended after about 29s
+# 13:43:25Z --- host ledger (start/close/turn lines, usage) ---
+start	gen=host-59458-1793022156	primary=claude
+handled	turn=host-59458-1793022156.1	posture=away	rc=0	reports=1	error=0 cost=0.07855 conversation_cost=0.07855 input=12 cache_read=71876 cache_write=15472 output=945 turns=6	signal: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.Qszias/state/demo.status
+# 13:43:25Z --- host output so far (empty while parked: a handled away wake never wakes main) ---
+watcher: started pid=61711 (beacon fresh)
+# 13:43:25Z RESULT: PASS - a real engine turn ran to its own end in 29s with rc=0 under the 540 s default; it was not cut

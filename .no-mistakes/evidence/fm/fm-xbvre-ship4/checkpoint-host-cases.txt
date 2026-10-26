@@ -1,0 +1,4 @@
+ok - checkpoint: an opted-in home runs the host for the checkpoint's bound, raised only while away
+ok - checkpoint: a handed-back wake passes through, and a host stand-down is a failure
+ok - checkpoint: a Codex home without config/supervision-host, or with an off file, never runs the host
+not ok - a host checkpoint left its watcher running

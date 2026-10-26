@@ -1,0 +1,12 @@
+# 13:34:07Z worktree HEAD 8c678f48; FM_SUPERVISION_HOST_TURN_TIMEOUT and FM_SUPERVISION_ENGINE_GRACE unset
+# 13:34:10Z checkpoint started (away bound 60 s); host parked on a live watcher
+# 13:34:27Z engine turn started at t+19s of the checkpoint
+# 13:34:27Z host start ledger line: 1793021649	start	gen=host-21409-1793021648	primary=codex
+# 13:43:38Z checkpoint returned at t+551s after the turn started (t+570s overall) with rc=0
+# 13:43:38Z --- checkpoint stdout (what Codex main reads) ---
+signal: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-supervision-host.onTokD/checkpoint-cut/state/demo.status
+supervision-host: the away session could not take this wake: the engine turn hit its 540s bound; this wake is yours
+# 13:43:38Z --- checkpoint stderr ---
+# 13:43:38Z --- host ledger: turn lines ---
+1793022214	failed	turn=host-21409-1793021648.1	posture=away	rc=124	reports=0	unacked=1 2	no-result		signal: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-supervision-host.onTokD/checkpoint-cut/state/demo.status
+# 13:43:38Z RESULT: PASS - Codex's checkpoint handed the hung turn's wake to main ~540 s after it started, inside the 10-minute bar

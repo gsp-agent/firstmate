@@ -1,0 +1,20 @@
+# 13:34:40Z worktree HEAD 8c678f48
+# 13:35:15Z turn bound 'abc', grace 30, park 571s -> handled (expected handled) ok
+# 13:35:37Z turn bound 'abc', grace 30, park 570s -> boundary (expected boundary) ok
+# 13:36:12Z turn bound '0', grace 30, park 571s -> handled (expected handled) ok
+# 13:36:46Z turn bound '0', grace 30, park 570s -> boundary (expected boundary) ok
+# 13:37:33Z turn bound '-5', grace 30, park 571s -> handled (expected handled) ok
+# 13:37:54Z turn bound '-5', grace 30, park 570s -> boundary (expected boundary) ok
+# 13:38:15Z turn bound '540x', grace 30, park 571s -> handled (expected handled) ok
+# 13:38:27Z turn bound '540x', grace 30, park 570s -> boundary (expected boundary) ok
+# 13:38:51Z turn bound '', grace 30, park 571s -> handled (expected handled) ok
+# 13:39:02Z turn bound '', grace 30, park 570s -> boundary (expected boundary) ok
+# 13:39:22Z turn bound '0540', grace 30, park 571s -> handled (expected handled) ok
+# 13:39:36Z turn bound '0540', grace 30, park 570s -> boundary (expected boundary) ok
+# 13:40:03Z turn bound '600', grace 30, park 631s -> handled (expected handled) ok
+# 13:40:21Z turn bound '600', grace 30, park 630s -> boundary (expected boundary) ok
+# 13:40:55Z FM_SUPERVISION_HOST_TURN_TIMEOUT=5: host exited 15s after the hung turn started; output:
+watcher: started pid=35864 (beacon fresh)
+signal: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-supervision-host.tjC8ks/override-5/state/demo.status
+supervision-host: the away session could not take this wake: the engine turn hit its 5s bound; this wake is yours
+# 13:40:55Z RESULT: PASS

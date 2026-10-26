@@ -1,0 +1,16 @@
+ok - host: the default turn bound is 540 seconds, so a park with room for it runs the turn and a park without is refused at the boundary
+ok - host: a running turn is cut when it reaches the default 540-second cap, not before, and its wake goes to main
+ok - host: a park at or beyond the Stop-hook registration falls back to the default boundary
+ok - host: an engine turn is bounded, and tool processes outside its process group are reaped
+host cases rc=0
+ok - quiet checkpoint exits 124 with a clean checkpoint line and no live lock
+ok - Perl fallback honors the cleanup bound before escalating an INT-ignoring direct watcher
+ok - an announced recovery is not reannounced by the next foreground checkpoint
+ok - a never-announced recovery still surfaces once from a foreground checkpoint
+ok - a pending recovery whose queue holds only branch-owned rows stays quiet
+ok - a pending recovery holding a needs-decision row resurfaces to main
+ok - a pending recovery on a plain home still resurfaces to main
+not ok - queue append during checkpoint did not resurface (missing: 'check: rearm-resurface')
+--- output ---
+check: appended during checkpoint
+checkpoint suite rc=1
