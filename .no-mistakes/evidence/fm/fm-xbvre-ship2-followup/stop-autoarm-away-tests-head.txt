@@ -1,0 +1,12 @@
+=== fm-claude-stop-autoarm.test.sh:test_host_handback_under_away_record_is_not_a_return @ fb34a186
+ok - auto-arm: a wake the host hands back under the away record says it is automatic supervision, not a return
+=== exit 0
+=== fm-claude-stop-autoarm.test.sh:test_host_handback_beside_a_quiet_record_carries_no_away_note @ fb34a186
+ok - auto-arm: a wake the host hands back beside a quiet record carries no away note
+=== exit 0
+=== fm-claude-stop-autoarm.test.sh:test_host_boundary_rewakes_with_the_host_line @ fb34a186
+ok - auto-arm: an opted-in home runs the host bound to its generation, and a host line rewakes like a wake
+=== exit 0
+=== fm-claude-stop-autoarm.test.sh:test_plain_home_delivers_unread_rows_and_away_delivers_none @ fb34a186
+ok - auto-arm: a plain or idle host home delivers every unread row, the park keeps routine rows, and the away record delivers none
+=== exit 0

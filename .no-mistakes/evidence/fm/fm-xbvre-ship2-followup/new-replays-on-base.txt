@@ -1,0 +1,16 @@
+=== test_stop_claim_loses_to_waker_rewake_committed_after_pending_read @ 1991ea087f00ad2313d170d6c0b69123905ca484
+not ok - stop race setup failed, got: STOP_DID_NOT_WAIT
+STOP_RC=0
+LEDGER=2 rewake
+LATE_RC=0
+=== exit 1
+=== test_stop_claim_loses_to_inflight_waker_rewake @ 1991ea087f00ad2313d170d6c0b69123905ca484
+not ok - inflight stop race setup failed, got: STOP_DID_NOT_WAIT
+STOP_RC=0
+LEDGER=1 rewake
+LATE_RC=0
+=== exit 1
+=== test_waker_banner_carries_away_line_on_host_home @ 1991ea087f00ad2313d170d6c0b69123905ca484
+not ok - a waker wake on a host home with a live away record must carry the away-posture line, got: WAKE_RC=2
+AWAY_LINE=no
+=== exit 1

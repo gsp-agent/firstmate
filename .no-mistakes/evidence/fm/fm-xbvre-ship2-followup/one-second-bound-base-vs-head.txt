@@ -1,0 +1,50 @@
+# round 1, load 185.47 236.64 239.67
+=== fm-claude-wake.test.sh:test_reset_followup_expiry @ 1991ea08
+not ok - CLOSE: the waker must answer within a second of the append, got: CLOSE_RC=2
+CLOSE_ELAPSED=1.643
+=== exit 1
+=== fm-claude-wake.test.sh:test_0706z_replay @ 1991ea08
+not ok - FIRST: the waker must answer within a second of the append, got: OPEN_RC=0
+FIRST_RC=2
+FIRST_ELAPSED=1.903
+STOP_RC=0
+SECOND_RC=2
+SECOND_ELAPSED=1.702
+=== exit 1
+=== fm-claude-wake.test.sh:test_reset_followup_expiry @ 527b9c60
+not ok - CLOSE: the waker must answer within a second of the append, got: CLOSE_RC=2
+CLOSE_ELAPSED=1.787
+=== exit 1
+=== fm-claude-wake.test.sh:test_0706z_replay @ 527b9c60
+not ok - FIRST: the waker must answer within a second of the append, got: OPEN_RC=0
+FIRST_RC=2
+FIRST_ELAPSED=2.136
+STOP_RC=0
+SECOND_RC=2
+SECOND_ELAPSED=2.205
+=== exit 1
+# round 2, load 161.43 222.03 234.09
+=== fm-claude-wake.test.sh:test_reset_followup_expiry @ 1991ea08
+not ok - CLOSE: the waker must answer within a second of the append, got: CLOSE_RC=2
+CLOSE_ELAPSED=2.240
+=== exit 1
+=== fm-claude-wake.test.sh:test_0706z_replay @ 1991ea08
+not ok - FIRST: the waker must answer within a second of the append, got: OPEN_RC=0
+FIRST_RC=2
+FIRST_ELAPSED=2.823
+STOP_RC=0
+SECOND_RC=2
+SECOND_ELAPSED=2.673
+=== exit 1
+=== fm-claude-wake.test.sh:test_reset_followup_expiry @ 527b9c60
+not ok - CLOSE: the waker must answer within a second of the append, got: CLOSE_RC=2
+CLOSE_ELAPSED=1.965
+=== exit 1
+=== fm-claude-wake.test.sh:test_0706z_replay @ 527b9c60
+not ok - FIRST: the waker must answer within a second of the append, got: OPEN_RC=0
+FIRST_RC=2
+FIRST_ELAPSED=1.927
+STOP_RC=0
+SECOND_RC=2
+SECOND_ELAPSED=1.202
+=== exit 1

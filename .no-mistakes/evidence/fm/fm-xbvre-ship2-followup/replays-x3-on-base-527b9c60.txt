@@ -1,0 +1,44 @@
+# host load at start: 224.74 222.21 213.28
+=== test_stop_claim_loses_to_waker_rewake_committed_after_pending_read @ 1991ea08 run 1
+not ok - a Stop hook whose claim loses to a waker rewake committed after its pending read must not wake main again, got: STOP_RC=2
+LEDGER=3 rewake
+LATE_RC=0
+=== exit 1
+=== test_stop_claim_loses_to_waker_rewake_committed_after_pending_read @ 1991ea08 run 2
+not ok - a Stop hook whose claim loses to a waker rewake committed after its pending read must not wake main again, got: STOP_RC=2
+LEDGER=3 rewake
+LATE_RC=0
+=== exit 1
+=== test_stop_claim_loses_to_waker_rewake_committed_after_pending_read @ 1991ea08 run 3
+not ok - a Stop hook whose claim loses to a waker rewake committed after its pending read must not wake main again, got: STOP_RC=2
+LEDGER=3 rewake
+LATE_RC=0
+=== exit 1
+=== test_stop_claim_loses_to_inflight_waker_rewake @ 1991ea08 run 1
+not ok - a Stop hook whose pending read saw the waker claim still arming must not wake main again once that claim commits its rewake, got: STOP_RC=2
+LEDGER=2 rewake
+LATE_RC=0
+=== exit 1
+=== test_stop_claim_loses_to_inflight_waker_rewake @ 1991ea08 run 2
+not ok - a Stop hook whose pending read saw the waker claim still arming must not wake main again once that claim commits its rewake, got: STOP_RC=2
+LEDGER=2 rewake
+LATE_RC=0
+=== exit 1
+=== test_stop_claim_loses_to_inflight_waker_rewake @ 1991ea08 run 3
+not ok - a Stop hook whose pending read saw the waker claim still arming must not wake main again once that claim commits its rewake, got: STOP_RC=2
+LEDGER=2 rewake
+LATE_RC=0
+=== exit 1
+=== test_waker_banner_carries_away_line_on_host_home @ 1991ea08 run 1
+not ok - a waker wake on a host home with a live away record must carry the away-posture line, got: WAKE_RC=2
+AWAY_LINE=no
+=== exit 1
+=== test_waker_banner_carries_away_line_on_host_home @ 1991ea08 run 2
+not ok - a waker wake on a host home with a live away record must carry the away-posture line, got: WAKE_RC=2
+AWAY_LINE=no
+=== exit 1
+=== test_waker_banner_carries_away_line_on_host_home @ 1991ea08 run 3
+not ok - a waker wake on a host home with a live away record must carry the away-posture line, got: WAKE_RC=2
+AWAY_LINE=no
+=== exit 1
+# host load at end: 246.83 234.08 220.50

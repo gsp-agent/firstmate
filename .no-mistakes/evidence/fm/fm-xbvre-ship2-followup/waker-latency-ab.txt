@@ -1,0 +1,32 @@
+=== base run 1, load 247.29 247.07 230.77
+FIRST_ELAPSED=5.291 OVER-1s
+SECOND_ELAPSED=5.076 OVER-1s
+ok - 07:06Z replay: after /clear and a covering watcher close, the waker exits 2 within a second of the +150 s and +330 s appends
+=== head run 1, load 258.44 249.52 233.17
+FIRST_ELAPSED=5.041 OVER-1s
+SECOND_ELAPSED=4.186 OVER-1s
+ok - 07:06Z replay: after /clear and a covering watcher close, the waker exits 2 within a second of the +150 s and +330 s appends
+=== base run 2, load 260.54 251.22 234.64
+FIRST_ELAPSED=3.604 OVER-1s
+SECOND_ELAPSED=4.399 OVER-1s
+ok - 07:06Z replay: after /clear and a covering watcher close, the waker exits 2 within a second of the +150 s and +330 s appends
+=== head run 2, load 254.15 250.77 235.32
+FIRST_ELAPSED=8.486 OVER-1s
+SECOND_ELAPSED=4.639 OVER-1s
+ok - 07:06Z replay: after /clear and a covering watcher close, the waker exits 2 within a second of the +150 s and +330 s appends
+=== base run 3, load 264.82 254.52 237.69
+FIRST_ELAPSED=2.604 OVER-1s
+SECOND_ELAPSED=3.005 OVER-1s
+ok - 07:06Z replay: after /clear and a covering watcher close, the waker exits 2 within a second of the +150 s and +330 s appends
+=== head run 3, load 270.23 256.76 239.17
+FIRST_ELAPSED=1.917 OVER-1s
+SECOND_ELAPSED=2.562 OVER-1s
+ok - 07:06Z replay: after /clear and a covering watcher close, the waker exits 2 within a second of the +150 s and +330 s appends
+=== base run 4, load 285.78 262.09 241.82
+FIRST_ELAPSED=5.308 OVER-1s
+SECOND_ELAPSED=1.748 OVER-1s
+ok - 07:06Z replay: after /clear and a covering watcher close, the waker exits 2 within a second of the +150 s and +330 s appends
+=== head run 4, load 287.64 265.16 243.75
+FIRST_ELAPSED=3.280 OVER-1s
+SECOND_ELAPSED=4.313 OVER-1s
+ok - 07:06Z replay: after /clear and a covering watcher close, the waker exits 2 within a second of the +150 s and +330 s appends

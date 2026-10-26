@@ -1,0 +1,9 @@
+# tests/fm-claude-wake.test.sh @ 527b9c60, load 249.21 238.20 223.77
+ok - turn record: real UserPromptSubmit, Stop, and StopFailure payloads; only the lock owner writes
+not ok - FIRST: the waker must answer within a second of the append, got: OPEN_RC=0
+FIRST_RC=2
+FIRST_ELAPSED=4.288
+STOP_RC=0
+SECOND_RC=2
+SECOND_ELAPSED=2.563
+=== exit 1

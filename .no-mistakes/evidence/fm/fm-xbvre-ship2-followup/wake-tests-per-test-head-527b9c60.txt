@@ -1,0 +1,45 @@
+# load at start 313.63 280.47 252.15
+=== fm-claude-wake.test.sh:test_reset_followup_expiry @ 527b9c60
+not ok - CLOSE: the waker must answer within a second of the append, got: CLOSE_RC=2
+CLOSE_ELAPSED=1.655
+=== exit 1
+=== fm-claude-wake.test.sh:test_post_reset_rows_already_queued @ 527b9c60
+ok - post-reset rows already queued: the /clear session-open check exits 2 once the digest completes
+=== exit 0
+=== fm-claude-wake.test.sh:test_fresh_startup_waits_for_its_lock @ 527b9c60
+ok - fresh startup: the session-open check waits for its own lock and digest, then exits 2
+=== exit 0
+=== fm-claude-wake.test.sh:test_interrupt_then_clear @ 527b9c60
+ok - interrupt then /clear: session open records idle, so the session-open check exits 2
+=== exit 0
+=== fm-claude-wake.test.sh:test_busy_turn_defers_then_stop_delivers_once @ 527b9c60
+ok - busy turn: the waker exits 0, the Stop hook delivers at turn end, exactly one rewake follows
+=== exit 0
+=== fm-claude-wake.test.sh:test_parked_hook_present_delivers @ 527b9c60
+ok - parked hook present: the waker exits 0 and the parked hook delivers
+=== exit 0
+=== fm-claude-wake.test.sh:test_burst_produces_exactly_one_rewake @ 527b9c60
+ok - burst: ten appends whose ten waker firings run concurrently produce exactly one rewake
+=== exit 0
+=== fm-claude-wake.test.sh:test_burst_waiter_never_supersedes_a_commit @ 527b9c60
+ok - burst race: a firing that waited on the ledger mutex never supersedes the rewake committed meanwhile
+=== exit 0
+=== fm-claude-wake.test.sh:test_foreign_hosts_exit_at_once @ 527b9c60
+ok - foreign hosts: Cursor and pi-code FileChanged and SessionStart payloads exit 0 at once and never wait
+=== exit 0
+=== fm-claude-wake.test.sh:test_stop_admission_parks_while_rewake_pending @ 527b9c60
+ok - turn boundary: Stop admission parks while a rewake is pending
+=== exit 0
+=== fm-claude-wake.test.sh:test_parked_rewake_then_later_row_still_delivered @ 527b9c60
+ok - turn boundary across a park: after rewake R's own turn has run, the parked hook still delivers a later row
+=== exit 0
+=== fm-claude-wake.test.sh:test_rewake_from_an_earlier_claude_is_not_pending @ 527b9c60
+ok - restart: a rewake committed by an earlier Claude process is not pending in the new one
+=== exit 0
+=== fm-claude-wake.test.sh:test_session_start_drain_presents_without_claiming @ 527b9c60
+ok - session-start drain presents without claiming; digest-only ack refused
+=== exit 0
+=== fm-claude-wake.test.sh:test_session_start_drain_excludes_branch_grant @ 527b9c60
+ok - session-start drain presents only main's rows and names rows a live branch grant holds
+=== exit 0
+# load at end 206.10 243.80 242.20

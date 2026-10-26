@@ -1,0 +1,29 @@
+# host load at start: 224.74 222.21 213.28
+=== test_stop_claim_loses_to_waker_rewake_committed_after_pending_read @ 527b9c60 run 1
+ok - stop race: a waker rewake committed between the pending read and the claim yields exactly one rewake
+=== exit 0
+=== test_stop_claim_loses_to_waker_rewake_committed_after_pending_read @ 527b9c60 run 2
+ok - stop race: a waker rewake committed between the pending read and the claim yields exactly one rewake
+=== exit 0
+=== test_stop_claim_loses_to_waker_rewake_committed_after_pending_read @ 527b9c60 run 3
+ok - stop race: a waker rewake committed between the pending read and the claim yields exactly one rewake
+=== exit 0
+=== test_stop_claim_loses_to_inflight_waker_rewake @ 527b9c60 run 1
+ok - stop race: a waker rewake committed at the generation the pending read saw arming yields exactly one rewake
+=== exit 0
+=== test_stop_claim_loses_to_inflight_waker_rewake @ 527b9c60 run 2
+ok - stop race: a waker rewake committed at the generation the pending read saw arming yields exactly one rewake
+=== exit 0
+=== test_stop_claim_loses_to_inflight_waker_rewake @ 527b9c60 run 3
+ok - stop race: a waker rewake committed at the generation the pending read saw arming yields exactly one rewake
+=== exit 0
+=== test_waker_banner_carries_away_line_on_host_home @ 527b9c60 run 1
+ok - waker banner: a host home with a live away record carries the away-posture line, quiet and no record do not
+=== exit 0
+=== test_waker_banner_carries_away_line_on_host_home @ 527b9c60 run 2
+ok - waker banner: a host home with a live away record carries the away-posture line, quiet and no record do not
+=== exit 0
+=== test_waker_banner_carries_away_line_on_host_home @ 527b9c60 run 3
+ok - waker banner: a host home with a live away record carries the away-posture line, quiet and no record do not
+=== exit 0
+# host load at end: 243.67 234.58 221.42

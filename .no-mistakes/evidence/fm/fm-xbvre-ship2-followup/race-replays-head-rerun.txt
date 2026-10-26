@@ -1,0 +1,12 @@
+=== fm-claude-wake.test.sh:test_stop_claim_loses_to_waker_rewake_committed_after_pending_read @ fb34a186
+not ok - stop race setup failed, got: STOP_DID_NOT_WAIT
+STOP_RC=0
+LEDGER=2 rewake
+LATE_RC=0
+=== exit 1
+=== fm-claude-wake.test.sh:test_stop_claim_loses_to_waker_rewake_committed_after_pending_read @ fb34a186
+ok - stop race: a waker rewake committed between the pending read and the claim yields exactly one rewake
+=== exit 0
+=== fm-claude-wake.test.sh:test_stop_claim_loses_to_inflight_waker_rewake @ fb34a186
+ok - stop race: a waker rewake committed at the generation the pending read saw arming yields exactly one rewake
+=== exit 0

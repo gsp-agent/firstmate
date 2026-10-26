@@ -1,0 +1,18 @@
+=== gated race replay @ 1991ea08
+--- race A: waker rewake committed at a newer generation after the Stop pending read
+SEEDED_LEDGER=1 arming
+STOP_WAITING_IN_CLAIM_RETRY=yes
+WAKER_REWAKE_COMMITTED=epoch 2
+STOP_RC=2
+LEDGER=3 rewake
+STOP_BANNER_LINES=1
+LATE_RC=0
+--- race B: waker claim read as arming by the Stop pending read, rewake committed at that same generation
+SEEDED_LEDGER=1 arming
+STOP_WAITING_IN_CLAIM_RETRY=yes
+WAKER_REWAKE_COMMITTED=epoch 1 (same generation the pending read saw arming)
+STOP_RC=2
+LEDGER=2 rewake
+STOP_BANNER_LINES=1
+LATE_RC=0
+=== exit 0

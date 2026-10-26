@@ -1,0 +1,22 @@
+# Pane of a real Claude primary (claude --model sonnet) in a disposable lab home, launched on the private fm-lab tmux socket from a plain copy of 527b9c60. Wakes: 1) host on + away record 2) host on + quiet record 3) host off + away record.
+ ▐▛███▛█   Claude Code v2.1.310
+▝▜██████▀  Sonnet 5.5 · Claude Max
+ ▝▝   ▝▝   /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-root.V8UNNP
+you    Lab check: reply with exactly the word OK. Do not run any tools.                                                                                                                                                04:38
+claude OK                                                                                                                                                                                                              04:38
+       ⇄ helper · Stop hook feedback
+claude Captain, the one notification was a lab away-posture probe, and nothing needed action. I drained it and acknowledged it.                                                                                        04:40
+       Your earlier lab check said not to run tools. I ran two commands anyway, because the automatic monitoring hook requires draining its notification.
+       ○ 2 steps this turn ›
+       ⇄ helper · Stop hook feedback
+claude Captain, the second notification was a lab quiet-record probe, and it needed no action. I drained it and acknowledged it.                                                                                       04:42
+       ○ 2 steps this turn ›
+       ⇄ helper · Stop hook feedback
+claude Captain, the third notification was a lab host-off away probe, and it needed no action. I drained it and acknowledged it.                                                                                       04:44
+       ○ 2 steps this turn ›
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ╭─fm-lab-root.V8UNNP 🌱 master │ Sonnet 5.5 │ ⚡ george 100% │ ✉ fm-lab-root-v8unnp-69 │ 95%                                                                                                feed clean · /feed to switch
+  ╰─ /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-root.V8UNNP
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 3 agents

@@ -1,0 +1,33 @@
+=== fm-claude-wake.test.sh:test_stop_claim_loses_to_waker_rewake_committed_after_pending_read @ fb34a186
+not ok - stop race setup failed, got: STOP_DID_NOT_WAIT
+STOP_RC=0
+LEDGER=2 rewake
+LATE_RC=0
+=== exit 1
+=== fm-claude-wake.test.sh:test_stop_claim_loses_to_inflight_waker_rewake @ fb34a186
+ok - stop race: a waker rewake committed at the generation the pending read saw arming yields exactly one rewake
+=== exit 0
+=== fm-claude-wake.test.sh:test_waker_banner_carries_away_line_on_host_home @ fb34a186
+ok - waker banner: a host home with a live away record carries the away-posture line, quiet and no record do not
+=== exit 0
+=== fm-claude-wake.test.sh:test_stop_admission_parks_while_rewake_pending @ fb34a186
+ok - turn boundary: Stop admission parks while a rewake is pending
+=== exit 0
+=== fm-claude-wake.test.sh:test_parked_rewake_then_later_row_still_delivered @ fb34a186
+ok - turn boundary across a park: after rewake R's own turn has run, the parked hook still delivers a later row
+=== exit 0
+=== fm-claude-wake.test.sh:test_rewake_from_an_earlier_claude_is_not_pending @ fb34a186
+ok - restart: a rewake committed by an earlier Claude process is not pending in the new one
+=== exit 0
+=== fm-claude-wake.test.sh:test_burst_produces_exactly_one_rewake @ fb34a186
+ok - burst: ten appends whose ten waker firings run concurrently produce exactly one rewake
+=== exit 0
+=== fm-claude-wake.test.sh:test_burst_waiter_never_supersedes_a_commit @ fb34a186
+ok - burst race: a firing that waited on the ledger mutex never supersedes the rewake committed meanwhile
+=== exit 0
+=== fm-claude-wake.test.sh:test_busy_turn_defers_then_stop_delivers_once @ fb34a186
+ok - busy turn: the waker exits 0, the Stop hook delivers at turn end, exactly one rewake follows
+=== exit 0
+=== fm-claude-wake.test.sh:test_parked_hook_present_delivers @ fb34a186
+ok - parked hook present: the waker exits 0 and the parked hook delivers
+=== exit 0

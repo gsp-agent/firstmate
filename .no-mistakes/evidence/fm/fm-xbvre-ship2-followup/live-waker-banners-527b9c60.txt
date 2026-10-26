@@ -1,0 +1,16 @@
+# Wake banners the real Claude primary (Claude Code, Sonnet) received from bin/fm-claude-wake.sh (FileChanged asyncRewake) in a disposable lab home, plain copy of change commit 527b9c60.
+# 1) supervision host on + away record (mode away)  2) host on + quiet record  3) host off (config/supervision-host-off) + away record
+# Ledger line 1 observed after each wake and again after its handling turn ended: epoch=1 rewake, epoch=2 rewake, epoch=3 rewake (final: epoch=3 outcome=rewake updated_at=1793007816) - one rewake per row, none added by the turn-end Stop hook.
+=== delivered to main at 2026-10-26T09:39:15.774Z (user)
+firstmate watcher wake - one supervision event needs a handling turn now.
+check: lab away-posture probe row
+This wake comes from automatic supervision under the away-posture record, not from the captain: it is not a return, so handle it under the away posture.
+Run bin/fm-wake-drain.sh first, handle the wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. Until that post-handling acknowledgement, interruption leaves the wake durable for idempotent re-handling. This Stop hook owns watcher continuity: when the handling turn ends, the next needed cycle arms automatically - do NOT run bin/fm-watch-arm.sh after an ordinary wake.
+=== delivered to main at 2026-10-26T09:42:23.020Z (user)
+firstmate watcher wake - one supervision event needs a handling turn now.
+check: lab quiet-record probe row
+Run bin/fm-wake-drain.sh first, handle the wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. Until that post-handling acknowledgement, interruption leaves the wake durable for idempotent re-handling. This Stop hook owns watcher continuity: when the handling turn ends, the next needed cycle arms automatically - do NOT run bin/fm-watch-arm.sh after an ordinary wake.
+=== delivered to main at 2026-10-26T09:43:36.862Z (user)
+firstmate watcher wake - one supervision event needs a handling turn now.
+check: lab host-off away probe row
+Run bin/fm-wake-drain.sh first, handle the wake, then run its exact WAKE_ACK_REQUIRED --ack-through command. Until that post-handling acknowledgement, interruption leaves the wake durable for idempotent re-handling. This Stop hook owns watcher continuity: when the handling turn ends, the next needed cycle arms automatically - do NOT run bin/fm-watch-arm.sh after an ordinary wake.

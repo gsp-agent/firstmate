@@ -1,0 +1,30 @@
+=== fm-claude-stop-autoarm.test.sh:test_actionable_close_rewakes_with_reason @ fb34a186
+ok - auto-arm: actionable close translates to exactly one exit-2 rewake with reason
+=== exit 0
+=== fm-claude-stop-autoarm.test.sh:test_abandoned_owner_claim_is_reclaimed_and_rearms @ fb34a186
+ok - auto-arm: an abandoned owner claim is reclaimed so a lapsed cycle re-arms
+=== exit 0
+=== fm-claude-stop-autoarm.test.sh:test_pid_reused_claim_with_no_ledger_is_reclaimed_and_rearms @ fb34a186
+ok - auto-arm: a reused-pid claim is reclaimed even with no ledger entry to prove it
+=== exit 0
+=== fm-claude-stop-autoarm.test.sh:test_pid_reused_arming_claim_is_reclaimed_and_rearms @ fb34a186
+ok - auto-arm: a claim whose pid was reused is reclaimed even while its ledger entry still reads arming
+=== exit 0
+=== fm-claude-stop-autoarm.test.sh:test_stuck_live_legacy_owner_is_retired_and_reclaimed @ fb34a186
+ok - auto-arm: a stuck live legacy owner is retired via TERM and its lock reclaimed
+=== exit 0
+=== fm-claude-stop-autoarm.test.sh:test_stopped_legacy_owner_is_reclaimed_with_term_pending @ fb34a186
+ok - auto-arm: a SIGSTOPped legacy owner is reclaimed with TERM pending and dies on continue
+=== exit 0
+=== fm-claude-stop-autoarm.test.sh:test_stuck_generation_claim_is_superseded_and_rearms @ fb34a186
+ok - auto-arm: a hung generation owner with no watcher beat is superseded so re-arming self-heals
+=== exit 0
+=== fm-claude-stop-autoarm.test.sh:test_owner_mutex_contention_preserves_failure_episode_reset @ fb34a186
+ok - auto-arm: owner-mutex contention preserves successor episode state
+=== exit 0
+=== fm-claude-stop-autoarm.test.sh:test_superseded_owner_goes_silent_and_never_double_translates @ fb34a186
+ok - auto-arm: a superseded owner goes silent - one supersession episode, one translation, no held mutex
+=== exit 0
+=== fm-claude-stop-autoarm.test.sh:test_open_generation_claim_defers_without_any_lock @ fb34a186
+ok - auto-arm: a live open generation claim defers concurrent firings with no lock held
+=== exit 0

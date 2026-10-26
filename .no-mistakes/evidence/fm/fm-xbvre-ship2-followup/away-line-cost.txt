@@ -1,0 +1,5 @@
+# load 301.67 273.17 248.30, 20 samples each
+host off: source only              169.7 ms per waker process
+host off: source + away line       146.5 ms per waker process
+host on + away: source only        159.0 ms per waker process
+host on + away: source + away line 273.7 ms per waker process
