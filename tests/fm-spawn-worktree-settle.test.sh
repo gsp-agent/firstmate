@@ -109,12 +109,14 @@ SH
   chmod +x "$fakebin/tmux"
   cat > "$fakebin/treehouse" <<'SH'
 #!/usr/bin/env bash
-if [ "${1:-}" = status ]; then
-  if [ -n "${FM_FAKE_TREEHOUSE_STATUS:-}" ]; then
-    cat "$FM_FAKE_TREEHOUSE_STATUS"
-  else
-    printf '[]\n'
+if [ "${1:-}" = enter ] && [ "${2:-}" = --print-path ]; then
+  path=$(jq -r --arg n "${3:-}" '.worktrees[]? | select(.name == $n) | .path' \
+    "${FM_FAKE_TREEHOUSE_POOL:-/nonexistent}/treehouse-state.json" 2>/dev/null)
+  if [ -z "$path" ]; then
+    printf 'no worktree named "%s" in pool\n' "${3:-}" >&2
+    exit 1
   fi
+  printf '%s\n' "$path"
   exit 0
 fi
 printf '%s\n' '🌳 Setting up worktree...' >&2
@@ -550,18 +552,16 @@ make_pool_case() {
   git -C "$foreign" worktree add --quiet -b "foreignslot-$name" "$pool/1/repo"
   printf '{"worktrees":[{"name":"1","path":"%s"},{"name":"2","path":"%s"}]}' \
     "$pool/1/repo" "$pool/2/repo" > "$pool/treehouse-state.json"
-  printf '[{"name":"1","path":"%s"},{"name":"2","path":"%s"}]' \
-    "$pool/1/repo" "$pool/2/repo" > "$case_dir/treehouse-status.json"
   fm_test_spawn_brief "$home" "$id" "Exercise mixed-pool slot steering for $id."
   printf '%s\n' "$case_dir|$home|$proj|$wt|$wt|$fakebin|$countfile|0"
 }
 
 # make_pool_root_switch_case <name> <id> <yes|no> builds the shape after a
 # project's Treehouse root has moved: a free own-clone slot still sits in
-# the old pool (slot 1), while `treehouse status` in the project reports
-# only the configured new pool - slot 2 there when <yes>, or an empty pool
-# when <no>. The old slot has the lower name, so a candidate picked from
-# `git worktree list` alone chooses the old pool first.
+# the old pool (slot 1), while Treehouse in the project resolves slot
+# names only in the configured new pool - slot 2 there when <yes>, or an
+# empty pool when <no>. The old slot has the lower name, so a candidate
+# picked from `git worktree list` alone chooses the old pool first.
 make_pool_root_switch_case() {
   local name=$1 id=$2 configured_slot=$3 case_dir home proj wt old_pool new_pool fakebin countfile
   case_dir="$TMP_ROOT/$name"
@@ -583,10 +583,6 @@ make_pool_root_switch_case() {
     git -C "$proj" worktree add --quiet -b "newslot-$name" "$new_pool/2/repo"
     printf '{"worktrees":[{"name":"2","path":"%s"}]}' \
       "$new_pool/2/repo" > "$new_pool/treehouse-state.json"
-    printf '[{"name":"2","path":"%s"}]' \
-      "$new_pool/2/repo" > "$case_dir/treehouse-status.json"
-  else
-    printf '[]' > "$case_dir/treehouse-status.json"
   fi
   fm_test_spawn_brief "$home" "$id" "Exercise Treehouse root-switch slot steering for $id."
   printf '%s\n' "$case_dir|$home|$proj|$wt|$wt|$fakebin|$countfile|0"
@@ -604,7 +600,7 @@ test_root_switched_pool_enters_configured_pool_slot() {
   pane_log="$TMP_ROOT/settle-pool-root-switch/pane.log"
   WT_DIR="$new_slot"
 
-  out=$(FM_FAKE_PANE_LOG="$pane_log" FM_FAKE_TREEHOUSE_STATUS="$TMP_ROOT/settle-pool-root-switch/treehouse-status.json" run_settle_spawn "$id")
+  out=$(FM_FAKE_PANE_LOG="$pane_log" FM_FAKE_TREEHOUSE_POOL="$TMP_ROOT/settle-pool-root-switch/new-pool" run_settle_spawn "$id")
   status=$?
   expect_code 0 "$status" "spawn should succeed in the configured pool's own-clone slot"$'\n'"$out"
   assert_grep "worktree=$new_slot" "$HOME_DIR/state/$id.meta" \
@@ -626,7 +622,7 @@ test_root_switched_empty_pool_uses_treehouse_get() {
   read_settle_record "$rec"
   pane_log="$TMP_ROOT/settle-pool-root-switch-empty/pane.log"
 
-  out=$(FM_FAKE_PANE_LOG="$pane_log" FM_FAKE_TREEHOUSE_STATUS="$TMP_ROOT/settle-pool-root-switch-empty/treehouse-status.json" run_settle_spawn "$id")
+  out=$(FM_FAKE_PANE_LOG="$pane_log" FM_FAKE_TREEHOUSE_POOL="$TMP_ROOT/settle-pool-root-switch-empty/new-pool" run_settle_spawn "$id")
   status=$?
   expect_code 0 "$status" "spawn should succeed through treehouse get when the configured pool is empty"$'\n'"$out"
   assert_grep "worktree=$WT_DIR" "$HOME_DIR/state/$id.meta" \
@@ -651,7 +647,7 @@ test_mixed_pool_enters_free_own_slot() {
   pane_log="$TMP_ROOT/settle-pool-own/pane.log"
   WT_DIR="$own_slot"
 
-  out=$(FM_FAKE_PANE_LOG="$pane_log" FM_FAKE_TREEHOUSE_STATUS="$TMP_ROOT/settle-pool-own/treehouse-status.json" run_settle_spawn "$id")
+  out=$(FM_FAKE_PANE_LOG="$pane_log" FM_FAKE_TREEHOUSE_POOL="$TMP_ROOT/settle-pool-own/pool" run_settle_spawn "$id")
   status=$?
   expect_code 0 "$status" "spawn should succeed in the pool's own-clone slot"$'\n'"$out"
   assert_grep "worktree=$own_slot" "$HOME_DIR/state/$id.meta" \
@@ -674,7 +670,7 @@ test_mixed_pool_claimed_own_slot_uses_treehouse_get() {
   pane_log="$TMP_ROOT/settle-pool-claimed/pane.log"
   printf 'task=some-other-task\nhome=%s\n' "$HOME_DIR" > "$pool/2/.fm-slot-owner"
 
-  out=$(FM_FAKE_PANE_LOG="$pane_log" FM_FAKE_TREEHOUSE_STATUS="$TMP_ROOT/settle-pool-claimed/treehouse-status.json" run_settle_spawn "$id")
+  out=$(FM_FAKE_PANE_LOG="$pane_log" FM_FAKE_TREEHOUSE_POOL="$TMP_ROOT/settle-pool-claimed/pool" run_settle_spawn "$id")
   status=$?
   expect_code 0 "$status" "spawn should succeed through treehouse get when the own slot is claimed"$'\n'"$out"
   assert_grep "worktree=$WT_DIR" "$HOME_DIR/state/$id.meta" \
@@ -819,7 +815,7 @@ test_dirty_own_slot_is_not_entered() {
   pane_log="$TMP_ROOT/settle-pool-dirty/pane.log"
   printf 'residue\n' > "$pool/2/repo/untracked-residue"
 
-  out=$(FM_FAKE_PANE_LOG="$pane_log" FM_FAKE_TREEHOUSE_STATUS="$TMP_ROOT/settle-pool-dirty/treehouse-status.json" run_settle_spawn "$id")
+  out=$(FM_FAKE_PANE_LOG="$pane_log" FM_FAKE_TREEHOUSE_POOL="$TMP_ROOT/settle-pool-dirty/pool" run_settle_spawn "$id")
   status=$?
   expect_code 0 "$status" "spawn should succeed through treehouse get when the own slot is dirty"$'\n'"$out"
   assert_grep "worktree=$WT_DIR" "$HOME_DIR/state/$id.meta" \
@@ -845,7 +841,7 @@ test_unmerged_own_slot_is_not_entered() {
   git -C "$pool/2/repo" add README.md
   git -C "$pool/2/repo" -c user.name='Firstmate Tests' -c user.email='tests@example.invalid' commit -qm 'unmerged slot work'
 
-  out=$(FM_FAKE_PANE_LOG="$pane_log" FM_FAKE_TREEHOUSE_STATUS="$TMP_ROOT/settle-pool-unmerged/treehouse-status.json" run_settle_spawn "$id")
+  out=$(FM_FAKE_PANE_LOG="$pane_log" FM_FAKE_TREEHOUSE_POOL="$TMP_ROOT/settle-pool-unmerged/pool" run_settle_spawn "$id")
   status=$?
   expect_code 0 "$status" "spawn should succeed through treehouse get when the own slot is unmerged"$'\n'"$out"
   assert_grep "worktree=$WT_DIR" "$HOME_DIR/state/$id.meta" \

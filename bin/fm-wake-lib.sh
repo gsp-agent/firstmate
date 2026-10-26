@@ -1752,31 +1752,21 @@ fm_treehouse_slot_owner_marker() {  # <worktree>
 # a clean worktree whose HEAD is already in the fetched reset target, so
 # the spawn's base freshen never has to refuse residue or reset away
 # commits. The lowest slot name wins so the choice is stable.
-# A candidate qualifies only in the pool `treehouse status` reports for
-# the project: `git worktree list` names own-clone slots in every pool,
-# while the caller's `treehouse enter <name>` resolves that name only in
-# the configured pool, so a free slot left in an old pool after a root
-# change would be entered nowhere and the spawn would refuse.
+# A candidate qualifies only when `treehouse enter --print-path <name>`
+# run in the project resolves its name back to the candidate itself:
+# `git worktree list` names own-clone slots in every pool, while the
+# caller's `treehouse enter <name>` resolves that name only in the
+# configured pool, so a free slot left in an old pool after a root change
+# would be entered nowhere and the spawn would refuse.
 # Any doubt - no jq, no pool layout, a live owner, an existing claim,
-# residue, an unverifiable reset target, or no configured pool reported
-# by `treehouse status` - prints nothing, and the caller keeps the plain
-# `treehouse get` path, whose candidate screening still refuses a
+# residue, an unverifiable reset target, or a name `treehouse enter` does
+# not resolve to the candidate - prints nothing, and the caller keeps the
+# plain `treehouse get` path, whose candidate screening still refuses a
 # foreign-clone slot.
 fm_treehouse_free_own_slot() {  # <project-dir> [<base-branch>]
   local project=$1 base=${2:-} listed line wt slot pool state owner_pid marker name best="" best_key=""
-  local target_branch="" target_ref="" target_ready=0 status candidate
-  local configured_pool="" configured_path="" status_json=""
+  local target_branch="" target_ref="" target_ready=0 status candidate entered
   command -v jq >/dev/null 2>&1 || return 0
-  status_json=$(cd "$project" 2>/dev/null && treehouse status --json </dev/null 2>/dev/null) || status_json=""
-  if [ -n "$status_json" ]; then
-    configured_path=$(printf '%s\n' "$status_json" | jq -r \
-      'if type == "array" then (.[0].path // "") elif type == "object" then (.worktrees[0].path // "") else "" end' \
-      2>/dev/null) || configured_path=""
-    if [ -n "$configured_path" ]; then
-      configured_pool=$(dirname "$(dirname "$configured_path")")
-      configured_pool=$(CDPATH='' cd -- "$configured_pool" 2>/dev/null && pwd -P) || configured_pool=""
-    fi
-  fi
   listed=$(git -C "$project" -c core.quotePath=false worktree list --porcelain 2>/dev/null) || return 0
   while IFS= read -r line; do
     case "$line" in
@@ -1786,7 +1776,6 @@ fm_treehouse_free_own_slot() {  # <project-dir> [<base-branch>]
     fm_treehouse_pool_slot "$project" "$wt" || continue
     slot=$(CDPATH='' cd -- "$wt" 2>/dev/null && pwd -P) || continue
     pool=$(dirname "$(dirname "$slot")")
-    [ "$pool" = "$configured_pool" ] || continue
     state="$pool/treehouse-state.json"
     name=$(basename "$(dirname "$slot")")
     lease_line=$(jq -r --arg p "$slot" --arg n "$name" \
@@ -1828,6 +1817,10 @@ fm_treehouse_free_own_slot() {  # <project-dir> [<base-branch>]
     status=$(git -C "$wt" -c core.quotePath=false status --porcelain 2>/dev/null) || continue
     [ -z "$status" ] || continue
     git -C "$wt" merge-base --is-ancestor HEAD "$target_ref" 2>/dev/null || continue
+    entered=$(cd "$project" 2>/dev/null && treehouse enter --print-path "$name" </dev/null 2>/dev/null) || continue
+    [ -n "$entered" ] || continue
+    entered=$(CDPATH='' cd -- "$entered" 2>/dev/null && pwd -P) || continue
+    [ "$entered" = "$slot" ] || continue
     case "$name" in
       *[!0-9]* | "") name=999999 ;;
     esac
