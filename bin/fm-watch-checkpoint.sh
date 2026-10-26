@@ -156,7 +156,7 @@ if fm_supervision_host_enabled "$CONFIG" codex; then
   fi
   # The host's park boundary stays below the 28800-second registration.
   [ "$BOUND" -lt 27000 ] 2>/dev/null || BOUND=27000
-  LIMIT=$(( BOUND + $(positive_or "${FM_SUPERVISION_HOST_TURN_TIMEOUT:-}" 1200) + $(positive_or "${FM_SUPERVISION_ENGINE_GRACE:-}" 30) ))
+  LIMIT=$(( BOUND + $(positive_or "${FM_SUPERVISION_HOST_TURN_TIMEOUT:-}" 540) + $(positive_or "${FM_SUPERVISION_ENGINE_GRACE:-}" 30) ))
   set +e
   # The host ends its own park; the outer bound only catches a host that
   # outlived every one of its own bounds.
