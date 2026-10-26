@@ -563,9 +563,10 @@ FM_COMPOSER_PI_MAX_LINES=${FM_COMPOSER_PI_MAX_LINES:-8}
 
 # Column overhang of Grok 1.0.5's titled bottom border over its aligned top
 # and content rows, captured live in issue #3436's 2026-09-14 idle repro
-# (see docs/verification/runtime-backends.md). Not re-verified against a live
-# Grok install since; may need to change if a future Grok release renders a
-# different overhang or scales it with title/model-name length.
+# (see docs/verification/runtime-backends.md). The overhang itself has not
+# been re-verified live since, and Grok 1.0.70's mode-suffixed title showed
+# none (see _fm_composer_titled_bottom_ok); a future release may render a
+# different overhang or scale it with title/model-name length.
 FM_COMPOSER_GROK_TITLE_OVERHANG=3
 
 # 0 when <content> is exactly one glyph drawn from <glyph-list>.
@@ -779,8 +780,9 @@ _fm_composer_pi_separator_row() {  # <trimmed-row>
 # requires. Width is proven by comparing canonical space strings, never by
 # `${#row}`, which counts characters under UTF-8 and bytes under LC_ALL=C
 # (issue #1988). Title text is ASCII-printable only, the same boundary
-# _fm_composer_titled_bottom_ok holds; any other glyph leaves residue, and the
-# verdict stays `unknown`, the safe direction.
+# _fm_composer_titled_bottom_ok holds for a generic exact-width title (only its
+# typed Grok title path also admits the ` · <mode>` separator); any other glyph
+# leaves residue, and the verdict stays `unknown`, the safe direction.
 _fm_composer_titled_rule_row() {  # <trimmed-row> <plain-rule-spaces>
   local row=$1 expected=$2 spaces
   case "$row" in
@@ -1082,29 +1084,50 @@ _fm_composer_titled_bottom_ok() {  # <family> <bottom-inner> <top-spaces>
   spaces=${inner//"$dash"/ }
   spaces=$(printf '%s' "$spaces" | LC_ALL=C sed 's/[!-~]/ /g')
   case "$spaces" in
-    *[![:space:]]*) return 1 ;;
+    *[![:space:]]*) ;;
+    "$expected") return 0 ;;
   esac
-  [ "$spaces" = "$expected" ] && return 0
 
   # Grok 1.0.5 renders its real model title FM_COMPOSER_GROK_TITLE_OVERHANG
   # columns wider than the otherwise aligned top and content rows (issue
-  # #3436; see the constant's definition for provenance and caveats). Accept
-  # only that exact overhang and only the typed Grok model/effort title
-  # shape. This keeps arbitrary malformed bottoms ambiguous while preserving
-  # the complete-box proof around a genuinely idle or pending Grok composer.
+  # #3436; see the constant's definition for provenance and caveats), while
+  # Grok 1.0.70 draws `Grok 4.7 (xhigh) · always-approve` at exactly the box
+  # width (live, 2026-10-25). Accept exactly that overhang or exact width,
+  # and only the typed Grok model/effort title shape, optionally followed by
+  # one ` · <mode>` suffix such as ` · always-approve`. Only this path counts
+  # U+00B7 as one column, so a generic exact-width title above stays
+  # ASCII-printable. This keeps arbitrary malformed bottoms ambiguous while
+  # preserving the complete-box proof around a genuinely idle or pending
+  # Grok composer.
+  spaces=${spaces//·/ }
+  case "$spaces" in
+    *[![:space:]]*) return 1 ;;
+  esac
   local overhang
   overhang=$(printf '%*s' "$FM_COMPOSER_GROK_TITLE_OVERHANG" '')
-  [ "$spaces" = "$expected$overhang" ] || return 1
+  case "$spaces" in
+    "$expected"|"$expected$overhang") ;;
+    *) return 1 ;;
+  esac
   title=${inner//"$dash"/}
   fm_composer_normalize_trim_var title
+  local base=$title mode=''
   case "$title" in
+    *') · '?*)
+      mode=${title##*') · '}
+      base=${title% · *}
+      [ -n "$mode" ] || return 1
+      case "$mode" in *[!A-Za-z0-9._-]*) return 1 ;; esac
+      ;;
+  esac
+  case "$base" in
     'Grok '*\ \(low\)) effort=low ;;
     'Grok '*\ \(medium\)) effort=medium ;;
     'Grok '*\ \(high\)) effort=high ;;
     'Grok '*\ \(xhigh\)) effort=xhigh ;;
     *) return 1 ;;
   esac
-  model=${title#Grok }
+  model=${base#Grok }
   model=${model%" ($effort)"}
   [ -n "$model" ] || return 1
   case "$model" in *[!A-Za-z0-9._-]*) return 1 ;; esac
