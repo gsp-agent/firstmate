@@ -1,0 +1,44 @@
+### spawn scenario: fix-new-free (layout new-free)
+fm-spawn.sh from: /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5TY8HZJ8GW8X5WE6KFD8VS1
+treehouse: /Users/dalecarman/.local/bin/treehouse v2.3.0
+--- pool layout before the spawn ---
+configured root (treehouse.toml): "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/spawn/fix-new-free/root-new"
+treehouse v2.3.0 status --json in the project:
+  {"name":"1","path":"/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/spawn/fix-new-free/root-new/.treehouse/proj-b88788/1/proj","status":"leased"}
+  {"name":"2","path":"/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/spawn/fix-new-free/root-new/.treehouse/proj-b88788/2/proj","status":"available"}
+own-clone slots in git worktree list, with their pool state:
+  /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/spawn/fix-new-free/root-new/.treehouse/proj-b88788/1/proj  [leased (busy)]
+  /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/spawn/fix-new-free/root-new/.treehouse/proj-b88788/2/proj  [free]
+  /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/spawn/fix-new-free/root-old/.treehouse/proj-b88788/1/proj  [free]
+--- spawn result ---
+exit=0 elapsed=6s
+fm-spawn output (scrubbed, /Users/dalecarman/.no-mistakes/evidence/01M5TY8HZJ8GW8X5WE6KFD8VS1/spawn-fix-new-free.fm-spawn-output.txt):
+  | fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.gcd88c
+  | warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.gcd88c/data/rootswitch-fix-new-free/launch-brief.md records no ship branch; defaulting to legacy branch fm/rootswitch-fix-new-free
+  | warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.gcd88c/data/rootswitch-fix-new-free/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+  | notice: rootswitch-fix-new-free ships mode=local-only while the standing posture for proj is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+  | spawned rootswitch-fix-new-free harness=sh kind=ship mode=local-only yolo=off window=primary:fm-rootswitch-fix-new-free worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/spawn/fix-new-free/root-new/.treehouse/proj-b88788/2/proj
+state/rootswitch-fix-new-free.meta worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/spawn/fix-new-free/root-new/.treehouse/proj-b88788/2/proj
+task window fm-rootswitch-fix-new-free pane_current_path=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/spawn/fix-new-free/root-new/.treehouse/proj-b88788/2/proj
+treehouse lines the spawn typed into the task pane (full pane history):
+  > treehouse enter '2'
+  > ╰─❯ treehouse enter '2'
+task window pane (last rows):
+  > export FM_TASK_ID=rootswitch-fix-new-free
+  > ╭─proj on 🌱 fm/rootswitch-fix-new-free
+  > ╰─❯ export COMPACT_ADVISER_DISABLE=1
+  > export FM_TASK_ID=rootswitch-fix-new-free
+  > ╭─proj on 🌱 fm/rootswitch-fix-new-free
+  > ╰─❯ export FM_TASK_ID=rootswitch-fix-new-free
+  > ╭─proj on 🌱 fm/rootswitch-fix-new-free
+  > ╰─❯ . '/tmp/fm-rootswitch-fix-new-free+badb77fa67b1130243831ec7ddd8b8c5be42a5b155ee2c6c0585919a033372ee/launch.s1792980146.92839.20268.sh'
+--- configured pool after the spawn ---
+configured root (treehouse.toml): "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/spawn/fix-new-free/root-new"
+treehouse v2.3.0 status --json in the project:
+  {"name":"1","path":"/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/spawn/fix-new-free/root-new/.treehouse/proj-b88788/1/proj","status":"leased"}
+  {"name":"2","path":"/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/spawn/fix-new-free/root-new/.treehouse/proj-b88788/2/proj","status":"in-use"}
+own-clone slots in git worktree list, with their pool state:
+  /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/spawn/fix-new-free/root-new/.treehouse/proj-b88788/1/proj  [leased (busy)]
+  /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/spawn/fix-new-free/root-new/.treehouse/proj-b88788/2/proj  [free]
+  /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/spawn/fix-new-free/root-old/.treehouse/proj-b88788/1/proj  [free]
+lab tmux server killed; lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.gcd88c

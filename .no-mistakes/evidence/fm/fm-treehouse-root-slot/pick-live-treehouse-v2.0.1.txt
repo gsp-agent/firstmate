@@ -1,0 +1,26 @@
+treehouse on PATH: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/th201/treehouse v2.0.1
+
+=== layout: no-switch ===
+configured root (treehouse.toml): "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/pick/no-switch-th201/root-old"
+treehouse v2.0.1 status --json in the project:
+  (status --json unavailable, exit 1: unknown flag: --json)
+own-clone slots in git worktree list, with their pool state:
+  /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/pick/no-switch-th201/root-old/.treehouse/proj-9f3a79/1/proj  [leased (busy)]
+  /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/pick/no-switch-th201/root-old/.treehouse/proj-9f3a79/2/proj  [free]
+base cfd72172 picks: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/pick/no-switch-th201/root-old/.treehouse/proj-9f3a79/2/proj
+  treehouse enter '2' -> /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/pick/no-switch-th201/root-old/.treehouse/proj-9f3a79/2/proj (the chosen slot)
+fix  072d88f0 picks: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/pick/no-switch-th201/root-old/.treehouse/proj-9f3a79/2/proj
+  treehouse enter '2' -> /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/pick/no-switch-th201/root-old/.treehouse/proj-9f3a79/2/proj (the chosen slot)
+foreign clone slot: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/pick/mixed-th201/root-old/.treehouse/proj-ea4a40/1/proj
+own clone slot:     /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/pick/mixed-th201/root-old/.treehouse/proj-ea4a40/2/proj
+
+=== layout: mixed ===
+configured root (treehouse.toml): "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/pick/mixed-th201/root-old"
+treehouse v2.0.1 status --json in the project:
+  (status --json unavailable, exit 1: unknown flag: --json)
+own-clone slots in git worktree list, with their pool state:
+  /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/pick/mixed-th201/root-old/.treehouse/proj-ea4a40/2/proj  [free]
+base cfd72172 picks: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/pick/mixed-th201/root-old/.treehouse/proj-ea4a40/2/proj
+  treehouse enter '2' -> /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/pick/mixed-th201/root-old/.treehouse/proj-ea4a40/2/proj (the chosen slot)
+fix  072d88f0 picks: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/pick/mixed-th201/root-old/.treehouse/proj-ea4a40/2/proj
+  treehouse enter '2' -> /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-rootswitch.DKqk0I/pick/mixed-th201/root-old/.treehouse/proj-ea4a40/2/proj (the chosen slot)
