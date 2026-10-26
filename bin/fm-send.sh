@@ -12,8 +12,13 @@
 # secondmate request delivers only marker and correlation bytes and leaves the
 # parent waiting on a reply to nothing.
 # Special keys instead of text: fm-send.sh <target> --key Enter
-# Key support is backend-specific: tmux/herdr support Escape, Enter, and C-c;
-# Orca currently supports Enter and C-c only, and rejects Escape.
+# Key support is backend-specific.
+# tmux passes the key name to `tmux send-keys` unchanged, so any tmux key
+# name works, for example Escape, Enter, C-c, or X.
+# Herdr normalizes Enter, Escape, C-c, and C-u (in any listed spelling) and
+# passes every other key name to the pane unchanged, so X works there too.
+# Orca supports Enter and C-c only and rejects every other key, Escape and
+# X included.
 #
 # Two data planes:
 #
