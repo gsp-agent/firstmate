@@ -597,27 +597,22 @@ emit() {  # [line...]
   [ -z "$text" ] || printf '%s\n' "$text"
 }
 
-# The Dispatch lines for places freed by the signal rows in <reason>: each
-# signal names a task's status file, and bin/fm-dispatch-ready.sh --freed-by
-# prints that task's project line only when its worker stopped working and the
-# line says to start something. One line per project, in row order.
+# The Dispatch lines for places freed by the signal rows in <reason>: each task
+# a signal row names (fm_wake_signal_task_ids reads every coalesced file in the
+# row), through bin/fm-dispatch-ready.sh --freed-by, which prints that task's
+# project line only when its worker stopped working and the line says to start
+# something. One line per project, in task order.
 freed_place_dispatch_lines() {  # <reason>
-  local line id seen='|' dispatch out=''
-  while IFS= read -r line; do
-    case "$line" in 'signal: '*.status) ;; *) continue ;; esac
-    id=${line#signal: }
-    id=${id##*/}
-    id=${id%.status}
-    case "$id" in '' | *[!A-Za-z0-9._-]*) continue ;; esac
-    case "$seen" in *"|$id|"*) continue ;; esac
-    seen="$seen$id|"
+  local id dispatch out=''
+  while IFS= read -r id; do
+    [ -n "$id" ] || continue
     dispatch=$(fm_run_timed 300 env FM_HOME="$FM_HOME" FM_STATE_OVERRIDE="$STATE" \
       "$SCRIPT_DIR/fm-dispatch-ready.sh" --freed-by "$id" </dev/null 2>/dev/null) || dispatch=
     [ -n "$dispatch" ] || continue
     case "$out" in *"$dispatch"*) continue ;; esac
     out=${out:+$out$'\n'}$dispatch
   done <<FREED
-$1
+$(fm_wake_signal_task_ids "$1")
 FREED
   [ -z "$out" ] || printf '%s\n' "$out"
 }

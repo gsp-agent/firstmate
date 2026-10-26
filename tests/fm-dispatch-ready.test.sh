@@ -243,6 +243,27 @@ test_freed_by_prints_only_for_a_worker_that_stopped() {
   pass "--freed-by prints the Dispatch line only for a stopped worker without a PR, and only when it says start"
 }
 
+# The watcher coalesces every pending signal into one row (chip, PR 164 review
+# 5654386006): every status log and turn-end marker in it names a task, so a
+# worker that stopped is checked whichever file came last.
+test_signal_rows_name_every_coalesced_task() {
+  local ids
+  ids=$(bash -c '. "$1/bin/fm-wake-lib.sh"; fm_wake_signal_task_ids "$2"' _ "$ROOT" \
+    "signal: /h/state/stopped.status /h/state/busy.status
+check: captain inbox note n1 - hello
+signal: /h/state/stopped.status /h/state/stopped.turn-ended /h/state/other.turn-ended /h/state/notes.txt /h/state/bad\$id.status")
+  assert_equals "stopped
+busy
+other" "$ids" "a coalesced signal row did not name every task once, in order"
+  ids=$(bash -c '. "$1/bin/fm-wake-lib.sh"; fm_wake_signal_task_ids "$2"' _ "$ROOT" "signal: /h/state/stopped.status /h/state/stopped.turn-ended")
+  assert_equals "stopped" "$ids" "a status plus turn-end row did not name its task"
+  # A path token is never glob-expanded against the working directory.
+  mkdir -p "$TMP_ROOT/glob" && : > "$TMP_ROOT/glob/x.status"
+  ids=$(cd "$TMP_ROOT/glob" && bash -c '. "$1/bin/fm-wake-lib.sh"; fm_wake_signal_task_ids "$2"' _ "$ROOT" "signal: *.status")
+  assert_equals "" "$ids" "a glob in a signal row expanded against the working directory"
+  pass "a coalesced signal row names every task its status logs and turn-end markers belong to"
+}
+
 test_uncapped_project_starts_everything_and_if_capped_is_silent() {
   local case_dir out
   case_dir=$(make_case uncapped)
@@ -369,6 +390,7 @@ test_full_project_with_headroom_leaves_the_extra_start_to_spawn
 test_full_pool_holds_ready_rows_beside_free_places
 test_captain_rows_are_not_offered
 test_freed_by_prints_only_for_a_worker_that_stopped
+test_signal_rows_name_every_coalesced_task
 test_uncapped_project_starts_everything_and_if_capped_is_silent
 test_zero_places_hold_ready_work_back
 test_no_ready_rows_skips_the_count

@@ -1660,6 +1660,36 @@ fm_local_firstmate_state_dirs() {  # <first-state>
   done
 }
 
+# fm_wake_signal_task_ids <reason>: print each task id the `signal:` rows of a
+# wake reason name, once, in order. The watcher coalesces every pending signal
+# into ONE row, `signal: <file> <file>...` (bin/fm-watch.sh), whose files are
+# status logs (<id>.status) and turn-end markers (<id>.turn-ended), so every
+# whitespace-separated token is read, not just the row's last word. A token
+# whose basename is neither, or whose id is not a plain task id, is skipped.
+fm_wake_signal_task_ids() {  # <reason>
+  local line token id seen='|'
+  local -a tokens
+  while IFS= read -r line; do
+    case "$line" in 'signal:'*) ;; *) continue ;; esac
+    # Split on whitespace without pathname expansion of the paths.
+    read -r -a tokens <<<"${line#signal:}"
+    for token in ${tokens[@]+"${tokens[@]}"}; do
+      id=${token##*/}
+      case "$id" in
+        *.status) id=${id%.status} ;;
+        *.turn-ended) id=${id%.turn-ended} ;;
+        *) continue ;;
+      esac
+      case "$id" in '' | *[!A-Za-z0-9._-]*) continue ;; esac
+      case "$seen" in *"|$id|"*) continue ;; esac
+      seen="$seen$id|"
+      printf '%s\n' "$id"
+    done
+  done <<EOF
+$1
+EOF
+}
+
 # The one lock serializing Treehouse slot allocation and return for a project,
 # and project capacity admission (bin/fm-project-capacity-lib.sh), which a
 # fresh spawn evaluates under it on every backend.
