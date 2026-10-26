@@ -291,9 +291,10 @@
 #   count), the spawn prints one `deferred:` line naming the pool and its held
 #   trees and exits 75 under the same lock and with the same nothing-created
 #   guarantee as a full count of places. A `treehouse get` in the task pane
-#   that still reports every tree in use or dirty also defers with 75, after
-#   closing the endpoint it opened, since that count reads Treehouse's status
-#   rather than its reuse test.
+#   that still reports every tree in use or dirty also defers with 75 once the
+#   endpoint it opened is confirmed closed, since that count reads Treehouse's
+#   status rather than its reuse test; an endpoint whose close is not confirmed
+#   keeps that refusal an exit 1, because a deferral promises nothing is left.
 #   Regression coverage: tests/fm-project-capacity.test.sh.
 #   Live sessions: when this machine has a live-session detector
 #   (bin/fm-live-session-lib.sh owns which detector, the folder name it is
@@ -5773,13 +5774,16 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
           treehouse_cleanup="could not confirm closure of its endpoint; inspect window $treehouse_unclosed"
         fi
         # A pool Treehouse itself reports full is the pool-tree limit, not a
-        # failure: nothing launched and the item is still queued, so this
-        # defers like the admission count above (which can read high, since
-        # `available` is not Treehouse's reuse test).
-        case "$treehouse_said" in
-          *"worktrees are in use or dirty"*)
-            # The close above already ran and reported what it could not
-            # close; the abort trap must not close it again on this deferral.
+        # failure, once nothing is left behind: nothing launched, the item is
+        # still queued, and the close above is confirmed, so this defers like
+        # the admission count (which can read high, since `available` is not
+        # Treehouse's reuse test). An endpoint whose close is not confirmed
+        # stays the failure below: a deferral promises a retry finds nothing,
+        # and a surviving same-ID window would refuse it (chip, PR 164 review
+        # 5653825506).
+        case "$SPAWN_ENDPOINT_CLOSED:$treehouse_said" in
+          1:*"worktrees are in use or dirty"*)
+            # The confirmed close already ran; the abort trap must not repeat it.
             SPAWN_CREATED_ENDPOINT=
             echo "deferred: the worktree pool of project '$PROJ_ABS' is full by treehouse's own allocation; task $ID was not launched and its backlog item stays queued - dispatch it again once a tree is returned; $treehouse_cleanup; treehouse said:"$'\n'"$treehouse_said" >&2
             exit "$SPAWN_DEFER_EXIT"

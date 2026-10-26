@@ -284,8 +284,11 @@ test_full_pool_defers_beside_free_places() {
 }
 
 # A pool whose trees read available can still refuse (Treehouse's reuse test is
-# stricter than its status): the pane's `treehouse get` reporting every tree in
-# use or dirty defers with 75 too, leaving the row queued, not exit 1.
+# stricter than its status). The pane's `treehouse get` reporting every tree in
+# use or dirty defers with 75 only once its endpoint is confirmed closed (the
+# Herdr cases in tests/fm-spawn-worktree-settle.test.sh); tmux confirms no
+# close, so here the refusal stays exit 1, names its window, and leaves the row
+# queued, because a deferral promises a retry finds nothing left behind.
 test_treehouse_full_pool_refusal_in_the_pane_defers() {
   local case_dir home out rc=0
   case_dir=$(make_case pool-refusal task-a)
@@ -294,13 +297,15 @@ test_treehouse_full_pool_refusal_in_the_pane_defers() {
     "  all 4 worktrees are in use or dirty (max_trees = 4). Run 'treehouse status' to see details, or increase max_trees in treehouse.toml" \
     fm-treehouse-get-end > "$case_dir/capture.txt"
   out=$(FM_FAKE_CAPTURE="$case_dir/capture.txt" spawn_ship "$case_dir" task-a "$case_dir/project") || rc=$?
-  expect_code "$DEFER_EXIT" "$rc" "a pane treehouse refusal of a full pool did not defer: $out"
-  assert_contains "$out" "worktree pool of project '$case_dir/project' is full by treehouse's own allocation" "the pane deferral did not name the pool"
-  assert_absent "$home/state/task-a.meta" "the pane deferral published a task record"
+  expect_code 1 "$rc" "a pane full-pool refusal with an unconfirmed close must stay a failure: $out"
+  assert_not_contains "$out" "deferred:" "an unconfirmed close was reported as a clean deferral"
+  assert_contains "$out" "could not confirm closure" "the refusal did not name its unconfirmed window"
+  assert_contains "$out" "all 4 worktrees are in use or dirty" "the refusal lost treehouse's reason"
+  assert_absent "$home/state/task-a.meta" "the pane refusal published a task record"
   if [ "$HAVE_TASKS_AXI" = 1 ]; then
     [ "$(row_state "$home" task-a)" = queued ] || fail "the pane deferral moved task-a's row: $(row_state "$home" task-a)"
   fi
-  pass "a pane treehouse refusal of a full pool defers with 75 and leaves the row queued"
+  pass "a pane full-pool refusal whose close is unconfirmed stays exit 1 and leaves the row queued"
 }
 
 # The reported incident's shape before any declaration: the project is already
