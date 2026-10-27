@@ -1,0 +1,2 @@
+# Failing-first: tests/fm-control-relaunch.test.sh reassigned-slot case; tests/fm-pm-live.test.sh reassigned-slot merge advice.
+pr: 176

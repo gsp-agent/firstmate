@@ -95,6 +95,7 @@ case "${1:-}" in
           [ -z "${FM_FAKE_EXIT_TRANSPORT_FAIL_AFTER_STOP:-}" ] || exit 1
           ;;
         *'encode launch-brief'* | *'Firstmate operational input waiting: read'*)
+          [ ! -x "$D/slot-race-probe" ] || "$D/slot-race-probe"
           cat "$D/becomes" > "$D/command"
           [ -z "${FM_FAKE_LAUNCH_TRANSPORT_FAIL_AFTER_START:-}" ] || exit 1
           ;;
@@ -404,6 +405,182 @@ SH
 }
 
 # --- 1. same-harness relaunch -----------------------------------------------
+
+test_spawn_relaunch_respects_slot_claim() {
+  local dir out rc owner before
+  for owner in another-task rl-slot absent; do
+    dir=$(new_case "slot-$owner" rl-slot)
+    add_ship_task "$dir" rl-slot claude
+    printf 'zsh' > "$dir/fake/command"
+    if [ "$owner" != absent ]; then
+      printf 'task=%s\nhome=%s\n' "$owner" "$dir/home" > "$dir/.fm-slot-owner"
+    fi
+    before=$(cat "$dir/home/state/rl-slot.meta")
+    out=$(run_spawn "$dir" rl-slot --relaunch); rc=$?
+    if [ "$owner" = another-task ]; then
+      expect_code 1 "$rc" "relaunch must refuse a slot reassigned to another task"$'\n'"$out"
+      assert_contains "$out" "claimed by task another-task" "refusal must identify the current claimant"
+      [ "$(cat "$dir/home/state/rl-slot.meta")" = "$before" ] || fail "refusal changed task metadata"
+      [ ! -s "$dir/fake/keys" ] || fail "refusal sent keys to the endpoint"
+      [ ! -s "$dir/fake/literal" ] || fail "refusal launched a worker"
+    else
+      expect_code 0 "$rc" "$owner claim must allow relaunch"$'\n'"$out"
+      assert_contains "$out" "spawned rl-slot" "compatible claim did not launch"
+    fi
+  done
+  pass "fm-spawn --relaunch: rejects another task's claim and accepts own or absent claims"
+}
+
+test_spawn_relaunch_serializes_slot_ownership_through_launch() {
+  local dir out rc boundary
+  for boundary in before-lock launch; do
+    dir=$(new_case "slot-race-$boundary" rl-race)
+    add_ship_task "$dir" rl-race claude
+    printf 'zsh' > "$dir/fake/command"
+    cat > "$dir/claim-slot" <<SH
+#!/usr/bin/env bash
+. "$ROOT/bin/fm-wake-lib.sh"
+FM_HOME="$dir/home"
+lock=\$(fm_treehouse_project_lock_path "$dir/proj") || exit 1
+if fm_lock_try_acquire "\$lock"; then
+  printf 'task=successor\n' > "$dir/.fm-slot-owner"
+  printf 'claimed\n' > "$dir/race-result"
+  fm_lock_release "\$lock"
+else
+  printf 'blocked\n' > "$dir/race-result"
+fi
+SH
+    chmod +x "$dir/claim-slot"
+    if [ "$boundary" = before-lock ]; then
+      mkdir -p "$dir/home/config" "$dir/account"
+      printf '%s\n' "$dir/account" > "$dir/home/config/claude-account"
+      cat > "$dir/fakebin/claude" <<SH
+#!/usr/bin/env bash
+[ "\${1:-}" != auth ] || "$dir/claim-slot"
+exit 0
+SH
+      chmod +x "$dir/fakebin/claude"
+    else
+      cp "$dir/claim-slot" "$dir/fake/slot-race-probe"
+    fi
+    out=$(run_spawn "$dir" rl-race --relaunch); rc=$?
+    if [ "$boundary" = before-lock ]; then
+      [ "$(cat "$dir/race-result")" = claimed ] || fail "race did not reassign the pre-claim slot"
+      expect_code 1 "$rc" "must recheck a claim changed during preparation"$'\n'"$out"
+      assert_contains "$out" 'claimed by task successor' "late claimant must be named"
+      [ ! -s "$dir/fake/literal" ] || fail "reassigned slot received launch input"
+    else
+      expect_code 0 "$rc" "unclaimed slot must still relaunch"$'\n'"$out"
+      [ "$(cat "$dir/race-result")" = blocked ] || fail "allocation acquired project lock during launch delivery"
+      [ ! -e "$dir/.fm-slot-owner" ] || fail "allocation reassigned the slot during relaunch"
+    fi
+    "$dir/claim-slot"
+    [ "$(cat "$dir/race-result")" = claimed ] || fail "relaunch leaked the project lock"
+  done
+  pass "fm-spawn --relaunch: rechecks under allocation lock and holds it through launch"
+}
+
+test_control_relaunch_refuses_a_reassigned_slot_before_touching_anything() {
+  local dir out rc agent
+  for agent in claude zsh; do
+    dir=$(new_case "control-slot-$agent" rl-cslot)
+    add_ship_task "$dir" rl-cslot claude
+    printf '%s' "$agent" > "$dir/fake/command"
+    printf 'task=another-task\nhome=%s\n' "$dir/home" > "$dir/.fm-slot-owner"
+    cp -p "$dir/home/data/rl-cslot/brief.md" "$dir/brief-before"
+    cp -p "$dir/home/state/rl-cslot.meta" "$dir/meta-before"
+    out=$(run_control "$dir" rl-cslot relaunch --note "merged; resume"); rc=$?
+    expect_code 1 "$rc" "fm-control relaunch must refuse a slot reassigned to another task ($agent endpoint)"$'\n'"$out"
+    assert_contains "$out" "claimed by task another-task" "the refusal must identify the current claimant"
+    assert_not_contains "$out" "preserved at" "the refusal must not point at another task's copy as this task's work"
+    cmp -s "$dir/brief-before" "$dir/home/data/rl-cslot/brief.md" \
+      || fail "the refusal appended a progress note to the brief ($agent endpoint)"
+    cmp -s "$dir/meta-before" "$dir/home/state/rl-cslot.meta" \
+      || fail "the refusal changed task metadata ($agent endpoint)"
+    assert_absent "$dir/home/state/rl-cslot.control-relaunch" "the refusal must not journal a relaunch"
+    assert_absent "$dir/home/state/rl-cslot.control-relaunch.note" "the refusal must not record the note"
+    [ "$(cat "$dir/fake/command")" = "$agent" ] || fail "the refusal changed the endpoint's agent"
+    [ ! -s "$dir/fake/keys" ] || fail "the refusal sent keys to the endpoint ($agent endpoint)"
+    [ ! -s "$dir/fake/literal" ] || fail "the refusal typed into the endpoint ($agent endpoint)"
+  done
+  dir=$(new_case control-slot-mine rl-cslot)
+  add_ship_task "$dir" rl-cslot claude
+  printf 'task=rl-cslot\nhome=%s\n' "$dir/home" > "$dir/.fm-slot-owner"
+  out=$(run_control "$dir" rl-cslot relaunch --note "own slot; resume"); rc=$?
+  expect_code 0 "$rc" "fm-control relaunch must accept the task's own slot claim"$'\n'"$out"
+  assert_contains "$out" "relaunched rl-cslot" "an own-claim relaunch should complete"
+  pass "fm-control relaunch: another task's slot claim refuses before the agent, brief, or record is touched"
+}
+
+test_secondmate_relaunch_ignores_a_stale_slot_claim() {
+  local dir home out rc entry marker
+  for entry in control spawn; do
+    for marker in own wrong; do
+      dir=$(new_case "sm-claim-$entry-$marker" smc)
+      home="$dir/home"
+      mkdir -p "$home/config"
+      printf 'claude\n' > "$home/config/secondmate-harness"
+      mkdir -p "$home/data/smc"
+      printf '# secondmate brief\n' > "$home/data/smc/brief.md"
+      fm_git_worktree "$dir/proj" "$dir/smhome" sm-branch
+      mkdir -p "$dir/smhome/state" "$dir/smhome/data" "$dir/smhome/bin"
+      printf '# agents\n' > "$dir/smhome/AGENTS.md"
+      if [ "$marker" = own ]; then
+        printf 'smc\n' > "$dir/smhome/.fm-secondmate-home"
+      else
+        printf 'someone-else\n' > "$dir/smhome/.fm-secondmate-home"
+      fi
+      printf 'task=another-task\nhome=%s\n' "$home" > "$dir/.fm-slot-owner"
+      {
+        echo "window=fmses:fm-smc"
+        echo "endpoint_task_id=smc"
+        echo "worktree=$dir/smhome"
+        echo "project=$dir/smhome"
+        echo "harness=claude"
+        echo "kind=secondmate"
+        echo "mode=secondmate"
+        echo "yolo=off"
+        echo "model=default"
+        echo "effort=default"
+        echo "home=$dir/smhome"
+        echo "projects="
+      } > "$home/state/smc.meta"
+      printf '%s\n' "fm-smc" > "$dir/fake/windows"
+      printf '%s' "$dir/smhome" > "$dir/fake/cwd"
+      cp -p "$home/state/smc.meta" "$dir/meta-before"
+      if [ "$entry" = control ]; then
+        out=$(run_control "$dir" smc relaunch); rc=$?
+      else
+        printf 'zsh' > "$dir/fake/command"
+        out=$(run_spawn "$dir" smc --relaunch); rc=$?
+      fi
+      assert_not_contains "$out" "claimed by task another-task" \
+        "a secondmate's leased home must not be refused for a stale claim ($entry)"
+      if [ "$marker" = own ]; then
+        expect_code 0 "$rc" "a marked secondmate home with a stale claim should relaunch ($entry)"$'\n'"$out"
+        if [ "$entry" = control ]; then
+          assert_contains "$out" "relaunched smc" "the fm-control secondmate relaunch should complete"
+        else
+          assert_contains "$out" "spawned smc" "the fm-spawn secondmate relaunch should launch"
+        fi
+      else
+        expect_code 1 "$rc" "a secondmate home marked for another secondmate should refuse ($entry)"$'\n'"$out"
+        if [ "$entry" = control ]; then
+          assert_contains "$out" "not marked as its own seeded secondmate home" \
+            "the fm-control refusal should name the identity mismatch"
+          [ "$(cat "$dir/fake/command")" = claude ] || fail "a refused secondmate relaunch must not stop the agent"
+        else
+          assert_contains "$out" "marked for secondmate someone-else" \
+            "the fm-spawn refusal should name the identity mismatch"
+        fi
+        cmp -s "$dir/meta-before" "$home/state/smc.meta" \
+          || fail "a refused secondmate relaunch changed its record ($entry)"
+        [ ! -s "$dir/fake/literal" ] || fail "a refused secondmate relaunch typed into the endpoint ($entry)"
+      fi
+    done
+  done
+  pass "fm-control and fm-spawn relaunch: a secondmate home ignores a stale slot claim and still checks its marker"
+}
 
 test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint() {
   local dir out rc gen_before gen_after
@@ -3664,6 +3841,10 @@ if [ "${FM_CONTROL_RELAUNCH_TEST_GROUP:-}" = restore ]; then
   exit 0
 fi
 
+test_spawn_relaunch_serializes_slot_ownership_through_launch
+test_spawn_relaunch_respects_slot_claim
+test_control_relaunch_refuses_a_reassigned_slot_before_touching_anything
+test_secondmate_relaunch_ignores_a_stale_slot_claim
 test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint
 test_relaunch_refuses_before_exit_when_the_composer_holds_pending_text
 test_relaunch_refuses_before_exit_when_the_composer_state_is_unproven
