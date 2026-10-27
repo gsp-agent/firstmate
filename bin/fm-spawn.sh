@@ -1776,17 +1776,21 @@ spawn_return_checked_out_ship_slot() {
   return 0
 }
 
-# True when this spawn may hand a leased pool slot back to Treehouse: no
-# Firstmate slot-owner claim names a task for it and Treehouse's state
-# records no live owner process. `treehouse return` terminates the
-# processes inside its worktree, so a slot this check cannot prove empty
-# is never returned; a lease left behind on an owned slot is cleared by
-# that task's own teardown return, which returns by path.
+# True when this spawn may hand a leased pool slot back to Treehouse:
+# Treehouse's state records no live owner process, and a slot another
+# task claims is also clean, so the return resets no uncommitted work
+# away (the claimed commit stays on its branch). `treehouse return`
+# terminates the processes inside its worktree, so a slot this check
+# cannot prove empty is never returned; a lease left behind on a dirty
+# claimed slot is cleared by that task's own teardown return, which
+# returns by path. Callers return with `--if-lease-holder` naming this
+# spawn, so a lease that changed hands since the check is never returned.
 spawn_lease_return_safe() { # <path>
-  local path=$1 marker slot pool state lease_line owner_pid
+  local path=$1 marker slot pool state lease_line owner_pid worktree_status
   marker=$(fm_treehouse_slot_owner_marker "$path" 2>/dev/null || true)
   if [ -n "$marker" ] && { [ -e "$marker" ] || [ -L "$marker" ]; }; then
-    return 1
+    worktree_status=$(git -C "$path" -c core.quotePath=false status --porcelain 2>/dev/null) || return 1
+    [ -z "$worktree_status" ] || return 1
   fi
   slot=$(CDPATH='' cd -- "$path" 2>/dev/null && pwd -P) || return 1
   pool=$(dirname "$(dirname "$slot")")
@@ -1814,7 +1818,7 @@ spawn_release_skip_leases() {
   while IFS= read -r leased; do
     [ -n "$leased" ] || continue
     if spawn_lease_return_safe "$leased"; then
-      (cd "$PROJ_ABS" 2>/dev/null && treehouse return "$leased" >/dev/null 2>&1 </dev/null) || true
+      (cd "$PROJ_ABS" 2>/dev/null && treehouse return --if-lease-holder "fm-spawn-$ID" "$leased" >/dev/null 2>&1 </dev/null) || true
     fi
   done <<EOF
 $SPAWN_SKIP_LEASES
@@ -1966,7 +1970,7 @@ spawn_abort_cleanup() {
   if [ "$status" -ne 0 ] && [ -n "$SPAWN_TARGET_LEASE" ] &&
     [ "$SPAWN_LAUNCH_SENT" = 0 ] &&
     spawn_lease_return_safe "$SPAWN_TARGET_LEASE"; then
-    (cd "$PROJ_ABS" 2>/dev/null && treehouse return "$SPAWN_TARGET_LEASE" >/dev/null 2>&1 </dev/null) || true
+    (cd "$PROJ_ABS" 2>/dev/null && treehouse return --if-lease-holder "fm-spawn-$ID" "$SPAWN_TARGET_LEASE" >/dev/null 2>&1 </dev/null) || true
     SPAWN_TARGET_LEASE=
   fi
   # An admitted extra start past project capacity that launched no worker
@@ -5731,8 +5735,9 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
     # passes the reuse test becomes the target and its claim is rewritten
     # below like any slot `treehouse get` hands out. Any other claimed slot
     # is skipped and the plain `treehouse get` below, behind the same
-    # candidate screening, owns that case; its lease stays until the slot is
-    # returned. 64 leases bound the loop.
+    # candidate screening, owns that case; its lease is handed back by the
+    # guarded skip-lease release when the slot proves empty and clean, and
+    # otherwise stays until the slot is returned. 64 leases bound the loop.
     SPAWN_LEASE_SEEN=
     SPAWN_LEASE_COUNT=0
     while [ "$SPAWN_LEASE_COUNT" -lt 64 ]; do
@@ -5756,7 +5761,8 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
         else
           # Never returned here (`treehouse return` kills the processes
           # inside it). It joins the skip list, whose guarded release
-          # leaves an owned slot alone.
+          # hands it back only when it proves empty and clean, and
+          # leaves a dirty claimed slot alone.
           SPAWN_SKIP_LEASES="$SPAWN_SKIP_LEASES$SPAWN_LEASED
 "
         fi
