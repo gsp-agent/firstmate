@@ -742,99 +742,23 @@ test_mixed_pool_claimed_own_slot_uses_treehouse_get() {
   pass "a claimed own-clone slot is left alone and treehouse get is used instead"
 }
 
-# make_pool_grow_case <name> <id>: the pool's only own-clone slot (2) is
-# claimed by another task and slot 1 is a free foreign slot. The fake
-# Treehouse allocator hands out slot 1 on the first `get --lease`, then
-# creates a new own-clone slot 3 on the second (a real worktree add, the
-# same thing Treehouse's own create does), and logs every call.
-make_pool_grow_case() {
-  local name=$1 id=$2 case_dir home proj wt pool foreign fakebin countfile
-  case_dir="$TMP_ROOT/$name"
-  home="$case_dir/home"
-  proj="$case_dir/project"
-  wt="$case_dir/wt"
-  pool="$case_dir/pool"
-  foreign="$case_dir/foreign-clone"
-  countfile="$case_dir/pane-call-count"
-  fakebin=$(make_settle_fakebin "$case_dir/fake")
-  cat > "$fakebin/treehouse" <<'SH'
-#!/usr/bin/env bash
-set -u
-printf '%s\n' "$*" >> "${FM_TREEHOUSE_LOG:-/dev/null}"
-case "$*" in
-  *"get --lease"*)
-    if [ ! -e "$FM_TREEHOUSE_GROW_MARKER" ]; then
-      : > "$FM_TREEHOUSE_GROW_MARKER"
-      printf '%s\n' "$FM_TREEHOUSE_FOREIGN_SLOT"
-    else
-      git -C "$FM_TREEHOUSE_PROJ" worktree add --quiet -b "grown-$FM_TREEHOUSE_ID" "$FM_TREEHOUSE_GROWN_SLOT" 2>/dev/null || true
-      printf '%s\n' "$FM_TREEHOUSE_GROWN_SLOT"
-    fi
-    exit 0 ;;
-esac
-exit 0
-SH
-  chmod +x "$fakebin/treehouse"
-  fm_test_spawn_home "$home" codex
-  fm_git_worktree "$proj" "$wt" "wt-$name"
-  mkdir -p "$pool/1" "$pool/2"
-  git -C "$proj" worktree add --quiet -b "ownslot-$name" "$pool/2/repo"
-  git clone --quiet "$proj" "$foreign"
-  git -C "$foreign" worktree add --quiet -b "foreignslot-$name" "$pool/1/repo"
-  printf '{"worktrees":[{"name":"1","path":"%s"},{"name":"2","path":"%s"}]}' \
-    "$pool/1/repo" "$pool/2/repo" > "$pool/treehouse-state.json"
-  printf 'task=some-other-task\nhome=%s\n' "$home" > "$pool/2/.fm-slot-owner"
-  fm_test_spawn_brief "$home" "$id" "Exercise mixed-pool slot creation for $id."
-  printf '%s\n' "$case_dir|$home|$proj|$wt|$wt|$fakebin|$countfile|0"
-}
-
-# With no free own-clone slot, the spawn leases the free foreign slot to
-# advance Treehouse's allocator until it creates a new own-clone slot,
-# enters that slot, and releases the foreign lease.
-test_mixed_pool_makes_new_own_slot_when_none_free() {
-  local rec id out status pool grown_slot pane_log th_log
-  id=settle-pool-grow-z8
-  rec=$(make_pool_grow_case settle-pool-grow "$id")
-  read_settle_record "$rec"
-  pool="$TMP_ROOT/settle-pool-grow/pool"
-  grown_slot="$pool/3/repo"
-  pane_log="$TMP_ROOT/settle-pool-grow/pane.log"
-  th_log="$TMP_ROOT/settle-pool-grow/treehouse.log"
-  WT_DIR="$grown_slot"
-
-  out=$(FM_FAKE_PANE_LOG="$pane_log" \
-    FM_TREEHOUSE_LOG="$th_log" \
-    FM_TREEHOUSE_GROW_MARKER="$TMP_ROOT/settle-pool-grow/.grown-marker" \
-    FM_TREEHOUSE_FOREIGN_SLOT="$pool/1/repo" \
-    FM_TREEHOUSE_GROWN_SLOT="$grown_slot" \
-    FM_TREEHOUSE_PROJ="$PROJ_DIR" \
-    FM_TREEHOUSE_ID="$id" \
-    run_settle_spawn "$id")
-  status=$?
-  expect_code 0 "$status" "spawn should succeed in a newly made own-clone slot"$'\n'"$out"
-  assert_grep "worktree=$grown_slot" "$HOME_DIR/state/$id.meta" \
-    "meta did not record the newly made own-clone slot"
-  assert_grep 'get --lease' "$th_log" \
-    "spawn did not lease through the allocator to make an own-clone slot"
-  assert_grep "return $pool/1/repo" "$th_log" \
-    "spawn did not release the foreign slot it leased while steering"
-  assert_grep 'treehouse enter' "$pane_log" \
-    "spawn did not enter the newly made own-clone slot by name"
-  pass "no free own-clone slot: the allocator is leased forward until Treehouse makes one"
-}
-
 # When the allocator hands the spawn a slot another task has claimed,
 # the spawn must never hand it back: `treehouse return` terminates the
 # processes inside its worktree, and the claiming task's worker may be
 # starting there. A start must not leave a durable lease on that slot.
 test_allocator_claimed_slot_is_never_returned() {
-  local rec id out status pool pane_log th_log
-  id=settle-pool-claimed-lease-z9
-  rec=$(make_pool_case settle-pool-claimed-lease "$id")
+  local outcome=$1 rec id out status pool pane_log th_log
+  id="settle-pool-claimed-lease-$outcome"
+  rec=$(make_pool_case "$id" "$id")
   read_settle_record "$rec"
-  pool="$TMP_ROOT/settle-pool-claimed-lease/pool"
-  pane_log="$TMP_ROOT/settle-pool-claimed-lease/pane.log"
-  th_log="$TMP_ROOT/settle-pool-claimed-lease/treehouse.log"
+  pool="$CASE_DIR/pool"
+  pane_log="$CASE_DIR/pane.log"
+  th_log="$CASE_DIR/treehouse.log"
+  printf 'preserve uncommitted work\n' > "$pool/2/repo/sentinel"
+  cp "$pool/treehouse-state.json" "$CASE_DIR/before-state.json"
+  if [ "$outcome" = abort ]; then
+    WT_DIR="$pool/1/repo"
+  fi
   printf 'task=some-other-task\nhome=%s\n' "$HOME_DIR" > "$pool/2/.fm-slot-owner"
   cat > "$FAKEBIN_DIR/treehouse" <<'SH'
 #!/usr/bin/env bash
@@ -854,13 +778,22 @@ SH
     FM_TREEHOUSE_CLAIMED_SLOT="$pool/2/repo" \
     run_settle_spawn "$id")
   status=$?
-  expect_code 0 "$status" "spawn should still succeed through treehouse get"$'\n'"$out"
+  if [ "$outcome" = abort ]; then
+    expect_code 1 "$status" "spawn should refuse the foreign-clone fallback"$'\n'"$out"
+    [ ! -e "$HOME_DIR/state/$id.meta" ] || fail "refused spawn published metadata"
+  else
+    expect_code 0 "$status" "spawn should still succeed through treehouse get"$'\n'"$out"
+    assert_grep "worktree=$WT_DIR" "$HOME_DIR/state/$id.meta" "spawn lost its own worktree"
+  fi
   [ ! -e "$pool/2/repo/steering-lease" ] || fail "spawn leaked a durable lease on another task's claimed slot"
   assert_no_grep 'return ' "$th_log" \
     "spawn returned a slot another task has claimed (treehouse return kills its processes)"
   assert_grep 'treehouse get' "$pane_log" \
     "spawn did not fall back to treehouse get after the claimed slot"
-  pass "a claimed slot handed over by the allocator is never returned"
+  assert_equals 'preserve uncommitted work' "$(cat "$pool/2/repo/sentinel")" "spawn reset the claimed slot"
+  assert_grep 'task=some-other-task' "$pool/2/.fm-slot-owner" "spawn replaced another task's claim"
+  cmp -s "$CASE_DIR/before-state.json" "$pool/treehouse-state.json" || fail "spawn changed the shared pool state"
+  pass "a $outcome spawn neither leases nor returns another task's claimed slot"
 }
 
 # A free own-clone slot with residue is not entered: Treehouse's allocator
@@ -1016,8 +949,8 @@ test_mixed_pool_enters_free_own_slot
 test_mixed_pool_without_status_json_uses_treehouse_get
 test_root_switched_pool_without_status_json_uses_treehouse_get
 test_mixed_pool_claimed_own_slot_uses_treehouse_get
-test_mixed_pool_makes_new_own_slot_when_none_free
-test_allocator_claimed_slot_is_never_returned
+test_allocator_claimed_slot_is_never_returned success
+test_allocator_claimed_slot_is_never_returned abort
 test_dirty_own_slot_is_not_entered
 test_unmerged_own_slot_is_not_entered
 test_pool_full_treehouse_get_refuses_at_once
