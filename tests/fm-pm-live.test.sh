@@ -287,11 +287,6 @@ test_merge_after_close_tells_the_pm_instead_of_handing_off_into_nothing() {
   pass "a merge that reaches a closed task tells its live PM, never hands off into nothing, and binds only the archived PR"
 }
 
-# A worker that is not confirmed alive cannot own activation and live
-# verification. Its live PM gets one blocked line naming the backend, endpoint
-# and verdict; it names the relaunch only where relaunch can recover the
-# worker. That delivered line is the handoff, so the outcome commits its
-# marker, and a replay never re-reads liveness or lands after a later result.
 test_merge_recovery_respects_slot_claim() {
   local dir state url owner line verdict backend
   url=https://github.com/example/repo/pull/80
@@ -320,6 +315,11 @@ test_merge_recovery_respects_slot_claim() {
   pass "merge recovery omits relaunch for reassigned slots and retains it for own or absent claims"
 }
 
+# A worker that is not confirmed alive cannot own activation and live
+# verification. Its live PM gets one blocked line naming the backend, endpoint
+# and verdict; it names the relaunch only where relaunch can recover the
+# worker. That delivered line is the handoff, so the outcome commits its
+# marker, and a replay never re-reads liveness or lands after a later result.
 test_merge_without_live_owner_blocks_the_pm() {
   local dir state url owner verdict backend replay line snapshot
   url=https://github.com/example/repo/pull/79
