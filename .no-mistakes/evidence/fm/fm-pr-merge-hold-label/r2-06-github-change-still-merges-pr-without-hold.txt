@@ -1,0 +1,18 @@
+## r2-06-github-change-still-merges-pr-without-hold
+date (UTC): 2026-10-27T18:16:46Z
+script: bin/fm-pr-merge.sh at change c36395a2
+command: FM_HOME=<lab> bin/fm-pr-merge.sh r2control https://github.com/gsp-agent/fm-hold-label-proof/pull/10 --attended-override
+--- PR before:
+#10 state=OPEN mergedAt=none mergeCommit=none labels=enhancement
+--- label history on the PR (GitHub timeline, every page; position = index in the timeline):
+timeline events: 2
+  #2 (page 1) labeled enhancement by gsp-agent at 2026-10-27T18:09:05Z
+--- fm-pr-merge.sh output (stdout+stderr):
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+armed: state/r2control.check.sh
+verified: https://github.com/gsp-agent/fm-hold-label-proof/pull/10 is open and mergeable, with every unwaived required check reported and every unwaived check green at head 96ba8adad4127a0982d28c2d1dbb89a4272120f8
+verified: https://github.com/gsp-agent/fm-hold-label-proof/pull/10 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+--- exit status: 0
+--- PR after:
+#10 state=MERGED mergedAt=2026-10-27T18:17:12Z mergeCommit=0b842b0dd9cd31d69bc2ed93dfb262b475b0f66b labels=enhancement

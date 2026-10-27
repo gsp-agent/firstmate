@@ -1,0 +1,17 @@
+## 04-base-passes-every-check-on-same-hold-pr
+date (UTC): 2026-10-27T17:30:48Z
+script: bin/fm-pr-merge.sh at base fb4463d9
+command: FM_HOME=<lab> bin/fm-pr-merge.sh nmbase4 https://github.com/gsp-agent/fm-hold-label-proof/pull/4 --attended-override --expect-head 0000000000000000000000000000000000000000
+--- PR before:
+#4 state=OPEN mergedAt=none mergeCommit=none labels=hold
+--- label history on the PR (GitHub timeline):
+labeled hold by gsp-agent at 2026-10-27T17:25:35Z
+--- fm-pr-merge.sh output (stdout+stderr):
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+armed: state/nmbase4.check.sh
+verified: https://github.com/gsp-agent/fm-hold-label-proof/pull/4 is open and mergeable, with every unwaived required check reported and every unwaived check green at head 77a6b509afa449f4d350805e07961061c38762d4
+error: the verified head of https://github.com/gsp-agent/fm-hold-label-proof/pull/4 is 77a6b509afa449f4d350805e07961061c38762d4, not the expected 0000000000000000000000000000000000000000; refusing to merge a head the caller did not judge
+--- exit status: 1
+--- PR after:
+#4 state=OPEN mergedAt=none mergeCommit=none labels=hold

@@ -1,0 +1,23 @@
+## r2-08-forgejo-change-names-relabel-past-first-50-item-page
+date (UTC): 2026-10-27T18:25:48Z
+forge: disposable Forgejo 11.0.16+gitea-1.22.0 on localhost:3988 (real tea 0.16.0, login fm-lab-fj, isolated HOME; no tea wrapper)
+script: bin/fm-pr-merge.sh at change c36395a2
+command: FM_HOME=<lab> bin/fm-pr-merge.sh fjrelabel https://localhost/fixture/fixture-repo/pulls/3 
+--- PR before:
+#3 state=open merged=false merge_commit=none labels=hold
+--- label history on the PR (Forgejo issue timeline, every page):
+timeline page 1: "50 items"
+  added hold by fixture at 2026-10-27T18:24:32Z
+  removed hold by fixture at 2026-10-27T18:24:35Z
+timeline page 2: "14 items"
+  added hold by cutover-owner at 2026-10-27T18:24:44Z
+timeline page 3: "raw null"
+--- fm-pr-merge.sh output (stdout+stderr):
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+armed: state/fjrelabel.check.sh
+error: refusing to merge https://localhost/fixture/fixture-repo/pulls/3
+  - the pull request carries the 'hold' label (labeled by cutover-owner at 2026-10-27T18:24:44Z); a held pull request must not be merged
+--- exit status: 1
+--- PR after:
+#3 state=open merged=false merge_commit=none labels=hold

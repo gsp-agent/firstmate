@@ -1,0 +1,19 @@
+## 06-change-refuses-uppercase-HOLD-label
+date (UTC): 2026-10-27T17:32:15Z
+script: bin/fm-pr-merge.sh at change 835c6c24
+command: FM_HOME=<lab> bin/fm-pr-merge.sh nmcase https://github.com/gsp-agent/fm-hold-label-proof/pull/5 --attended-override
+--- PR before:
+#5 state=OPEN mergedAt=none mergeCommit=none labels=HOLD
+--- label history on the PR (GitHub timeline):
+labeled hold by gsp-agent at 2026-10-27T17:25:48Z
+unlabeled hold by gsp-agent at 2026-10-27T17:25:58Z
+labeled hold by gsp-agent at 2026-10-27T17:26:07Z
+--- fm-pr-merge.sh output (stdout+stderr):
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+armed: state/nmcase.check.sh
+error: refusing to merge https://github.com/gsp-agent/fm-hold-label-proof/pull/5
+  - the pull request carries the 'hold' label (labeled by gsp-agent at 2026-10-27T17:26:07Z); a held pull request must not be merged
+--- exit status: 1
+--- PR after:
+#5 state=OPEN mergedAt=none mergeCommit=none labels=HOLD

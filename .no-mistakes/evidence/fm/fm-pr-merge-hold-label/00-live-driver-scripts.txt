@@ -1,0 +1,325 @@
+
+===== scripts/setup.sh =====
+#!/usr/bin/env bash
+# Build the disposable live fixture: a marked lab home, a base-commit copy of
+# bin/, a clone of the task's private scratch repo, and four fresh PRs.
+set -euo pipefail
+WT=/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5Z5SSDSR36DJ1JGJNQZT1KG
+WORK=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-hold-live.wIwEoa
+REPO=gsp-agent/fm-hold-label-proof
+RUN=nm$(date -u +%H%M%S)
+LAB="$WORK/lab"
+
+"$WT/bin/fm-lab-home.sh" create "$LAB" >/dev/null
+fm_tasks_toml() {
+  cat > "$LAB/.tasks.toml" <<'TOML'
+backend = "markdown"
+
+[markdown]
+path = "data/backlog.md"
+archive = "data/done-archive.md"
+done_keep = 10
+TOML
+}
+fm_tasks_toml
+printf '%s\n' '## In flight' '' '## Queued' '' '## Done' > "$LAB/data/backlog.md"
+
+mkdir -p "$WORK/base"
+git -C "$WT" archive fb4463d9688432814dfc6c8d1f3ee594a0ce3ea9 bin | tar -x -C "$WORK/base"
+
+gh repo clone "$REPO" "$WORK/clone" -- --quiet
+cd "$WORK/clone"
+git config user.name gsp-agent
+git config user.email dale+gspagent@groovejones.com
+
+make_pr() {  # <slug> -> prints PR number
+  local slug=$1 branch="$RUN-$1" url
+  git checkout -q -B "$branch" origin/main
+  printf '%s %s\n' "$RUN" "$slug" > "$RUN-$slug.txt"
+  git add "$RUN-$slug.txt"
+  git commit -qm "live hold-label check: $slug"
+  git push -q -u origin "$branch" 2>/dev/null
+  url=$(gh pr create -R "$REPO" --base main --head "$branch" \
+    --title "nm live check $RUN $slug" --body "Disposable PR for the fm-pr-merge hold-label live check ($RUN).")
+  printf '%s\n' "${url##*/}"
+}
+
+A=$(make_pr base-hold)
+B=$(make_pr head-hold)
+C=$(make_pr head-relabel)
+D=$(make_pr head-control)
+
+gh pr edit "$A" -R "$REPO" --add-label hold >/dev/null
+gh pr edit "$B" -R "$REPO" --add-label hold >/dev/null
+gh pr edit "$D" -R "$REPO" --add-label enhancement >/dev/null
+# C: hold added, removed, then added again a few seconds later.
+gh pr edit "$C" -R "$REPO" --add-label hold >/dev/null
+sleep 3
+gh pr edit "$C" -R "$REPO" --remove-label hold >/dev/null
+sleep 3
+gh pr edit "$C" -R "$REPO" --add-label hold >/dev/null
+
+for t in nmbase nmhold nmholdnoov nmrelabel nmcase nmcontrol; do
+  {
+    printf 'window=fm-%s\n' "$t"
+    printf 'worktree=%s\n' "$WORK/clone"
+    printf 'project=%s\n' "$WORK/clone"
+    printf 'kind=ship\nmode=no-mistakes\n'
+  } > "$LAB/state/$t.meta"
+done
+
+cat > "$WORK/env" <<ENV
+RUN=$RUN
+REPO=$REPO
+LAB=$LAB
+PR_A=$A
+PR_B=$B
+PR_C=$C
+PR_D=$D
+ENV
+cat "$WORK/env"
+
+===== scripts/run.sh =====
+#!/usr/bin/env bash
+# Run one live scenario: the base or fixed bin/fm-pr-merge.sh against a real
+# PR in the scratch repo, with the PR's live state read before and after.
+# Usage: run.sh <evidence-name> <base|head> <task-id> <pr-number> [merge args...]
+set -uo pipefail
+WT=/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5Z5SSDSR36DJ1JGJNQZT1KG
+WORK=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-hold-live.wIwEoa
+EV=/Users/dalecarman/.no-mistakes/evidence/01M5Z5SSDSR36DJ1JGJNQZT1KG
+. "$WORK/env"
+name=$1 which=$2 task=$3 pr=$4
+shift 4
+case "$which" in
+  base) SCRIPT="$WORK/basefull/bin/fm-pr-merge.sh"; rev="base fb4463d9" ;;
+  head) SCRIPT="$WT/bin/fm-pr-merge.sh"; rev="change 835c6c24" ;;
+  *) echo "which must be base or head" >&2; exit 2 ;;
+esac
+URL="https://github.com/$REPO/pull/$pr"
+
+pr_state() {
+  gh pr view "$URL" --json number,state,mergedAt,mergeCommit,labels \
+    --jq '"#\(.number) state=\(.state) mergedAt=\(.mergedAt // "none") mergeCommit=\(.mergeCommit.oid // "none") labels=\([.labels[].name] | join(","))"'
+}
+
+{
+  echo "## $name"
+  echo "date (UTC): $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo "script: bin/fm-pr-merge.sh at $rev"
+  echo "command: FM_HOME=<lab> bin/fm-pr-merge.sh $task $URL $*"
+  echo "--- PR before:"
+  pr_state
+  echo "--- label history on the PR (GitHub timeline):"
+  gh api --paginate "repos/$REPO/issues/$pr/timeline?per_page=100" \
+    --jq '.[] | select(.event == "labeled" or .event == "unlabeled") | "\(.event) \(.label.name) by \(.actor.login) at \(.created_at)"'
+  echo "--- fm-pr-merge.sh output (stdout+stderr):"
+  (cd "$WT" && env -u FM_ROOT_OVERRIDE -u FM_STATE_OVERRIDE -u FM_DATA_OVERRIDE \
+     -u FM_CONFIG_OVERRIDE -u FM_PROJECTS_OVERRIDE FM_HOME="$LAB" \
+     "$SCRIPT" "$task" "$URL" "$@" 2>&1)
+  echo "--- exit status: $?"
+  echo "--- PR after:"
+  pr_state
+} 2>&1 | no-mistakes redact > "$EV/$name.txt"
+cat "$EV/$name.txt"
+
+===== scripts/case.sh =====
+#!/usr/bin/env bash
+# Rename the scratch repo's hold label to HOLD, run the fixed script on PR 5,
+# and always rename it back.
+set -uo pipefail
+WORK=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-hold-live.wIwEoa
+. "$WORK/env"
+restore() { gh label edit HOLD -R "$REPO" --name hold >/dev/null && echo "label restored to: hold"; }
+trap restore EXIT
+gh label edit hold -R "$REPO" --name HOLD >/dev/null || exit 1
+bash "$WORK/scripts/run.sh" 06-change-refuses-uppercase-HOLD-label head nmcase "$PR_C" --attended-override 2>/dev/null
+
+===== scripts/fj-setup.sh =====
+#!/usr/bin/env bash
+# Stand up a disposable Forgejo 11 container on localhost, two users, one repo,
+# four PRs with a green commit status, an isolated tea login, and lab metas.
+set -euo pipefail
+W=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-hold-live.wIwEoa
+. "$W/env"
+PORT=3987
+BASE_URL="http://localhost:$PORT"
+API="$BASE_URL/api/v1"
+C="nm-fj-hold-$RUN"
+FJ="$W/fj"
+mkdir -p "$FJ" "$W/fjhome/.config/tea"
+chmod 700 "$FJ" "$W/fjhome"
+
+docker run -d --name "$C" -p "127.0.0.1:$PORT:3000" \
+  -e FORGEJO__security__INSTALL_LOCK=true \
+  -e FORGEJO__database__DB_TYPE=sqlite3 \
+  -e "FORGEJO__server__ROOT_URL=$BASE_URL/" \
+  -e FORGEJO__server__HTTP_PORT=3000 \
+  -e FORGEJO__service__DISABLE_REGISTRATION=true \
+  codeberg.org/forgejo/forgejo:11 >/dev/null
+printf '%s\n' "$C" > "$W/fj-container"
+for _ in $(seq 90); do
+  curl -fsS "$API/version" >/dev/null 2>&1 && break
+  sleep 1
+done
+curl -fsS "$API/version"; echo
+
+fj_user() {  # <name> <admin:true|false>
+  local extra=()
+  [ "$2" = true ] && extra=(--admin)
+  docker exec -u git "$C" forgejo admin user create "${extra[@]}" --username "$1" \
+    --email "$1@example.invalid" --random-password --must-change-password=false >/dev/null
+  ( umask 077
+    printf 'Authorization: [REDACTED]' \
+      "$(docker exec -u git "$C" forgejo admin user generate-access-token [REDACTED] "$1" \
+          --token-name nm-lab --scopes all --raw)" > "$FJ/$1.hdr" )
+}
+fj_user fixture true
+fj_user cutover-owner false
+
+# api <user> <method> <path> [json]
+api() {
+  local user=$1 method=$2 path=$3 body=${4:-}
+  if [ -n "$body" ]; then
+    curl -fsS -X "$method" -H @"$FJ/$user.hdr" -H 'Content-Type: application/json' \
+      -d "$body" "$API$path"
+  else
+    curl -fsS -X "$method" -H @"$FJ/$user.hdr" "$API$path"
+  fi
+}
+
+api fixture POST /user/repos '{"name":"fixture-repo","auto_init":true,"default_branch":"main","private":false}' >/dev/null
+api fixture PUT /repos/fixture/fixture-repo/collaborators/cutover-owner '{"permission":"write"}' >/dev/null
+HOLD_ID=$(api fixture POST /repos/fixture/fixture-repo/labels '{"name":"hold","color":"#ff0000"}' | jq -r .id)
+READY_ID=$(api fixture POST /repos/fixture/fixture-repo/labels '{"name":"ready","color":"#00aa00"}' | jq -r .id)
+
+make_pr() {  # <slug> -> PR number; commit on a new branch, green status at its head
+  local slug=$1 content number sha
+  content=$(printf '%s\n' "$slug" | base64)
+  api fixture POST "/repos/fixture/fixture-repo/contents/$slug.txt" \
+    "{\"branch\":\"main\",\"new_branch\":\"$slug\",\"content\":\"$content\",\"message\":\"live check $slug\"}" >/dev/null
+  number=$(api fixture POST /repos/fixture/fixture-repo/pulls \
+    "{\"head\":\"$slug\",\"base\":\"main\",\"title\":\"live check $slug\"}" | jq -r .number)
+  sha=$(api fixture GET "/repos/fixture/fixture-repo/pulls/$number" | jq -r .head.sha)
+  api fixture POST "/repos/fixture/fixture-repo/statuses/$sha" \
+    '{"state":"success","context":"ci/lab","description":"lab"}' >/dev/null
+  printf '%s\n' "$number"
+}
+label_add() { api "$1" POST "/repos/fixture/fixture-repo/issues/$2/labels" "{\"labels\":[$3]}" >/dev/null; }
+label_del() { api "$1" DELETE "/repos/fixture/fixture-repo/issues/$2/labels/$3" >/dev/null; }
+
+F1=$(make_pr fj-base-hold)
+F2=$(make_pr fj-head-hold)
+F3=$(make_pr fj-head-relabel-paged)
+F4=$(make_pr fj-head-control)
+
+label_add cutover-owner "$F1" "$HOLD_ID"
+label_add cutover-owner "$F2" "$HOLD_ID"
+label_add fixture "$F4" "$READY_ID"
+# F3: fixture adds hold, fixture removes it, sixty comments push the history
+# past Forgejo's 50-item page, then cutover-owner adds hold again.
+label_add fixture "$F3" "$HOLD_ID"
+sleep 2
+label_del fixture "$F3" "$HOLD_ID"
+for i in $(seq 60); do
+  api fixture POST "/repos/fixture/fixture-repo/issues/$F3/comments" "{\"body\":\"filler $i\"}" >/dev/null
+done
+sleep 2
+label_add cutover-owner "$F3" "$HOLD_ID"
+
+# Isolated tea login for the merge script, pointing at the local instance.
+TOKEN=$(sed 's/^Authorization: [REDACTED]' "$FJ/fixture.hdr")
+( umask 077
+  cat > "$W/fjhome/.config/tea/config.yml" <<YML
+logins:
+- name: fm-lab-fj
+  url: $BASE_URL
+  token: [REDACTED]
+  default: true
+  ssh_host: localhost
+  insecure: false
+  user: fixture
+preferences:
+  editor: false
+  flag_defaults:
+    remote: ""
+YML
+)
+unset TOKEN
+
+# Task worktree: a clone on the remote-tracking ref of each PR branch.
+git clone -q "$BASE_URL/fixture/fixture-repo.git" "$W/fjclone"
+for t in fjbase fjhold fjrelabel fjcontrol; do
+  {
+    printf 'window=fm-%s\n' "$t"
+    printf 'worktree=%s\n' "$W/fjclone"
+    printf 'project=%s\n' "$W/fjclone"
+    printf 'kind=ship\nmode=no-mistakes\n'
+  } > "$LAB/state/$t.meta"
+done
+
+cat >> "$W/env" <<ENV
+FJ_C=$C
+FJ_PORT=$PORT
+FJ_1=$F1
+FJ_2=$F2
+FJ_3=$F3
+FJ_4=$F4
+ENV
+tail -6 "$W/env"
+
+===== scripts/fj-run.sh =====
+#!/usr/bin/env bash
+# Run one live Forgejo scenario: base or fixed bin/fm-pr-merge.sh against a PR
+# on the disposable local Forgejo, reading the PR's live state before and after.
+# Usage: fj-run.sh <evidence-name> <base|head> <task-id> <pr-number> [merge args...]
+set -uo pipefail
+WT=/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5Z5SSDSR36DJ1JGJNQZT1KG
+W=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-hold-live.wIwEoa
+EV=/Users/dalecarman/.no-mistakes/evidence/01M5Z5SSDSR36DJ1JGJNQZT1KG
+. "$W/env"
+name=$1 which=$2 task=$3 pr=$4
+shift 4
+case "$which" in
+  base) SCRIPT="$W/basefull/bin/fm-pr-merge.sh"; rev="base fb4463d9" ;;
+  head) SCRIPT="$WT/bin/fm-pr-merge.sh"; rev="change 835c6c24" ;;
+  *) echo "which must be base or head" >&2; exit 2 ;;
+esac
+API="http://localhost:$FJ_PORT/api/v1/repos/fixture/fixture-repo"
+URL="https://localhost/fixture/fixture-repo/pulls/$pr"
+
+pr_state() {
+  curl -fsS -H @"$W/fj/fixture.hdr" "$API/pulls/$pr" \
+    | jq -r '"#\(.number) state=\(.state) merged=\(.merged) merge_commit=\(.merge_commit_sha // "none") labels=\([.labels[].name] | join(","))"'
+}
+label_history() {
+  local page=1 rows
+  while :; do
+    rows=$(curl -fsS -H @"$W/fj/fixture.hdr" "$API/issues/$pr/timeline?limit=50&page=$page")
+    printf 'timeline page %s: %s\n' "$page" "$(printf '%s' "$rows" | jq -c 'if type == "array" then "\(length) items" else "raw \(tojson)" end')"
+    [ "$(printf '%s' "$rows" | jq -r 'type')" = array ] && [ "$(printf '%s' "$rows" | jq length)" != 0 ] || break
+    printf '%s' "$rows" | jq -r '.[] | select(.type == "label") | "  \(if .body == "1" then "added" else "removed" end) \(.label.name) by \(.user.login) at \(.created_at)"'
+    page=$((page + 1))
+  done
+}
+
+{
+  echo "## $name"
+  echo "date (UTC): $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo "forge: disposable Forgejo $(curl -fsS "http://localhost:$FJ_PORT/api/v1/version" | jq -r .version) on localhost:$FJ_PORT (tea login fm-lab-fj, isolated HOME)"
+  echo "script: bin/fm-pr-merge.sh at $rev"
+  echo "command: FM_HOME=<lab> bin/fm-pr-merge.sh $task $URL $*"
+  echo "--- PR before:"
+  pr_state
+  echo "--- label history on the PR (Forgejo issue timeline, every page):"
+  label_history
+  echo "--- fm-pr-merge.sh output (stdout+stderr):"
+  (cd "$WT" && env -u FM_ROOT_OVERRIDE -u FM_STATE_OVERRIDE -u FM_DATA_OVERRIDE \
+     -u FM_CONFIG_OVERRIDE -u FM_PROJECTS_OVERRIDE FM_HOME="$LAB" \
+     HOME="$W/fjhome" XDG_CONFIG_HOME="$W/fjhome/.config" PATH="${DIAG_PATH:-$W/tools}:$PATH" \
+     "$SCRIPT" "$task" "$URL" "$@" 2>&1)
+  echo "--- exit status: $?"
+  echo "--- PR after:"
+  pr_state
+} 2>&1 | no-mistakes redact > "$EV/$name.txt"
+cat "$EV/$name.txt"

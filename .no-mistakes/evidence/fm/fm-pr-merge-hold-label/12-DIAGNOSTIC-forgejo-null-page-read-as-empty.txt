@@ -1,0 +1,20 @@
+## 12-DIAGNOSTIC-forgejo-null-page-read-as-empty
+date (UTC): 2026-10-27T17:49:31Z
+forge: disposable Forgejo 11.0.16+gitea-1.22.0 on localhost:3987 (tea login fm-lab-fj, isolated HOME)
+script: bin/fm-pr-merge.sh at change 835c6c24
+command: FM_HOME=<lab> bin/fm-pr-merge.sh fjhold https://localhost/fixture/fixture-repo/pulls/2 
+--- PR before:
+#2 state=open merged=false merge_commit=none labels=hold
+--- label history on the PR (Forgejo issue timeline, every page):
+timeline page 1: "2 items"
+  added hold by cutover-owner at 2026-10-27T17:47:11Z
+timeline page 2: "raw null"
+--- fm-pr-merge.sh output (stdout+stderr):
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+armed: state/fjhold.check.sh
+error: refusing to merge https://localhost/fixture/fixture-repo/pulls/2
+  - the pull request carries the 'hold' label (labeled by cutover-owner at 2026-10-27T17:47:11Z); a held pull request must not be merged
+--- exit status: 1
+--- PR after:
+#2 state=open merged=false merge_commit=none labels=hold

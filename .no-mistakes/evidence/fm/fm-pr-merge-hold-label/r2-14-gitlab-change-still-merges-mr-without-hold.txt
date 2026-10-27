@@ -1,0 +1,20 @@
+## r2-14-gitlab-change-still-merges-mr-without-hold
+date (UTC): 2026-10-27T18:44:52Z
+forge: disposable GitLab CE 19.5.1 on localhost:8929 (real glab 1.123.0, isolated GLAB_CONFIG_DIR mapping host localhost to it)
+script: bin/fm-pr-merge.sh at change c36395a2
+command: FM_HOME=<lab> bin/fm-pr-merge.sh glcontrol https://localhost/root/fixture-repo/-/merge_requests/4 
+--- MR before:
+!4 state=opened merged_at=none merge_commit=none labels=ready
+--- label history on the MR (GitLab resource label events):
+  add ready by root at 2026-10-27T18:42:46.234Z
+--- fm-pr-merge.sh output (stdout+stderr):
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+armed: state/glcontrol.check.sh
+verified: https://localhost/root/fixture-repo/-/merge_requests/4 is open and mergeable, with a successful pipeline at head 4d3b516ec70c05afe31eecc14a8f7cefb97cc57f
+✓ Pipeline succeeded.
+✓ Merged!
+http://localhost:8929/root/fixture-repo/-/merge_requests/4
+--- exit status: 0
+--- MR after:
+!4 state=merged merged_at=2026-10-27T18:45:04.199Z merge_commit=779524ae6a6a9d06ebf259fa7b41ac8164a53f16 labels=ready

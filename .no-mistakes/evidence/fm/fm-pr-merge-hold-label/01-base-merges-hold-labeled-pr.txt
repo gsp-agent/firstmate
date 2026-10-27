@@ -1,0 +1,22 @@
+## 01-base-merges-hold-labeled-pr
+date (UTC): 2026-10-27T17:27:08Z
+script: bin/fm-pr-merge.sh at base fb4463d9
+command: FM_HOME=<lab> bin/fm-pr-merge.sh nmbase https://github.com/gsp-agent/fm-hold-label-proof/pull/3 --attended-override
+--- PR before:
+#3 state=OPEN mergedAt=none mergeCommit=none labels=hold
+--- label history on the PR (GitHub timeline):
+labeled hold by gsp-agent at 2026-10-27T17:25:32Z
+--- fm-pr-merge.sh output (stdout+stderr):
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  6 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+armed: state/nmbase.check.sh
+verified: https://github.com/gsp-agent/fm-hold-label-proof/pull/3 is open and mergeable, with every unwaived required check reported and every unwaived check green at head e921d604ef8fe8f17ab9fe6bd213103d15baad70
+verified: https://github.com/gsp-agent/fm-hold-label-proof/pull/3 is merged (state=MERGED, merged=true, isInMergeQueue=false)
+--- exit status: 0
+--- PR after:
+#3 state=MERGED mergedAt=2026-10-27T17:28:13Z mergeCommit=f43b4d30b7218ef351c1a19730e51fbce305540b labels=hold

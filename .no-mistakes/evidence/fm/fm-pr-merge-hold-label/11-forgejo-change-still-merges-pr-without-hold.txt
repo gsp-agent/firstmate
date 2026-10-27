@@ -1,0 +1,19 @@
+## 11-forgejo-change-still-merges-pr-without-hold
+date (UTC): 2026-10-27T17:48:50Z
+forge: disposable Forgejo 11.0.16+gitea-1.22.0 on localhost:3987 (tea login fm-lab-fj, isolated HOME)
+script: bin/fm-pr-merge.sh at change 835c6c24
+command: FM_HOME=<lab> bin/fm-pr-merge.sh fjcontrol https://localhost/fixture/fixture-repo/pulls/4 
+--- PR before:
+#4 state=open merged=false merge_commit=none labels=ready
+--- label history on the PR (Forgejo issue timeline, every page):
+timeline page 1: "2 items"
+  added ready by fixture at 2026-10-27T17:47:11Z
+timeline page 2: "raw null"
+--- fm-pr-merge.sh output (stdout+stderr):
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+armed: state/fjcontrol.check.sh
+verified: https://localhost/fixture/fixture-repo/pulls/4 is open and mergeable, with a successful combined status at head d6fd5a61d3c660e4f4b7b8c5bf384986f69837a2
+--- exit status: 0
+--- PR after:
+#4 state=closed merged=true merge_commit=382b785647c1111e8abc6deb7bcc062f0ed317f8 labels=ready

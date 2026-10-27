@@ -1,0 +1,18 @@
+## r2-12-gitlab-change-refuses-hold-labeled-mr-names-labeler
+date (UTC): 2026-10-27T18:44:23Z
+forge: disposable GitLab CE 19.5.1 on localhost:8929 (real glab 1.123.0, isolated GLAB_CONFIG_DIR mapping host localhost to it)
+script: bin/fm-pr-merge.sh at change c36395a2
+command: FM_HOME=<lab> bin/fm-pr-merge.sh glhold https://localhost/root/fixture-repo/-/merge_requests/2 
+--- MR before:
+!2 state=opened merged_at=none merge_commit=none labels=hold
+--- label history on the MR (GitLab resource label events):
+  add hold by cutover-owner at 2026-10-27T18:42:45.965Z
+--- fm-pr-merge.sh output (stdout+stderr):
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+armed: state/glhold.check.sh
+error: refusing to merge https://localhost/root/fixture-repo/-/merge_requests/2
+  - the pull request carries the 'hold' label (labeled by cutover-owner at 2026-10-27T18:42:45.965Z); a held pull request must not be merged
+--- exit status: 1
+--- MR after:
+!2 state=opened merged_at=none merge_commit=none labels=hold
