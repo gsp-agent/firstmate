@@ -24,13 +24,36 @@ command -v make_relaunch_stub >/dev/null 2>&1 || { echo "not ok - fixture: make_
 #   foreign   add a new slot of the retired clone (one pool, two clones)
 #   path <p>  hand out an existing slot <p>
 # A plan that has run out fails the lease, as an allocator with nothing to
-# give does. Every call is logged to <case>/treehouse.log.
+# give does. `status --json` lists the pool's slots: in-use when a .busy file
+# sits beside the slot (a process inside), with a lease id while leased, as
+# Treehouse reads them. Every call is logged to <case>/treehouse.log.
 make_treehouse_fake() {  # <case-dir> <live-clone>
   {
     printf '#!/usr/bin/env bash\nCASE=%q\nLIVE=%q\n' "$1" "$2"
     cat <<'SH'
 printf '%s\n' "$*" >> "$CASE/treehouse.log"
 case "$*" in
+  "status --json")
+    [ ! -e "$CASE/status-fails" ] || exit 1
+    printf '['
+    sep=
+    for d in "$CASE"/livepool/*/proj; do
+      [ -d "$d" ] || continue
+      st=available
+      [ ! -e "$(dirname "$d")/.busy" ] || st=in-use
+      lid=
+      ! grep -Fxq -- "$d" "$CASE/leased" 2>/dev/null || lid=lease-1
+      printf '%s{"name":"%s","path":"%s","status":"%s","lease_id":"%s"}' "$sep" "$(basename "$(dirname "$d")")" "$d" "$st" "$lid"
+      sep=,
+    done
+    printf ']\n'
+    ;;
+  "return "*)
+    if [ -f "$CASE/leased" ]; then
+      grep -Fxv -- "${*#return }" "$CASE/leased" > "$CASE/leased.tmp" || true
+      mv "$CASE/leased.tmp" "$CASE/leased"
+    fi
+    ;;
   "get --lease --lease-holder "*" --no-fetch")
     pool="$CASE/livepool"
     n=$(( $(cat "$CASE/lease-count" 2>/dev/null || echo 0) + 1 ))
@@ -64,6 +87,7 @@ case "$*" in
       done
       printf ']}\n'
     } > "$pool/treehouse-state.json"
+    printf '%s\n' "$slot" >> "$CASE/leased"
     printf '%s\n' "$slot"
     ;;
 esac
@@ -414,8 +438,9 @@ test_relaunch_returns_a_foreign_lease_when_no_live_slot_comes() {
   pass "a relaunch with no live slot returns the foreign lease it took"
 }
 
-# A live-clone slot whose lease lapsed but which another task still claims is
-# never taken, overwritten or returned: the relaunch refuses.
+# A live-clone slot another task claims with nothing running in it is one
+# Treehouse's allocator could hand out and reset, so the move refuses before
+# asking for any slot; the claimed slot is never taken, changed or returned.
 test_relaunch_never_takes_a_slot_another_task_claims() {
   local dir id=clm-a1 out rc=0 before claim
   dir=$(make_case clm "$id")
@@ -428,7 +453,8 @@ test_relaunch_never_takes_a_slot_another_task_claims() {
   before=$(cat "$dir/home/state/$id.meta")
   out=$(run_relaunch "$dir" "$id") || rc=$?
   [ "$rc" -ne 0 ] || fail "clm: a relaunch moved into another task's slot: $out"
-  assert_contains "$out" "which another task has claimed" "clm: the refusal did not name the skipped claimed slot"
+  assert_contains "$out" "claimed by another task with nothing running in it" "clm: the refusal did not name the exposed claimed slot"
+  grep -q '^get --lease' "$dir/treehouse.log" && fail "clm: a slot was leased, so Treehouse could reset the claimed slot"
   assert_equals "$claim" "$(cat "$dir/livepool/1/.fm-slot-owner" 2>/dev/null)" "clm: other-a1's claim was changed or removed"
   grep -q "^return .*/clm/livepool/1/proj\$" "$dir/treehouse.log" && fail "clm: another task's slot was returned"
   assert_equals "$before" "$(cat "$dir/home/state/$id.meta")" "clm: the record changed"
@@ -436,9 +462,10 @@ test_relaunch_never_takes_a_slot_another_task_claims() {
   pass "a relaunch never takes, overwrites or returns a slot another task claims"
 }
 
-# A claimed slot handed out first is skipped, not the end of the search: the
-# move lands on the free live-clone slot after it, and the claimed slot keeps
-# its claim and is never returned.
+# A claimed slot handed out anyway (its owner runs in it, so this is a race
+# the screen cannot see) is skipped, not the end of the search: the move lands
+# on the free live-clone slot after it, and the claimed slot keeps its claim
+# and is never returned.
 test_relaunch_skips_a_claimed_slot_and_takes_the_next_free_one() {
   local dir id=clf-a1 out rc=0 claim
   dir=$(make_case clf "$id")
@@ -447,6 +474,7 @@ test_relaunch_skips_a_claimed_slot_and_takes_the_next_free_one() {
   git -C "$dir/home/projects/proj" worktree add -q --detach "$dir/livepool/1/proj" >/dev/null 2>&1
   (. "$ROOT/bin/fm-wake-lib.sh" && fm_treehouse_slot_owner_claim "$dir/livepool/1/proj" other-a1 "$dir/home") || fail "clf: fixture: could not claim the slot for other-a1"
   claim=$(cat "$dir/livepool/1/.fm-slot-owner")
+  : > "$dir/livepool/1/.busy"
   printf 'path %s\nlive\n' "$dir/livepool/1/proj" > "$dir/lease-plan"
   out=$(run_relaunch "$dir" "$id") || rc=$?
   expect_code 0 "$rc" "clf: the relaunch failed with a free slot after the claimed one: $out"
@@ -456,8 +484,46 @@ test_relaunch_skips_a_claimed_slot_and_takes_the_next_free_one() {
   pass "a relaunch skips a claimed slot and takes the next free live-clone slot"
 }
 
+# The move chooses and claims its slot under the shared Treehouse project
+# lock a fresh spawn holds over its own choice: while another holder has it,
+# the relaunch refuses before asking for any slot.
+test_relaunch_refuses_while_the_project_lock_is_held() {
+  local dir id=lck-a1 out rc=0 lock holder before
+  dir=$(make_case lck "$id")
+  OLDWT="$dir/oldpool/7/proj"
+  lock=$(FM_HOME="$dir/home"; . "$ROOT/bin/fm-wake-lib.sh" && fm_treehouse_project_lock_path "$dir/home/projects/proj") || fail "lck: fixture: no lock path"
+  /bin/sleep 120 &
+  holder=$!
+  mkdir -p "$lock" && printf '%s\n' "$holder" > "$lock/pid"
+  before=$(cat "$dir/home/state/$id.meta")
+  out=$(run_relaunch "$dir" "$id") || rc=$?
+  kill "$holder" 2>/dev/null; wait "$holder" 2>/dev/null
+  [ "$rc" -ne 0 ] || fail "lck: a relaunch moved while another holder had the project lock: $out"
+  assert_contains "$out" "another Treehouse slot allocation or return is in progress" "lck: the refusal did not name the lock"
+  grep -q '^get --lease' "$dir/treehouse.log" && fail "lck: a slot was leased without the project lock"
+  assert_equals "$before" "$(cat "$dir/home/state/$id.meta")" "lck: the record changed"
+  [ -e "$dir/oldpool/7/.fm-slot-owner" ] || fail "lck: the old slot's claim was released"
+  pass "a relaunch refuses to move while another holder has the project lock"
+}
+
+# A pool whose status cannot be read decides nothing: the relaunch refuses
+# before asking for any slot.
+test_relaunch_refuses_when_the_live_pool_cannot_be_read() {
+  local dir id=unr-a1 out rc=0
+  dir=$(make_case unr "$id")
+  OLDWT="$dir/oldpool/7/proj"
+  : > "$dir/status-fails"
+  out=$(run_relaunch "$dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "unr: a relaunch moved though the live pool could not be read: $out"
+  assert_contains "$out" "worktree pool could not be read" "unr: the refusal did not say the pool could not be read"
+  grep -q '^get --lease' "$dir/treehouse.log" && fail "unr: a slot was leased from an unread pool"
+  pass "a relaunch refuses when the live pool's status cannot be read"
+}
+
 test_relaunch_moves_an_old_clone_ship_onto_the_live_clone
 test_relaunch_saves_and_refuses_a_dirty_old_copy
+test_relaunch_refuses_when_the_live_pool_cannot_be_read
+test_relaunch_refuses_while_the_project_lock_is_held
 test_relaunch_skips_a_claimed_slot_and_takes_the_next_free_one
 test_relaunch_skips_and_returns_a_foreign_slot
 test_relaunch_returns_a_foreign_lease_when_no_live_slot_comes

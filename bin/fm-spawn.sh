@@ -1593,6 +1593,8 @@ RELAUNCH_MOVE_LIVE=
 RELAUNCH_MOVE_BRANCH_CREATED=0
 RELAUNCH_MOVE_OLD_CLAIMED=0
 RELAUNCH_MOVE_PANE_SENT=0
+RELAUNCH_MOVE_LOCK=
+RELAUNCH_MOVE_LOCK_HELD=0
 RELAUNCH_REPLACEMENT_BUSY_GEN=
 RELAUNCH_REPLACEMENT_HARNESS=
 RELAUNCH_REPLACEMENT_STATE=
@@ -1818,6 +1820,32 @@ EOF
   SPAWN_SKIP_LEASES=
 }
 
+# Print the first slot of <project>'s Treehouse pool that carries a Firstmate
+# claim while Treehouse reads it neither in use (no process inside) nor
+# leased: `treehouse get` may hand such a slot out and reset it during the
+# acquisition, before any claim screen sees it. Returns 1 when none is found
+# and 2 when the pool cannot be read.
+spawn_pool_exposed_claim() {  # <project-dir>
+  local project=$1 json rows path status lease_id marker
+  command -v jq >/dev/null 2>&1 || return 2
+  json=$( (cd "$project" && treehouse status --json) </dev/null 2>/dev/null) || return 2
+  [ -n "$json" ] || return 2
+  rows=$(printf '%s' "$json" |
+    jq -r 'if type == "array" then (.[] | [.path, (.status // ""), (.lease_id // "")] | @tsv) else error("not a slot list") end' 2>/dev/null) || return 2
+  while IFS=$'\t' read -r path status lease_id; do
+    [ -n "$path" ] || continue
+    [ "$status" != in-use ] && [ -z "$lease_id" ] || continue
+    marker=$(fm_treehouse_slot_owner_marker "$path" 2>/dev/null) || continue
+    if [ -e "$marker" ] || [ -L "$marker" ]; then
+      printf '%s\n' "$path"
+      return 0
+    fi
+  done <<ROWS
+$rows
+ROWS
+  return 1
+}
+
 # Undo a relaunch's move onto the live clone when the relaunch ends before its
 # replacement record is published: the new slot's claim is released, the old
 # copy's claim restored, the branch copy the move made in the live clone
@@ -1871,6 +1899,10 @@ spawn_abort_cleanup() {
   local status=$?
   spawn_release_skip_leases
   [ "$RELAUNCH_MOVE_PENDING" != 1 ] || spawn_relaunch_move_rollback
+  if [ "$RELAUNCH_MOVE_LOCK_HELD" = 1 ]; then
+    RELAUNCH_MOVE_LOCK_HELD=0
+    fm_lock_release "$RELAUNCH_MOVE_LOCK" || true
+  fi
   if { [ "$status" -eq "$SPAWN_DEFER_EXIT" ] || [ "$SPAWN_SLOT_REFUSAL" = 1 ]; } &&
     [ "$SPAWN_LAUNCH_SENT" = 0 ] && [ -n "$SPAWN_CREATED_ENDPOINT" ]; then
     if [ "$BACKEND" = orca ]; then
@@ -4909,6 +4941,26 @@ spawn_relaunch_move_to_live_clone() {
   # lease moves the allocator on to the next slot. 64 leases bound the loop.
   new=
   RELAUNCH_MOVE_LIVE=$live
+  # The slot is chosen and claimed under the shared Treehouse project lock a
+  # fresh spawn holds over its own choice and claim, so the two never adopt
+  # one slot. A slot another task claims but nothing occupies would be reset
+  # by the allocator before any screen saw it, so the move refuses instead.
+  if ! RELAUNCH_MOVE_LOCK=$(fm_treehouse_project_lock_path "$live") ||
+    ! fm_lock_try_acquire "$RELAUNCH_MOVE_LOCK"; then
+    echo "error: task $ID lives in $old_real, not this home's clone $live, and another Treehouse slot allocation or return is in progress for it; nothing was moved or relaunched - relaunch again" >&2
+    exit 1
+  fi
+  RELAUNCH_MOVE_LOCK_HELD=1
+  got=0
+  marker=$(spawn_pool_exposed_claim "$live") || got=$?
+  if [ "$got" -ne 1 ]; then
+    if [ "$got" -eq 0 ]; then
+      echo "error: task $ID lives in $old_real, not this home's clone $live, and the live pool's slot $marker is claimed by another task with nothing running in it, so Treehouse could reset it if asked for a slot now; nothing was moved or relaunched" >&2
+    else
+      echo "error: task $ID lives in $old_real, not this home's clone $live, and the live clone's worktree pool could not be read; nothing was moved or relaunched" >&2
+    fi
+    exit 1
+  fi
   while [ "$count" -lt 64 ]; do
     leased=$( (cd "$live" && treehouse get --lease --lease-holder "fm-spawn-$ID" --no-fetch) </dev/null 2>/dev/null) || break
     [ -n "$leased" ] || break
@@ -4971,6 +5023,8 @@ spawn_relaunch_move_to_live_clone() {
     echo "error: could not claim the live clone's slot $new for task $ID; nothing was relaunched" >&2
     exit 1
   }
+  RELAUNCH_MOVE_LOCK_HELD=0
+  fm_lock_release "$RELAUNCH_MOVE_LOCK" || true
   fm_treehouse_slot_owner_state "$RELAUNCH_WT" "$ID" 2>/dev/null || true
   if [ "${FM_TREEHOUSE_SLOT_OWNER:-}" = mine ]; then
     RELAUNCH_MOVE_OLD_CLAIMED=1
