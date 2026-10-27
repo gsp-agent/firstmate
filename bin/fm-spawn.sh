@@ -1949,7 +1949,7 @@ spawn_abort_cleanup() {
     if spawn_slot_checked_out_ship_branch; then
       if ! spawn_return_checked_out_ship_slot; then
         status=1
-      elif [ -n "$SPAWN_TARGET_LEASE" ] && [ "$WT" = "$SPAWN_TARGET_LEASE" ]; then
+      elif [ -n "$SPAWN_TARGET_LEASE" ] && [ "$WT" -ef "$SPAWN_TARGET_LEASE" ]; then
         SPAWN_TARGET_LEASE=
         SPAWN_TARGET_CLAIMED=0
       fi
@@ -1976,7 +1976,7 @@ spawn_abort_cleanup() {
   if [ "$status" -ne 0 ] && [ -n "$SPAWN_TARGET_LEASE" ] &&
     [ "$SPAWN_LAUNCH_SENT" = 0 ] && [ "$SPAWN_TARGET_CLAIMED" = 1 ] &&
     [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" = 1 ] &&
-    { [ "$SPAWN_SLOT_CLAIMED" != 1 ] || [ "${WT:-}" != "$SPAWN_TARGET_LEASE" ]; }; then
+    { [ "$SPAWN_SLOT_CLAIMED" != 1 ] || ! [ "${WT:-}" -ef "$SPAWN_TARGET_LEASE" ]; }; then
     fm_treehouse_slot_owner_release "$SPAWN_TARGET_LEASE" "$ID" || true
     SPAWN_TARGET_CLAIMED=0
   fi
