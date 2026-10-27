@@ -1,0 +1,51 @@
+
+===== lab: mid-refusal (scenario=refusal, fm-root=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-failfirst.TNRCok/mid) =====
+fm-root HEAD: 4a89986
+treehouse: v2.3.0
+
+===== before spawn: real treehouse status --json (project dir) =====
+{"name":"1","status":"in-use","lease_holder":"","processes":["sleep"]}
+
+===== before spawn: claim beside slot 1 =====
+task=old-finished-task
+home=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.4RMUcL
+slot path as Treehouse leases it: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.4RMUcL/poolroot/.treehouse/demo-5c9da1/1/demo
+same slot, physical spelling:      /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.4RMUcL/poolroot/.treehouse/demo-5c9da1/1/demo
+
+===== fm-spawn.sh exit status (after 19s) =====
+1
+
+===== fm-spawn.sh output =====
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.4RMUcL/data/lab-claimed-mid-refusal/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab-claimed-mid-refusal
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.4RMUcL/data/lab-claimed-mid-refusal/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+error: task lab-claimed-mid-refusal checked out fm/lab-claimed-mid-refusal in pool slot /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.4RMUcL/poolroot/.treehouse/demo-5c9da1/1/demo, and that slot was not returned because it holds uncommitted changes
+
+===== lab tmux windows =====
+primary:bash cwd=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-failfirst.TNRCok/mid
+
+===== treehouse calls made by fm-spawn and its pane (lab wrapper log) =====
+status --json
+status --json
+status --json
+get --lease --lease-holder fm-spawn-lab-claimed-mid-refusal --no-fetch
+(lab) stand-in worker 49090 in the claimed slot ended just before this get --lease
+enter 1
+return /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.4RMUcL/poolroot/.treehouse/demo-5c9da1/1/demo
+
+===== after spawn: real treehouse status --json (project dir) =====
+{"name":"1","status":"leased","lease_holder":"fm-spawn-lab-claimed-mid-refusal","processes":[]}
+
+===== after spawn: claim beside slot 1 =====
+(no .fm-slot-owner claim)
+
+===== after spawn: slot 1 checkout =====
+## fm/lab-claimed-mid-refusal
+?? keep-me.txt
+keep-me.txt: keep
+
+===== after spawn: task record =====
+state/lab-claimed-mid-refusal.meta absent
+
+===== lab teardown =====
+lab tmux server stopped
+LAB=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.4RMUcL

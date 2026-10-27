@@ -1,0 +1,52 @@
+
+===== lab: head-refusal (scenario=refusal, fm-root=/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5YWVH77WQNW75CCNAXKV33B) =====
+fm-root HEAD: 6e09fd4e
+treehouse: v2.3.0
+
+===== before spawn: real treehouse status --json (project dir) =====
+{"name":"1","status":"in-use","lease_holder":"","processes":["sleep"]}
+
+===== before spawn: claim beside slot 1 =====
+task=old-finished-task
+home=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.5e73pq
+slot path as Treehouse leases it: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.5e73pq/poolroot/.treehouse/demo-0a0431/1/demo
+same slot, physical spelling:      /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.5e73pq/poolroot/.treehouse/demo-0a0431/1/demo
+
+===== fm-spawn.sh exit status (after 21s) =====
+1
+
+===== fm-spawn.sh output =====
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.5e73pq
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.5e73pq/data/lab-claimed-head-refusal/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab-claimed-head-refusal
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.5e73pq/data/lab-claimed-head-refusal/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+error: task lab-claimed-head-refusal checked out fm/lab-claimed-head-refusal in pool slot /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.5e73pq/poolroot/.treehouse/demo-0a0431/1/demo, and that slot was not returned because it holds uncommitted changes
+
+===== lab tmux windows =====
+primary:bash cwd=/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5YWVH77WQNW75CCNAXKV33B
+
+===== treehouse calls made by fm-spawn and its pane (lab wrapper log) =====
+status --json
+status --json
+status --json
+get --lease --lease-holder fm-spawn-lab-claimed-head-refusal --no-fetch
+(lab) stand-in worker 44823 in the claimed slot ended just before this get --lease
+enter 1
+
+===== after spawn: real treehouse status --json (project dir) =====
+{"name":"1","status":"leased","lease_holder":"fm-spawn-lab-claimed-head-refusal","processes":[]}
+
+===== after spawn: claim beside slot 1 =====
+task=lab-claimed-head-refusal
+home=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.5e73pq
+
+===== after spawn: slot 1 checkout =====
+## fm/lab-claimed-head-refusal
+?? keep-me.txt
+keep-me.txt: keep
+
+===== after spawn: task record =====
+state/lab-claimed-head-refusal.meta absent
+
+===== lab teardown =====
+lab tmux server stopped
+LAB=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.5e73pq

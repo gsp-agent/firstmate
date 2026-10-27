@@ -1,0 +1,2 @@
+ok - a claimed own-clone slot the allocator hands out becomes the target, not a leaked lease
+not ok - aborted spawn did not return the claimed target slot it leased
