@@ -1810,7 +1810,7 @@ spawn_release_skip_leases() {
   while IFS= read -r leased; do
     [ -n "$leased" ] || continue
     if spawn_lease_return_safe "$leased"; then
-      (cd "$PROJ_ABS" 2>/dev/null && treehouse return "$leased" >/dev/null 2>&1 </dev/null) || true
+      (cd "${RELAUNCH_MOVE_LIVE:-$PROJ_ABS}" 2>/dev/null && treehouse return "$leased" >/dev/null 2>&1 </dev/null) || true
     fi
   done <<EOF
 $SPAWN_SKIP_LEASES
@@ -4858,7 +4858,7 @@ fi
 # it. Orca, a secondmate, a scout, and a ship already on the live clone are
 # unchanged.
 spawn_relaunch_move_to_live_clone() {
-  local live old_real old_origin live_origin head_old dirty save new got
+  local live old_real old_origin live_origin head_old dirty save new got leased seen='' count=0 marker why=''
   [ "$RELAUNCH" -eq 1 ] && [ "$KIND" = ship ] && [ "$BACKEND" != orca ] || return 0
   live="${FM_PROJECTS_OVERRIDE:-$FM_HOME/projects}/$(basename "$PROJ_ABS")"
   [ -d "$live" ] || return 0
@@ -4900,14 +4900,46 @@ spawn_relaunch_move_to_live_clone() {
     exit 1
   fi
   [ -n "$got" ] || RELAUNCH_MOVE_BRANCH_CREATED=1
-  new=$( (cd "$live" && treehouse get --lease --lease-holder "fm-spawn-$ID" --no-fetch) </dev/null 2>/dev/null) || new=
-  if ! { [ -n "$new" ] && [ -d "$new" ] && fm_treehouse_pool_slot "$live" "$new"; }; then
-    echo "error: task $ID lives in $old_real, not this home's clone $live, and no slot of the live clone's worktree pool could be leased for it${new:+ (got $new)}; nothing was moved or relaunched" >&2
+  # Lease a free, unclaimed slot of the live clone the way a fresh spawn steers
+  # the pool allocator: one pool can hold same-origin slots of several clones,
+  # so each foreign slot leased on the way joins SPAWN_SKIP_LEASES (released
+  # under its emptiness proof, here on success or by the exit trap otherwise),
+  # and a slot carrying another task's claim ends the search unreturned, since
+  # its owner may still be using it. 64 leases bound the loop.
+  new=
+  RELAUNCH_MOVE_LIVE=$live
+  while [ "$count" -lt 64 ]; do
+    leased=$( (cd "$live" && treehouse get --lease --lease-holder "fm-spawn-$ID" --no-fetch) </dev/null 2>/dev/null) || break
+    [ -n "$leased" ] || break
+    if printf '%s' "$seen" | grep -Fxq -- "$leased"; then
+      break
+    fi
+    seen="$seen$leased
+"
+    count=$((count + 1))
+    SPAWN_SKIP_LEASES="$SPAWN_SKIP_LEASES$leased
+"
+    marker=$(fm_treehouse_slot_owner_marker "$leased" 2>/dev/null || true)
+    if [ -n "$marker" ] && { [ -e "$marker" ] || [ -L "$marker" ]; }; then
+      why=" (the pool handed out $leased, which another task has claimed)"
+      break
+    fi
+    if fm_treehouse_pool_slot "$live" "$leased"; then
+      # The target leaves the skip list: its lease is the move's (returned by
+      # the rollback, or by the task's teardown once the move is published).
+      SPAWN_SKIP_LEASES=$(printf '%s' "$SPAWN_SKIP_LEASES" | grep -Fxv -- "$leased" || true)
+      [ -z "$SPAWN_SKIP_LEASES" ] || SPAWN_SKIP_LEASES="$SPAWN_SKIP_LEASES
+"
+      new=$leased
+      break
+    fi
+  done
+  if [ -z "$new" ]; then
+    echo "error: task $ID lives in $old_real, not this home's clone $live, and no free unclaimed slot of the live clone's worktree pool could be leased for it$why; nothing was moved or relaunched" >&2
     exit 1
   fi
   RELAUNCH_MOVE_NEW=$new
   RELAUNCH_MOVE_OLD=$RELAUNCH_WT
-  RELAUNCH_MOVE_LIVE=$live
   RELAUNCH_MOVE_PENDING=1
   if ! git -C "$new" fetch -q --no-tags --no-recurse-submodules "$RELAUNCH_WT" "refs/heads/$BRANCH" </dev/null 2>/dev/null ||
     ! git -C "$new" checkout -q -B "$BRANCH" FETCH_HEAD </dev/null 2>/dev/null; then
@@ -4943,6 +4975,7 @@ spawn_relaunch_move_to_live_clone() {
     RELAUNCH_MOVE_OLD_CLAIMED=1
     fm_treehouse_slot_owner_release "$RELAUNCH_WT" "$ID" 2>/dev/null || true
   fi
+  spawn_release_skip_leases
   echo "relaunch: moving task $ID from $old_real ($RELAUNCH_WT) onto this home's clone $live, slot $new, branch $BRANCH at ${head_old:0:12}; the old copy is left clean for its pool" >&2
   PROJ=$live
   PROJ_ABS=$live

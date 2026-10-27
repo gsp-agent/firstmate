@@ -17,24 +17,59 @@ TMP_ROOT=$(fm_test_tmproot fm-spawn-relaunch-live-clone)
 eval "$(awk '/^make_relaunch_stub\(\) \{/,/^}/' "$ROOT/tests/fm-spawn-compact-adviser-disable.test.sh")"
 command -v make_relaunch_stub >/dev/null 2>&1 || { echo "not ok - fixture: make_relaunch_stub not found" >&2; exit 1; }
 
-# A fake treehouse whose `get --lease` adds a real worktree of the live clone
-# to a pool with Treehouse's <pool>/<slot>/<repo> layout and prints its path.
+# A fake treehouse with Treehouse's <pool>/<slot>/<repo> layout. Each
+# `get --lease` follows the case's lease plan (<case>/lease-plan, one line per
+# lease) or, with no plan, adds a new slot of the live clone:
+#   live      add a new slot of the live clone (submodules initialised)
+#   foreign   add a new slot of the retired clone (one pool, two clones)
+#   path <p>  hand out an existing slot <p>
+# A plan that has run out fails the lease, as an allocator with nothing to
+# give does. Every call is logged to <case>/treehouse.log.
 make_treehouse_fake() {  # <case-dir> <live-clone>
-  cat > "$1/fakebin/treehouse" <<SH
-#!/usr/bin/env bash
-printf '%s\n' "\$*" >> "$1/treehouse.log"
-case "\$*" in
+  {
+    printf '#!/usr/bin/env bash\nCASE=%q\nLIVE=%q\n' "$1" "$2"
+    cat <<'SH'
+printf '%s\n' "$*" >> "$CASE/treehouse.log"
+case "$*" in
   "get --lease --lease-holder "*" --no-fetch")
-    pool="$1/livepool"
-    mkdir -p "\$pool/1"
-    git -C "$2" worktree add -q --detach "\$pool/1/proj" >/dev/null 2>&1 || exit 1
-    [ ! -f "\$pool/1/proj/.gitmodules" ] || git -C "\$pool/1/proj" submodule update --init -q >/dev/null 2>&1 || exit 1
-    printf '{"worktrees":[{"name":"1","path":"%s"}]}\\n' "\$pool/1/proj" > "\$pool/treehouse-state.json"
-    printf '%s\\n' "\$pool/1/proj"
+    pool="$CASE/livepool"
+    n=$(( $(cat "$CASE/lease-count" 2>/dev/null || echo 0) + 1 ))
+    printf '%s' "$n" > "$CASE/lease-count"
+    if [ -f "$CASE/lease-plan" ]; then
+      step=$(sed -n "${n}p" "$CASE/lease-plan")
+      [ -n "$step" ] || exit 1
+    else
+      step=live
+    fi
+    case "$step" in
+      "path "*) slot=${step#path } ;;
+      live|foreign)
+        src=$LIVE
+        [ "$step" = live ] || src="$CASE/old/proj"
+        mkdir -p "$pool/$n"
+        slot="$pool/$n/proj"
+        git -C "$src" worktree add -q --detach "$slot" >/dev/null 2>&1 || exit 1
+        [ ! -f "$slot/.gitmodules" ] || git -C "$slot" submodule update --init -q >/dev/null 2>&1 || exit 1
+        ;;
+      *) exit 1 ;;
+    esac
+    # Every slot in the pool is listed, as Treehouse's state file lists them.
+    {
+      printf '{"worktrees":['
+      sep=
+      for d in "$pool"/*/proj; do
+        [ -d "$d" ] || continue
+        printf '%s{"name":"%s","path":"%s"}' "$sep" "$(basename "$(dirname "$d")")" "$d"
+        sep=,
+      done
+      printf ']}\n'
+    } > "$pool/treehouse-state.json"
+    printf '%s\n' "$slot"
     ;;
 esac
 exit 0
 SH
+  } > "$1/fakebin/treehouse"
   chmod +x "$1/fakebin/treehouse"
 }
 
@@ -347,8 +382,65 @@ test_relaunch_refuses_an_unpushed_submodule_commit() {
   pass "a relaunch refuses and rolls back a move whose submodule commit is unpushed"
 }
 
+# One pool can hand out a slot of another clone first: that foreign slot is
+# skipped and returned, and the move lands on the next slot of the live clone.
+test_relaunch_skips_and_returns_a_foreign_slot() {
+  local dir id=forn-a1 out rc=0
+  dir=$(make_case forn "$id")
+  OLDWT="$dir/oldpool/7/proj"
+  printf 'foreign\nlive\n' > "$dir/lease-plan"
+  out=$(run_relaunch "$dir" "$id") || rc=$?
+  expect_code 0 "$rc" "forn: the relaunch failed: $out"
+  assert_grep "worktree=$dir/livepool/2/proj" "$dir/home/state/$id.meta" "forn: the move did not land on the live clone's slot"
+  grep -q "^return .*/forn/livepool/1/proj\$" "$dir/treehouse.log" || fail "forn: the foreign slot leased on the way was not returned"
+  grep -q "^return .*/forn/livepool/2/proj\$" "$dir/treehouse.log" && fail "forn: the target slot was returned"
+  pass "a relaunch's move skips and returns a foreign-clone slot and lands on the live clone"
+}
+
+# A pool with only a foreign slot to give: the relaunch refuses, and that
+# foreign lease is returned rather than orphaned.
+test_relaunch_returns_a_foreign_lease_when_no_live_slot_comes() {
+  local dir id=only-a1 out rc=0 before
+  dir=$(make_case only "$id")
+  OLDWT="$dir/oldpool/7/proj"
+  printf 'foreign\n' > "$dir/lease-plan"
+  before=$(cat "$dir/home/state/$id.meta")
+  out=$(run_relaunch "$dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "only: a relaunch with no live slot succeeded: $out"
+  assert_contains "$out" "no free unclaimed slot of the live clone" "only: the refusal did not say no live slot came"
+  grep -q "^return .*/only/livepool/1/proj\$" "$dir/treehouse.log" || fail "only: the foreign lease was orphaned"
+  assert_equals "$before" "$(cat "$dir/home/state/$id.meta")" "only: the record changed"
+  [ -e "$dir/oldpool/7/.fm-slot-owner" ] || fail "only: the old slot's claim was released"
+  pass "a relaunch with no live slot returns the foreign lease it took"
+}
+
+# A live-clone slot whose lease lapsed but which another task still claims is
+# never taken, overwritten or returned: the relaunch refuses.
+test_relaunch_never_takes_a_slot_another_task_claims() {
+  local dir id=clm-a1 out rc=0 before claim
+  dir=$(make_case clm "$id")
+  OLDWT="$dir/oldpool/7/proj"
+  mkdir -p "$dir/livepool/1"
+  git -C "$dir/home/projects/proj" worktree add -q --detach "$dir/livepool/1/proj" >/dev/null 2>&1
+  (. "$ROOT/bin/fm-wake-lib.sh" && fm_treehouse_slot_owner_claim "$dir/livepool/1/proj" other-a1 "$dir/home") || fail "clm: fixture: could not claim the slot for other-a1"
+  claim=$(cat "$dir/livepool/1/.fm-slot-owner")
+  printf 'path %s\n' "$dir/livepool/1/proj" > "$dir/lease-plan"
+  before=$(cat "$dir/home/state/$id.meta")
+  out=$(run_relaunch "$dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "clm: a relaunch moved into another task's slot: $out"
+  assert_contains "$out" "which another task has claimed" "clm: the refusal did not name the claimed slot"
+  assert_equals "$claim" "$(cat "$dir/livepool/1/.fm-slot-owner" 2>/dev/null)" "clm: other-a1's claim was changed or removed"
+  grep -q "^return .*/clm/livepool/1/proj\$" "$dir/treehouse.log" && fail "clm: another task's slot was returned"
+  assert_equals "$before" "$(cat "$dir/home/state/$id.meta")" "clm: the record changed"
+  [ -e "$dir/oldpool/7/.fm-slot-owner" ] || fail "clm: the old slot's claim was released"
+  pass "a relaunch never takes, overwrites or returns a slot another task claims"
+}
+
 test_relaunch_moves_an_old_clone_ship_onto_the_live_clone
 test_relaunch_saves_and_refuses_a_dirty_old_copy
+test_relaunch_skips_and_returns_a_foreign_slot
+test_relaunch_returns_a_foreign_lease_when_no_live_slot_comes
+test_relaunch_never_takes_a_slot_another_task_claims
 test_relaunch_moves_submodules_to_the_recorded_commits
 test_relaunch_refuses_an_unpushed_submodule_commit
 test_relaunch_rollback_after_the_pane_moved_brings_the_pane_back
