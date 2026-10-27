@@ -26,6 +26,7 @@ import signal
 import sqlite3
 import subprocess
 import sys
+import tarfile
 
 code, base = map(Path, sys.argv[1:])
 active = None
@@ -153,14 +154,14 @@ def fixture(name, *, status="closed", days=10, configured=True):
         (home / "config/task-data-offload.json").write_text(json.dumps({"backup_verifier": [str(fake / "backup")]}))
     return home
 
-def run(home, action, *, fault="", ok=True, real_rsync=False, raw=False):
+def run(home, action, *, fault="", ok=True, real_rsync=False, raw=False, task=("task-one",)):
     global active
     env = dict(os.environ, HOME=str(home / "user"), FM_HOME=str(home), PATH=str(fake) + os.pathsep + os.environ["PATH"],
                OFFLOAD_HELPER=str(code / "bin/fm-task-data.py"), OFFLOAD_FAULT=fault, FM_TASK_DATA_SWEEP="off",
                OFFLOAD_REAL_RSYNC="1" if real_rsync else "0")
     for name in ("TASKS_AXI_BACKEND", "TASKS_AXI_FILE", "TASKS_AXI_ROOT", "BEADS_DIR", "BEADS_DB", "BR_DB"):
         env.pop(name, None)
-    command = ["bash", str(code / "bin/fm-task-data-lib.sh"), action, str(home / "data"), str(home / "state"), "task-one"]
+    command = ["bash", str(code / "bin/fm-task-data-lib.sh"), action, str(home / "data"), str(home / "state"), *task]
     active = subprocess.Popen(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
     try:
         stdout, stderr = active.communicate(timeout=120)
@@ -238,6 +239,127 @@ def check_partial_report():
     assert (task / "z.bin").read_bytes() == b"second-evidence"
     assert [item["path"] for item in run(home, "offload")["offloaded"]] == ["z.bin"]
 
+def git(*args):
+    env = {name: value for name, value in os.environ.items() if not name.startswith("GIT_")}
+    env.update(GIT_AUTHOR_NAME="Fixture", GIT_AUTHOR_EMAIL="fixture@example.invalid", GIT_COMMITTER_NAME="Fixture",
+               GIT_COMMITTER_EMAIL="fixture@example.invalid", GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull)
+    # Detached auto-maintenance would write lock files while a check snapshots the tree.
+    return subprocess.run(["git", "-c", "maintenance.auto=false", "-c", "gc.auto=0", *map(str, args)],
+                          env=env, check=True, capture_output=True, text=True).stdout.strip()
+
+def repo_fixture(name, *, remote_inside=False):
+    home = fixture(name)
+    task = home / "data/task-one"
+    (task / "report.md").write_text("Completed.\n")
+    remote = task / "origin.git" if remote_inside else home / "user/origin.git"
+    clone = task / "clone"
+    git("init", "-q", "--bare", "-b", "main", remote)
+    git("init", "-q", "-b", "main", clone)
+    (clone / "work.txt").write_text("pushed work\n")
+    (clone / ".gitignore").write_text("*.log\n")
+    git("-C", clone, "add", "work.txt", ".gitignore")
+    git("-C", clone, "commit", "-q", "-m", "pushed work")
+    git("-C", clone, "remote", "add", "origin", remote)
+    git("-C", clone, "push", "-q", "-u", "origin", "main")
+    return home, remote, clone
+
+def snapshot(path):
+    entries = {}
+    for item in sorted(path.rglob("*")):
+        rel = str(item.relative_to(path))
+        if item.is_symlink():
+            entries[rel] = ("link", os.readlink(item))
+        elif item.is_dir():
+            entries[rel] = ("directory", item.stat().st_mode & 0o777)
+        else:
+            entries[rel] = ("file", item.stat().st_mode & 0o777, item.read_bytes())
+    return entries
+
+def unproven_fixture(variant, name=""):
+    home, remote, clone = repo_fixture(name or "repo-" + variant, remote_inside=variant == "remote-inside")
+    if variant == "unpushed":
+        (clone / "work.txt").write_text("unpushed work\n")
+        git("-C", clone, "commit", "-q", "-am", "unpushed work")
+    elif variant == "dirty":
+        (clone / "work.txt").write_text("uncommitted edit\n")
+    elif variant == "untracked":
+        (clone / "notes.txt").write_text("untracked notes\n")
+    elif variant == "ignored":
+        (clone / "run.log").write_text("ignored output\n")
+    elif variant == "stash":
+        (clone / "work.txt").write_text("stashed edit\n")
+        git("-C", clone, "stash", "-q")
+    elif variant == "unreadable":
+        (clone / ".git/HEAD").write_text("unverified work\n")
+    return home, clone
+
+def check_proven_removed():
+    home, remote, clone = repo_fixture("repo-proven")
+    head = git("-C", clone, "rev-parse", "HEAD")
+    plan = run(home, "offload-plan")
+    assert [(move["path"], move.get("repository")) for move in plan["moves"]] == [("clone", True)], plan
+    result = run(home, "offload")
+    assert [(item["path"], item.get("removed")) for item in result["offloaded"]] == [("clone", True)], result
+    pointer = json.loads(clone.read_text())
+    assert pointer["format"] == "firstmate-task-evidence-v1" and pointer["remotes"] == [str(remote)], pointer
+    assert pointer["head"] == head and "location" not in pointer, pointer
+    assert git("--git-dir", home / "Trash/clone/.git", "rev-parse", "HEAD") == head
+    calls = (home / "calls").read_text().splitlines()
+    assert "rsync" not in calls and "backup" not in calls, calls
+    assert run(home, "offload")["offloaded"] == []
+    assert (home / "calls").read_text().splitlines() == calls, "a removed repository's pointer was offloaded again"
+
+def check_unproven_archived(variant):
+    home, clone = unproven_fixture(variant)
+    before = snapshot(clone)
+    result = run(home, "offload")
+    assert "clone" in [item["path"] for item in result["offloaded"]], result
+    pointer = json.loads(clone.read_text())
+    assert pointer["archive"] == "tar" and pointer["location"].startswith("mini-ts:/Volumes/MINI-DATA/"), pointer
+    payload = home / "remote" / pointer["location"].removeprefix("mini-ts:").lstrip("/")
+    restored = home / "restored"
+    with tarfile.open(payload) as archive:
+        archive.extractall(restored, filter="tar")
+    assert snapshot(restored / "clone") == before, "the offloaded archive does not restore the repository exactly"
+    assert snapshot(home / "Trash/clone") == before
+    assert any((home / "independent-backup").iterdir())
+    assert not list((home / "data/task-one").glob(".firstmate-offload-*")), "the local archive copy was left behind"
+
+def check_refused_repository_kept():
+    home, clone = unproven_fixture("unpushed", "repo-refused")
+    before = snapshot(clone)
+    run(home, "offload", fault="backup-failed", ok=False)
+    assert snapshot(clone) == before and not (home / "Trash").exists()
+    assert not list((home / "data/task-one").glob(".firstmate-offload-*")), "a refused round left its archive copy"
+    assert [item["path"] for item in run(home, "offload")["offloaded"]] == ["clone"]
+
+def check_linked_worktree_kept():
+    home = fixture("repo-linked-worktree")
+    (home / "data/task-one/report.md").write_text("Completed.\n")
+    main = home / "user/main"
+    git("init", "-q", "-b", "main", main)
+    (main / "work.txt").write_text("unpushed work\n")
+    git("-C", main, "add", "work.txt")
+    git("-C", main, "commit", "-q", "-m", "unpushed work")
+    worktree = home / "data/task-one/wt"
+    git("-C", main, "worktree", "add", "-q", "-b", "side", worktree)
+    before = snapshot(worktree)
+    plan = run(home, "offload-plan")
+    assert plan["moves"] == [] and [item.get("path") for item in plan["retained"]] == ["wt"], plan
+    assert run(home, "offload")["offloaded"] == []
+    assert snapshot(worktree) == before and not (home / "calls").exists()
+
+def check_sweep_offloads(configured):
+    home = fixture("sweep-" + ("configured" if configured else "unconfigured"), configured=configured)
+    run(home, "sweep", raw=True, task=())
+    build = home / "data/task-one/build"
+    if configured:
+        assert json.loads(build.read_text())["format"] == "firstmate-task-evidence-v1"
+        assert (home / "Trash/build/evidence.bin").is_file()
+    else:
+        assert (build / "evidence.bin").read_bytes() == b"original-evidence" * 256
+        assert not (home / "calls").exists(), "an unconfigured sweep contacted the remote"
+
 # Collect the independent review regressions so a broken directory copy cannot
 # hide the single-file, retry, or partial-report result on the reviewed head.
 regressions = [("fake directory placement", lambda: check_placement("directory")),
@@ -246,7 +368,15 @@ for kind in ("directory", "file"):
     for fault in ("copy-partial", "copy-wrong"):
         regressions.append((kind + " retries " + fault, lambda kind=kind, fault=fault: check_retry(kind, fault)))
 regressions.extend([("verified existing payload is reused", check_verified_reuse),
-                    ("partial round reports completed moves", check_partial_report)])
+                    ("partial round reports completed moves", check_partial_report),
+                    ("a repository proven on its remote is removed with a pointer", check_proven_removed)])
+for variant in ("unpushed", "dirty", "untracked", "ignored", "stash", "remote-inside", "unreadable"):
+    regressions.append(("a repository with " + variant + " work is offloaded whole and restores exactly",
+                        lambda variant=variant: check_unproven_archived(variant)))
+regressions.extend([("a refused repository offload keeps the repository and no archive copy", check_refused_repository_kept),
+                    ("a linked worktree of an unproven repository elsewhere stays", check_linked_worktree_kept),
+                    ("a sweep ends with an offload pass", lambda: check_sweep_offloads(True)),
+                    ("a sweep in a home without a verifier offloads nothing", lambda: check_sweep_offloads(False))])
 if sys.platform == "darwin":
     regressions.extend([("real /usr/bin/rsync directory placement", lambda: check_placement("directory", True)),
                         ("real /usr/bin/rsync single-file placement", lambda: check_placement("file", True))])
@@ -255,7 +385,7 @@ for name, check in regressions:
     try:
         check()
         print("PASS: " + name, flush=True)
-    except (AssertionError, ValueError, OSError, StopIteration) as error:
+    except (AssertionError, ValueError, OSError, StopIteration, KeyError, TypeError, subprocess.SubprocessError) as error:
         failures.append(name)
         print("FAIL: " + name + ": " + str(error), flush=True)
 assert not failures, failures
@@ -300,15 +430,6 @@ home = fixture("reopened", status="open")
 assert not run(home, "offload-plan")["moves"]
 run(home, "offload", ok=False)
 print("PASS: current open row wins over an old archived completion without live metadata", flush=True)
-
-home = fixture("unverified")
-(home / "data/task-one/build/.git").mkdir()
-(home / "data/task-one/build/.git/HEAD").write_text("unverified work\n")
-original = tree(home)
-assert not run(home, "offload-plan")["moves"]
-run(home, "offload", ok=False)
-assert tree(home) == original and not (home / "calls").exists()
-print("PASS: repositories with unverified work stay untouched", flush=True)
 
 home = fixture("held-repository")
 (home / "data/task-one/.cleanup-hold/clone/.git").mkdir(parents=True)
