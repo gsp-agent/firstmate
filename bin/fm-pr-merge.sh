@@ -585,11 +585,6 @@ if [ "$PROVIDER" = gitlab ] || [ "$PROVIDER" = forgejo ]; then
   RECORDED_HEAD=$(grep '^pr_head=' "$META" | tail -1 | cut -d= -f2- || true)
 fi
 
-# Pre-merge conditions for a GitLab merge request, read from one live view of
-# the merge request. Sets FM_PR_MERGE_HEAD to the verified head on success and
-# returns non-zero after reporting every condition that failed.
-FM_PR_MERGE_HEAD=
-
 # The refusal line for a hold-labeled request. The attribution argument is
 # "<who> at <when>" read from the forge's label-event history, or empty when
 # that history could not be read; the merge refuses either way.
@@ -667,6 +662,10 @@ forgejo_hold_label_attribution() {
     | sort_by(.at) | if length == 0 then "" else last.text end' 2>/dev/null || true
 }
 
+# Pre-merge conditions for a GitLab merge request, read from one live view of
+# the merge request. Sets FM_PR_MERGE_HEAD to the verified head on success and
+# returns non-zero after reporting every condition that failed.
+FM_PR_MERGE_HEAD=
 FM_PR_GITLAB_ASYNC_CONFIGURED=false
 gitlab_verify_mergeable() {
   local json fields line
