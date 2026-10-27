@@ -1588,8 +1588,8 @@ RELAUNCH_REPLACEMENT_PENDING=0
 # exit before then rolls the move back (spawn_relaunch_move_rollback).
 RELAUNCH_MOVE_PENDING=0
 RELAUNCH_MOVE_NEW=
+RELAUNCH_MOVE_NEW_PRIOR=
 RELAUNCH_MOVE_OLD=
-RELAUNCH_MOVE_LIVE=
 RELAUNCH_MOVE_BRANCH_CREATED=0
 RELAUNCH_MOVE_OLD_CLAIMED=0
 RELAUNCH_MOVE_PANE_SENT=0
@@ -1812,7 +1812,7 @@ spawn_release_skip_leases() {
   while IFS= read -r leased; do
     [ -n "$leased" ] || continue
     if spawn_lease_return_safe "$leased"; then
-      (cd "${RELAUNCH_MOVE_LIVE:-$PROJ_ABS}" 2>/dev/null && treehouse return "$leased" >/dev/null 2>&1 </dev/null) || true
+      (cd "$PROJ_ABS" 2>/dev/null && treehouse return "$leased" >/dev/null 2>&1 </dev/null) || true
     fi
   done <<EOF
 $SPAWN_SKIP_LEASES
@@ -1820,40 +1820,43 @@ EOF
   SPAWN_SKIP_LEASES=
 }
 
-# Print the first slot of <project>'s Treehouse pool that carries a Firstmate
-# claim while Treehouse reads it neither in use (no process inside) nor
-# leased: `treehouse get` may hand such a slot out and reset it during the
-# acquisition, before any claim screen sees it. Returns 1 when none is found
-# and 2 when the pool cannot be read.
-spawn_pool_exposed_claim() {  # <project-dir>
-  local project=$1 json rows path status lease_id marker
-  command -v jq >/dev/null 2>&1 || return 2
-  json=$( (cd "$project" && treehouse status --json) </dev/null 2>/dev/null) || return 2
-  [ -n "$json" ] || return 2
-  rows=$(printf '%s' "$json" |
-    jq -r 'if type == "array" then (.[] | [.path, (.status // ""), (.lease_id // "")] | @tsv) else error("not a slot list") end' 2>/dev/null) || return 2
-  while IFS=$'\t' read -r path status lease_id; do
-    [ -n "$path" ] || continue
-    [ "$status" != in-use ] && [ -z "$lease_id" ] || continue
-    marker=$(fm_treehouse_slot_owner_marker "$path" 2>/dev/null) || continue
-    if [ -e "$marker" ] || [ -L "$marker" ]; then
-      printf '%s\n' "$path"
-      return 0
-    fi
-  done <<ROWS
-$rows
-ROWS
-  return 1
+# 0 when Treehouse reads pool slot <slot> of <project> with nothing running in
+# it and no lease. fm_treehouse_free_own_slot reads only the state file, while
+# Treehouse decides "in use" by the processes inside a slot. An unreadable
+# pool, or a slot it does not list, is never idle.
+spawn_pool_slot_idle() {  # <project-dir> <slot>
+  local project=$1 slot json row
+  command -v jq >/dev/null 2>&1 || return 1
+  slot=$(CDPATH='' cd -- "$2" 2>/dev/null && pwd -P) || return 1
+  json=$( (cd "$project" && treehouse status --json) </dev/null 2>/dev/null) || return 1
+  [ -n "$json" ] || return 1
+  row=$(printf '%s' "$json" | jq -r --arg p "$slot" --arg r "$2" \
+    'if type == "array" then (.[] | select(.path == $p or .path == $r) | "\(.status // "")|\(.lease_id // "")") else error("not a slot list") end' 2>/dev/null) || return 1
+  [ -n "$row" ] && [ "${row%%|*}" != in-use ] && [ -z "${row#*|}" ]
+}
+
+# Finish a published move: the old copy's claim is released, now that the
+# record names the live slot, and with it the project lock the move held.
+spawn_relaunch_move_commit() {
+  [ -n "$RELAUNCH_MOVE_NEW" ] || return 0
+  RELAUNCH_MOVE_PENDING=0
+  if [ "$RELAUNCH_MOVE_OLD_CLAIMED" = 1 ]; then
+    fm_treehouse_slot_owner_release "$RELAUNCH_MOVE_OLD" "$ID" 2>/dev/null || true
+  fi
+  if [ "$RELAUNCH_MOVE_LOCK_HELD" = 1 ]; then
+    RELAUNCH_MOVE_LOCK_HELD=0
+    fm_lock_release "$RELAUNCH_MOVE_LOCK" || true
+  fi
 }
 
 # Undo a relaunch's move onto the live clone when the relaunch ends before its
-# replacement record is published: the new slot's claim is released, the old
-# copy's claim restored, the branch copy the move made in the live clone
-# removed (the old copy still holds it at the same head), and the lease
-# returned. The old copy and its record were never changed. A pane already
-# sent to the new slot is sent back to the old copy first, and the slot is
-# returned only once the pane is seen out of it: Treehouse's return may end a
-# process standing in the tree it takes back.
+# replacement record is published. It runs under the project lock the move
+# still holds, and the old copy kept its claim throughout. A pane already sent
+# to the new slot is sent back to the old copy first; once it is seen there the
+# new slot's claim is released and the branch copy the move made is removed
+# (the old copy still holds it at the same head). A pane that does not return
+# leaves the new slot claimed, so no other task is put where it stands. The
+# slot is put back on the commit it held, so it qualifies as free again.
 spawn_relaunch_move_rollback() {
   local new=$RELAUNCH_MOVE_NEW pane_out=1 seen old_real cd_path
   RELAUNCH_MOVE_PENDING=0
@@ -1872,25 +1875,20 @@ spawn_relaunch_move_rollback() {
         sleep 0.5
       done
     fi
-    [ "$pane_out" = 1 ] ||
-      echo "warning: task $ID's endpoint did not return to its copy $RELAUNCH_MOVE_OLD after the move was rolled back; send it there by hand" >&2
   fi
-  fm_treehouse_slot_owner_release "$new" "$ID" 2>/dev/null || true
-  if [ "$RELAUNCH_MOVE_OLD_CLAIMED" = 1 ]; then
-    fm_treehouse_slot_owner_claim "$RELAUNCH_MOVE_OLD" "$ID" "$FM_HOME" 2>/dev/null ||
-      echo "warning: could not restore task $ID's claim on its copy $RELAUNCH_MOVE_OLD after the move was rolled back" >&2
-  fi
-  if [ -d "$new" ]; then
-    git -C "$new" checkout -q --detach </dev/null >/dev/null 2>&1 || true
-    if [ "$RELAUNCH_MOVE_BRANCH_CREATED" = 1 ]; then
-      git -C "$new" branch -q -D "$BRANCH" </dev/null >/dev/null 2>&1 || true
+  if [ "$pane_out" != 1 ]; then
+    echo "warning: task $ID's endpoint did not return to its copy $RELAUNCH_MOVE_OLD after the move was rolled back; the live clone's slot $new stays claimed by it - send the endpoint back by hand" >&2
+  else
+    if [ -d "$new" ]; then
+      git -C "$new" checkout -q --detach ${RELAUNCH_MOVE_NEW_PRIOR:+"$RELAUNCH_MOVE_NEW_PRIOR"} </dev/null >/dev/null 2>&1 || true
+      if [ -f "$new/.gitmodules" ]; then
+        fm_run_timed 300 env GIT_TERMINAL_PROMPT=0 git -C "$new" submodule update --init --recursive -q </dev/null >/dev/null 2>&1 || true
+      fi
+      if [ "$RELAUNCH_MOVE_BRANCH_CREATED" = 1 ]; then
+        git -C "$new" branch -q -D "$BRANCH" </dev/null >/dev/null 2>&1 || true
+      fi
     fi
-    if [ "$pane_out" != 1 ]; then
-      echo "warning: the live clone's slot $new stays leased because task $ID's endpoint may still stand in it" >&2
-    elif spawn_lease_return_safe "$new"; then
-      (cd "$RELAUNCH_MOVE_LIVE" 2>/dev/null && treehouse return "$new" >/dev/null 2>&1 </dev/null) ||
-        echo "warning: the live clone's slot $new could not be returned after task $ID's move was rolled back" >&2
-    fi
+    fm_treehouse_slot_owner_release "$new" "$ID" 2>/dev/null || true
   fi
   echo "relaunch: rolled back task $ID's move onto the live clone; its record and copy $RELAUNCH_MOVE_OLD are unchanged" >&2
 }
@@ -4890,7 +4888,7 @@ fi
 # it. Orca, a secondmate, a scout, and a ship already on the live clone are
 # unchanged.
 spawn_relaunch_move_to_live_clone() {
-  local live old_real old_origin live_origin head_old dirty save new got leased seen='' count=0 marker why=''
+  local live old_real old_origin live_origin head_old dirty save new got
   [ "$RELAUNCH" -eq 1 ] && [ "$KIND" = ship ] && [ "$BACKEND" != orca ] || return 0
   live="${FM_PROJECTS_OVERRIDE:-$FM_HOME/projects}/$(basename "$PROJ_ABS")"
   [ -d "$live" ] || return 0
@@ -4932,66 +4930,34 @@ spawn_relaunch_move_to_live_clone() {
     exit 1
   fi
   [ -n "$got" ] || RELAUNCH_MOVE_BRANCH_CREATED=1
-  # Lease a free, unclaimed slot of the live clone the way a fresh spawn steers
-  # the pool allocator: one pool can hold same-origin slots of several clones,
-  # so each foreign slot leased on the way joins SPAWN_SKIP_LEASES (released
-  # under its emptiness proof, here on success or by the exit trap otherwise).
-  # A slot carrying another task's claim is skipped the same way, and that
-  # proof never returns it, since its owner may still be using it; holding its
-  # lease moves the allocator on to the next slot. 64 leases bound the loop.
+  # The slot is chosen as a fresh spawn's first choice is, never through
+  # `treehouse get`: the allocator resets the slot it hands out before any
+  # screen sees it, which could reset another task's claimed checkout. Only
+  # an existing free slot of the live clone qualifies (fm_treehouse_free_own_slot:
+  # in the configured pool, unleased, unclaimed, clean and already on the
+  # default branch), and Treehouse must read nothing running in it. The choice,
+  # claim and everything up to the replacement record's publication happen
+  # under the shared Treehouse project lock a fresh spawn holds over its own
+  # choice and claim, so no other spawn adopts the new slot or the old copy
+  # meanwhile. With no free slot the move refuses; the relaunch can run again
+  # once one frees.
   new=
-  RELAUNCH_MOVE_LIVE=$live
-  # The slot is chosen and claimed under the shared Treehouse project lock a
-  # fresh spawn holds over its own choice and claim, so the two never adopt
-  # one slot. A slot another task claims but nothing occupies would be reset
-  # by the allocator before any screen saw it, so the move refuses instead.
   if ! RELAUNCH_MOVE_LOCK=$(fm_treehouse_project_lock_path "$live") ||
     ! fm_lock_try_acquire "$RELAUNCH_MOVE_LOCK"; then
     echo "error: task $ID lives in $old_real, not this home's clone $live, and another Treehouse slot allocation or return is in progress for it; nothing was moved or relaunched - relaunch again" >&2
     exit 1
   fi
   RELAUNCH_MOVE_LOCK_HELD=1
-  got=0
-  marker=$(spawn_pool_exposed_claim "$live") || got=$?
-  if [ "$got" -ne 1 ]; then
-    if [ "$got" -eq 0 ]; then
-      echo "error: task $ID lives in $old_real, not this home's clone $live, and the live pool's slot $marker is claimed by another task with nothing running in it, so Treehouse could reset it if asked for a slot now; nothing was moved or relaunched" >&2
-    else
-      echo "error: task $ID lives in $old_real, not this home's clone $live, and the live clone's worktree pool could not be read; nothing was moved or relaunched" >&2
-    fi
-    exit 1
+  new=$(fm_treehouse_free_own_slot "$live" "$BASE_BRANCH" 2>/dev/null || true)
+  if [ -n "$new" ] && ! spawn_pool_slot_idle "$live" "$new"; then
+    new=
   fi
-  while [ "$count" -lt 64 ]; do
-    leased=$( (cd "$live" && treehouse get --lease --lease-holder "fm-spawn-$ID" --no-fetch) </dev/null 2>/dev/null) || break
-    [ -n "$leased" ] || break
-    if printf '%s' "$seen" | grep -Fxq -- "$leased"; then
-      break
-    fi
-    seen="$seen$leased
-"
-    count=$((count + 1))
-    SPAWN_SKIP_LEASES="$SPAWN_SKIP_LEASES$leased
-"
-    marker=$(fm_treehouse_slot_owner_marker "$leased" 2>/dev/null || true)
-    if [ -n "$marker" ] && { [ -e "$marker" ] || [ -L "$marker" ]; }; then
-      why=" (skipped $leased, which another task has claimed)"
-      continue
-    fi
-    if fm_treehouse_pool_slot "$live" "$leased"; then
-      # The target leaves the skip list: its lease is the move's (returned by
-      # the rollback, or by the task's teardown once the move is published).
-      SPAWN_SKIP_LEASES=$(printf '%s' "$SPAWN_SKIP_LEASES" | grep -Fxv -- "$leased" || true)
-      [ -z "$SPAWN_SKIP_LEASES" ] || SPAWN_SKIP_LEASES="$SPAWN_SKIP_LEASES
-"
-      new=$leased
-      break
-    fi
-  done
   if [ -z "$new" ]; then
-    echo "error: task $ID lives in $old_real, not this home's clone $live, and no free unclaimed slot of the live clone's worktree pool could be leased for it$why; nothing was moved or relaunched" >&2
+    echo "error: task $ID lives in $old_real, not this home's clone $live, and the live clone's worktree pool has no free slot for it (each is claimed, in use, leased, not clean or not on the default branch, or the pool could not be read); nothing was moved or relaunched - relaunch again once a slot frees" >&2
     exit 1
   fi
   RELAUNCH_MOVE_NEW=$new
+  RELAUNCH_MOVE_NEW_PRIOR=$(git -C "$new" rev-parse --verify -q HEAD 2>/dev/null || true)
   RELAUNCH_MOVE_OLD=$RELAUNCH_WT
   RELAUNCH_MOVE_PENDING=1
   if ! git -C "$new" fetch -q --no-tags --no-recurse-submodules "$RELAUNCH_WT" "refs/heads/$BRANCH" </dev/null 2>/dev/null ||
@@ -5023,15 +4989,11 @@ spawn_relaunch_move_to_live_clone() {
     echo "error: could not claim the live clone's slot $new for task $ID; nothing was relaunched" >&2
     exit 1
   }
-  RELAUNCH_MOVE_LOCK_HELD=0
-  fm_lock_release "$RELAUNCH_MOVE_LOCK" || true
+  # The old copy keeps its claim until the replacement record is published
+  # (spawn_relaunch_move_commit), so a rollback always finds it as it was.
   fm_treehouse_slot_owner_state "$RELAUNCH_WT" "$ID" 2>/dev/null || true
-  if [ "${FM_TREEHOUSE_SLOT_OWNER:-}" = mine ]; then
-    RELAUNCH_MOVE_OLD_CLAIMED=1
-    fm_treehouse_slot_owner_release "$RELAUNCH_WT" "$ID" 2>/dev/null || true
-  fi
-  spawn_release_skip_leases
-  echo "relaunch: moving task $ID from $old_real ($RELAUNCH_WT) onto this home's clone $live, slot $new, branch $BRANCH at ${head_old:0:12}; the old copy is left clean for its pool" >&2
+  [ "${FM_TREEHOUSE_SLOT_OWNER:-}" != mine ] || RELAUNCH_MOVE_OLD_CLAIMED=1
+  echo "relaunch: moving task $ID from $old_real ($RELAUNCH_WT) onto this home's clone $live, slot $new, branch $BRANCH at ${head_old:0:12}" >&2
   PROJ=$live
   PROJ_ABS=$live
   RELAUNCH_WT=$new
@@ -7334,7 +7296,7 @@ if [ "$RELAUNCH" -eq 1 ]; then
     exit 1
   fi
   RELAUNCH_REPLACEMENT_PENDING=0
-  RELAUNCH_MOVE_PENDING=0
+  spawn_relaunch_move_commit
   SPAWN_META_PUBLISH_STARTED=0
   SPAWN_META_TMP=
 fi
