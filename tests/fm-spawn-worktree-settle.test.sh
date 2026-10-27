@@ -870,7 +870,7 @@ SH
 #!/usr/bin/env bash
 case "$*" in
   *"#{pane_current_path}"*)
-    if grep -qF "treehouse enter '2'" "${FM_FAKE_PANE_LOG:?}" 2>/dev/null; then
+    if [ "${FM_FAKE_CLAIMED_ENTER_FAILS:-}" != 1 ] && grep -qF "treehouse enter '2'" "${FM_FAKE_PANE_LOG:?}" 2>/dev/null; then
       printf '%s\n' "$FM_TREEHOUSE_CLAIMED_SLOT"
       exit 0
     fi
@@ -927,6 +927,43 @@ test_allocator_claimed_own_slot_becomes_target() {
   assert_no_grep 'return ' "$th_log" \
     "spawn returned the slot it launched in"
   pass "a claimed own-clone slot the allocator hands out becomes the target, not a leaked lease"
+}
+
+# An abort after steering chose a claimed own-clone slot as its target -
+# here the pane never settles in that slot, so `treehouse enter` fails -
+# must leave no lease of its own on that slot. The slot was clean and had
+# no live owner, so the abort can hand it back once the claim no longer
+# names the finished task, and the pool can hand it out again at once.
+test_allocator_claimed_target_abort_releases_lease() {
+  local rec id out status pool slot pane_log th_log holder
+  id=settle-pool-claimed-target-abort-z19
+  rec=$(make_claimed_lease_case "$id" "$id")
+  read_settle_record "$rec"
+  pool="$CASE_DIR/pool"
+  slot="$pool/2/repo"
+  pane_log="$CASE_DIR/pane.log"
+  th_log="$CASE_DIR/treehouse.log"
+  WT_DIR="$PROJ_DIR"
+  fm_test_fake_sleep_noop "$FAKEBIN_DIR"
+
+  out=$(FM_FAKE_PANE_LOG="$pane_log" FM_TREEHOUSE_LOG="$th_log" \
+    FM_FAKE_CLAIMED_ENTER_FAILS=1 \
+    FM_TREEHOUSE_CLAIMED_SLOT="$slot" run_settle_spawn "$id")
+  status=$?
+  [ "$status" -ne 0 ] || fail "spawn launched although its pane never settled in the claimed target slot"$'\n'"$out"
+  assert_contains "$out" "did not enter an isolated worktree" \
+    "the abort did not explain that the pane never settled"
+  [ ! -e "$HOME_DIR/state/$id.meta" ] || fail "aborted spawn published task metadata"
+  assert_grep "treehouse enter '2'" "$pane_log" \
+    "spawn did not choose the claimed own-clone slot as its target"
+  assert_grep "return $slot" "$th_log" \
+    "aborted spawn did not return the claimed target slot it leased"
+  holder=$(slot_lease_holder "$pool" "$slot")
+  [ -z "$holder" ] ||
+    fail "aborted spawn left its lease ($holder) on the claimed target slot"
+  [ ! -e "$pool/2/.fm-slot-owner" ] && [ ! -L "$pool/2/.fm-slot-owner" ] ||
+    fail "aborted spawn left a slot-owner claim on the returned target slot"
+  pass "an aborted spawn that chose a claimed own-clone slot leaves no lease of its own on it"
 }
 
 # A claimed slot the reuse test refuses - here it holds another task's
@@ -1127,6 +1164,7 @@ test_root_switched_pool_without_status_json_uses_treehouse_get
 test_mixed_pool_claimed_own_slot_uses_treehouse_get
 test_mixed_pool_makes_new_own_slot_when_none_free
 test_allocator_claimed_own_slot_becomes_target
+test_allocator_claimed_target_abort_releases_lease
 test_allocator_claimed_slot_is_never_returned success
 test_allocator_claimed_slot_is_never_returned abort
 test_dirty_own_slot_is_not_entered
