@@ -538,6 +538,87 @@ test_merge_merged_branch_carries_its_own_pending_line() {
   pass "a merge-merged branch carries its own pending line and its carried commits inherit it"
 }
 
+test_two_open_prs_with_their_own_proof_files_land_without_a_conflict() {
+  local repo a b
+  repo=$(fm_test_tmproot drift-proof-dir)
+  fm_git_init_commit "$repo"
+  git -C "$repo" branch upstream
+  printf '# closed manifest\npr: 6\n' > "$repo/drift-proof.txt"
+  printf 'six\n' > "$repo/six.txt"
+  git -C "$repo" add drift-proof.txt six.txt
+  fixture_commit "$repo" "add six (#6)"
+  # The old way: two open PRs append to the same file, so the second conflicts.
+  git -C "$repo" switch -q -c old/a
+  printf 'pr: 7\n' >> "$repo/drift-proof.txt"
+  git -C "$repo" add drift-proof.txt
+  fixture_commit "$repo" "a"
+  git -C "$repo" switch -q -c old/b main
+  printf 'pr: 8\n' >> "$repo/drift-proof.txt"
+  git -C "$repo" add drift-proof.txt
+  fixture_commit "$repo" "b"
+  git -C "$repo" switch -q main
+  git -C "$repo" merge -q --squash old/a && fixture_commit "$repo" "old a (#7)"
+  if git -C "$repo" merge -q --squash old/b >/dev/null 2>&1; then
+    fail "two appends to drift-proof.txt were expected to conflict"
+  fi
+  git -C "$repo" reset -q --hard main~1
+  # The new way: each PR writes drift-proof/<N>.proof, so both land cleanly.
+  git -C "$repo" switch -q -c fm/a
+  mkdir -p "$repo/drift-proof"
+  printf 'a\n' > "$repo/a.txt"
+  printf '# a test\npr: 7\n' > "$repo/drift-proof/7.proof"
+  git -C "$repo" add a.txt drift-proof/7.proof
+  fixture_commit "$repo" "a"
+  git -C "$repo" switch -q -c fm/b main
+  mkdir -p "$repo/drift-proof"
+  printf 'b\n' > "$repo/b.txt"
+  printf 'pending-pr: 8 bead-8\n' > "$repo/drift-proof/8.proof"
+  git -C "$repo" add b.txt drift-proof/8.proof
+  fixture_commit "$repo" "b"
+  git -C "$repo" switch -q main
+  git -C "$repo" merge -q --squash fm/a || fail "the first PR's squash failed"
+  fixture_commit "$repo" "add a (#7)"
+  a=$(git -C "$repo" rev-parse HEAD)
+  git -C "$repo" merge -q --squash fm/b || fail "the second PR's squash conflicted"
+  fixture_commit "$repo" "add b (#8)"
+  b=$(git -C "$repo" rev-parse HEAD)
+  run_check "$repo" --fork HEAD --upstream upstream
+  expect_code 0 "$CHECK_RC" "drift-proof.txt and drift-proof/<N>.proof together prove every PR: $CHECK_OUT $CHECK_ERR"
+  assert_contains "$CHECK_OUT" "keep: $a add a (#7)" "drift-proof/7.proof proves PR 7"
+  assert_contains "$CHECK_OUT" "pending: $b bead-8 add b (#8)" "drift-proof/8.proof carries PR 8's pending line"
+  assert_contains "$CHECK_OUT" 'path-ok: drift-proof/8.proof' "the proof files are replayed like any other path"
+  assert_not_contains "$CHECK_OUT" 'error:' "no PR is missing an entry"
+  printf 'pr: 7\n' > "$repo/drift-proof/9.proof"
+  git -C "$repo" add drift-proof/9.proof
+  fixture_commit "$repo" "copy (#9)"
+  run_check "$repo" --fork HEAD --upstream upstream
+  expect_code 2 "$CHECK_RC" "a proof file naming another PR exits 2"
+  assert_contains "$CHECK_ERR" 'drift-proof/9.proof holds an entry for another PR: pr: 7' "the wrong file is named"
+  git -C "$repo" rm -q drift-proof/9.proof
+  printf 'pr: 9\n' > "$repo/drift-proof/nine.proof"
+  git -C "$repo" add drift-proof/nine.proof
+  fixture_commit "$repo" "misnamed (#10)"
+  run_check "$repo" --fork HEAD --upstream upstream
+  expect_code 2 "$CHECK_RC" "a proof file not named <number>.txt exits 2"
+  assert_contains "$CHECK_ERR" 'drift-proof entry is not drift-proof/<number>.proof: drift-proof/nine.proof' "the misnamed file is named"
+  git -C "$repo" rm -q drift-proof/nine.proof
+  printf 'pr: 7\n' >> "$repo/drift-proof.txt"
+  git -C "$repo" add drift-proof.txt
+  fixture_commit "$repo" "dup (#11)"
+  run_check "$repo" --fork HEAD --upstream upstream
+  expect_code 2 "$CHECK_RC" "an entry in both places exits 2"
+  assert_contains "$CHECK_ERR" 'duplicate proof entry for PR 7' "a PR proven twice is an error"
+  pass "two open PRs with their own drift-proof/<N>.proof land without a conflict and both are proven"
+}
+
+test_repo_drift_proof_txt_takes_no_entry_after_pr_167() {
+  local late
+  # drift-proof.txt closed at PR 167; every later PR writes drift-proof/<N>.proof.
+  late=$(awk '/^(pr|pending-pr): / { if ($2 + 0 > 167) print }' "$ROOT/drift-proof.txt")
+  assert_equals '' "$late" "move these entries to drift-proof/<N>.proof"
+  pass "this repo's drift-proof.txt takes no entry after PR 167"
+}
+
 test_forgotten_manifest_line_is_path_drift_and_unproven() {
   local repo sha
   repo=$(fm_test_tmproot drift-forgotten-line)
@@ -964,6 +1045,8 @@ test_missing_proven_patch_is_drift
 test_unproven_mode_change_is_drift
 test_pending_commit_is_accepted_and_printed_with_its_bead
 test_merge_merged_branch_carries_its_own_pending_line
+test_two_open_prs_with_their_own_proof_files_land_without_a_conflict
+test_repo_drift_proof_txt_takes_no_entry_after_pr_167
 test_forgotten_manifest_line_is_path_drift_and_unproven
 test_wrong_proof_pr_number_stays_red_and_is_named
 test_reverted_numbered_pr_without_manifest_stays_red

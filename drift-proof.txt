@@ -2,6 +2,7 @@
 # format and replay rules; CONTRIBUTING.md owns the per-PR proof requirement.
 # Entries follow first-parent PR order on upstream-lean, oldest first.
 # Comments name each kept PR's failing-first test or measurement.
+# Closed at PR 167: each later PR writes its own drift-proof/<N>.proof instead.
 # "Live routing file", "R16 routing compatibility" and "R16 effort delivery" in drift-measurements.txt.
 pr: 6
 # "R16 routing compatibility", "R16 quota fallback" and "R16 catalogue refusal" in drift-measurements.txt.
