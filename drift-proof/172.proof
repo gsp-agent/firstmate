@@ -1,0 +1,2 @@
+# Moves PR 169's entry, cut before #170, from drift-proof.txt to drift-proof/169.proof; tests/fm-drift-nightly.test.sh test_repo_drift_proof_txt_takes_no_entry_after_pr_167 fails on upstream-lean 371c4fee (got 'pr: 169') and passes here.
+pr: 172
