@@ -265,6 +265,9 @@ ln -s "$ROOT/bin" "$MIRROR_ROOT/bin"
 # Run the host under the fake harness that holds the home's session lock.
 # Every hook payload in $home/mirror-seed.* is first written to the dialog
 # mirror by that same session, as its prompt and Stop hooks would.
+# The session ends with its host unless $home/session.stays exists; then it
+# lives on until $home/session.stop, as a real one outlives its Stop hook, and
+# an arm that outlives the host keeps the live session it reports to.
 start_host() {  # <home> [park options...]
   local home=$1
   shift
@@ -279,6 +282,9 @@ start_host() {  # <home> [park options...]
       done
       "$0" park "$@" > "$FM_HOME/host.out" 2>&1
       printf "%s\n" "$?" > "$FM_HOME/host.rc"
+      while [ -e "$FM_HOME/session.stays" ] && [ ! -e "$FM_HOME/session.stop" ]; do
+        sleep 0.2
+      done
     ' "$HOST" "$@" 2>> "$home/claude.err" &
 }
 
@@ -1491,6 +1497,7 @@ test_off_written_while_parked_passes_the_next_attended_close_to_main() {
 test_main_only_pass_through_leaves_the_successor_watcher_running() {
   local home pid
   home=$(make_home main-only-successor attended)
+  : > "$home/session.stays"
   start_host "$home"
   wait_until 150 watcher_live "$home" || fail "successor: the host never started a watcher cycle"
   append_status "$home" 'which export format?' needs-decision
@@ -1506,6 +1513,8 @@ test_main_only_pass_through_leaves_the_successor_watcher_running() {
   sleep 2
   kill -0 "$pid" 2>/dev/null || fail "successor: the watcher exited after the pass-through (pid $pid)"
   [ "$(cat "$home/state/.watch.lock/pid" 2>/dev/null)" = "$pid" ] || fail "successor: the watcher lock moved after the pass-through"
+  : > "$home/session.stop"
+  stop_home_processes "$home"
   pass "host: a main-only pass-through leaves the successor watcher running and the close undelivered for main"
 }
 
