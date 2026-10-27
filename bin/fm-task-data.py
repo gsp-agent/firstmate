@@ -201,8 +201,13 @@ The checksum is SHA256 of a canonical JSON tree manifest: sorted
 arrays [relative-name,type,mode] for directories and
 [relative-name,"file",mode,size,sha256-of-file] for files, with '.' for the root,
 ensure_ascii=True and separators (',', ':'). Size is summed file bytes.
-Only matching remote and independent-backup manifests allow dcg-checked `trash -s`
-on the original, using the machine's existing Trash expiry (24 hours).
+Only matching remote and independent-backup manifests allow dcg-checked
+`/usr/bin/trash -s` (macOS's own tool, where -s stops on error) on the original,
+using the machine's existing Trash expiry (24 hours). It is named by absolute
+path because another `trash` earlier on PATH, such as Homebrew's, reads -s as
+securely empty the Trash. FM_TASK_DATA_TRASH replaces that path in tests only.
+Every dcg-checked command reads stdin from /dev/null, so no prompt can take an
+answer from the caller.
 A small JSON pointer replaces the exact original pathname, naming the destination,
 size, checksum, checksum format and independent backup. Task evidence never
 leaves through rm.
@@ -1007,6 +1012,9 @@ def write_record(root, record):
     temporary.replace(path)
 
 
+TRASH = os.environ.get("FM_TASK_DATA_TRASH", "/usr/bin/trash")
+
+
 def guard_command(args):
     payload = {"tool_name": "Bash", "tool_input": {"command": shlex.join(args)}}
     result = subprocess.run(["dcg"], input=json.dumps(payload), capture_output=True,
@@ -1018,7 +1026,7 @@ def guard_command(args):
         decision = response["hookSpecificOutput"].get("permissionDecision")
         if decision != "allow":
             raise ValueError(f"dcg refused cleanup: {result.stdout.strip()}")
-    subprocess.run(args, check=True)
+    subprocess.run(args, check=True, stdin=subprocess.DEVNULL)
 
 
 def remove_entries(root, files, directories):
@@ -1605,7 +1613,7 @@ def offload(data, state, task_id):
         record["entries"][relative] = pointer
         safe_directory(root, Path("record"))
         offload_write(record_path, record)
-        guard_command(["trash", "-s", str(source)])
+        guard_command([TRASH, "-s", str(source)])
         if source.exists() or source.is_symlink():
             raise ValueError("Trash did not move the original; pointer not published")
 

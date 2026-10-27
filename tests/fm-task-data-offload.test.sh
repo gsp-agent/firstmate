@@ -118,6 +118,7 @@ elif tool == "backup":
         result["checksum"] = "f" * 64
     print(json.dumps(result))
 elif tool == "trash":
+    (home / "trash-stdin").write_text(sys.stdin.read())
     source = p(sys.argv[-1])
     trash = home / "Trash"
     trash.mkdir(exist_ok=True)
@@ -131,10 +132,27 @@ elif tool == "dcg":
 else:
     sys.exit(88)
 '''
-for name in ("ssh", "rsync", "backup", "trash", "dcg"):
+for name in ("ssh", "rsync", "backup", "dcg"):
     path = fake / name
     path.write_text(shim)
     path.chmod(0o755)
+# Offload must reach Trash only through FM_TASK_DATA_TRASH (production:
+# /usr/bin/trash). The `trash` earlier on PATH stands for Homebrew's, whose -s
+# securely empties the Trash after reading a y from stdin.
+(fake / "safe").mkdir()
+(fake / "safe/trash").write_text(shim)
+(fake / "safe/trash").chmod(0o755)
+(fake / "trash").write_text('''#!/usr/bin/env python3
+import os, pathlib, shutil, sys
+home = pathlib.Path(os.environ["FM_HOME"])
+with (home / "calls").open("a") as log:
+    log.write("path-trash\\n")
+if sys.stdin.readline().strip().lower() == "y" and (home / "Trash").exists():
+    shutil.rmtree(home / "Trash")
+    (home / "Trash-emptied").write_text("emptied")
+sys.exit(1)
+''')
+(fake / "trash").chmod(0o755)
 
 def fixture(name, *, status="closed", days=10, configured=True):
     home = base / name
@@ -154,17 +172,18 @@ def fixture(name, *, status="closed", days=10, configured=True):
         (home / "config/task-data-offload.json").write_text(json.dumps({"backup_verifier": [str(fake / "backup")]}))
     return home
 
-def run(home, action, *, fault="", ok=True, real_rsync=False, raw=False, task=("task-one",)):
+def run(home, action, *, fault="", ok=True, real_rsync=False, raw=False, task=("task-one",), stdin=""):
     global active
     env = dict(os.environ, HOME=str(home / "user"), FM_HOME=str(home), PATH=str(fake) + os.pathsep + os.environ["PATH"],
                OFFLOAD_HELPER=str(code / "bin/fm-task-data.py"), OFFLOAD_FAULT=fault, FM_TASK_DATA_SWEEP="off",
-               OFFLOAD_REAL_RSYNC="1" if real_rsync else "0")
+               OFFLOAD_REAL_RSYNC="1" if real_rsync else "0", FM_TASK_DATA_TRASH=str(fake / "safe/trash"))
     for name in ("TASKS_AXI_BACKEND", "TASKS_AXI_FILE", "TASKS_AXI_ROOT", "BEADS_DIR", "BEADS_DB", "BR_DB"):
         env.pop(name, None)
     command = ["bash", str(code / "bin/fm-task-data-lib.sh"), action, str(home / "data"), str(home / "state"), *task]
-    active = subprocess.Popen(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    active = subprocess.Popen(command, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              text=True, start_new_session=True)
     try:
-        stdout, stderr = active.communicate(timeout=120)
+        stdout, stderr = active.communicate(stdin, timeout=120)
         rc = active.returncode
     finally:
         stop()
@@ -349,6 +368,16 @@ def check_linked_worktree_kept():
     assert run(home, "offload")["offloaded"] == []
     assert snapshot(worktree) == before and not (home / "calls").exists()
 
+def check_trash_never_empties():
+    home = fixture("trash-on-path")
+    (home / "Trash").mkdir()
+    (home / "Trash/earlier.bin").write_bytes(b"recoverable for 24 hours")
+    run(home, "offload", stdin="y\n")
+    assert "path-trash" not in (home / "calls").read_text().splitlines(), "offload ran the trash found on PATH"
+    assert not (home / "Trash-emptied").exists() and (home / "Trash/earlier.bin").is_file()
+    assert (home / "Trash/build/evidence.bin").is_file()
+    assert (home / "trash-stdin").read_text() == "", "the Trash command could read the caller's stdin"
+
 def check_sweep_offloads(configured):
     home = fixture("sweep-" + ("configured" if configured else "unconfigured"), configured=configured)
     run(home, "sweep", raw=True, task=())
@@ -375,6 +404,7 @@ for variant in ("unpushed", "dirty", "untracked", "ignored", "stash", "remote-in
                         lambda variant=variant: check_unproven_archived(variant)))
 regressions.extend([("a refused repository offload keeps the repository and no archive copy", check_refused_repository_kept),
                     ("a linked worktree of an unproven repository elsewhere stays", check_linked_worktree_kept),
+                    ("offload never runs a trash from PATH or feeds it stdin", check_trash_never_empties),
                     ("a sweep ends with an offload pass", lambda: check_sweep_offloads(True)),
                     ("a sweep in a home without a verifier offloads nothing", lambda: check_sweep_offloads(False))])
 if sys.platform == "darwin":
