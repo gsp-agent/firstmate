@@ -1595,6 +1595,7 @@ RELAUNCH_MOVE_OLD_CLAIMED=0
 RELAUNCH_MOVED=0
 RELAUNCH_MOVE_LOCK=
 RELAUNCH_MOVE_LOCK_HELD=0
+RELAUNCH_MOVE_PICK_LIVE=
 RELAUNCH_REPLACEMENT_BUSY_GEN=
 RELAUNCH_REPLACEMENT_HARNESS=
 RELAUNCH_REPLACEMENT_STATE=
@@ -1820,6 +1821,16 @@ EOF
   SPAWN_SKIP_LEASES=
 }
 
+# fm_treehouse_free_own_slot's extra screen for a relaunch's move (<slot>):
+# its own clean test is a plain git status, which honours a submodule's
+# `ignore` setting, while the move and its rollback rewrite every submodule,
+# so the slot must be clean with none ignored; and Treehouse must read
+# nothing running in it and no lease.
+spawn_relaunch_slot_acceptable() {  # <slot>
+  [ -z "$(git -C "$1" status --porcelain --untracked-files=all --ignore-submodules=none 2>/dev/null || echo unreadable)" ] &&
+    spawn_pool_slot_idle "$RELAUNCH_MOVE_PICK_LIVE" "$1"
+}
+
 # 0 when Treehouse reads pool slot <slot> of <project> with nothing running in
 # it and no lease. fm_treehouse_free_own_slot reads only the state file, while
 # Treehouse decides "in use" by the processes inside a slot. An unreadable
@@ -1841,7 +1852,7 @@ spawn_pool_slot_idle() {  # <project-dir> <slot>
 # endpoint may still stand in the old copy, or cannot be read, the claim stays
 # and the warning names it.
 spawn_relaunch_move_release_old() {
-  local seen=''
+  local seen='' dirty
   [ "$RELAUNCH_MOVED" = 1 ] && [ "$RELAUNCH_MOVE_OLD_CLAIMED" = 1 ] || return 0
   RELAUNCH_MOVE_OLD_CLAIMED=0
   if [ -n "${WT_TARGET:-}" ] && declare -F spawn_current_path >/dev/null 2>&1; then
@@ -1849,6 +1860,13 @@ spawn_relaunch_move_release_old() {
   fi
   if [ -z "$seen" ] || [ "$(real_path_or_raw "$seen")" = "$(real_path_or_raw "$RELAUNCH_MOVE_OLD")" ]; then
     echo "warning: task $ID now lives in $RELAUNCH_MOVE_NEW, but its endpoint ${seen:+is still in $seen}${seen:-could not be read}, so its old copy $RELAUNCH_MOVE_OLD keeps the task's claim; release it once the endpoint has left" >&2
+    return 0
+  fi
+  # Uncommitted work left in the old copy is not carried; its claim stays so
+  # no spawn is handed that copy.
+  dirty=$(git -C "$RELAUNCH_MOVE_OLD" status --porcelain --untracked-files=all --ignore-submodules=none 2>/dev/null) || dirty="unreadable status"
+  if [ -n "$dirty" ]; then
+    echo "warning: task $ID's old copy $RELAUNCH_MOVE_OLD holds uncommitted work the move did not carry ($(printf '%s' "$dirty" | head -3 | tr '\n' ';')); it keeps the task's claim - carry or discard that work, then release it" >&2
     return 0
   fi
   fm_treehouse_slot_owner_release "$RELAUNCH_MOVE_OLD" "$ID" 2>/dev/null || true
@@ -4940,17 +4958,8 @@ spawn_relaunch_move_to_live_clone() {
     exit 1
   fi
   RELAUNCH_MOVE_LOCK_HELD=1
-  new=$(fm_treehouse_free_own_slot "$live" "$BASE_BRANCH" 2>/dev/null || true)
-  if [ -n "$new" ] && ! spawn_pool_slot_idle "$live" "$new"; then
-    new=
-  fi
-  # The selector's clean test is a plain git status, which honours a
-  # submodule's `ignore` setting; the move and its rollback rewrite every
-  # submodule, so the slot must be clean with none ignored.
-  if [ -n "$new" ] &&
-    [ -n "$(git -C "$new" status --porcelain --untracked-files=all --ignore-submodules=none 2>/dev/null || echo unreadable)" ]; then
-    new=
-  fi
+  RELAUNCH_MOVE_PICK_LIVE=$live
+  new=$(fm_treehouse_free_own_slot "$live" "$BASE_BRANCH" spawn_relaunch_slot_acceptable 2>/dev/null || true)
   if [ -z "$new" ]; then
     echo "error: task $ID lives in $old_real, not this home's clone $live, and the live clone's worktree pool has no free slot for it (each is claimed, in use, leased, not clean or not on the default branch, or the pool could not be read); nothing was moved or relaunched - relaunch again once a slot frees" >&2
     exit 1
@@ -5850,6 +5859,12 @@ elif [ "$RELAUNCH" -eq 1 ]; then
       FM_TREEHOUSE_SLOT_OWNER=
       [ -z "$relaunch_seen_top" ] || fm_treehouse_slot_owner_state "$relaunch_seen_top" "$ID" 2>/dev/null || true
       if [ -n "$relaunch_seen_top" ] && [ "${FM_TREEHOUSE_SLOT_OWNER:-}" = mine ]; then
+        # Work made in that copy after the move would not follow the pane.
+        relaunch_old_dirty=$(git -C "$relaunch_seen_top" status --porcelain --untracked-files=all --ignore-submodules=none 2>/dev/null) || relaunch_old_dirty="unreadable status"
+        if [ -n "$relaunch_old_dirty" ]; then
+          echo "error: task $ID now lives in $WT, but its endpoint stands in its old copy $relaunch_seen_top, which holds uncommitted work made after the move ($(printf '%s' "$relaunch_old_dirty" | head -3 | tr '\n' ';')); nothing was relaunched and that copy keeps the task's claim - carry the work to $WT (or discard it), then relaunch again" >&2
+          exit 1
+        fi
         RELAUNCH_MOVED=1
         RELAUNCH_MOVE_OLD=$relaunch_seen_top
         RELAUNCH_MOVE_NEW=$WT

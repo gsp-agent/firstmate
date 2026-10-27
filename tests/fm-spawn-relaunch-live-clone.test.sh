@@ -647,8 +647,49 @@ test_relaunch_finishes_a_move_whose_pane_did_not_follow() {
   pass "a relaunch finishes a move whose pane did not follow the first time"
 }
 
+# The slot screen passes over a candidate, never ends the search: with the
+# lowest slot strictly dirty (an ignored submodule edit) and the next clean,
+# the move lands on the next one and the edit stays.
+test_relaunch_passes_over_a_strictly_dirty_slot_for_a_clean_one() {
+  local dir id=dig2-a1 out rc=0
+  submodule_env
+  dir=$(make_submodule_case dig2 "$id" dest-ignored)
+  OLDWT="$dir/oldpool/7/proj"
+  add_slot "$dir" 2 || fail "dig2: fixture: could not add the second slot"
+  git -C "$dir/livepool/2/proj" submodule update --init -q >/dev/null 2>&1
+  out=$(run_relaunch "$dir" "$id") || rc=$?
+  expect_code 0 "$rc" "dig2: the relaunch failed with a clean slot beside the dirty one: $out"
+  assert_grep "worktree=$dir/livepool/2/proj" "$dir/home/state/$id.meta" "dig2: the move did not land on the clean slot"
+  assert_grep 'local-only-edit' "$dir/livepool/1/proj/sub/s.txt" "dig2: the dirty slot's edit was lost"
+  pass "a relaunch passes over a strictly dirty slot for a clean one"
+}
+
+# A move left half-done (its pane stayed behind) is not finished over work
+# made in the old copy since: the retry refuses and the copy keeps its claim
+# and its work.
+test_relaunch_never_finishes_a_move_over_new_work_in_the_old_copy() {
+  local dir id=again2-a1 out rc=0
+  dir=$(make_case again2 "$id")
+  OLDWT="$dir/oldpool/7/proj"
+  : > "$dir/fake/nofollow"
+  out=$(run_relaunch "$dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "again2: the first relaunch should have refused: $out"
+  rm -f "$dir/fake/nofollow"
+  printf 'later\n' > "$OLDWT/not-carried.txt"
+  rc=0
+  out=$(run_relaunch "$dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "again2: a retry finished the move over new work in the old copy: $out"
+  assert_contains "$out" "holds uncommitted work made after the move" "again2: the refusal did not name the new work"
+  [ -e "$dir/oldpool/7/.fm-slot-owner" ] || fail "again2: the old copy lost its claim"
+  assert_grep 'later' "$OLDWT/not-carried.txt" "again2: the new work was touched"
+  assert_equals "$OLDWT" "$(cat "$dir/fake/cwd")" "again2: the pane was moved away from the new work"
+  pass "a relaunch never finishes a move over work made in the old copy since"
+}
+
 test_relaunch_moves_an_old_clone_ship_onto_the_live_clone
 test_relaunch_saves_and_refuses_a_dirty_old_copy
+test_relaunch_passes_over_a_strictly_dirty_slot_for_a_clean_one
+test_relaunch_never_finishes_a_move_over_new_work_in_the_old_copy
 test_relaunch_never_takes_a_slot_with_an_ignored_submodule_edit
 test_relaunch_finishes_a_move_whose_pane_did_not_follow
 test_relaunch_rollback_cleans_a_submodule_the_branch_added

@@ -1815,9 +1815,11 @@ fm_treehouse_configured_pool() {  # <project-dir>
 # Any doubt - no jq, no pool layout, a live owner, an existing claim,
 # residue, or an unverifiable reset target - prints nothing, and the
 # caller keeps the plain `treehouse get` path, whose candidate screening
-# still refuses a foreign-clone slot.
-fm_treehouse_free_own_slot() {  # <project-dir> [<base-branch>]
-  local project=$1 base=${2:-} listed line wt slot pool state owner_pid lease_line marker name best="" best_key=""
+# still refuses a foreign-clone slot. An optional <accept-fn> is called as
+# `<accept-fn> <slot>` for each candidate that passes all of the above, and a
+# candidate it rejects is passed over for the next.
+fm_treehouse_free_own_slot() {  # <project-dir> [<base-branch>] [<accept-fn>]
+  local project=$1 base=${2:-} accept=${3:-} listed line wt slot pool state owner_pid lease_line marker name best="" best_key=""
   local target_branch="" target_ref="" target_ready=0 status candidate configured=""
   command -v jq >/dev/null 2>&1 || return 0
   configured=$(fm_treehouse_configured_pool "$project") || return 0
@@ -1872,6 +1874,9 @@ fm_treehouse_free_own_slot() {  # <project-dir> [<base-branch>]
     status=$(git -C "$wt" -c core.quotePath=false status --porcelain 2>/dev/null) || continue
     [ -z "$status" ] || continue
     git -C "$wt" merge-base --is-ancestor HEAD "$target_ref" 2>/dev/null || continue
+    # A caller may screen each candidate further (its own <accept-fn> <slot>);
+    # one that fails is passed over for the next, never the end of the search.
+    [ -z "$accept" ] || "$accept" "$slot" || continue
     case "$name" in
       *[!0-9]* | "") name=999999 ;;
     esac
