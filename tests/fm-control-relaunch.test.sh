@@ -95,6 +95,7 @@ case "${1:-}" in
           [ -z "${FM_FAKE_EXIT_TRANSPORT_FAIL_AFTER_STOP:-}" ] || exit 1
           ;;
         *'encode launch-brief'* | *'Firstmate operational input waiting: read'*)
+          [ ! -x "$D/slot-race-probe" ] || "$D/slot-race-probe"
           cat "$D/becomes" > "$D/command"
           [ -z "${FM_FAKE_LAUNCH_TRANSPORT_FAIL_AFTER_START:-}" ] || exit 1
           ;;
@@ -428,6 +429,55 @@ test_spawn_relaunch_respects_slot_claim() {
     fi
   done
   pass "fm-spawn --relaunch: rejects another task's claim and accepts own or absent claims"
+}
+
+test_spawn_relaunch_serializes_slot_ownership_through_launch() {
+  local dir out rc boundary
+  for boundary in before-lock launch; do
+    dir=$(new_case "slot-race-$boundary" rl-race)
+    add_ship_task "$dir" rl-race claude
+    printf 'zsh' > "$dir/fake/command"
+    cat > "$dir/claim-slot" <<SH
+#!/usr/bin/env bash
+. "$ROOT/bin/fm-wake-lib.sh"
+FM_HOME="$dir/home"
+lock=\$(fm_treehouse_project_lock_path "$dir/proj") || exit 1
+if fm_lock_try_acquire "\$lock"; then
+  printf 'task=successor\n' > "$dir/.fm-slot-owner"
+  printf 'claimed\n' > "$dir/race-result"
+  fm_lock_release "\$lock"
+else
+  printf 'blocked\n' > "$dir/race-result"
+fi
+SH
+    chmod +x "$dir/claim-slot"
+    if [ "$boundary" = before-lock ]; then
+      mkdir -p "$dir/home/config" "$dir/account"
+      printf '%s\n' "$dir/account" > "$dir/home/config/claude-account"
+      cat > "$dir/fakebin/claude" <<SH
+#!/usr/bin/env bash
+[ "\${1:-}" != auth ] || "$dir/claim-slot"
+exit 0
+SH
+      chmod +x "$dir/fakebin/claude"
+    else
+      cp "$dir/claim-slot" "$dir/fake/slot-race-probe"
+    fi
+    out=$(run_spawn "$dir" rl-race --relaunch); rc=$?
+    if [ "$boundary" = before-lock ]; then
+      [ "$(cat "$dir/race-result")" = claimed ] || fail "race did not reassign the pre-claim slot"
+      expect_code 1 "$rc" "must recheck a claim changed during preparation"$'\n'"$out"
+      assert_contains "$out" 'claimed by task successor' "late claimant must be named"
+      [ ! -s "$dir/fake/literal" ] || fail "reassigned slot received launch input"
+    else
+      expect_code 0 "$rc" "unclaimed slot must still relaunch"$'\n'"$out"
+      [ "$(cat "$dir/race-result")" = blocked ] || fail "allocation acquired project lock during launch delivery"
+      [ ! -e "$dir/.fm-slot-owner" ] || fail "allocation reassigned the slot during relaunch"
+    fi
+    "$dir/claim-slot"
+    [ "$(cat "$dir/race-result")" = claimed ] || fail "relaunch leaked the project lock"
+  done
+  pass "fm-spawn --relaunch: rechecks under allocation lock and holds it through launch"
 }
 
 test_control_relaunch_refuses_a_reassigned_slot_before_touching_anything() {
@@ -3791,6 +3841,7 @@ if [ "${FM_CONTROL_RELAUNCH_TEST_GROUP:-}" = restore ]; then
   exit 0
 fi
 
+test_spawn_relaunch_serializes_slot_ownership_through_launch
 test_spawn_relaunch_respects_slot_claim
 test_control_relaunch_refuses_a_reassigned_slot_before_touching_anything
 test_secondmate_relaunch_ignores_a_stale_slot_claim

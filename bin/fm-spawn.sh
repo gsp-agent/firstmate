@@ -128,7 +128,8 @@
 #   previous harness's per-task wiring before arming the new incarnation.
 #   A ship or scout relaunch also refuses a recorded worktree claimed by another
 #   task; its own claim or a pre-claim slot without a claim keeps the existing
-#   relaunch behavior. A secondmate's leased home is proven by its home marker.
+#   relaunch behavior. The claim is rechecked under the project allocation lock,
+#   held through launch delivery. A secondmate's leased home is proven by its home marker.
 #   Two verdicts are agent-free: a `dead` endpoint is
 #   ADOPTED as-is, while an endpoint PROVEN gone is RE-CREATED in the recorded
 #   worktree and the republished record rebinds the task to it. That proof is
@@ -4097,8 +4098,8 @@ if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ]; then
   SPAWN_PROJECT_CAPACITY=$FM_PROJECT_CAPACITY
   SPAWN_PROJECT_CAPACITY_ANY=$FM_PROJECT_CAPACITY_ANY
 fi
-if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ] &&
-  { [ "$BACKEND" != orca ] || [ -n "$SPAWN_PROJECT_CAPACITY_ANY" ]; }; then
+if [ "$KIND" != secondmate ] &&
+  { [ "$RELAUNCH" -eq 1 ] || [ "$BACKEND" != orca ] || [ -n "$SPAWN_PROJECT_CAPACITY_ANY" ]; }; then
   SPAWN_TREEHOUSE_PROJECT_LOCK=$(fm_treehouse_project_lock_path "$PROJ_ABS") || {
     echo "error: could not resolve the shared Treehouse project lock for $PROJ_ABS" >&2
     exit 1
@@ -4112,6 +4113,15 @@ if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ] &&
     exit 1
   fi
   SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=1
+  if [ "$RELAUNCH" -eq 1 ]; then
+    # The early refusal is advisory until allocation is excluded. Keep this
+    # lock through launch delivery so a pre-claim slot cannot change hands.
+    fm_treehouse_slot_owner_state "$RELAUNCH_WT" "$ID"
+    if [ "$FM_TREEHOUSE_SLOT_OWNER" = other ]; then
+      echo "error: task $ID's recorded worktree '$RELAUNCH_WT' is claimed by task $FM_TREEHOUSE_SLOT_OWNER_ID; refusing to relaunch into a reassigned slot" >&2
+      exit 1
+    fi
+  fi
 fi
 if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
   if ! fm_project_capacity_occupants "$SPAWN_TREEHOUSE_PROJECT_LOCK" "$PROJ_ABS" "$STATE" "$ID"; then
@@ -6722,7 +6732,8 @@ spawn_report_preserved_state() {
 # still being delivered, cannot observe or complete a fresh provisional record
 # between its state check and `tasks-axi start`, and a delivery failure cannot
 # follow a committed In-flight transition.
-if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" = 1 ]; then
+# A relaunch retains the allocation lock until exit, after launch delivery.
+if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" = 1 ] && [ "$RELAUNCH" -eq 0 ]; then
   SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=0
   fm_lock_release "$SPAWN_TREEHOUSE_PROJECT_LOCK"
 fi
