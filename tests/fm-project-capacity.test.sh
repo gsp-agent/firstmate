@@ -283,6 +283,31 @@ test_full_pool_defers_beside_free_places() {
   pass "a full worktree pool beside free places defers with 75, names the pool and creates nothing"
 }
 
+# The 10-26 22:56 GSP start, replayed: a tree whose task merged but was not
+# torn down still carries that task's claim with nothing running in it, so
+# Treehouse reads it available. It is not free, and `treehouse get` would
+# reset it, so with no free tree of this clone to enter by name the spawn
+# defers with 75, names the claim and never asks the allocator, even though
+# the pool could still create a tree.
+test_claimed_idle_tree_is_never_handed_to_the_allocator() {
+  local case_dir home out rc=0 before worktrees status
+  case_dir=$(make_case pool-claimed task-a)
+  home="$case_dir/home"
+  declare_capacity "$home" "project 5"
+  printf '%s\n' 'max_trees = 4' 'root = ""' > "$case_dir/project/treehouse.toml"
+  mkdir -p "$case_dir/claimed/3/project"
+  printf 'task=merged-a1\nhome=%s\n' "$home" > "$case_dir/claimed/3/.fm-slot-owner"
+  status='[{"name":"1","status":"in-use","lease_holder":""},{"name":"2","status":"in-use","lease_holder":""},{"name":"3","path":"'"$case_dir/claimed/3/project"'","status":"available","lease_holder":""}]'
+  before=$(call_count "$case_dir")
+  worktrees=$(worktree_list "$case_dir")
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$status spawn_ship "$case_dir" task-a "$case_dir/project") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a spawn beside a claimed idle tree did not defer: $out"
+  assert_contains "$out" "holds a tree another task still claims with nothing running in it" "the deferral did not name the claimed tree"
+  assert_contains "$out" "3 claimed by merged-a1, nothing running" "the deferral did not name the claiming task"
+  assert_nothing_created "$case_dir" "$home" task-a "$before" "$worktrees"
+  pass "a spawn beside a claimed idle tree defers with 75 and never asks the allocator, which would reset it"
+}
+
 # A pool whose trees read available can still refuse (Treehouse's reuse test is
 # stricter than its status). The pane's `treehouse get` reporting every tree in
 # use or dirty defers with 75 only once its endpoint is confirmed closed (the
@@ -1545,6 +1570,7 @@ SH
 test_unreadable_crew_state_holds_a_place
 test_undeclared_capacity_keeps_dispatch_uncapped
 test_full_pool_defers_beside_free_places
+test_claimed_idle_tree_is_never_handed_to_the_allocator
 test_treehouse_full_pool_refusal_in_the_pane_defers
 test_available_capacity_admits_the_worker
 test_exhausted_capacity_defers_without_leaving_anything_behind

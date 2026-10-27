@@ -337,21 +337,30 @@ fm_project_capacity_occupants() {  # <project-lock> <project-dir> <first-state> 
 # decides. Treehouse's state is read with
 # `treehouse status --json` from the project directory, bounded by
 # FM_PROJECT_CAPACITY_POOL_TIMEOUT seconds. A tree is free when Treehouse
-# reports it `available`, and each tree the pool can still create below its
-# size is free too. `available` is Treehouse's status, not its reuse test, so
-# the count can be high, never low: a spawn whose `treehouse get` then refuses
-# the pool still defers (bin/fm-spawn.sh).
+# reports it `available` and no Firstmate claim (.fm-slot-owner beside the
+# tree) names a task for it, and each tree the pool can still create below its
+# size is free too. A claimed tree with nothing running in it reads
+# `available` to Treehouse, but it is a task's copy (one whose worker ended and
+# that is not yet torn down): no spawn takes it, and `treehouse get` would reset
+# it if asked for a tree, so it is held, and named in
+# FM_PROJECT_CAPACITY_POOL_EXPOSED for bin/fm-spawn.sh to keep the allocator
+# away from. `available` is otherwise Treehouse's status, not its reuse test,
+# so the count can be high, never low: a spawn whose `treehouse get` then
+# refuses the pool still defers (bin/fm-spawn.sh).
 # Sets FM_PROJECT_CAPACITY_POOL_KNOWN to 1 with FM_PROJECT_CAPACITY_POOL_MAX,
-# FM_PROJECT_CAPACITY_POOL_FREE and FM_PROJECT_CAPACITY_POOL_HELD (each held
-# tree as <name> <status>[ by <lease holder>], comma-separated), or to 0 when
-# the project declares no size or the pool cannot be read; never fails.
+# FM_PROJECT_CAPACITY_POOL_FREE, FM_PROJECT_CAPACITY_POOL_HELD (each held tree
+# as <name> <status>[ by <lease holder>] or <name> claimed by <task>, nothing
+# running, comma-separated) and FM_PROJECT_CAPACITY_POOL_EXPOSED (the paths of
+# the claimed `available` trees, one per line), or KNOWN to 0 when the project
+# declares no size or the pool cannot be read; never fails.
 FM_PROJECT_CAPACITY_POOL_TIMEOUT=${FM_PROJECT_CAPACITY_POOL_TIMEOUT:-20}
 fm_project_capacity_pool() {  # <project-dir>
-  local project=$1 toml max="" json counts total avail
+  local project=$1 toml max="" json counts total avail path name owner claimed=""
   FM_PROJECT_CAPACITY_POOL_KNOWN=0
   FM_PROJECT_CAPACITY_POOL_MAX=
   FM_PROJECT_CAPACITY_POOL_FREE=
   FM_PROJECT_CAPACITY_POOL_HELD=
+  FM_PROJECT_CAPACITY_POOL_EXPOSED=
   toml="$project/treehouse.toml"
   [ -f "$toml" ] && [ -r "$toml" ] || return 0
   _fm_project_capacity_require_timeout || return 0
@@ -383,6 +392,20 @@ if type(value) is int and value > 0:
   FM_PROJECT_CAPACITY_POOL_HELD=$(printf '%s\n' "$json" | jq -r '[.[] | select(.status != "available") |
     "\(.name) \(.status)" + (if (.lease_holder // "") != "" then " by \(.lease_holder)" else "" end)] | join(", ")' 2>/dev/null) ||
     FM_PROJECT_CAPACITY_POOL_HELD=
+  # An `available` tree a task still claims is held, not free.
+  while IFS=$'\t' read -r path name; do
+    [ -n "$path" ] || continue
+    { [ -e "$(dirname "$path")/.fm-slot-owner" ] || [ -L "$(dirname "$path")/.fm-slot-owner" ]; } || continue
+    owner=$(sed -n 's/^task=//p' "$(dirname "$path")/.fm-slot-owner" 2>/dev/null | head -n 1)
+    avail=$((avail - 1))
+    FM_PROJECT_CAPACITY_POOL_EXPOSED="$FM_PROJECT_CAPACITY_POOL_EXPOSED$path
+"
+    claimed="$claimed${claimed:+, }$name claimed by ${owner:-a task}, nothing running"
+  done <<EOF
+$(printf '%s\n' "$json" | jq -r '.[] | select(.status == "available") | [.path, .name] | @tsv' 2>/dev/null)
+EOF
+  [ -z "$claimed" ] ||
+    FM_PROJECT_CAPACITY_POOL_HELD="$FM_PROJECT_CAPACITY_POOL_HELD${FM_PROJECT_CAPACITY_POOL_HELD:+, }$claimed"
   FM_PROJECT_CAPACITY_POOL_MAX=$max
   FM_PROJECT_CAPACITY_POOL_FREE=$avail
   [ "$total" -ge "$max" ] || FM_PROJECT_CAPACITY_POOL_FREE=$((avail + max - total))

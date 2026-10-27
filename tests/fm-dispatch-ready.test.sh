@@ -184,6 +184,32 @@ test_full_project_with_headroom_leaves_the_extra_start_to_spawn() {
 # The pool-tree limit beside places (the 07:19:45 10-26 shape): places free,
 # every tree in the project's worktree pool held, so nothing starts.
 GSP_FULL_POOL='[{"name":"1","status":"in-use","lease_holder":""},{"name":"2","status":"in-use","lease_holder":""},{"name":"3","status":"in-use","lease_holder":""},{"name":"4","status":"leased","lease_holder":"fm-spawn-other"}]'
+# A tree a task still claims with nothing running in it (its worker ended,
+# its teardown has not run: the 22:56 10-26 shape) reads `available` to
+# Treehouse, but no spawn takes it and `treehouse get` would reset it, so it
+# is held, named with its task, and nothing is told to start into it.
+test_claimed_idle_tree_is_not_free() {
+  local case_dir out pool status
+  case_dir=$(make_case claimed-idle)
+  declare_capacity "$case_dir" "proj 5"
+  write_worker "$case_dir" busy-1 'working [at=1790000000]: building'
+  axi "$case_dir" add ready-a "first ready" --kind ship --repo proj
+  printf '%s\n' 'max_trees = 4' > "$case_dir/proj/treehouse.toml"
+  pool="$case_dir/pool"
+  mkdir -p "$pool/4/proj"
+  printf 'task=done-a1\nhome=%s\n' "$case_dir/home" > "$pool/4/.fm-slot-owner"
+  status='[{"name":"1","status":"in-use","lease_holder":""},{"name":"2","status":"in-use","lease_holder":""},{"name":"3","status":"in-use","lease_holder":""},{"name":"4","path":"'"$pool/4/proj"'","status":"available","lease_holder":""}]'
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$status run_helper "$case_dir") || fail "claimed-idle: helper failed"
+  assert_contains "$out" "and 0 of 4 worktree pool trees free (held: 1 in-use, 2 in-use, 3 in-use, 4 claimed by done-a1, nothing running)" \
+    "claimed-idle: a claimed tree with nothing running was counted free"
+  assert_not_contains "$out" "start it now" "claimed-idle: told to start into a tree a task still claims"
+  rm -f "$pool/4/.fm-slot-owner"
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$status run_helper "$case_dir") || fail "claimed-idle: helper failed once the claim was gone"
+  assert_contains "$out" "and 1 of 4 worktree pool trees free" "claimed-idle: the tree was not free once its claim was gone"
+  assert_contains "$out" "start it now with bin/fm-spawn.sh" "claimed-idle: a free tree was not offered"
+  pass "a tree a task still claims with nothing running in it is held, not free"
+}
+
 test_full_pool_holds_ready_rows_beside_free_places() {
   local case_dir out
   case_dir=$(make_case full-pool)
@@ -469,6 +495,7 @@ test_instructions_carry_the_dispatch_and_merge_cleanup_rules() {
 }
 
 test_free_places_are_counted_by_spawns_rule_not_backlog_rows
+test_claimed_idle_tree_is_not_free
 test_full_project_names_its_ready_rows_and_waits
 test_full_project_with_headroom_leaves_the_extra_start_to_spawn
 test_full_pool_holds_ready_rows_beside_free_places
