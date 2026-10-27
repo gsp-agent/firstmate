@@ -462,6 +462,76 @@ test_control_relaunch_refuses_a_reassigned_slot_before_touching_anything() {
   pass "fm-control relaunch: another task's slot claim refuses before the agent, brief, or record is touched"
 }
 
+test_secondmate_relaunch_ignores_a_stale_slot_claim() {
+  local dir home out rc entry marker
+  for entry in control spawn; do
+    for marker in own wrong; do
+      dir=$(new_case "sm-claim-$entry-$marker" smc)
+      home="$dir/home"
+      mkdir -p "$home/config"
+      printf 'claude\n' > "$home/config/secondmate-harness"
+      mkdir -p "$home/data/smc"
+      printf '# secondmate brief\n' > "$home/data/smc/brief.md"
+      fm_git_worktree "$dir/proj" "$dir/smhome" sm-branch
+      mkdir -p "$dir/smhome/state" "$dir/smhome/data" "$dir/smhome/bin"
+      printf '# agents\n' > "$dir/smhome/AGENTS.md"
+      if [ "$marker" = own ]; then
+        printf 'smc\n' > "$dir/smhome/.fm-secondmate-home"
+      else
+        printf 'someone-else\n' > "$dir/smhome/.fm-secondmate-home"
+      fi
+      printf 'task=another-task\nhome=%s\n' "$home" > "$dir/.fm-slot-owner"
+      {
+        echo "window=fmses:fm-smc"
+        echo "endpoint_task_id=smc"
+        echo "worktree=$dir/smhome"
+        echo "project=$dir/smhome"
+        echo "harness=claude"
+        echo "kind=secondmate"
+        echo "mode=secondmate"
+        echo "yolo=off"
+        echo "model=default"
+        echo "effort=default"
+        echo "home=$dir/smhome"
+        echo "projects="
+      } > "$home/state/smc.meta"
+      printf '%s\n' "fm-smc" > "$dir/fake/windows"
+      printf '%s' "$dir/smhome" > "$dir/fake/cwd"
+      cp -p "$home/state/smc.meta" "$dir/meta-before"
+      if [ "$entry" = control ]; then
+        out=$(run_control "$dir" smc relaunch); rc=$?
+      else
+        printf 'zsh' > "$dir/fake/command"
+        out=$(run_spawn "$dir" smc --relaunch); rc=$?
+      fi
+      assert_not_contains "$out" "claimed by task another-task" \
+        "a secondmate's leased home must not be refused for a stale claim ($entry)"
+      if [ "$marker" = own ]; then
+        expect_code 0 "$rc" "a marked secondmate home with a stale claim should relaunch ($entry)"$'\n'"$out"
+        if [ "$entry" = control ]; then
+          assert_contains "$out" "relaunched smc" "the fm-control secondmate relaunch should complete"
+        else
+          assert_contains "$out" "spawned smc" "the fm-spawn secondmate relaunch should launch"
+        fi
+      else
+        expect_code 1 "$rc" "a secondmate home marked for another secondmate should refuse ($entry)"$'\n'"$out"
+        if [ "$entry" = control ]; then
+          assert_contains "$out" "not marked as its own seeded secondmate home" \
+            "the fm-control refusal should name the identity mismatch"
+          [ "$(cat "$dir/fake/command")" = claude ] || fail "a refused secondmate relaunch must not stop the agent"
+        else
+          assert_contains "$out" "marked for secondmate someone-else" \
+            "the fm-spawn refusal should name the identity mismatch"
+        fi
+        cmp -s "$dir/meta-before" "$home/state/smc.meta" \
+          || fail "a refused secondmate relaunch changed its record ($entry)"
+        [ ! -s "$dir/fake/literal" ] || fail "a refused secondmate relaunch typed into the endpoint ($entry)"
+      fi
+    done
+  done
+  pass "fm-control and fm-spawn relaunch: a secondmate home ignores a stale slot claim and still checks its marker"
+}
+
 test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint() {
   local dir out rc gen_before gen_after
   dir=$(new_case same rl1)
@@ -3723,6 +3793,7 @@ fi
 
 test_spawn_relaunch_respects_slot_claim
 test_control_relaunch_refuses_a_reassigned_slot_before_touching_anything
+test_secondmate_relaunch_ignores_a_stale_slot_claim
 test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint
 test_relaunch_refuses_before_exit_when_the_composer_holds_pending_text
 test_relaunch_refuses_before_exit_when_the_composer_state_is_unproven

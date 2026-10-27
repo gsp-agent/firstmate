@@ -126,8 +126,9 @@
 #   unless the recorded endpoint is positively agent-free on a backend with a
 #   recovery-grade agent-state classifier (tmux or herdr), and clears the
 #   previous harness's per-task wiring before arming the new incarnation.
-#   It also refuses a recorded worktree claimed by another task; its own claim
-#   or a pre-claim slot without a claim keeps the existing relaunch behavior.
+#   A ship or scout relaunch also refuses a recorded worktree claimed by another
+#   task; its own claim or a pre-claim slot without a claim keeps the existing
+#   relaunch behavior. A secondmate's leased home is proven by its home marker.
 #   Two verdicts are agent-free: a `dead` endpoint is
 #   ADOPTED as-is, while an endpoint PROVEN gone is RE-CREATED in the recorded
 #   worktree and the republished record rebinds the task to it. That proof is
@@ -2710,15 +2711,15 @@ if [ "$RELAUNCH" -eq 1 ]; then
     echo "error: task $ID's recorded worktree '${RELAUNCH_WT:-none}' is missing; refusing to relaunch without the local copy its work lives in" >&2
     exit 1
   }
-  fm_treehouse_slot_owner_state "$RELAUNCH_WT" "$ID"
-  if [ "$FM_TREEHOUSE_SLOT_OWNER" = other ]; then
-    echo "error: task $ID's recorded worktree '$RELAUNCH_WT' is claimed by task $FM_TREEHOUSE_SLOT_OWNER_ID; refusing to relaunch into a reassigned slot" >&2
-    exit 1
-  fi
   if [ "$KIND" = secondmate ]; then
     FIRSTMATE_HOME=$(fm_meta_get "$RELAUNCH_META" home)
     [ -n "$FIRSTMATE_HOME" ] || FIRSTMATE_HOME=$RELAUNCH_WT
   else
+    fm_treehouse_slot_owner_state "$RELAUNCH_WT" "$ID"
+    if [ "$FM_TREEHOUSE_SLOT_OWNER" = other ]; then
+      echo "error: task $ID's recorded worktree '$RELAUNCH_WT' is claimed by task $FM_TREEHOUSE_SLOT_OWNER_ID; refusing to relaunch into a reassigned slot" >&2
+      exit 1
+    fi
     PROJ=$(fm_meta_get "$RELAUNCH_META" project)
     [ -n "$PROJ" ] || {
       echo "error: task $ID has no recorded project; refusing to relaunch" >&2
