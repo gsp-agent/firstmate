@@ -327,6 +327,36 @@ fm_project_capacity_occupants() {  # <project-lock> <project-dir> <first-state> 
   return 0
 }
 
+# fm_treehouse_exposed_claims <project-dir> [<status-json>]: print one
+# <path>\t<name>\t<task> line per tree of the project's Treehouse pool that a
+# Firstmate claim (.fm-slot-owner beside the tree) names a task for while
+# Treehouse reads it `available` (nothing running in it, no lease): a task's
+# copy whose worker ended and that is not yet torn down. `treehouse get` may
+# hand such a tree out and reset its checkout before any claim screen sees it.
+# Reads `treehouse status --json` (bounded by FM_PROJECT_CAPACITY_POOL_TIMEOUT)
+# unless <status-json> is given; returns 1 when the pool cannot be read.
+fm_treehouse_exposed_claims() {
+  local project=$1 json=${2-} path name marker owner
+  command -v jq >/dev/null 2>&1 || return 1
+  if [ "$#" -lt 2 ]; then
+    command -v treehouse >/dev/null 2>&1 || return 1
+    _fm_project_capacity_require_timeout || return 1
+    json=$(CDPATH='' cd -- "$project" 2>/dev/null &&
+      fm_run_timed "$FM_PROJECT_CAPACITY_POOL_TIMEOUT" treehouse status --json </dev/null 2>/dev/null) || return 1
+  fi
+  printf '%s\n' "$json" | jq -e 'arrays' >/dev/null 2>&1 || return 1
+  while IFS=$'\t' read -r path name; do
+    [ -n "$path" ] || continue
+    marker="$(dirname "$path")/.fm-slot-owner"
+    { [ -e "$marker" ] || [ -L "$marker" ]; } || continue
+    owner=$(sed -n 's/^task=//p' "$marker" 2>/dev/null | head -n 1)
+    printf '%s\t%s\t%s\n' "$path" "$name" "$owner"
+  done <<EOF
+$(printf '%s\n' "$json" | jq -r '.[] | select(.status == "available") | [(.path // ""), .name] | @tsv' 2>/dev/null)
+EOF
+  return 0
+}
+
 # Pool trees: the second limit on a fresh worker. A Treehouse-backed spawn
 # also needs a free tree in the project's worktree pool, and a pool whose trees
 # are all held cannot start a worker however many places are free. The pool's
@@ -350,9 +380,9 @@ fm_project_capacity_occupants() {  # <project-lock> <project-dir> <first-state> 
 # Sets FM_PROJECT_CAPACITY_POOL_KNOWN to 1 with FM_PROJECT_CAPACITY_POOL_MAX,
 # FM_PROJECT_CAPACITY_POOL_FREE, FM_PROJECT_CAPACITY_POOL_HELD (each held tree
 # as <name> <status>[ by <lease holder>] or <name> claimed by <task>, nothing
-# running, comma-separated) and FM_PROJECT_CAPACITY_POOL_EXPOSED (the paths of
-# the claimed `available` trees, one per line), or KNOWN to 0 when the project
-# declares no size or the pool cannot be read; never fails.
+# running, comma-separated) and FM_PROJECT_CAPACITY_POOL_EXPOSED (one
+# fm_treehouse_exposed_claims row per claimed `available` tree), or KNOWN to 0
+# when the project declares no size or the pool cannot be read; never fails.
 FM_PROJECT_CAPACITY_POOL_TIMEOUT=${FM_PROJECT_CAPACITY_POOL_TIMEOUT:-20}
 fm_project_capacity_pool() {  # <project-dir>
   local project=$1 toml max="" json counts total avail path name owner claimed=""
@@ -393,16 +423,14 @@ if type(value) is int and value > 0:
     "\(.name) \(.status)" + (if (.lease_holder // "") != "" then " by \(.lease_holder)" else "" end)] | join(", ")' 2>/dev/null) ||
     FM_PROJECT_CAPACITY_POOL_HELD=
   # An `available` tree a task still claims is held, not free.
-  while IFS=$'\t' read -r path name; do
+  while IFS=$'\t' read -r path name owner; do
     [ -n "$path" ] || continue
-    { [ -e "$(dirname "$path")/.fm-slot-owner" ] || [ -L "$(dirname "$path")/.fm-slot-owner" ]; } || continue
-    owner=$(sed -n 's/^task=//p' "$(dirname "$path")/.fm-slot-owner" 2>/dev/null | head -n 1)
     avail=$((avail - 1))
-    FM_PROJECT_CAPACITY_POOL_EXPOSED="$FM_PROJECT_CAPACITY_POOL_EXPOSED$path
+    FM_PROJECT_CAPACITY_POOL_EXPOSED="$FM_PROJECT_CAPACITY_POOL_EXPOSED$path	$name	$owner
 "
     claimed="$claimed${claimed:+, }$name claimed by ${owner:-a task}, nothing running"
   done <<EOF
-$(printf '%s\n' "$json" | jq -r '.[] | select(.status == "available") | [.path, .name] | @tsv' 2>/dev/null)
+$(fm_treehouse_exposed_claims "$project" "$json")
 EOF
   [ -z "$claimed" ] ||
     FM_PROJECT_CAPACITY_POOL_HELD="$FM_PROJECT_CAPACITY_POOL_HELD${FM_PROJECT_CAPACITY_POOL_HELD:+, }$claimed"

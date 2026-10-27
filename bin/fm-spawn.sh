@@ -4175,8 +4175,11 @@ fi
 # A tree another task still claims with nothing running in it (its worker
 # ended, its teardown has not run) reads free to Treehouse, and `treehouse get`
 # resets whichever tree it hands out before any claim screen can see it. While
-# such a tree is in the pool this spawn never asks the allocator for a tree:
-# it takes a free tree of its own clone by name or defers here.
+# such a tree is in the pool this spawn does not ask the allocator for a tree:
+# it takes a free tree of its own clone by name or defers, here and again,
+# from a fresh read, right before it would ask (the steering below). The
+# moment between that read and the allocator's own choice is Treehouse's; it
+# cannot be closed from here without a way to lease a tree by name.
 SPAWN_POOL_EXPOSED=
 if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   fm_project_capacity_pool "$PROJ_ABS"
@@ -4184,9 +4187,11 @@ if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ];
     echo "deferred: project $(basename "$PROJ_ABS")'s worktree pool is full: max_trees $FM_PROJECT_CAPACITY_POOL_MAX in $PROJ_ABS/treehouse.toml and every tree is held (${FM_PROJECT_CAPACITY_POOL_HELD:-none listed}); task $ID was not launched and its backlog item stays queued - dispatch it again once a tree is returned" >&2
     exit "$SPAWN_DEFER_EXIT"
   fi
+  # The pool count already read the claimed idle trees; with no declared
+  # size it read nothing, and the fresh read before steering decides alone.
   SPAWN_POOL_EXPOSED=${FM_PROJECT_CAPACITY_POOL_EXPOSED:-}
   if [ -n "$SPAWN_POOL_EXPOSED" ] && [ -z "$(fm_treehouse_free_own_slot "$PROJ_ABS" "$BASE_BRANCH" || true)" ]; then
-    echo "deferred: project $(basename "$PROJ_ABS")'s worktree pool holds a tree another task still claims with nothing running in it (${FM_PROJECT_CAPACITY_POOL_HELD:-none listed}), which treehouse get would reset, and no free tree of this clone can be entered by name; task $ID was not launched and its backlog item stays queued - dispatch it again once that task is torn down" >&2
+    echo "deferred: project $(basename "$PROJ_ABS")'s worktree pool holds a tree another task still claims with nothing running in it ($(printf '%s\n' "$SPAWN_POOL_EXPOSED" | awk -F '\t' 'NF { printf "%s%s claimed by %s", sep, $2, ($3 == "" ? "a task" : $3); sep = ", " }')), which treehouse get would reset, and no free tree of this clone can be entered by name; task $ID was not launched and its backlog item stays queued - dispatch it again once that task is torn down" >&2
     exit "$SPAWN_DEFER_EXIT"
   fi
 fi
@@ -5652,9 +5657,14 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   # plain `treehouse get` run, with the screening below as its guard.
   SPAWN_WT_SOURCE='treehouse get'
   SPAWN_ENTER_SLOT=$(fm_treehouse_free_own_slot "$PROJ_ABS" "$BASE_BRANCH" || true)
+  if [ -z "$SPAWN_ENTER_SLOT" ]; then
+    # Read the pool again right before asking the allocator: a claimed tree's
+    # worker can have ended since admission (see admission).
+    SPAWN_POOL_EXPOSED=$(fm_treehouse_exposed_claims "$PROJ_ABS" || true)
+  fi
   if [ -z "$SPAWN_ENTER_SLOT" ] && [ -n "$SPAWN_POOL_EXPOSED" ]; then
-    # The free own-clone tree seen at admission is gone, and the allocator
-    # would reset a claimed tree: defer rather than ask it (see admission).
+    # No free own-clone tree to enter by name, and the allocator would reset
+    # a claimed tree: defer rather than ask it.
     echo "deferred: project $(basename "$PROJ_ABS")'s worktree pool holds a tree another task still claims with nothing running in it, which treehouse get would reset, and no free tree of this clone can be entered by name; task $ID was not launched and its backlog item stays queued - dispatch it again once that task is torn down" >&2
     exit "$SPAWN_DEFER_EXIT"
   fi

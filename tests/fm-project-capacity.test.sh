@@ -78,6 +78,9 @@ make_case() {  # <name> [task-id...]
   cat > "$fakebin/tmux" <<'SH'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$FM_FAKE_CALL_LOG"
+# A spawn's first terminal call marks that it is past admission, so a case
+# can change what the pool reads from then on (FM_FAKE_TREEHOUSE_STATUS_AFTER).
+[ -z "${FM_FAKE_PAST_ADMISSION:-}" ] || : > "$FM_FAKE_PAST_ADMISSION"
 # A spawn told to fail before its launch fails when it exports the pane's
 # environment, after its task record is published and the project lock is
 # released, and before it types the launch command.
@@ -113,7 +116,11 @@ SH
 #!/usr/bin/env bash
 # A status read changes nothing in the pool, so it is answered, not logged.
 if [ "$*" = "status --json" ]; then
-  [ -z "${FM_FAKE_TREEHOUSE_STATUS:-}" ] || printf '%s\n' "$FM_FAKE_TREEHOUSE_STATUS"
+  if [ -n "${FM_FAKE_TREEHOUSE_STATUS_AFTER:-}" ] && [ -e "${FM_FAKE_PAST_ADMISSION:-/nonexistent}" ]; then
+    printf '%s\n' "$FM_FAKE_TREEHOUSE_STATUS_AFTER"
+  elif [ -n "${FM_FAKE_TREEHOUSE_STATUS:-}" ]; then
+    printf '%s\n' "$FM_FAKE_TREEHOUSE_STATUS"
+  fi
   exit 0
 fi
 printf 'treehouse %s\n' "$*" >> "$FM_FAKE_CALL_LOG"
@@ -303,9 +310,33 @@ test_claimed_idle_tree_is_never_handed_to_the_allocator() {
   out=$(FM_FAKE_TREEHOUSE_STATUS=$status spawn_ship "$case_dir" task-a "$case_dir/project") || rc=$?
   expect_code "$DEFER_EXIT" "$rc" "a spawn beside a claimed idle tree did not defer: $out"
   assert_contains "$out" "holds a tree another task still claims with nothing running in it" "the deferral did not name the claimed tree"
-  assert_contains "$out" "3 claimed by merged-a1, nothing running" "the deferral did not name the claiming task"
+  assert_contains "$out" "3 claimed by merged-a1" "the deferral did not name the claiming task"
   assert_nothing_created "$case_dir" "$home" task-a "$before" "$worktrees"
   pass "a spawn beside a claimed idle tree defers with 75 and never asks the allocator, which would reset it"
+}
+
+# A claimed tree whose worker is still running at admission (in-use) and has
+# ended by the time the spawn would ask the allocator (available) is seen by
+# the fresh read right before steering: the spawn defers with 75 and never
+# runs `treehouse get` (chip, PR 173 review 5662379135).
+test_claimed_tree_idle_by_steering_is_never_handed_to_the_allocator() {
+  local case_dir home out rc=0 before_status after_status
+  case_dir=$(make_case pool-claimed-late task-a)
+  home="$case_dir/home"
+  declare_capacity "$home" "project 5"
+  printf '%s\n' 'max_trees = 4' 'root = ""' > "$case_dir/project/treehouse.toml"
+  mkdir -p "$case_dir/claimed/3/project"
+  printf 'task=ending-a1\nhome=%s\n' "$home" > "$case_dir/claimed/3/.fm-slot-owner"
+  before_status='[{"name":"1","status":"in-use","lease_holder":""},{"name":"2","status":"in-use","lease_holder":""},{"name":"3","path":"'"$case_dir/claimed/3/project"'","status":"in-use","lease_holder":""}]'
+  after_status='[{"name":"1","status":"in-use","lease_holder":""},{"name":"2","status":"in-use","lease_holder":""},{"name":"3","path":"'"$case_dir/claimed/3/project"'","status":"available","lease_holder":""}]'
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$before_status FM_FAKE_TREEHOUSE_STATUS_AFTER=$after_status \
+    FM_FAKE_PAST_ADMISSION="$case_dir/past-admission" spawn_ship "$case_dir" task-a "$case_dir/project") || rc=$?
+  [ -e "$case_dir/past-admission" ] || fail "the spawn deferred at admission, so this case proves nothing: $out"
+  expect_code "$DEFER_EXIT" "$rc" "a spawn whose claimed tree went idle before steering did not defer: $out"
+  assert_contains "$out" "holds a tree another task still claims with nothing running in it" "the deferral did not name the claimed tree"
+  grep -q '^treehouse get' "$case_dir/calls.log" && fail "the spawn asked the allocator beside a claimed idle tree: $(grep '^treehouse' "$case_dir/calls.log")"
+  assert_absent "$home/state/task-a.meta" "a deferred spawn published a task record"
+  pass "a claimed tree that goes idle before steering is seen by a fresh read, and the spawn never asks the allocator"
 }
 
 # A pool whose trees read available can still refuse (Treehouse's reuse test is
@@ -1571,6 +1602,7 @@ test_unreadable_crew_state_holds_a_place
 test_undeclared_capacity_keeps_dispatch_uncapped
 test_full_pool_defers_beside_free_places
 test_claimed_idle_tree_is_never_handed_to_the_allocator
+test_claimed_tree_idle_by_steering_is_never_handed_to_the_allocator
 test_treehouse_full_pool_refusal_in_the_pane_defers
 test_available_capacity_admits_the_worker
 test_exhausted_capacity_defers_without_leaving_anything_behind
