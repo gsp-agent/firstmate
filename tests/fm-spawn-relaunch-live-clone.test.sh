@@ -428,7 +428,7 @@ test_relaunch_never_takes_a_slot_another_task_claims() {
   before=$(cat "$dir/home/state/$id.meta")
   out=$(run_relaunch "$dir" "$id") || rc=$?
   [ "$rc" -ne 0 ] || fail "clm: a relaunch moved into another task's slot: $out"
-  assert_contains "$out" "which another task has claimed" "clm: the refusal did not name the claimed slot"
+  assert_contains "$out" "which another task has claimed" "clm: the refusal did not name the skipped claimed slot"
   assert_equals "$claim" "$(cat "$dir/livepool/1/.fm-slot-owner" 2>/dev/null)" "clm: other-a1's claim was changed or removed"
   grep -q "^return .*/clm/livepool/1/proj\$" "$dir/treehouse.log" && fail "clm: another task's slot was returned"
   assert_equals "$before" "$(cat "$dir/home/state/$id.meta")" "clm: the record changed"
@@ -436,8 +436,29 @@ test_relaunch_never_takes_a_slot_another_task_claims() {
   pass "a relaunch never takes, overwrites or returns a slot another task claims"
 }
 
+# A claimed slot handed out first is skipped, not the end of the search: the
+# move lands on the free live-clone slot after it, and the claimed slot keeps
+# its claim and is never returned.
+test_relaunch_skips_a_claimed_slot_and_takes_the_next_free_one() {
+  local dir id=clf-a1 out rc=0 claim
+  dir=$(make_case clf "$id")
+  OLDWT="$dir/oldpool/7/proj"
+  mkdir -p "$dir/livepool/1"
+  git -C "$dir/home/projects/proj" worktree add -q --detach "$dir/livepool/1/proj" >/dev/null 2>&1
+  (. "$ROOT/bin/fm-wake-lib.sh" && fm_treehouse_slot_owner_claim "$dir/livepool/1/proj" other-a1 "$dir/home") || fail "clf: fixture: could not claim the slot for other-a1"
+  claim=$(cat "$dir/livepool/1/.fm-slot-owner")
+  printf 'path %s\nlive\n' "$dir/livepool/1/proj" > "$dir/lease-plan"
+  out=$(run_relaunch "$dir" "$id") || rc=$?
+  expect_code 0 "$rc" "clf: the relaunch failed with a free slot after the claimed one: $out"
+  assert_grep "worktree=$dir/livepool/2/proj" "$dir/home/state/$id.meta" "clf: the move did not land on the free slot"
+  assert_equals "$claim" "$(cat "$dir/livepool/1/.fm-slot-owner" 2>/dev/null)" "clf: other-a1's claim was changed or removed"
+  grep -q "^return .*/clf/livepool/1/proj\$" "$dir/treehouse.log" && fail "clf: another task's slot was returned"
+  pass "a relaunch skips a claimed slot and takes the next free live-clone slot"
+}
+
 test_relaunch_moves_an_old_clone_ship_onto_the_live_clone
 test_relaunch_saves_and_refuses_a_dirty_old_copy
+test_relaunch_skips_a_claimed_slot_and_takes_the_next_free_one
 test_relaunch_skips_and_returns_a_foreign_slot
 test_relaunch_returns_a_foreign_lease_when_no_live_slot_comes
 test_relaunch_never_takes_a_slot_another_task_claims

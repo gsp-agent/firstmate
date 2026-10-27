@@ -4903,9 +4903,10 @@ spawn_relaunch_move_to_live_clone() {
   # Lease a free, unclaimed slot of the live clone the way a fresh spawn steers
   # the pool allocator: one pool can hold same-origin slots of several clones,
   # so each foreign slot leased on the way joins SPAWN_SKIP_LEASES (released
-  # under its emptiness proof, here on success or by the exit trap otherwise),
-  # and a slot carrying another task's claim ends the search unreturned, since
-  # its owner may still be using it. 64 leases bound the loop.
+  # under its emptiness proof, here on success or by the exit trap otherwise).
+  # A slot carrying another task's claim is skipped the same way, and that
+  # proof never returns it, since its owner may still be using it; holding its
+  # lease moves the allocator on to the next slot. 64 leases bound the loop.
   new=
   RELAUNCH_MOVE_LIVE=$live
   while [ "$count" -lt 64 ]; do
@@ -4921,8 +4922,8 @@ spawn_relaunch_move_to_live_clone() {
 "
     marker=$(fm_treehouse_slot_owner_marker "$leased" 2>/dev/null || true)
     if [ -n "$marker" ] && { [ -e "$marker" ] || [ -L "$marker" ]; }; then
-      why=" (the pool handed out $leased, which another task has claimed)"
-      break
+      why=" (skipped $leased, which another task has claimed)"
+      continue
     fi
     if fm_treehouse_pool_slot "$live" "$leased"; then
       # The target leaves the skip list: its lease is the move's (returned by
