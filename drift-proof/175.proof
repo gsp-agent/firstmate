@@ -1,0 +1,2 @@
+# Failing-first: tests/fm-spawn-worktree-settle.test.sh test_allocator_claimed_own_slot_becomes_target fails on base 2703782f with a steering lease held on another task's claimed slot and passes on the fixed head; no-mistakes run 01M5YH908QNPCWJ456KMPKYJ1G also reproduced the race with real Treehouse v2.3.0 and verified target adoption and teardown release.
+pr: 175
