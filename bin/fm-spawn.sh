@@ -1846,6 +1846,25 @@ spawn_pool_slot_idle() {  # <project-dir> <slot>
   [ -n "$row" ] && [ "${row%%|*}" != in-use ] && [ -z "${row#*|}" ]
 }
 
+# 0 when old copy <old> holds nothing the live slot <new> lacks: it reads
+# clean with no submodule ignored, and its HEAD commit is in <new>'s history.
+# Otherwise prints what is left behind and returns 1.
+spawn_relaunch_old_copy_carried() {  # <old> <new>
+  local old=$1 new=$2 dirty head
+  dirty=$(git -C "$old" status --porcelain --untracked-files=all --ignore-submodules=none 2>/dev/null) || dirty="unreadable status"
+  if [ -n "$dirty" ]; then
+    printf 'uncommitted work (%s)\n' "$(printf '%s' "$dirty" | head -3 | tr '\n' ';')"
+    return 1
+  fi
+  head=$(git -C "$old" rev-parse --verify -q HEAD 2>/dev/null) || { printf 'an unreadable HEAD\n'; return 1; }
+  if ! git -C "$new" cat-file -e "$head^{commit}" 2>/dev/null ||
+    ! git -C "$new" merge-base --is-ancestor "$head" HEAD 2>/dev/null; then
+    printf 'commit %s, which %s does not have\n' "${head:0:12}" "$new"
+    return 1
+  fi
+  return 0
+}
+
 # After a published move, let the old copy's claim go once the task's endpoint
 # is seen outside it (the endpoint check sends it to the new slot). Called once
 # the replacement record is published and from the exit trap; while the
@@ -1862,11 +1881,10 @@ spawn_relaunch_move_release_old() {
     echo "warning: task $ID now lives in $RELAUNCH_MOVE_NEW, but its endpoint ${seen:+is still in $seen}${seen:-could not be read}, so its old copy $RELAUNCH_MOVE_OLD keeps the task's claim; release it once the endpoint has left" >&2
     return 0
   fi
-  # Uncommitted work left in the old copy is not carried; its claim stays so
-  # no spawn is handed that copy.
-  dirty=$(git -C "$RELAUNCH_MOVE_OLD" status --porcelain --untracked-files=all --ignore-submodules=none 2>/dev/null) || dirty="unreadable status"
-  if [ -n "$dirty" ]; then
-    echo "warning: task $ID's old copy $RELAUNCH_MOVE_OLD holds uncommitted work the move did not carry ($(printf '%s' "$dirty" | head -3 | tr '\n' ';')); it keeps the task's claim - carry or discard that work, then release it" >&2
+  # Work in the old copy the live slot lacks (uncommitted, or a commit made
+  # after the move) is not carried; its claim stays so no spawn is handed it.
+  if ! dirty=$(spawn_relaunch_old_copy_carried "$RELAUNCH_MOVE_OLD" "$RELAUNCH_MOVE_NEW"); then
+    echo "warning: task $ID's old copy $RELAUNCH_MOVE_OLD holds work the move did not carry: $dirty; it keeps the task's claim - carry or discard that work, then release it" >&2
     return 0
   fi
   fm_treehouse_slot_owner_release "$RELAUNCH_MOVE_OLD" "$ID" 2>/dev/null || true
@@ -5859,10 +5877,10 @@ elif [ "$RELAUNCH" -eq 1 ]; then
       FM_TREEHOUSE_SLOT_OWNER=
       [ -z "$relaunch_seen_top" ] || fm_treehouse_slot_owner_state "$relaunch_seen_top" "$ID" 2>/dev/null || true
       if [ -n "$relaunch_seen_top" ] && [ "${FM_TREEHOUSE_SLOT_OWNER:-}" = mine ]; then
-        # Work made in that copy after the move would not follow the pane.
-        relaunch_old_dirty=$(git -C "$relaunch_seen_top" status --porcelain --untracked-files=all --ignore-submodules=none 2>/dev/null) || relaunch_old_dirty="unreadable status"
-        if [ -n "$relaunch_old_dirty" ]; then
-          echo "error: task $ID now lives in $WT, but its endpoint stands in its old copy $relaunch_seen_top, which holds uncommitted work made after the move ($(printf '%s' "$relaunch_old_dirty" | head -3 | tr '\n' ';')); nothing was relaunched and that copy keeps the task's claim - carry the work to $WT (or discard it), then relaunch again" >&2
+        # Work made in that copy after the move (uncommitted, or committed)
+        # would not follow the pane.
+        if ! relaunch_old_dirty=$(spawn_relaunch_old_copy_carried "$relaunch_seen_top" "$WT"); then
+          echo "error: task $ID now lives in $WT, but its endpoint stands in its old copy $relaunch_seen_top, which holds work made after the move: $relaunch_old_dirty; nothing was relaunched and that copy keeps the task's claim - carry the work to $WT (or discard it), then relaunch again" >&2
           exit 1
         fi
         RELAUNCH_MOVED=1

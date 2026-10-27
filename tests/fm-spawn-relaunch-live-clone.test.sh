@@ -679,15 +679,41 @@ test_relaunch_never_finishes_a_move_over_new_work_in_the_old_copy() {
   rc=0
   out=$(run_relaunch "$dir" "$id") || rc=$?
   [ "$rc" -ne 0 ] || fail "again2: a retry finished the move over new work in the old copy: $out"
-  assert_contains "$out" "holds uncommitted work made after the move" "again2: the refusal did not name the new work"
+  assert_contains "$out" "holds work made after the move: uncommitted work" "again2: the refusal did not name the new work"
   [ -e "$dir/oldpool/7/.fm-slot-owner" ] || fail "again2: the old copy lost its claim"
   assert_grep 'later' "$OLDWT/not-carried.txt" "again2: the new work was touched"
   assert_equals "$OLDWT" "$(cat "$dir/fake/cwd")" "again2: the pane was moved away from the new work"
   pass "a relaunch never finishes a move over work made in the old copy since"
 }
 
+# A clean old copy can still hold work the live slot lacks: a commit made
+# after the half-done move. The retry refuses, and the copy keeps its claim,
+# its commit and the pane.
+test_relaunch_never_finishes_a_move_over_a_later_commit_in_the_old_copy() {
+  local dir id=again3-a1 out rc=0 later
+  dir=$(make_case again3 "$id")
+  OLDWT="$dir/oldpool/7/proj"
+  : > "$dir/fake/nofollow"
+  out=$(run_relaunch "$dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "again3: the first relaunch should have refused: $out"
+  rm -f "$dir/fake/nofollow"
+  printf 'later\n' > "$OLDWT/later.txt"
+  git -C "$OLDWT" add later.txt
+  git -C "$OLDWT" -c user.email=t@t -c user.name=t commit -q -m "later work"
+  later=$(git -C "$OLDWT" rev-parse HEAD)
+  rc=0
+  out=$(run_relaunch "$dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "again3: a retry finished the move over a later commit in the old copy: $out"
+  assert_contains "$out" "holds work made after the move: commit" "again3: the refusal did not name the later commit"
+  [ -e "$dir/oldpool/7/.fm-slot-owner" ] || fail "again3: the old copy lost its claim"
+  assert_equals "$later" "$(git -C "$OLDWT" rev-parse HEAD)" "again3: the later commit was moved"
+  assert_equals "$OLDWT" "$(cat "$dir/fake/cwd")" "again3: the pane was moved away from the later commit"
+  pass "a relaunch never finishes a move over a commit made in the old copy since"
+}
+
 test_relaunch_moves_an_old_clone_ship_onto_the_live_clone
 test_relaunch_saves_and_refuses_a_dirty_old_copy
+test_relaunch_never_finishes_a_move_over_a_later_commit_in_the_old_copy
 test_relaunch_passes_over_a_strictly_dirty_slot_for_a_clean_one
 test_relaunch_never_finishes_a_move_over_new_work_in_the_old_copy
 test_relaunch_never_takes_a_slot_with_an_ignored_submodule_edit
