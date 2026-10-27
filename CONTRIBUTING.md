@@ -101,7 +101,7 @@ Firstmate's wrapper still matters: crewmates follow the [ask-user authority poli
 The `firstmate-coding-guidelines` skill owns the rule that local no-mistakes Test stays intent-targeted rather than configuring `commands.test`.
 Verify the same way the gate does: reach for `bin/fm-test-run.sh` with the subjects you care about rather than chaining `bash tests/a.test.sh && bash tests/b.test.sh`, because a list of script paths gets the same bounded concurrency as `--changed`.
 The pipeline publishes that evidence itself, so never hand-commit `.no-mistakes/` paths onto a feature branch; CI rejects them as tracked personal fleet paths.
-Every PR to `upstream-lean` adds its own `pr: <N>` line to `drift-proof.txt`, naming its failing-first test or measurement, once the PR has a number, or else a `pending-pr: <N> <bead>` line, and leaves the squash subject's `(#N)` unedited.
+Every PR to `upstream-lean` adds its own file `drift-proof/<N>.proof` holding a `pr: <N>` line, after a `#` comment naming its failing-first test or measurement, once the PR has a number, or else a `pending-pr: <N> <bead>` line, and leaves the squash subject's `(#N)` unedited. `drift-proof.txt` closed at PR 167 and takes no new line, so two open PRs never edit the same file.
 
 Check and test the toolbelt before pushing:
 
