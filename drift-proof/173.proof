@@ -1,0 +1,2 @@
+# Failing-first claimed-idle-tree replays: tests/fm-dispatch-ready.test.sh (test_claimed_idle_tree_is_not_free: a tree a task still claims with nothing running reads 0 free and nothing is told to start) and tests/fm-project-capacity.test.sh (test_claimed_idle_tree_is_never_handed_to_the_allocator: the spawn defers 75 naming the claim and makes no treehouse call); each fails on 449f74a8 and passes here.
+pr: 173
