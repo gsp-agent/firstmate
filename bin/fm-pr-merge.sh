@@ -637,7 +637,8 @@ gitlab_hold_label_attribution() {
 # Who added the hold label to this Forgejo pull request and when, from every
 # page of its issue timeline: the latest label event that added that label
 # (body "1"; a removal has an empty body) names both. Pages are read until an
-# empty one, since the server may cap a page below the limit asked for.
+# empty one, since the server may cap a page below the limit asked for; a page
+# past the end comes back as null rather than an empty list.
 # Prints nothing when a page cannot be read or no such event is named.
 forgejo_hold_label_attribution() {
   local rows count events='' page=1
@@ -645,7 +646,7 @@ forgejo_hold_label_attribution() {
     rows=$(tea api --login "$FORGEJO_LOGIN" --repo "$PR_OWNER/$PR_REPO" \
       "/repos/{owner}/{repo}/issues/$PR_NUMBER/timeline?limit=50&page=$page" 2>/dev/null) || return 0
     count=$(printf '%s' "$rows" | jq -r \
-      'if type == "array" then length else error("timeline payload is not an array") end' 2>/dev/null) \
+      'if . == null then 0 elif type == "array" then length else error("timeline payload is not an array") end' 2>/dev/null) \
       || return 0
     [ "$count" != 0 ] || break
     events="$events$rows

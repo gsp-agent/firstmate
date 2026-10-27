@@ -593,7 +593,8 @@ case "$endpoint" in
     elif [ -e "$log_dir/tea-timeline-page$page.json" ]; then
       cat "$log_dir/tea-timeline-page$page.json"
     else
-      printf '[]\n'
+      # Forgejo answers a timeline page past the end with null, not [].
+      printf 'null\n'
     fi
     ;;
   */status|*/status\?*)
