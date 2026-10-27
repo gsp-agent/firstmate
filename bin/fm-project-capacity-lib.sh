@@ -334,17 +334,27 @@ fm_project_capacity_occupants() {  # <project-lock> <project-dir> <first-state> 
 # copy whose worker ended and that is not yet torn down. `treehouse get` may
 # hand such a tree out and reset its checkout before any claim screen sees it.
 # Reads `treehouse status --json` (bounded by FM_PROJECT_CAPACITY_POOL_TIMEOUT)
-# unless <status-json> is given; returns 1 when the pool cannot be read.
+# unless <status-json> is given. Returns 1 when the read failed although this
+# Treehouse has `status --json` (or jq is missing), and 2 when the pool cannot
+# be known at all: no treehouse, one older than `status --json`, or a read
+# that succeeded but printed no slot list (docs/configuration.md: there
+# `treehouse get` alone decides).
 fm_treehouse_exposed_claims() {
   local project=$1 json=${2-} path name marker owner
   command -v jq >/dev/null 2>&1 || return 1
   if [ "$#" -lt 2 ]; then
-    command -v treehouse >/dev/null 2>&1 || return 1
+    command -v treehouse >/dev/null 2>&1 || return 2
     _fm_project_capacity_require_timeout || return 1
-    json=$(CDPATH='' cd -- "$project" 2>/dev/null &&
-      fm_run_timed "$FM_PROJECT_CAPACITY_POOL_TIMEOUT" treehouse status --json </dev/null 2>/dev/null) || return 1
+    if ! json=$(CDPATH='' cd -- "$project" 2>/dev/null &&
+      fm_run_timed "$FM_PROJECT_CAPACITY_POOL_TIMEOUT" treehouse status --json </dev/null 2>/dev/null); then
+      # A Treehouse older than `status --json` rejects the flag itself.
+      (CDPATH='' cd -- "$project" 2>/dev/null &&
+        fm_run_timed "$FM_PROJECT_CAPACITY_POOL_TIMEOUT" treehouse status --json </dev/null 2>&1 >/dev/null) |
+        grep -qi 'unknown flag' && return 2
+      return 1
+    fi
   fi
-  printf '%s\n' "$json" | jq -e 'arrays' >/dev/null 2>&1 || return 1
+  printf '%s\n' "$json" | jq -e 'arrays' >/dev/null 2>&1 || return 2
   while IFS=$'\t' read -r path name; do
     [ -n "$path" ] || continue
     marker="$(dirname "$path")/.fm-slot-owner"

@@ -5659,8 +5659,17 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   SPAWN_ENTER_SLOT=$(fm_treehouse_free_own_slot "$PROJ_ABS" "$BASE_BRANCH" || true)
   if [ -z "$SPAWN_ENTER_SLOT" ]; then
     # Read the pool again right before asking the allocator: a claimed tree's
-    # worker can have ended since admission (see admission).
-    SPAWN_POOL_EXPOSED=$(fm_treehouse_exposed_claims "$PROJ_ABS" || true)
+    # worker can have ended since admission (see admission). A read that
+    # fails on a Treehouse that has `status --json` decides nothing, so the
+    # allocator is not asked; only a Treehouse too old to report the pool
+    # leaves `treehouse get` alone to decide, as documented.
+    SPAWN_POOL_READ_RC=0
+    SPAWN_POOL_EXPOSED=$(fm_treehouse_exposed_claims "$PROJ_ABS") || SPAWN_POOL_READ_RC=$?
+    if [ "$SPAWN_POOL_READ_RC" = 1 ]; then
+      echo "deferred: project $(basename "$PROJ_ABS")'s worktree pool could not be read right before asking treehouse get for a tree, and a tree another task claims could be reset unseen; task $ID was not launched and its backlog item stays queued - dispatch it again" >&2
+      exit "$SPAWN_DEFER_EXIT"
+    fi
+    [ "$SPAWN_POOL_READ_RC" = 0 ] || SPAWN_POOL_EXPOSED=
   fi
   if [ -z "$SPAWN_ENTER_SLOT" ] && [ -n "$SPAWN_POOL_EXPOSED" ]; then
     # No free own-clone tree to enter by name, and the allocator would reset

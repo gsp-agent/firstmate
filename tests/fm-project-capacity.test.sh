@@ -116,6 +116,16 @@ SH
 #!/usr/bin/env bash
 # A status read changes nothing in the pool, so it is answered, not logged.
 if [ "$*" = "status --json" ]; then
+  # An older Treehouse rejects the flag; a status read can also fail outright
+  # once the spawn is past admission.
+  if [ -n "${FM_FAKE_TREEHOUSE_OLD:-}" ]; then
+    printf '%s\n' 'Error: unknown flag: --json' >&2
+    exit 1
+  fi
+  if [ -n "${FM_FAKE_TREEHOUSE_STATUS_FAILS_AFTER:-}" ] && [ -e "${FM_FAKE_PAST_ADMISSION:-/nonexistent}" ]; then
+    printf '%s\n' 'Error: could not read the pool state' >&2
+    exit 1
+  fi
   if [ -n "${FM_FAKE_TREEHOUSE_STATUS_AFTER:-}" ] && [ -e "${FM_FAKE_PAST_ADMISSION:-/nonexistent}" ]; then
     printf '%s\n' "$FM_FAKE_TREEHOUSE_STATUS_AFTER"
   elif [ -n "${FM_FAKE_TREEHOUSE_STATUS:-}" ]; then
@@ -337,6 +347,34 @@ test_claimed_tree_idle_by_steering_is_never_handed_to_the_allocator() {
   grep -q '^treehouse get' "$case_dir/calls.log" && fail "the spawn asked the allocator beside a claimed idle tree: $(grep '^treehouse' "$case_dir/calls.log")"
   assert_absent "$home/state/task-a.meta" "a deferred spawn published a task record"
   pass "a claimed tree that goes idle before steering is seen by a fresh read, and the spawn never asks the allocator"
+}
+
+# The fresh read before steering decides nothing when it fails on a Treehouse
+# that has `status --json` (chip, PR 173 review 5662712659): the spawn defers
+# with 75 and never runs `treehouse get`. A Treehouse older than the flag
+# rejects it, and there `treehouse get` alone decides, as documented.
+test_unreadable_pool_before_steering_defers_and_old_treehouse_still_gets() {
+  local case_dir home out rc=0 status
+  case_dir=$(make_case pool-unread task-a task-b)
+  home="$case_dir/home"
+  declare_capacity "$home" "project 5"
+  printf '%s\n' 'max_trees = 4' 'root = ""' > "$case_dir/project/treehouse.toml"
+  mkdir -p "$case_dir/claimed/3/project"
+  printf 'task=ending-a1\nhome=%s\n' "$home" > "$case_dir/claimed/3/.fm-slot-owner"
+  status='[{"name":"1","status":"in-use","lease_holder":""},{"name":"2","status":"in-use","lease_holder":""},{"name":"3","path":"'"$case_dir/claimed/3/project"'","status":"in-use","lease_holder":""}]'
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$status FM_FAKE_TREEHOUSE_STATUS_FAILS_AFTER=1 \
+    FM_FAKE_PAST_ADMISSION="$case_dir/past-admission" spawn_ship "$case_dir" task-a "$case_dir/project") || rc=$?
+  [ -e "$case_dir/past-admission" ] || fail "the spawn deferred at admission, so this case proves nothing: $out"
+  expect_code "$DEFER_EXIT" "$rc" "a spawn whose pool read failed before steering did not defer: $out"
+  assert_contains "$out" "could not be read right before asking treehouse get" "the deferral did not name the failed read"
+  grep -q '^treehouse get' "$case_dir/calls.log" && fail "the spawn asked the allocator after a failed pool read: $(grep '^treehouse' "$case_dir/calls.log")"
+  rm -f "$case_dir/claimed/3/.fm-slot-owner"
+  rm -f "$case_dir/project/treehouse.toml"
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_OLD=1 spawn_ship "$case_dir" task-b "$case_dir/project") || rc=$?
+  [ "$rc" -ne "$DEFER_EXIT" ] || fail "a spawn on a Treehouse older than status --json deferred: $out"
+  grep -q '^treehouse get' "$case_dir/calls.log" || fail "a spawn on a Treehouse older than status --json never asked treehouse get: $out"
+  pass "a failed pool read before steering defers without asking the allocator, and an older Treehouse still decides with get"
 }
 
 # A pool whose trees read available can still refuse (Treehouse's reuse test is
@@ -1603,6 +1641,7 @@ test_undeclared_capacity_keeps_dispatch_uncapped
 test_full_pool_defers_beside_free_places
 test_claimed_idle_tree_is_never_handed_to_the_allocator
 test_claimed_tree_idle_by_steering_is_never_handed_to_the_allocator
+test_unreadable_pool_before_steering_defers_and_old_treehouse_still_gets
 test_treehouse_full_pool_refusal_in_the_pane_defers
 test_available_capacity_admits_the_worker
 test_exhausted_capacity_defers_without_leaving_anything_behind
