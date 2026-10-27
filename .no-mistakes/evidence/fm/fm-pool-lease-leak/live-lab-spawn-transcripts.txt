@@ -1,0 +1,764 @@
+Live lab transcripts, run 01M5YH908QNPCWJ456KMPKYJ1G: real bin/fm-spawn.sh / bin/fm-teardown.sh + real treehouse v2.3.0 + private fm-lab tmux socket, disposable marked FM_HOME, throwaway origin/clones/pool per world.
+Base = 2703782f (includes PR 173). Head = 219873b6 (change under test).
+Race worlds put a one-shot timing shim (racebin/treehouse) first on fm-spawn's PATH: on the first 'get --lease' it ends the claiming task's live worker process, then execs the REAL treehouse for every call. It models the window bin/fm-spawn.sh documents between its fresh pool read and the allocator's choice.
+
+### S0 (base commit 2703782f, before the fix) claimed own-clone slot handed out while steering - the 10-27 incident
+fm-spawn.sh under test: <lab>/base-src (commit 2703782f)
+treehouse: v2.3.0
+world s0-base (claimed) ready
+slot1 common-dir: <world>/foreign/repo/.git
+slot2 common-dir: <world>/own/repo/.git
+
+---- BEFORE spawn ----
+== treehouse status --json (real CLI, run in the project) ==
+slot 1: status=available lease_holder= processes=0
+slot 2: status=available lease_holder= processes=0
+== Firstmate slot claims (.fm-slot-owner) ==
+slot 1 claim: none
+slot 2 claim: task=finished-task-f7zel
+== slot clone ownership ==
+slot 1: foreign-clone
+slot 2: own-clone
+== slot 2 contents ==
+sentinel.txt: absent
+slot 2 HEAD: fc82165 init
+slot 2 git status: 
+== task record ==
+no state/lab-base-s0.meta
+
+---- run: fm-spawn.sh lab-base-s0 <world>/own/repo --mode local-only --yolo off --harness opencode (in lab tmux pane) ----
+exit code: 75
+spawn output:
+  | deferred: project repo's worktree pool holds a tree another task still claims with nothing running in it (2 claimed by finished-task-f7zel), which treehouse get would reset, and no free tree of this clone can be entered by name; task lab-base-s0 was not launched and its backlog item stays queued - dispatch it again once that task is torn down
+
+---- task window screen (lines naming treehouse) ----
+  window: @0 bash
+
+---- AFTER spawn ----
+== treehouse status --json (real CLI, run in the project) ==
+slot 1: status=available lease_holder= processes=0
+slot 2: status=available lease_holder= processes=0
+== Firstmate slot claims (.fm-slot-owner) ==
+slot 1 claim: none
+slot 2 claim: task=finished-task-f7zel
+== slot clone ownership ==
+slot 1: foreign-clone
+slot 2: own-clone
+== slot 2 contents ==
+sentinel.txt: absent
+slot 2 HEAD: fc82165 init
+slot 2 git status: 
+== task record ==
+no state/lab-base-s0.meta
+
+================================================================
+
+### D (head 219873b6) static incident shape: claimed own-clone tree visible as idle before steering
+fm-spawn.sh under test: <run-worktree> (commit 219873b6)
+treehouse: v2.3.0
+world d-head (claimed) ready
+slot1 common-dir: <world>/foreign/repo/.git
+slot2 common-dir: <world>/own/repo/.git
+
+---- BEFORE spawn ----
+== treehouse status --json (real CLI, run in the project) ==
+slot 1: status=available lease_holder= processes=0
+slot 2: status=available lease_holder= processes=0
+== Firstmate slot claims (.fm-slot-owner) ==
+slot 1 claim: none
+slot 2 claim: task=finished-task-f7zel
+== slot clone ownership ==
+slot 1: foreign-clone
+slot 2: own-clone
+== slot 2 contents ==
+sentinel.txt: absent
+slot 2 HEAD: 9b1fd8a init
+slot 2 git status: 
+== task record ==
+no state/lab-head-d.meta
+
+---- run: fm-spawn.sh lab-head-d <world>/own/repo --mode local-only --yolo off --harness opencode (in lab tmux pane) ----
+exit code: 75
+spawn output:
+  | fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+  | deferred: project repo's worktree pool holds a tree another task still claims with nothing running in it (2 claimed by finished-task-f7zel), which treehouse get would reset, and no free tree of this clone can be entered by name; task lab-head-d was not launched and its backlog item stays queued - dispatch it again once that task is torn down
+
+---- task window screen (lines naming treehouse) ----
+  window: @0 bash
+
+---- AFTER spawn ----
+== treehouse status --json (real CLI, run in the project) ==
+slot 1: status=available lease_holder= processes=0
+slot 2: status=available lease_holder= processes=0
+== Firstmate slot claims (.fm-slot-owner) ==
+slot 1 claim: none
+slot 2 claim: task=finished-task-f7zel
+== slot clone ownership ==
+slot 1: foreign-clone
+slot 2: own-clone
+== slot 2 contents ==
+sentinel.txt: absent
+slot 2 HEAD: 9b1fd8a init
+slot 2 git status: 
+== task record ==
+no state/lab-head-d.meta
+
+================================================================
+
+### A (base 2703782f, before the fix) claiming worker exits at the allocator's pick
+fm-spawn.sh under test: <lab>/base-src (commit 2703782f)
+treehouse: v2.3.0
+world a2-base-race (claimed-race) ready
+slot1 common-dir: <world>/foreign/repo/.git
+slot2 common-dir: <world>/own/repo/.git
+
+---- BEFORE spawn ----
+== treehouse status --json (real CLI, run in the project) ==
+slot 1: status=available lease_holder= processes=0
+slot 2: status=in-use lease_holder= processes=1
+== Firstmate slot claims (.fm-slot-owner) ==
+slot 1 claim: none
+slot 2 claim: task=finished-task-f7zel
+== slot clone ownership ==
+slot 1: foreign-clone
+slot 2: own-clone
+== slot 2 contents ==
+sentinel.txt: absent
+slot 2 HEAD: fb07247 init
+slot 2 git status: 
+slot 2 claiming task's worker process: alive, cwd=<world>/th-root/.treehouse/repo-ba0440/2/repo
+== task record ==
+no state/lab-base-race2.meta
+
+---- run: fm-spawn.sh lab-base-race2 <world>/own/repo --mode local-only --yolo off --harness opencode (in lab tmux pane) ----
+exit code: 0
+spawn output:
+  | warning: <lab>/data/lab-base-race2/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab-base-race2
+  | warning: <lab>/data/lab-base-race2/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+  | notice: lab-base-race2 ships mode=local-only while the standing posture for repo is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+  | spawned lab-base-race2 harness=opencode kind=ship mode=local-only yolo=off window=primary:fm-lab-base-race2 worktree=<world>/th-root/.treehouse/repo-ba0440/3/repo
+
+---- task window screen (lines naming treehouse) ----
+  window: @0 bash
+  window: @1 holder-a-base-race
+  window: @2 fm-lab-base-race
+  window: @4 fm-lab-base-race2
+  > ╰─❯ printf '%s-%s\n' fm-treehouse-get start; treehouse get; printf '%s-%s\n' fm-treehouse-get end
+
+---- AFTER spawn ----
+== treehouse status --json (real CLI, run in the project) ==
+slot 1: status=available lease_holder= processes=0
+slot 2: status=leased lease_holder=fm-spawn-lab-base-race2 processes=0
+slot 3: status=in-use lease_holder= processes=1
+== Firstmate slot claims (.fm-slot-owner) ==
+slot 1 claim: none
+slot 2 claim: task=finished-task-f7zel
+slot 3 claim: task=lab-base-race2
+== slot clone ownership ==
+slot 1: foreign-clone
+slot 2: own-clone
+slot 3: own-clone
+== slot 2 contents ==
+sentinel.txt: absent
+slot 2 HEAD: fb07247 init
+slot 2 git status: 
+slot 2 claiming task's worker process: exited
+== race shim log (every treehouse call fm-spawn made through PATH) ==
+  treehouse status --json
+  treehouse status --json
+  treehouse status --json
+  race: claiming worker 60686 exited right before: treehouse get --lease --lease-holder fm-spawn-lab-base-race2 --no-fetch
+  treehouse get --lease --lease-holder fm-spawn-lab-base-race2 --no-fetch
+  treehouse get --lease --lease-holder fm-spawn-lab-base-race2 --no-fetch
+  treehouse return <world>/th-root/.treehouse/repo-ba0440/1/repo
+== task record ==
+window=primary:fm-lab-base-race2
+worktree=<world>/th-root/.treehouse/repo-ba0440/3/repo
+harness=opencode
+kind=ship
+
+================================================================
+
+### A2 (base 2703782f) teardown of the A task: the leaked steering lease outlives it
+---- run: fm-teardown.sh lab-base-race2  (in lab tmux pane) ----
+exit code: 0
+teardown output:
+  | teardown: reaping leaked worktree process(es) for lab-base-race2: 76612
+  | teardown: force-killing leaked worktree process(es) for lab-base-race2: 76612
+  | A new version of treehouse is available: v2.3.0 → v3.1.6
+  | Run "treehouse update" to update
+  | 
+  | 🌳 Worktree returned to pool.
+  | teardown lab-base-race2 complete (window primary:fm-lab-base-race2, worktree <world>/th-root/.treehouse/repo-ba0440/3/repo)
+  | Backlog: lab-base-race2 just finished (this home keeps no markdown backlog at <lab>/data/backlog.md). Update <lab>/data/backlog.md - move lab-base-race2 to Done, keep Done to the 10 most recent; what its freed place can start is the Dispatch line below.
+  | Dispatch: repo declares no place limit; no ready backlog row names it, so nothing starts and its places were not counted.
+
+  window: @0 bash
+  window: @1 holder-a-base-race
+  window: @2 fm-lab-base-race
+
+---- AFTER teardown ----
+== treehouse status --json (real CLI, run in the project) ==
+slot 1: status=available lease_holder= processes=0
+slot 2: status=leased lease_holder=fm-spawn-lab-base-race2 processes=0
+slot 3: status=available lease_holder= processes=0
+== Firstmate slot claims (.fm-slot-owner) ==
+slot 1 claim: none
+slot 2 claim: task=finished-task-f7zel
+slot 3 claim: none
+== slot clone ownership ==
+slot 1: foreign-clone
+slot 2: own-clone
+slot 3: own-clone
+== slot 2 contents ==
+sentinel.txt: absent
+slot 2 HEAD: fb07247 init
+slot 2 git status: 
+slot 2 claiming task's worker process: exited
+== race shim log (every treehouse call fm-spawn made through PATH) ==
+  treehouse status --json
+  treehouse status --json
+  treehouse status --json
+  race: claiming worker 60686 exited right before: treehouse get --lease --lease-holder fm-spawn-lab-base-race2 --no-fetch
+  treehouse get --lease --lease-holder fm-spawn-lab-base-race2 --no-fetch
+  treehouse get --lease --lease-holder fm-spawn-lab-base-race2 --no-fetch
+  treehouse return <world>/th-root/.treehouse/repo-ba0440/1/repo
+== task record ==
+no state/lab-base-race2.meta
+
+================================================================
+
+### B (head 219873b6) claiming worker exits at the allocator's pick
+fm-spawn.sh under test: <run-worktree> (commit 219873b6)
+treehouse: v2.3.0
+world b-head-race (claimed-race) ready
+slot1 common-dir: <world>/foreign/repo/.git
+slot2 common-dir: <world>/own/repo/.git
+
+---- BEFORE spawn ----
+== treehouse status --json (real CLI, run in the project) ==
+slot 1: status=available lease_holder= processes=0
+slot 2: status=in-use lease_holder= processes=1
+== Firstmate slot claims (.fm-slot-owner) ==
+slot 1 claim: none
+slot 2 claim: task=finished-task-f7zel
+== slot clone ownership ==
+slot 1: foreign-clone
+slot 2: own-clone
+== slot 2 contents ==
+sentinel.txt: absent
+slot 2 HEAD: 63dde86 init
+slot 2 git status: 
+slot 2 claiming task's worker process: alive, cwd=<world>/th-root/.treehouse/repo-32c622/2/repo
+== task record ==
+no state/lab-head-race.meta
+
+---- run: fm-spawn.sh lab-head-race <world>/own/repo --mode local-only --yolo off --harness opencode (in lab tmux pane) ----
+exit code: 0
+spawn output:
+  | fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+  | warning: <lab>/data/lab-head-race/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab-head-race
+  | warning: <lab>/data/lab-head-race/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+  | notice: lab-head-race ships mode=local-only while the standing posture for repo is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+  | spawned lab-head-race harness=opencode kind=ship mode=local-only yolo=off window=primary:fm-lab-head-race worktree=<world>/th-root/.treehouse/repo-32c622/2/repo
+
+---- task window screen (lines naming treehouse) ----
+  window: @0 bash
+  window: @1 holder-a-base-race
+  window: @2 fm-lab-base-race
+  window: @4 fm-lab-base-race2
+  window: @6 fm-lab-head-race
+  > ╰─❯ treehouse enter '2'
+
+---- AFTER spawn ----
+== treehouse status --json (real CLI, run in the project) ==
+slot 1: status=available lease_holder= processes=0
+slot 2: status=leased lease_holder=fm-spawn-lab-head-race processes=1
+== Firstmate slot claims (.fm-slot-owner) ==
+slot 1 claim: none
+slot 2 claim: task=lab-head-race
+== slot clone ownership ==
+slot 1: foreign-clone
+slot 2: own-clone
+== slot 2 contents ==
+sentinel.txt: absent
+slot 2 HEAD: 63dde86 init
+slot 2 git status: 
+slot 2 claiming task's worker process: exited
+== race shim log (every treehouse call fm-spawn made through PATH) ==
+  treehouse status --json
+  treehouse status --json
+  treehouse status --json
+  race: claiming worker 98396 exited right before: treehouse get --lease --lease-holder fm-spawn-lab-head-race --no-fetch
+  treehouse get --lease --lease-holder fm-spawn-lab-head-race --no-fetch
+  treehouse get --lease --lease-holder fm-spawn-lab-head-race --no-fetch
+  treehouse return <world>/th-root/.treehouse/repo-32c622/1/repo
+== task record ==
+window=primary:fm-lab-head-race
+worktree=<world>/th-root/.treehouse/repo-32c622/2/repo
+harness=opencode
+kind=ship
+
+================================================================
+
+### C (head 219873b6) teardown of the B task returns the adopted slot and its lease
+---- run: fm-teardown.sh lab-head-race  (in lab tmux pane) ----
+exit code: 0
+teardown output:
+  | fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+  | teardown: reaping leaked worktree process(es) for lab-head-race: 14566
+  | teardown: force-killing leaked worktree process(es) for lab-head-race: 14566
+  | A new version of treehouse is available: v2.3.0 → v3.1.6
+  | Run "treehouse update" to update
+  | 
+  | 🌳 Worktree returned to pool.
+  | teardown lab-head-race complete (window primary:fm-lab-head-race, worktree <world>/th-root/.treehouse/repo-32c622/2/repo)
+  | Backlog: lab-head-race just finished (this home keeps no markdown backlog at <lab>/data/backlog.md). Update <lab>/data/backlog.md - move lab-head-race to Done, keep Done to the 10 most recent; what its freed place can start is the Dispatch line below.
+  | Dispatch: repo declares no place limit; no ready backlog row names it, so nothing starts and its places were not counted.
+
+  window: @0 bash
+  window: @1 holder-a-base-race
+  window: @2 fm-lab-base-race
+  window: @4 fm-lab-base-race2
+
+---- AFTER teardown ----
+== treehouse status --json (real CLI, run in the project) ==
+slot 1: status=available lease_holder= processes=0
+slot 2: status=available lease_holder= processes=0
+== Firstmate slot claims (.fm-slot-owner) ==
+slot 1 claim: none
+slot 2 claim: none
+== slot clone ownership ==
+slot 1: foreign-clone
+slot 2: own-clone
+== slot 2 contents ==
+sentinel.txt: absent
+slot 2 HEAD: 63dde86 init
+slot 2 git status: 
+slot 2 claiming task's worker process: exited
+== race shim log (every treehouse call fm-spawn made through PATH) ==
+  treehouse status --json
+  treehouse status --json
+  treehouse status --json
+  race: claiming worker 98396 exited right before: treehouse get --lease --lease-holder fm-spawn-lab-head-race --no-fetch
+  treehouse get --lease --lease-holder fm-spawn-lab-head-race --no-fetch
+  treehouse get --lease --lease-holder fm-spawn-lab-head-race --no-fetch
+  treehouse return <world>/th-root/.treehouse/repo-32c622/1/repo
+== task record ==
+no state/lab-head-race.meta
+
+================================================================
+
+### A (base 2703782f, before the fix) claiming worker exits at the allocator's pick
+fm-spawn.sh under test: <lab>/base-src (commit 2703782f)
+treehouse: v2.3.0
+world a-base-race (claimed-race) ready
+slot1 common-dir: <world>/foreign/repo/.git
+slot2 common-dir: <world>/own/repo/.git
+
+---- BEFORE spawn ----
+== treehouse status --json (real CLI, run in the project) ==
+slot 1: status=available lease_holder= processes=0
+slot 2: status=in-use lease_holder= processes=1
+== Firstmate slot claims (.fm-slot-owner) ==
+slot 1 claim: none
+slot 2 claim: task=finished-task-f7zel
+== slot clone ownership ==
+slot 1: foreign-clone
+slot 2: own-clone
+== slot 2 contents ==
+sentinel.txt: absent
+slot 2 HEAD: 7164cbc init
+slot 2 git status: 
+slot 2 claiming task's worker process: alive, cwd=<world>/th-root/.treehouse/repo-2f0e26/2/repo
+== task record ==
+no state/lab-base-race.meta
+
+---- run: fm-spawn.sh lab-base-race <world>/own/repo --mode local-only --yolo off --harness opencode (in lab tmux pane) ----
+exit code: 0
+spawn output:
+  | warning: <lab>/data/lab-base-race/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab-base-race
+  | warning: <lab>/data/lab-base-race/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+  | notice: lab-base-race ships mode=local-only while the standing posture for repo is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+  | spawned lab-base-race harness=opencode kind=ship mode=local-only yolo=off window=primary:fm-lab-base-race worktree=<world>/th-root/.treehouse/repo-2f0e26/3/repo
+
+---- task window screen (lines naming treehouse) ----
+  window: @0 bash
+  window: @1 holder-a-base-race
+  window: @2 fm-lab-base-race
+  > ╰─❯ treehouse enter '3'
+
+---- AFTER spawn ----
+== treehouse status --json (real CLI, run in the project) ==
+slot 1: status=available lease_holder= processes=0
+slot 2: status=in-use lease_holder= processes=1
+slot 3: status=leased lease_holder=fm-spawn-lab-base-race processes=1
+== Firstmate slot claims (.fm-slot-owner) ==
+slot 1 claim: none
+slot 2 claim: task=finished-task-f7zel
+slot 3 claim: task=lab-base-race
+== slot clone ownership ==
+slot 1: foreign-clone
+slot 2: own-clone
+slot 3: own-clone
+== slot 2 contents ==
+sentinel.txt: absent
+slot 2 HEAD: 7164cbc init
+slot 2 git status: 
+slot 2 claiming task's worker process: alive, cwd=<world>/th-root/.treehouse/repo-2f0e26/2/repo
+== task record ==
+window=primary:fm-lab-base-race
+worktree=<world>/th-root/.treehouse/repo-2f0e26/3/repo
+harness=opencode
+kind=ship
+
+================================================================
+
+### E (head 219873b6) adversarial: claimed own-clone slot whose worker is still running
+fm-spawn.sh under test: <run-worktree> (commit 219873b6)
+treehouse: v2.3.0
+world e-head-live (claimed-live) ready
+slot1 common-dir: <world>/foreign/repo/.git
+slot2 common-dir: <world>/own/repo/.git
+
+---- BEFORE spawn ----
+== treehouse status --json (real CLI, run in the project) ==
+slot 1: status=available lease_holder= processes=0
+slot 2: status=in-use lease_holder= processes=1
+== Firstmate slot claims (.fm-slot-owner) ==
+slot 1 claim: none
+slot 2 claim: task=finished-task-f7zel
+== slot clone ownership ==
+slot 1: foreign-clone
+slot 2: own-clone
+== slot 2 contents ==
+sentinel.txt: absent
+slot 2 HEAD: 046a51d init
+slot 2 git status: 
+slot 2 claiming task's worker process: alive, cwd=<world>/th-root/.treehouse/repo-6145f8/2/repo
+== task record ==
+no state/lab-head-live.meta
+
+---- run: fm-spawn.sh lab-head-live <world>/own/repo --mode local-only --yolo off --harness opencode (in lab tmux pane) ----
+exit code: 0
+spawn output:
+  | fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+  | warning: <lab>/data/lab-head-live/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab-head-live
+  | warning: <lab>/data/lab-head-live/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+  | notice: lab-head-live ships mode=local-only while the standing posture for repo is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+  | spawned lab-head-live harness=opencode kind=ship mode=local-only yolo=off window=primary:fm-lab-head-live worktree=<world>/th-root/.treehouse/repo-6145f8/3/repo
+
+---- task window screen (lines naming treehouse) ----
+  window: @0 bash
+  window: @1 holder-a-base-race
+  window: @2 fm-lab-base-race
+  window: @7 holder-e-head-live
+  window: @8 fm-lab-head-live
+  > ╰─❯ treehouse enter '3'
+
+---- AFTER spawn ----
+== treehouse status --json (real CLI, run in the project) ==
+slot 1: status=available lease_holder= processes=0
+slot 2: status=in-use lease_holder= processes=1
+slot 3: status=leased lease_holder=fm-spawn-lab-head-live processes=1
+== Firstmate slot claims (.fm-slot-owner) ==
+slot 1 claim: none
+slot 2 claim: task=finished-task-f7zel
+slot 3 claim: task=lab-head-live
+== slot clone ownership ==
+slot 1: foreign-clone
+slot 2: own-clone
+slot 3: own-clone
+== slot 2 contents ==
+sentinel.txt: absent
+slot 2 HEAD: 046a51d init
+slot 2 git status: 
+slot 2 claiming task's worker process: alive, cwd=<world>/th-root/.treehouse/repo-6145f8/2/repo
+== task record ==
+window=primary:fm-lab-head-live
+worktree=<world>/th-root/.treehouse/repo-6145f8/3/repo
+harness=opencode
+kind=ship
+
+================================================================
+
+### G (head 219873b6) PR 99 growth: no free own-clone slot, steering makes Treehouse create one
+fm-spawn.sh under test: <run-worktree> (commit 219873b6)
+treehouse: v2.3.0
+world g-head-inuse (inuse) ready
+slot1 common-dir: <world>/foreign/repo/.git
+slot2 common-dir: <world>/own/repo/.git
+
+---- BEFORE spawn ----
+== treehouse status --json (real CLI, run in the project) ==
+slot 1: status=available lease_holder= processes=0
+slot 2: status=leased lease_holder=other-live-task processes=0
+== Firstmate slot claims (.fm-slot-owner) ==
+slot 1 claim: none
+slot 2 claim: none
+== slot clone ownership ==
+slot 1: foreign-clone
+slot 2: own-clone
+== slot 2 contents ==
+sentinel.txt: absent
+slot 2 HEAD: 8d61ce9 init
+slot 2 git status: 
+== task record ==
+no state/lab-head-inuse.meta
+
+---- run: fm-spawn.sh lab-head-inuse <world>/own/repo --mode local-only --yolo off --harness opencode (in lab tmux pane) ----
+exit code: 0
+spawn output:
+  | fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+  | warning: <lab>/data/lab-head-inuse/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab-head-inuse
+  | warning: <lab>/data/lab-head-inuse/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+  | notice: lab-head-inuse ships mode=local-only while the standing posture for repo is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+  | spawned lab-head-inuse harness=opencode kind=ship mode=local-only yolo=off window=primary:fm-lab-head-inuse worktree=<world>/th-root/.treehouse/repo-d37f1a/3/repo
+
+---- task window screen (lines naming treehouse) ----
+  window: @0 bash
+  window: @1 holder-a-base-race
+  window: @2 fm-lab-base-race
+  window: @7 holder-e-head-live
+  window: @8 fm-lab-head-live
+  window: @9 fm-lab-head-inuse
+  > ╰─❯ treehouse enter '3'
+
+---- AFTER spawn ----
+== treehouse status --json (real CLI, run in the project) ==
+slot 1: status=available lease_holder= processes=0
+slot 2: status=leased lease_holder=other-live-task processes=0
+slot 3: status=leased lease_holder=fm-spawn-lab-head-inuse processes=1
+== Firstmate slot claims (.fm-slot-owner) ==
+slot 1 claim: none
+slot 2 claim: none
+slot 3 claim: task=lab-head-inuse
+== slot clone ownership ==
+slot 1: foreign-clone
+slot 2: own-clone
+slot 3: own-clone
+== slot 2 contents ==
+sentinel.txt: absent
+slot 2 HEAD: 8d61ce9 init
+slot 2 git status: 
+== task record ==
+window=primary:fm-lab-head-inuse
+worktree=<world>/th-root/.treehouse/repo-d37f1a/3/repo
+harness=opencode
+kind=ship
+
+================================================================
+
+### H (head 219873b6) free clean own-clone slot is entered directly by name
+fm-spawn.sh under test: <run-worktree> (commit 219873b6)
+treehouse: v2.3.0
+world h-head-free (free) ready
+slot1 common-dir: <world>/foreign/repo/.git
+slot2 common-dir: <world>/own/repo/.git
+
+---- BEFORE spawn ----
+== treehouse status --json (real CLI, run in the project) ==
+slot 1: status=available lease_holder= processes=0
+slot 2: status=available lease_holder= processes=0
+== Firstmate slot claims (.fm-slot-owner) ==
+slot 1 claim: none
+slot 2 claim: none
+== slot clone ownership ==
+slot 1: foreign-clone
+slot 2: own-clone
+== slot 2 contents ==
+sentinel.txt: absent
+slot 2 HEAD: 6b5eab6 init
+slot 2 git status: 
+== task record ==
+no state/lab-head-free.meta
+
+---- run: fm-spawn.sh lab-head-free <world>/own/repo --mode local-only --yolo off --harness opencode (in lab tmux pane) ----
+exit code: 0
+spawn output:
+  | fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+  | warning: <lab>/data/lab-head-free/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab-head-free
+  | warning: <lab>/data/lab-head-free/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+  | notice: lab-head-free ships mode=local-only while the standing posture for repo is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+  | spawned lab-head-free harness=opencode kind=ship mode=local-only yolo=off window=primary:fm-lab-head-free worktree=<world>/th-root/.treehouse/repo-72b9c0/2/repo
+
+---- task window screen (lines naming treehouse) ----
+  window: @0 bash
+  window: @1 holder-a-base-race
+  window: @2 fm-lab-base-race
+  window: @7 holder-e-head-live
+  window: @8 fm-lab-head-live
+  window: @9 fm-lab-head-inuse
+  window: @10 fm-lab-head-free
+  > treehouse enter '2'
+  > ╰─❯ treehouse enter '2'
+
+---- AFTER spawn ----
+== treehouse status --json (real CLI, run in the project) ==
+slot 1: status=available lease_holder= processes=0
+slot 2: status=in-use lease_holder= processes=1
+== Firstmate slot claims (.fm-slot-owner) ==
+slot 1 claim: none
+slot 2 claim: task=lab-head-free
+== slot clone ownership ==
+slot 1: foreign-clone
+slot 2: own-clone
+== slot 2 contents ==
+sentinel.txt: absent
+slot 2 HEAD: 6b5eab6 init
+slot 2 git status: 
+== task record ==
+window=primary:fm-lab-head-free
+worktree=<world>/th-root/.treehouse/repo-72b9c0/2/repo
+harness=opencode
+kind=ship
+
+================================================================
+
+### H2 (head 219873b6) free own-clone slot with uncommitted work is not entered
+fm-spawn.sh under test: <run-worktree> (commit 219873b6)
+treehouse: v2.3.0
+world h2-head-free-dirty (free-dirty) ready
+slot1 common-dir: <world>/foreign/repo/.git
+slot2 common-dir: <world>/own/repo/.git
+
+---- BEFORE spawn ----
+== treehouse status --json (real CLI, run in the project) ==
+slot 1: status=available lease_holder= processes=0
+slot 2: status=dirty lease_holder= processes=0
+== Firstmate slot claims (.fm-slot-owner) ==
+slot 1 claim: none
+slot 2 claim: none
+== slot clone ownership ==
+slot 1: foreign-clone
+slot 2: own-clone
+== slot 2 contents ==
+sentinel.txt: finished task uncommitted work
+slot 2 HEAD: 1ba21eb init
+slot 2 git status: ?? sentinel.txt 
+== task record ==
+no state/lab-head-fdirty.meta
+
+---- run: fm-spawn.sh lab-head-fdirty <world>/own/repo --mode local-only --yolo off --harness opencode (in lab tmux pane) ----
+exit code: 0
+spawn output:
+  | fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+  | warning: <lab>/data/lab-head-fdirty/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab-head-fdirty
+  | warning: <lab>/data/lab-head-fdirty/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+  | notice: lab-head-fdirty ships mode=local-only while the standing posture for repo is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+  | spawned lab-head-fdirty harness=opencode kind=ship mode=local-only yolo=off window=primary:fm-lab-head-fdirty worktree=<world>/th-root/.treehouse/repo-734eb6/3/repo
+
+---- task window screen (lines naming treehouse) ----
+  window: @0 bash
+  window: @1 holder-a-base-race
+  window: @2 fm-lab-base-race
+  window: @7 holder-e-head-live
+  window: @8 fm-lab-head-live
+  window: @9 fm-lab-head-inuse
+  window: @10 fm-lab-head-free
+  window: @11 fm-lab-head-fdirty
+  > ╰─❯ treehouse enter '3'
+
+---- AFTER spawn ----
+== treehouse status --json (real CLI, run in the project) ==
+slot 1: status=available lease_holder= processes=0
+slot 2: status=dirty lease_holder= processes=0
+slot 3: status=leased lease_holder=fm-spawn-lab-head-fdirty processes=1
+== Firstmate slot claims (.fm-slot-owner) ==
+slot 1 claim: none
+slot 2 claim: none
+slot 3 claim: task=lab-head-fdirty
+== slot clone ownership ==
+slot 1: foreign-clone
+slot 2: own-clone
+slot 3: own-clone
+== slot 2 contents ==
+sentinel.txt: finished task uncommitted work
+slot 2 HEAD: 1ba21eb init
+slot 2 git status: ?? sentinel.txt 
+== task record ==
+window=primary:fm-lab-head-fdirty
+worktree=<world>/th-root/.treehouse/repo-734eb6/3/repo
+harness=opencode
+kind=ship
+
+================================================================
+
+### F (head 219873b6) accepted limitation: claimed FOREIGN-clone slot handed out in the race is skipped
+fm-spawn.sh under test: <run-worktree> (commit 219873b6)
+treehouse: v2.3.0
+world f-head-foreign-race (foreign-claimed-race) ready
+slot1 common-dir: <world>/foreign/repo/.git
+slot2 common-dir: <world>/own/repo/.git
+
+---- BEFORE spawn ----
+== treehouse status --json (real CLI, run in the project) ==
+slot 1: status=in-use lease_holder= processes=1
+slot 2: status=leased lease_holder=other-live-task processes=0
+== Firstmate slot claims (.fm-slot-owner) ==
+slot 1 claim: task=finished-foreign-task
+slot 2 claim: none
+== slot clone ownership ==
+slot 1: foreign-clone
+slot 2: own-clone
+== slot 2 contents ==
+sentinel.txt: absent
+slot 2 HEAD: 0d071d7 init
+slot 2 git status: 
+slot 1 claiming task's worker process: alive, cwd=<world>/th-root/.treehouse/repo-6b1453/1/repo
+== task record ==
+no state/lab-head-frace.meta
+
+---- run: fm-spawn.sh lab-head-frace <world>/own/repo --mode local-only --yolo off --harness opencode (in lab tmux pane) ----
+exit code: 0
+spawn output:
+  | fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+  | warning: <lab>/data/lab-head-frace/launch-brief.md records no ship branch; defaulting to legacy branch fm/lab-head-frace
+  | warning: <lab>/data/lab-head-frace/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode local-only - confirm its definition of done matches
+  | notice: lab-head-frace ships mode=local-only while the standing posture for repo is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+  | spawned lab-head-frace harness=opencode kind=ship mode=local-only yolo=off window=primary:fm-lab-head-frace worktree=<world>/th-root/.treehouse/repo-6b1453/3/repo
+
+---- task window screen (lines naming treehouse) ----
+  window: @0 bash
+  window: @1 holder-a-base-race
+  window: @2 fm-lab-base-race
+  window: @7 holder-e-head-live
+  window: @8 fm-lab-head-live
+  window: @9 fm-lab-head-inuse
+  window: @10 fm-lab-head-free
+  window: @11 fm-lab-head-fdirty
+  window: @13 fm-lab-head-frace
+  > ╰─❯ printf '%s-%s\n' fm-treehouse-get start; treehouse get; printf '%s-%s\n' fm-treehouse-get end
+
+---- AFTER spawn ----
+== treehouse status --json (real CLI, run in the project) ==
+slot 1: status=leased lease_holder=fm-spawn-lab-head-frace processes=0
+slot 2: status=leased lease_holder=other-live-task processes=0
+slot 3: status=in-use lease_holder= processes=1
+== Firstmate slot claims (.fm-slot-owner) ==
+slot 1 claim: task=finished-foreign-task
+slot 2 claim: none
+slot 3 claim: task=lab-head-frace
+== slot clone ownership ==
+slot 1: foreign-clone
+slot 2: own-clone
+slot 3: own-clone
+== slot 2 contents ==
+sentinel.txt: absent
+slot 2 HEAD: 0d071d7 init
+slot 2 git status: 
+slot 1 claiming task's worker process: exited
+== race shim log (every treehouse call fm-spawn made through PATH) ==
+  treehouse status --json
+  treehouse status --json
+  treehouse status --json
+  race: claiming worker 24408 exited right before: treehouse get --lease --lease-holder fm-spawn-lab-head-frace --no-fetch
+  treehouse get --lease --lease-holder fm-spawn-lab-head-frace --no-fetch
+== task record ==
+window=primary:fm-lab-head-frace
+worktree=<world>/th-root/.treehouse/repo-6b1453/3/repo
+harness=opencode
+kind=ship
+
+================================================================
+

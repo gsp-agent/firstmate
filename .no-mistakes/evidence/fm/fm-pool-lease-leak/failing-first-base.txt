@@ -1,0 +1,13 @@
+### base 2703782f: head's tests/fm-spawn-worktree-settle.test.sh cases against 2703782f bin/
+---- case: test_allocator_claimed_own_slot_becomes_target
+not ok - spawn left its lease (fm-spawn-settle-pool-claimed-target-z18) on a slot whose claim names another task
+exit=1
+---- case: test_allocator_claimed_slot_is_never_returned success
+ok - a success spawn never enters or returns a claimed slot the reuse test refuses
+exit=0
+---- case: test_allocator_claimed_slot_is_never_returned abort
+ok - a abort spawn never enters or returns a claimed slot the reuse test refuses
+exit=0
+---- case: test_mixed_pool_makes_new_own_slot_when_none_free
+ok - no free own-clone slot: the allocator is leased forward until Treehouse makes one
+exit=0
