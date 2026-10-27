@@ -4944,6 +4944,13 @@ spawn_relaunch_move_to_live_clone() {
   if [ -n "$new" ] && ! spawn_pool_slot_idle "$live" "$new"; then
     new=
   fi
+  # The selector's clean test is a plain git status, which honours a
+  # submodule's `ignore` setting; the move and its rollback rewrite every
+  # submodule, so the slot must be clean with none ignored.
+  if [ -n "$new" ] &&
+    [ -n "$(git -C "$new" status --porcelain --untracked-files=all --ignore-submodules=none 2>/dev/null || echo unreadable)" ]; then
+    new=
+  fi
   if [ -z "$new" ]; then
     echo "error: task $ID lives in $old_real, not this home's clone $live, and the live clone's worktree pool has no free slot for it (each is claimed, in use, leased, not clean or not on the default branch, or the pool could not be read); nothing was moved or relaunched - relaunch again once a slot frees" >&2
     exit 1
@@ -5834,6 +5841,21 @@ elif [ "$RELAUNCH" -eq 1 ]; then
     sleep 0.5
   done
   if [ -z "$relaunch_seen" ] || [ "$(real_path_or_raw "$relaunch_seen")" != "$relaunch_wt_real" ]; then
+    # A task moved onto the live clone by an earlier relaunch whose endpoint
+    # never left the old copy still has that copy claimed: it is moved on now
+    # too, and the claim let go once the endpoint has left
+    # (spawn_relaunch_move_release_old).
+    if [ "$RELAUNCH_MOVED" != 1 ] && [ -n "$relaunch_seen" ]; then
+      relaunch_seen_top=$(git -C "$relaunch_seen" rev-parse --show-toplevel 2>/dev/null || true)
+      FM_TREEHOUSE_SLOT_OWNER=
+      [ -z "$relaunch_seen_top" ] || fm_treehouse_slot_owner_state "$relaunch_seen_top" "$ID" 2>/dev/null || true
+      if [ -n "$relaunch_seen_top" ] && [ "${FM_TREEHOUSE_SLOT_OWNER:-}" = mine ]; then
+        RELAUNCH_MOVED=1
+        RELAUNCH_MOVE_OLD=$relaunch_seen_top
+        RELAUNCH_MOVE_NEW=$WT
+        RELAUNCH_MOVE_OLD_CLAIMED=1
+      fi
+    fi
     # A task just moved onto the live clone is told to go to its new slot on
     # every backend: its shell still stands in the old copy.
     if [ "$BACKEND" != herdr ] && [ "$RELAUNCH_MOVED" != 1 ]; then

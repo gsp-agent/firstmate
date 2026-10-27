@@ -311,7 +311,7 @@ submodule_env() {
 # main, and whose task branch moves the pin to <sub-rev> in the old copy:
 # "pushed" is the submodule's second commit, in its remote; "unpushed" is a
 # commit only the old copy's submodule has. Prints the case dir.
-make_submodule_case() {  # <name> <id> pushed|unpushed|ignored-edit
+make_submodule_case() {  # <name> <id> pushed|unpushed|ignored-edit|dest-ignored
   local dir="$TMP_ROOT/$1" id=$2 old sub2
   git init -q --bare "$dir.sub.git"
   git clone -q "$dir.sub.git" "$dir.subseed" 2>/dev/null
@@ -339,13 +339,19 @@ make_submodule_case() {  # <name> <id> pushed|unpushed|ignored-edit
   git -C "$dir/old/proj" fetch -q origin
   git -C "$old" -c user.email=t@t -c user.name=t rebase -q origin/main >/dev/null 2>&1
   git -C "$old" submodule update --init -q >/dev/null 2>&1
-  if [ "$3" = pushed ] || [ "$3" = ignored-edit ]; then
+  if [ "$3" = pushed ] || [ "$3" = ignored-edit ] || [ "$3" = dest-ignored ]; then
     git -C "$old/sub" checkout -q "$sub2"
   else
     git -C "$old/sub" -c user.email=t@t -c user.name=t commit -q --allow-empty -m "only here"
   fi
   git -C "$old" add sub
   git -C "$old" -c user.email=t@t -c user.name=t commit -q -m "move the sub pin"
+  # The free live slot holds someone's uncommitted edit inside a submodule the
+  # live clone tells git status to ignore.
+  if [ "$3" = dest-ignored ]; then
+    git -C "$dir/home/projects/proj" config submodule.sub.ignore all
+    printf 'local-only-edit\n' >> "$dir/livepool/1/proj/sub/s.txt"
+  fi
   if [ "$3" = ignored-edit ]; then
     # The project tells git status to ignore the submodule, and the task has
     # an uncommitted edit inside it.
@@ -601,8 +607,50 @@ test_relaunch_refuses_an_ignored_submodule_edit() {
   pass "a relaunch refuses a copy with an uncommitted edit in an ignored submodule"
 }
 
+# A free live slot whose only difference is an uncommitted edit inside an
+# ignored submodule reads clean to a plain git status, but the move would
+# rewrite that submodule: the slot is not taken and the edit stays.
+test_relaunch_never_takes_a_slot_with_an_ignored_submodule_edit() {
+  local dir id=dig-a1 out rc=0 before
+  submodule_env
+  dir=$(make_submodule_case dig "$id" dest-ignored)
+  OLDWT="$dir/oldpool/7/proj"
+  [ -z "$(git -C "$dir/livepool/1/proj" status --porcelain)" ] || fail "dig: fixture: plain git status should not see the slot's ignored edit"
+  before=$(cat "$dir/home/state/$id.meta")
+  out=$(run_relaunch "$dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "dig: a relaunch moved into a slot with an ignored submodule edit: $out"
+  assert_contains "$out" "has no free slot for it" "dig: the refusal did not say no slot is free"
+  assert_grep 'local-only-edit' "$dir/livepool/1/proj/sub/s.txt" "dig: the slot's submodule edit was lost"
+  assert_equals "$before" "$(cat "$dir/home/state/$id.meta")" "dig: the record changed"
+  [ -e "$dir/livepool/1/.fm-slot-owner" ] && fail "dig: the slot was claimed"
+  pass "a relaunch never takes a slot whose ignored submodule holds an edit"
+}
+
+# A move whose pane would not follow leaves the task recorded on the live slot
+# with its pane in the old copy, which it still claims; the next relaunch
+# finishes the move: the pane is sent on and the old claim let go.
+test_relaunch_finishes_a_move_whose_pane_did_not_follow() {
+  local dir id=again-a1 out rc=0
+  dir=$(make_case again "$id")
+  OLDWT="$dir/oldpool/7/proj"
+  : > "$dir/fake/nofollow"
+  out=$(run_relaunch "$dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "again: the first relaunch should have refused: $out"
+  assert_grep "worktree=$dir/livepool/1/proj" "$dir/home/state/$id.meta" "again: the first relaunch did not record the move"
+  rm -f "$dir/fake/nofollow"
+  rc=0
+  out=$(run_relaunch "$dir" "$id") || rc=$?
+  expect_code 0 "$rc" "again: the second relaunch did not finish the move: $out"
+  assert_equals "$dir/livepool/1/proj" "$(cat "$dir/fake/cwd")" "again: the pane is not in the live slot"
+  [ -e "$dir/oldpool/7/.fm-slot-owner" ] && fail "again: the old copy kept its claim after the pane left it"
+  [ -e "$dir/livepool/1/.fm-slot-owner" ] || fail "again: the live slot is not claimed"
+  pass "a relaunch finishes a move whose pane did not follow the first time"
+}
+
 test_relaunch_moves_an_old_clone_ship_onto_the_live_clone
 test_relaunch_saves_and_refuses_a_dirty_old_copy
+test_relaunch_never_takes_a_slot_with_an_ignored_submodule_edit
+test_relaunch_finishes_a_move_whose_pane_did_not_follow
 test_relaunch_rollback_cleans_a_submodule_the_branch_added
 test_relaunch_refuses_an_ignored_submodule_edit
 test_relaunch_records_the_move_before_touching_the_endpoint
