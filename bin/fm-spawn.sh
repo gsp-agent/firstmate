@@ -4805,8 +4805,10 @@ spawn_relaunch_move_to_live_clone() {
   live=$(CDPATH='' cd -- "$live" 2>/dev/null && pwd -P) || return 0
   old_real=$(CDPATH='' cd -- "$PROJ_ABS" 2>/dev/null && pwd -P) || return 0
   [ "$live" != "$old_real" ] || return 0
-  old_origin=$(git -C "$old_real" remote get-url origin 2>/dev/null || true)
-  live_origin=$(git -C "$live" remote get-url origin 2>/dev/null || true)
+  # Origins compare by identity, so an https and an ssh URL of one repository
+  # are the same origin (as the Dispatch line compares them).
+  old_origin=$(fm_role_remote_identity "$(git -C "$old_real" remote get-url origin 2>/dev/null || true)" "$old_real")
+  live_origin=$(fm_role_remote_identity "$(git -C "$live" remote get-url origin 2>/dev/null || true)" "$live")
   [ -n "$old_origin" ] && [ "$old_origin" = "$live_origin" ] || return 0
   head_old=$(git -C "$RELAUNCH_WT" rev-parse --verify -q "refs/heads/$BRANCH" 2>/dev/null) || {
     echo "error: task $ID lives in $old_real, not this home's clone $live, and its copy $RELAUNCH_WT has no branch $BRANCH to carry over; refusing to relaunch it on the old clone" >&2
@@ -4815,21 +4817,21 @@ spawn_relaunch_move_to_live_clone() {
   dirty=$(git -C "$RELAUNCH_WT" status --porcelain --untracked-files=all 2>/dev/null) || dirty="unreadable status"
   if [ -n "$dirty" ]; then
     save="$DATA/$ID/relaunch-move-$(date -u +%Y%m%dT%H%M%SZ)"
-    mkdir -p "$save" &&
+    if ! { mkdir -p "$save" &&
       git -C "$RELAUNCH_WT" bundle create "$save/branch.bundle" "refs/heads/$BRANCH" >/dev/null 2>&1 &&
       git -C "$RELAUNCH_WT" diff --binary HEAD > "$save/uncommitted.patch" 2>/dev/null &&
-      printf '%s\n' "$dirty" > "$save/status.txt" || {
+      printf '%s\n' "$dirty" > "$save/status.txt"; }; then
       echo "error: task $ID's copy $RELAUNCH_WT has uncommitted changes and they could not be saved to $save; nothing was moved or relaunched" >&2
       exit 1
-    }
+    fi
     echo "error: task $ID lives in $old_real, not this home's clone $live, and its copy $RELAUNCH_WT has uncommitted or untracked changes. Saved the branch bundle and the uncommitted diff in $save first and moved nothing; commit or discard those changes, then relaunch again to move the task onto the live clone" >&2
     exit 1
   fi
   new=$( (cd "$live" && treehouse get --lease --lease-holder "fm-spawn-$ID" --no-fetch) </dev/null 2>/dev/null) || new=
-  [ -n "$new" ] && [ -d "$new" ] && fm_treehouse_pool_slot "$live" "$new" || {
-    echo "error: task $ID lives in $old_real, not this home's clone $live, and no slot of the live clone's worktree pool could be leased for it${new:+ (got '$new')}; nothing was moved or relaunched" >&2
+  if ! { [ -n "$new" ] && [ -d "$new" ] && fm_treehouse_pool_slot "$live" "$new"; }; then
+    echo "error: task $ID lives in $old_real, not this home's clone $live, and no slot of the live clone's worktree pool could be leased for it${new:+ (got $new)}; nothing was moved or relaunched" >&2
     exit 1
-  }
+  fi
   if ! git -C "$new" fetch -q --no-tags "$RELAUNCH_WT" "refs/heads/$BRANCH" </dev/null 2>/dev/null ||
     ! git -C "$new" checkout -q -B "$BRANCH" FETCH_HEAD </dev/null 2>/dev/null; then
     echo "error: task $ID's branch $BRANCH could not be carried from $RELAUNCH_WT into the live clone's slot $new; the old copy is untouched, nothing was relaunched, and slot $new stays leased to fm-spawn-$ID" >&2

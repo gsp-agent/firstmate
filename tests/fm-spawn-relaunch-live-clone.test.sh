@@ -122,5 +122,39 @@ test_relaunch_saves_and_refuses_a_dirty_old_copy() {
   pass "a relaunch saves a dirty old copy's bundle and diff first and moves nothing"
 }
 
+# One repository spelled two ways (ssh in the retired clone, https in the live
+# one) is one origin: the move still happens. The branch is carried from the
+# old copy, never fetched from origin, so the URLs need not resolve.
+test_relaunch_matches_origins_by_identity_not_spelling() {
+  local dir id=ident-a1 out rc=0 head_old
+  dir=$(make_case ident "$id")
+  git -C "$dir/old/proj" remote set-url origin git@github.com:Example-Org/Proj.git
+  git -C "$dir/home/projects/proj" remote set-url origin https://github.com/example-org/proj
+  head_old=$(git -C "$dir/oldwt" rev-parse HEAD)
+  out=$(run_relaunch "$dir" "$id") || rc=$?
+  expect_code 0 "$rc" "ident: the relaunch failed: $out"
+  assert_grep "worktree=$dir/livepool/1/proj" "$dir/home/state/$id.meta" "ident: an ssh and an https URL of one repository were read as two origins"
+  assert_equals "$head_old" "$(git -C "$dir/livepool/1/proj" rev-parse HEAD)" "ident: the live slot does not carry the branch head"
+  pass "a relaunch reads an ssh and an https URL of one repository as one origin"
+}
+
+# A home clone of another repository is not this task's live clone: nothing
+# moves and the relaunch stays on the recorded clone.
+test_relaunch_leaves_a_ship_whose_home_clone_is_another_origin() {
+  local dir id=other-a1 out rc=0
+  dir=$(make_case other "$id")
+  git -C "$dir/old/proj" remote set-url origin https://github.com/example-org/proj
+  git -C "$dir/home/projects/proj" remote set-url origin https://github.com/example-org/another
+  # Nothing moves, so the pane stands in the recorded copy.
+  printf '%s' "$dir/oldwt" > "$dir/fake/cwd"
+  out=$(run_relaunch "$dir" "$id") || rc=$?
+  expect_code 0 "$rc" "other: the relaunch failed: $out"
+  assert_grep "worktree=$dir/oldwt" "$dir/home/state/$id.meta" "other: a ship was moved onto a clone of another repository"
+  [ -e "$dir/livepool/1/proj" ] && fail "other: a live slot was leased for a clone of another repository"
+  pass "a relaunch leaves a ship alone when the home clone has another origin"
+}
+
 test_relaunch_moves_an_old_clone_ship_onto_the_live_clone
 test_relaunch_saves_and_refuses_a_dirty_old_copy
+test_relaunch_matches_origins_by_identity_not_spelling
+test_relaunch_leaves_a_ship_whose_home_clone_is_another_origin
