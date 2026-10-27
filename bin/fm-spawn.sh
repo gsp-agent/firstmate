@@ -1583,6 +1583,15 @@ SPAWN_SLOT_REFUSAL=0
 SPAWN_SKIP_LEASES=
 SPAWN_TARGET_LEASE=
 RELAUNCH_REPLACEMENT_PENDING=0
+# A relaunch moving a task onto the live clone (spawn_relaunch_move_to_live_clone)
+# is pending until the replacement record naming the new slot is published; an
+# exit before then rolls the move back (spawn_relaunch_move_rollback).
+RELAUNCH_MOVE_PENDING=0
+RELAUNCH_MOVE_NEW=
+RELAUNCH_MOVE_OLD=
+RELAUNCH_MOVE_LIVE=
+RELAUNCH_MOVE_BRANCH_CREATED=0
+RELAUNCH_MOVE_OLD_CLAIMED=0
 RELAUNCH_REPLACEMENT_BUSY_GEN=
 RELAUNCH_REPLACEMENT_HARNESS=
 RELAUNCH_REPLACEMENT_STATE=
@@ -1808,9 +1817,37 @@ EOF
   SPAWN_SKIP_LEASES=
 }
 
+# Undo a relaunch's move onto the live clone when the relaunch ends before its
+# replacement record is published: the new slot's claim is released, the old
+# copy's claim restored, the branch copy the move made in the live clone
+# removed (the old copy still holds it at the same head), and the lease
+# returned. The old copy and its record were never changed.
+spawn_relaunch_move_rollback() {
+  local new=$RELAUNCH_MOVE_NEW
+  RELAUNCH_MOVE_PENDING=0
+  [ -n "$new" ] || return 0
+  fm_treehouse_slot_owner_release "$new" "$ID" 2>/dev/null || true
+  if [ "$RELAUNCH_MOVE_OLD_CLAIMED" = 1 ]; then
+    fm_treehouse_slot_owner_claim "$RELAUNCH_MOVE_OLD" "$ID" "$FM_HOME" 2>/dev/null ||
+      echo "warning: could not restore task $ID's claim on its copy $RELAUNCH_MOVE_OLD after the move was rolled back" >&2
+  fi
+  if [ -d "$new" ]; then
+    git -C "$new" checkout -q --detach </dev/null >/dev/null 2>&1 || true
+    if [ "$RELAUNCH_MOVE_BRANCH_CREATED" = 1 ]; then
+      git -C "$new" branch -q -D "$BRANCH" </dev/null >/dev/null 2>&1 || true
+    fi
+    if spawn_lease_return_safe "$new"; then
+      (cd "$RELAUNCH_MOVE_LIVE" 2>/dev/null && treehouse return "$new" >/dev/null 2>&1 </dev/null) ||
+        echo "warning: the live clone's slot $new could not be returned after task $ID's move was rolled back" >&2
+    fi
+  fi
+  echo "relaunch: rolled back task $ID's move onto the live clone; its record and copy $RELAUNCH_MOVE_OLD are unchanged" >&2
+}
+
 spawn_abort_cleanup() {
   local status=$?
   spawn_release_skip_leases
+  [ "$RELAUNCH_MOVE_PENDING" != 1 ] || spawn_relaunch_move_rollback
   if { [ "$status" -eq "$SPAWN_DEFER_EXIT" ] || [ "$SPAWN_SLOT_REFUSAL" = 1 ]; } &&
     [ "$SPAWN_LAUNCH_SENT" = 0 ] && [ -n "$SPAWN_CREATED_ENDPOINT" ]; then
     if [ "$BACKEND" = orca ]; then
@@ -4827,14 +4864,24 @@ spawn_relaunch_move_to_live_clone() {
     echo "error: task $ID lives in $old_real, not this home's clone $live, and its copy $RELAUNCH_WT has uncommitted or untracked changes. Saved the branch bundle and the uncommitted diff in $save first and moved nothing; commit or discard those changes, then relaunch again to move the task onto the live clone" >&2
     exit 1
   fi
+  got=$(git -C "$live" rev-parse --verify -q "refs/heads/$BRANCH" 2>/dev/null || true)
+  if [ -n "$got" ] && [ "$got" != "$head_old" ]; then
+    echo "error: task $ID lives in $old_real, and this home's clone $live already has a branch $BRANCH at ${got:0:12}, not the copy's ${head_old:0:12}; refusing to move over it, nothing was moved or relaunched" >&2
+    exit 1
+  fi
+  [ -n "$got" ] || RELAUNCH_MOVE_BRANCH_CREATED=1
   new=$( (cd "$live" && treehouse get --lease --lease-holder "fm-spawn-$ID" --no-fetch) </dev/null 2>/dev/null) || new=
   if ! { [ -n "$new" ] && [ -d "$new" ] && fm_treehouse_pool_slot "$live" "$new"; }; then
     echo "error: task $ID lives in $old_real, not this home's clone $live, and no slot of the live clone's worktree pool could be leased for it${new:+ (got $new)}; nothing was moved or relaunched" >&2
     exit 1
   fi
+  RELAUNCH_MOVE_NEW=$new
+  RELAUNCH_MOVE_OLD=$RELAUNCH_WT
+  RELAUNCH_MOVE_LIVE=$live
+  RELAUNCH_MOVE_PENDING=1
   if ! git -C "$new" fetch -q --no-tags "$RELAUNCH_WT" "refs/heads/$BRANCH" </dev/null 2>/dev/null ||
     ! git -C "$new" checkout -q -B "$BRANCH" FETCH_HEAD </dev/null 2>/dev/null; then
-    echo "error: task $ID's branch $BRANCH could not be carried from $RELAUNCH_WT into the live clone's slot $new; the old copy is untouched, nothing was relaunched, and slot $new stays leased to fm-spawn-$ID" >&2
+    echo "error: task $ID's branch $BRANCH could not be carried from $RELAUNCH_WT into the live clone's slot $new; the old copy is untouched and nothing was relaunched" >&2
     exit 1
   fi
   got=$(git -C "$new" rev-parse HEAD 2>/dev/null || true)
@@ -4846,8 +4893,12 @@ spawn_relaunch_move_to_live_clone() {
     echo "error: could not claim the live clone's slot $new for task $ID; nothing was relaunched" >&2
     exit 1
   }
-  fm_treehouse_slot_owner_release "$RELAUNCH_WT" "$ID" 2>/dev/null || true
-  echo "relaunch: moved task $ID from $old_real ($RELAUNCH_WT) onto this home's clone $live, slot $new, branch $BRANCH at ${head_old:0:12}; the old copy is left clean for its pool" >&2
+  fm_treehouse_slot_owner_state "$RELAUNCH_WT" "$ID" 2>/dev/null || true
+  if [ "${FM_TREEHOUSE_SLOT_OWNER:-}" = mine ]; then
+    RELAUNCH_MOVE_OLD_CLAIMED=1
+    fm_treehouse_slot_owner_release "$RELAUNCH_WT" "$ID" 2>/dev/null || true
+  fi
+  echo "relaunch: moving task $ID from $old_real ($RELAUNCH_WT) onto this home's clone $live, slot $new, branch $BRANCH at ${head_old:0:12}; the old copy is left clean for its pool" >&2
   PROJ=$live
   PROJ_ABS=$live
   RELAUNCH_WT=$new
@@ -5678,7 +5729,9 @@ elif [ "$RELAUNCH" -eq 1 ]; then
     sleep 0.5
   done
   if [ -z "$relaunch_seen" ] || [ "$(real_path_or_raw "$relaunch_seen")" != "$relaunch_wt_real" ]; then
-    if [ "$BACKEND" != herdr ]; then
+    # A task just moved onto the live clone is told to go to its new slot on
+    # every backend: its shell still stands in the old copy.
+    if [ "$BACKEND" != herdr ] && [ "$RELAUNCH_MOVE_PENDING" != 1 ]; then
       echo "error: task $ID's endpoint is in '${relaunch_seen:-unknown}', not its recorded worktree '$WT'; refusing to relaunch an agent outside the copy holding its work" >&2
       exit 1
     fi
@@ -7147,6 +7200,7 @@ if [ "$RELAUNCH" -eq 1 ]; then
     exit 1
   fi
   RELAUNCH_REPLACEMENT_PENDING=0
+  RELAUNCH_MOVE_PENDING=0
   SPAWN_META_PUBLISH_STARTED=0
   SPAWN_META_TMP=
 fi
