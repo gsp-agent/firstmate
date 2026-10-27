@@ -1,0 +1,9 @@
+# new tests from a246efe0 run against base fb4463d9 bin/fm-spawn.sh (base tree extracted with git archive)
+## success-path test, then the abort test
+ok - a claimed own-clone slot the allocator hands out becomes the target, not a leaked lease
+not ok - aborted spawn did not return the claimed target slot it leased
+[exit 1]
+## refusal test alone against base
+ok - a refused claimed target slot keeps its work and claim when the pane spells it differently
+# selected tests done
+[exit 0]

@@ -1,0 +1,44 @@
+## case: refused
+fm-spawn under test: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-prereview-tree.QzUKca/bin/fm-spawn.sh (227f089)
+claimed own-clone slot: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wcxcoK/work/pool-link/.treehouse/project-dd3ad0/1/project
+pool root as configured: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.wcxcoK/work/pool-link
+
+### before the spawn
+$ cat /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wcxcoK/work/pool-link/.treehouse/project-dd3ad0/1/.fm-slot-owner
+task=finished-task-z1
+home=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.wcxcoK
+[exit 0]
+$ th_status
+[{"name":"1","path":"/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wcxcoK/work/pool-link/.treehouse/project-dd3ad0/1/project","status":"in-use","flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[{"pid":22644,"name":"sleep"}]}]
+[exit 0]
+
+### fm-spawn output (exit 1)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.wcxcoK
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.wcxcoK/data/live-claimed-target-refused/launch-brief.md records no ship branch; defaulting to legacy branch fm/live-claimed-target-refused
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.wcxcoK/data/live-claimed-target-refused/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+error: task live-claimed-target-refused checked out fm/live-claimed-target-refused in pool slot /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wcxcoK/work/pool/.treehouse/project-dd3ad0/1/project, and that slot was not returned because it holds uncommitted changes
+
+### treehouse calls made by fm-spawn and its pane (pass-through shim log)
+status --json
+status --json
+status --json
+get --lease --lease-holder fm-spawn-live-claimed-target-refused --no-fetch
+(finished-task-z1's last process in slot 1 ended before this allocator call)
+enter 1
+return /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wcxcoK/work/pool-link/.treehouse/project-dd3ad0/1/project
+
+### after the spawn
+$ th_status
+[{"name":"1","path":"/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wcxcoK/work/pool-link/.treehouse/project-dd3ad0/1/project","status":"leased","flavor":"git","lease_id":"fb7f34dd0c28e3b2a0e3b26561054979","lease_holder":"fm-spawn-live-claimed-target-refused","leased_at":"2026-10-27T12:27:09.433658-05:00","processes":[]}]
+[exit 0]
+slot-owner claim /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wcxcoK/work/pool-link/.treehouse/project-dd3ad0/1/.fm-slot-owner: absent
+keep-me.txt in slot: present (keep)
+$ git -C /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wcxcoK/work/pool-link/.treehouse/project-dd3ad0/1/project status --short --branch
+## fm/live-claimed-target-refused
+?? keep-me.txt
+[exit 0]
+task record state/live-claimed-target-refused.meta: absent
+
+### can the pool hand slot 1 out again right now?
+a fresh get --lease was handed: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wcxcoK/work/pool-link/.treehouse/project-dd3ad0/2/project
+RESULT: slot 1 was NOT handed out again

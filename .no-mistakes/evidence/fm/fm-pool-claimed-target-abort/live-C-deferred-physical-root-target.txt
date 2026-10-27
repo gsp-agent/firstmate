@@ -1,0 +1,43 @@
+## case: deferred-physical
+fm-spawn under test: /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5Z4VXW994WYEBGXT564PAH6/bin/fm-spawn.sh (a246efe0)
+claimed own-clone slot: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.a6N5aF/work/pool/.treehouse/project-ce19a6/1/project
+pool root as configured: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.a6N5aF/work/pool
+
+### before the spawn
+$ cat /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.a6N5aF/work/pool/.treehouse/project-ce19a6/1/.fm-slot-owner
+task=finished-task-z1
+home=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.a6N5aF
+[exit 0]
+$ th_status
+[{"name":"1","path":"/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.a6N5aF/work/pool/.treehouse/project-ce19a6/1/project","status":"in-use","flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[{"pid":19442,"name":"sleep"}]}]
+[exit 0]
+
+### fm-spawn output (exit 75)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.a6N5aF
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.a6N5aF/data/live-claimed-target-deferred-physical/launch-brief.md records no ship branch; defaulting to legacy branch fm/live-claimed-target-deferred-physical
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.a6N5aF/data/live-claimed-target-deferred-physical/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+deferred: a person is live on project project (live-session check of folder project: live signal=person source=lab), and a live session is run by the project's own agent, never by Firstmate; task live-claimed-target-deferred-physical was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+
+### treehouse calls made by fm-spawn and its pane (pass-through shim log)
+status --json
+status --json
+status --json
+get --lease --lease-holder fm-spawn-live-claimed-target-deferred-physical --no-fetch
+(finished-task-z1's last process in slot 1 ended before this allocator call)
+enter 1
+return --force /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.a6N5aF/work/pool/.treehouse/project-ce19a6/1/project
+
+### after the spawn
+$ th_status
+[{"name":"1","path":"/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.a6N5aF/work/pool/.treehouse/project-ce19a6/1/project","status":"available","flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[]}]
+[exit 0]
+slot-owner claim /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.a6N5aF/work/pool/.treehouse/project-ce19a6/1/.fm-slot-owner: absent
+keep-me.txt in slot: absent
+$ git -C /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.a6N5aF/work/pool/.treehouse/project-ce19a6/1/project status --short --branch
+## HEAD (no branch)
+[exit 0]
+task record state/live-claimed-target-deferred-physical.meta: absent
+
+### can the pool hand slot 1 out again right now?
+a fresh get --lease was handed: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.a6N5aF/work/pool/.treehouse/project-ce19a6/1/project
+RESULT: slot 1 is back in the pool

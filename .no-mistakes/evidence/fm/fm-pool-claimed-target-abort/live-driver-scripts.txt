@@ -1,0 +1,208 @@
+# live driver used for scenarios A-C (run-live.sh mints the lab home; live-case.sh builds the pool and drives fm-spawn)
+## run-live.sh
+#!/usr/bin/env bash
+# run-live.sh <case> <fm-root> <evidence-file>: mint a lab home and run one case.
+set -u
+LAB=$(mktemp -d "${TMPDIR:-/tmp}/fm-lab.XXXXXX")
+"$PWD/bin/fm-lab-home.sh" create "$LAB" >/dev/null || exit 1
+echo "LAB=$LAB"
+bash "$(dirname "$0")/live-case.sh" "$1" "$2" "$3" "$LAB"
+## live-case.sh
+#!/usr/bin/env bash
+# live-case.sh <case> <fm-root> <evidence-file> <lab>
+#
+# Drives the real bin/fm-spawn.sh (from <fm-root>) inside a marked lab home on
+# the lab's private tmux socket, against a real Treehouse pool built in the lab.
+#
+# Shape: the project's own-clone pool slot 1 is clean and carries the claim of
+# a finished task, finished-task-z1, whose last process is still running in
+# the slot when the spawn reads the pool (so Treehouse reads it in-use, not
+# available, and the spawn's exposed-claim screen passes). The other task's
+# process ends just before the spawn asks the allocator, so Treehouse hands
+# slot 1 out as free - the race the steering's claimed-target branch exists
+# for. The only stand-in is a pass-through `treehouse` shim on PATH that logs
+# each call and ends that process at the `get --lease` call; every call then
+# runs the real Treehouse binary.
+#
+# Cases:
+#   enter-fails   the pane's Treehouse resolves another (empty) root, so the
+#                 real `treehouse enter '1'` fails and the pane never settles.
+#   refused       the pane settles in slot 1 (the pool root is a symlink, so
+#                 the pane reports a different spelling than the lease), then
+#                 the live-session check writes an uncommitted file into the
+#                 slot and reports a live person: the ship refusal must keep it.
+#   deferred      the pane settles, the live-session check reports a live
+#                 person with the slot clean: the late deferral returns it.
+set -u
+set -o pipefail
+case_name=$1
+fm_root=$2
+evidence=$3
+LAB=$4
+REAL_TH=$(command -v treehouse)
+GATE_CWD=$PWD
+REAL_HOME=$HOME
+th_status() { (cd "$PROJ" && "$REAL_TH" status --json </dev/null 2>/dev/null); }
+ID="live-claimed-target-$case_name"
+W="$LAB/work"
+OUT="$LAB/out"
+mkdir -p "$W" "$OUT" "$LAB/shim" "$LAB/user-home" "$LAB/tmux"
+say() { printf '%s\n' "$*" | no-mistakes redact >>"$evidence" 2>/dev/null; }
+run() { # run a command and append its scrubbed output to the evidence file
+  local rc
+  printf '$ %s\n' "$*" | no-mistakes redact >>"$evidence" 2>/dev/null
+  "$@" 2>&1 | no-mistakes redact >>"$evidence" 2>/dev/null
+  rc=${PIPESTATUS[0]}
+  printf '[exit %s]\n' "$rc" >>"$evidence"
+  return "$rc"
+}
+export GIT_AUTHOR_NAME=fm-live GIT_AUTHOR_EMAIL=fm-live@example.invalid
+export GIT_COMMITTER_NAME=fm-live GIT_COMMITTER_EMAIL=fm-live@example.invalid
+
+# --- lab home ---------------------------------------------------------------
+printf '%s\n' codex >"$LAB/config/crew-harness"
+touch "$LAB/state/.last-watcher-beat"
+mkdir -p "$LAB/data/$ID"
+cat >"$LAB/data/$ID/brief.md" <<EOF
+# Task
+## Captain's intent
+Live check of the claimed-target abort path ($case_name).
+
+## Firstmate spec
+Exercise the spawn behavior under test.
+EOF
+
+# --- project, origin and real Treehouse pool --------------------------------
+git init --quiet --bare -b main "$W/origin.git"
+git clone --quiet "$W/origin.git" "$W/project" 2>/dev/null
+git -C "$W/project" commit --quiet --allow-empty -m init
+mkdir -p "$W/pool"
+pool_root="$W/pool"
+case "$case_name" in
+  refused | deferred)
+    ln -s pool "$W/pool-link"
+    pool_root="$W/pool-link"
+    ;;
+  deferred-physical) pool_root="$(cd "$W" && pwd -P)/pool" ;;
+esac
+printf 'root = "%s"\nmax_trees = 4\n' "$pool_root" >"$W/project/treehouse.toml"
+git -C "$W/project" add treehouse.toml
+git -C "$W/project" commit --quiet -m 'treehouse config'
+git -C "$W/project" push --quiet origin main
+git -C "$W/project" remote set-head origin main >/dev/null 2>&1 || true
+PROJ="$W/project"
+slot=$(cd "$PROJ" && "$REAL_TH" get --lease --lease-holder lab-setup --no-fetch 2>/dev/null </dev/null)
+(cd "$PROJ" && "$REAL_TH" return "$slot" >/dev/null 2>&1 </dev/null)
+marker="$(dirname "$slot")/.fm-slot-owner"
+printf 'task=finished-task-z1\nhome=%s\n' "$LAB" >"$marker"
+( (cd "$slot" && exec sleep 900) & echo $! >"$LAB/other-worker.pid" )
+
+# --- pass-through treehouse shim --------------------------------------------
+cat >"$LAB/shim/treehouse" <<SH
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >>"$OUT/treehouse-calls.log"
+if [ "\${1:-} \${2:-}" = "get --lease" ] && [ -f "$LAB/other-worker.pid" ]; then
+  pid=\$(cat "$LAB/other-worker.pid")
+  rm -f "$LAB/other-worker.pid"
+  kill "\$pid" 2>/dev/null
+  while kill -0 "\$pid" 2>/dev/null; do sleep 0.05; done
+  printf '%s\n' "(finished-task-z1's last process in slot 1 ended before this allocator call)" >>"$OUT/treehouse-calls.log"
+fi
+exec "$REAL_TH" "\$@"
+SH
+chmod +x "$LAB/shim/treehouse"
+
+# --- live-session detector for the post-settle cases ------------------------
+live_check=
+case "$case_name" in
+  refused)
+    live_check="$LAB/live-session.py"
+    cat >"$live_check" <<PY
+with open("$slot/keep-me.txt", "w") as handle:
+    handle.write("keep\n")
+print("live signal=person source=lab")
+raise SystemExit(75)
+PY
+    ;;
+  deferred | deferred-physical)
+    live_check="$LAB/live-session.py"
+    cat >"$live_check" <<'PY'
+print("live signal=person source=lab")
+raise SystemExit(75)
+PY
+    ;;
+esac
+
+say "## case: $case_name"
+say "fm-spawn under test: $fm_root/bin/fm-spawn.sh ($(git -C "$fm_root" rev-parse --short HEAD 2>/dev/null || echo 'extracted tree'))"
+say "claimed own-clone slot: $slot"
+say "pool root as configured: $pool_root"
+say ""
+say "### before the spawn"
+run cat "$marker"
+run th_status
+
+# --- the inner command the lab pane runs ------------------------------------
+cat >"$LAB/inner.sh" <<SH
+#!/usr/bin/env bash
+set -o pipefail
+"$fm_root/bin/fm-spawn.sh" "$ID" "$PROJ" --mode no-mistakes --yolo off 2>&1 |
+  env HOME="$REAL_HOME" no-mistakes redact >"$OUT/spawn.txt" 2>/dev/null
+echo "\${PIPESTATUS[0]}" >"$OUT/spawn.rc.tmp"
+mv "$OUT/spawn.rc.tmp" "$OUT/spawn.rc"
+SH
+pane_root_env=()
+if [ "$case_name" = enter-fails ]; then
+  # The tmux server's (and so every new window's) Treehouse resolves an empty
+  # root; fm-spawn itself runs without it and resolves the project's root.
+  mkdir -p "$W/other-root"
+  pane_root_env=(TREEHOUSE_ROOT="$W/other-root")
+fi
+live_env=(FM_LIVE_SESSION_CHECK="$live_check")
+env -u NO_MISTAKES_GATE -u FM_GATE_REFUSE_BYPASS -u FM_ROOT_OVERRIDE -u FM_STATE_OVERRIDE \
+  -u FM_DATA_OVERRIDE -u FM_CONFIG_OVERRIDE -u FM_PROJECTS_OVERRIDE \
+  HOME="$LAB/user-home" CODEX_HOME= SHELL=/bin/bash PATH="$LAB/shim:$PATH" \
+  "${pane_root_env[@]}" TMUX_TMPDIR="$LAB/tmux" \
+  tmux -L fm-lab new-session -d -s primary -x 200 -y 50 -c "$GATE_CWD" -e FM_HOME="$LAB" \
+  "env -u TREEHOUSE_ROOT ${live_env[*]@Q} bash $LAB/inner.sh; sleep 600"
+
+for _ in $(seq 1 240); do
+  [ -f "$OUT/spawn.rc" ] && break
+  sleep 1
+done
+say ""
+say "### fm-spawn output (exit $(cat "$OUT/spawn.rc" 2>/dev/null || echo 'none: timed out'))"
+cat "$OUT/spawn.txt" >>"$evidence" 2>/dev/null
+say ""
+say "### treehouse calls made by fm-spawn and its pane (pass-through shim log)"
+no-mistakes redact <"$OUT/treehouse-calls.log" >>"$evidence" 2>/dev/null
+say ""
+say "### after the spawn"
+run th_status
+if [ -e "$marker" ] || [ -L "$marker" ]; then
+  run cat "$marker"
+else
+  say "slot-owner claim $marker: absent"
+fi
+if [ -f "$slot/keep-me.txt" ]; then
+  say "keep-me.txt in slot: present ($(cat "$slot/keep-me.txt"))"
+else
+  say "keep-me.txt in slot: absent"
+fi
+run git -C "$slot" status --short --branch
+if [ -e "$LAB/state/$ID.meta" ]; then say "task record state/$ID.meta: present"; else say "task record state/$ID.meta: absent"; fi
+say ""
+say "### can the pool hand slot 1 out again right now?"
+relet=$(cd "$PROJ" && "$REAL_TH" get --lease --lease-holder lab-verify --no-fetch 2>/dev/null </dev/null)
+say "a fresh get --lease was handed: ${relet:-nothing}"
+if [ -n "$relet" ] && [ "$relet" -ef "$slot" ]; then
+  say "RESULT: slot 1 is back in the pool"
+else
+  say "RESULT: slot 1 was NOT handed out again"
+fi
+[ -z "$relet" ] || (cd "$PROJ" && "$REAL_TH" return "$relet" >/dev/null 2>&1 </dev/null)
+
+# --- teardown of processes (the caller removes the lab directory) -----------
+TMUX_TMPDIR="$LAB/tmux" tmux -L fm-lab kill-server 2>/dev/null || true
+if [ -f "$LAB/other-worker.pid" ]; then kill "$(cat "$LAB/other-worker.pid")" 2>/dev/null || true; fi
+echo "done: $case_name rc=$(cat "$OUT/spawn.rc" 2>/dev/null || echo none)"

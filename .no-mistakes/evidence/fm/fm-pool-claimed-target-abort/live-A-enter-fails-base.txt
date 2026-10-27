@@ -1,0 +1,45 @@
+## case: enter-fails
+fm-spawn under test: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-base-tree.nvWRxh/bin/fm-spawn.sh (a510399)
+claimed own-clone slot: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.OZKOtk/work/pool/.treehouse/project-680f88/1/project
+pool root as configured: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.OZKOtk/work/pool
+
+### before the spawn
+$ cat /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.OZKOtk/work/pool/.treehouse/project-680f88/1/.fm-slot-owner
+task=finished-task-z1
+home=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.OZKOtk
+[exit 0]
+$ th_status
+[{"name":"1","path":"/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.OZKOtk/work/pool/.treehouse/project-680f88/1/project","status":"in-use","flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[{"pid":98591,"name":"sleep"}]}]
+[exit 0]
+
+### fm-spawn output (exit 1)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.OZKOtk
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.OZKOtk/data/live-claimed-target-enter-fails/launch-brief.md records no ship branch; defaulting to legacy branch fm/live-claimed-target-enter-fails
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.OZKOtk/data/live-claimed-target-enter-fails/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+error: treehouse enter '1' did not enter an isolated worktree within 60s (last seen '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.OZKOtk/work/project': it is the spawning project itself; spawning project '/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.OZKOtk/work/project'); inspect window primary:fm-live-claimed-target-enter-fails
+
+### treehouse calls made by fm-spawn and its pane (pass-through shim log)
+status --json
+status --json
+status --json
+get --lease --lease-holder fm-spawn-live-claimed-target-enter-fails --no-fetch
+(finished-task-z1's last process in slot 1 ended before this allocator call)
+enter 1
+
+### after the spawn
+$ th_status
+[{"name":"1","path":"/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.OZKOtk/work/pool/.treehouse/project-680f88/1/project","status":"leased","flavor":"git","lease_id":"426d601868b1429f7fb7ef0a6a2a9eba","lease_holder":"fm-spawn-live-claimed-target-enter-fails","leased_at":"2026-10-27T12:23:15.138376-05:00","processes":[]}]
+[exit 0]
+$ cat /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.OZKOtk/work/pool/.treehouse/project-680f88/1/.fm-slot-owner
+task=finished-task-z1
+home=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.OZKOtk
+[exit 0]
+keep-me.txt in slot: absent
+$ git -C /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.OZKOtk/work/pool/.treehouse/project-680f88/1/project status --short --branch
+## HEAD (no branch)
+[exit 0]
+task record state/live-claimed-target-enter-fails.meta: absent
+
+### can the pool hand slot 1 out again right now?
+a fresh get --lease was handed: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.OZKOtk/work/pool/.treehouse/project-680f88/2/project
+RESULT: slot 1 was NOT handed out again

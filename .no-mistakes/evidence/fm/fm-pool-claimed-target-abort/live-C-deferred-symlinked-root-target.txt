@@ -1,0 +1,51 @@
+## case: deferred
+fm-spawn under test: /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5Z4VXW994WYEBGXT564PAH6/bin/fm-spawn.sh (a246efe0)
+claimed own-clone slot: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.P990bZ/work/pool-link/.treehouse/project-6fa544/1/project
+pool root as configured: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.P990bZ/work/pool-link
+
+### before the spawn
+$ cat /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.P990bZ/work/pool-link/.treehouse/project-6fa544/1/.fm-slot-owner
+task=finished-task-z1
+home=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.P990bZ
+[exit 0]
+$ th_status
+[{"name":"1","path":"/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.P990bZ/work/pool-link/.treehouse/project-6fa544/1/project","status":"in-use","flavor":"git","lease_id":"","lease_holder":"","leased_at":null,"processes":[{"pid":27091,"name":"sleep"}]}]
+[exit 0]
+
+### fm-spawn output (exit 1)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.P990bZ
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.P990bZ/data/live-claimed-target-deferred/launch-brief.md records no ship branch; defaulting to legacy branch fm/live-claimed-target-deferred
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.P990bZ/data/live-claimed-target-deferred/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+deferred: a person is live on project project (live-session check of folder project: live signal=person source=lab), and a live session is run by the project's own agent, never by Firstmate; task live-claimed-target-deferred was not launched and its backlog item stays queued - dispatch it again once the check reads clear
+A new version of treehouse is available: v2.3.0 → v3.1.7
+Run "treehouse update" to update
+
+worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.P990bZ/work/pool/.treehouse/project-6fa544/1/project is not managed by treehouse
+error: task live-claimed-target-deferred checked out fm/live-claimed-target-deferred in pool slot /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.P990bZ/work/pool/.treehouse/project-6fa544/1/project, and that slot was not returned because treehouse return failed
+
+### treehouse calls made by fm-spawn and its pane (pass-through shim log)
+status --json
+status --json
+status --json
+get --lease --lease-holder fm-spawn-live-claimed-target-deferred --no-fetch
+(finished-task-z1's last process in slot 1 ended before this allocator call)
+enter 1
+return --force /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.P990bZ/work/pool/.treehouse/project-6fa544/1/project
+
+### after the spawn
+$ th_status
+[{"name":"1","path":"/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.P990bZ/work/pool-link/.treehouse/project-6fa544/1/project","status":"leased","flavor":"git","lease_id":"893815b2a2324698e4689e949c6d70a1","lease_holder":"fm-spawn-live-claimed-target-deferred","leased_at":"2026-10-27T12:27:21.823425-05:00","processes":[]}]
+[exit 0]
+$ cat /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.P990bZ/work/pool-link/.treehouse/project-6fa544/1/.fm-slot-owner
+task=live-claimed-target-deferred
+home=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.P990bZ
+[exit 0]
+keep-me.txt in slot: absent
+$ git -C /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.P990bZ/work/pool-link/.treehouse/project-6fa544/1/project status --short --branch
+## fm/live-claimed-target-deferred
+[exit 0]
+task record state/live-claimed-target-deferred.meta: absent
+
+### can the pool hand slot 1 out again right now?
+a fresh get --lease was handed: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.P990bZ/work/pool-link/.treehouse/project-6fa544/2/project
+RESULT: slot 1 was NOT handed out again

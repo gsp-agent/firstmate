@@ -33,3 +33,4 @@ ok - a pool-full projected Herdr refusal after a noop close reports its endpoint
 ok - a pool-full projected-focused Herdr refusal after a closed close reports its endpoint truthfully
 ok - a pool-full projected-clear Herdr refusal after a closed close reports its endpoint truthfully
 # all fm-spawn-worktree-settle tests passed
+bash tests/fm-spawn-worktree-settle.test.sh  55.94s user 78.33s system 23% cpu 9:32.74 total
