@@ -1,0 +1,2 @@
+# Failing-first relaunch replay in tests/fm-spawn-relaunch-live-clone.test.sh: a ship recorded in an older same-origin clone relaunches onto a leased live-pool slot at the same branch head, with its record naming the live clone; on the base it relaunches in the old clone's worktree. An ssh and an https URL of one repository read as one origin (fails on the PR's first commit).
+pr: 171
