@@ -1,0 +1,17 @@
+== pushed ship branch ==
+  before get: HEAD=feat: finished work branch=fm/finished status=available
+  get --lease handed out: slot 2
+  slot 1 now: HEAD=feat: finished work branch=fm/finished files=README.md feature.txt 
+== unpushed ship branch ==
+  before get: HEAD=feat: finished work branch=fm/finished status=available
+  get --lease handed out: slot 2
+  slot 1 now: HEAD=feat: finished work branch=fm/finished files=README.md feature.txt 
+== squash-merged-stale ship branch ==
+  before get: HEAD=feat: finished work branch=fm/finished status=available
+  get --lease handed out: slot 2
+  slot 1 now: HEAD=feat: finished work branch=fm/finished files=README.md feature.txt 
+== squash-merged-fetched ship branch ==
+  before get: HEAD=feat: finished work branch=fm/finished status=available
+  get --lease handed out: slot 1
+  slot 1 now: HEAD=feat: finished work (#1) [squash] branch= files=README.md feature.txt 
+probe dir: <probe>

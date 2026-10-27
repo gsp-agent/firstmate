@@ -1,0 +1,50 @@
+### base 2703782f: head's tests/fm-spawn-worktree-settle.test.sh cases against 2703782f bin/
+---- case: test_allocator_claimed_own_slot_becomes_target
+not ok - spawn left its lease (fm-spawn-settle-pool-claimed-target-z18) on a slot whose claim names another task
+exit=1
+---- case: test_allocator_claimed_slot_is_never_returned success
+ok - a success spawn never enters or returns a claimed slot the reuse test refuses
+exit=0
+---- case: test_allocator_claimed_slot_is_never_returned abort
+ok - a abort spawn never enters or returns a claimed slot the reuse test refuses
+exit=0
+---- case: test_mixed_pool_makes_new_own_slot_when_none_free
+ok - no free own-clone slot: the allocator is leased forward until Treehouse makes one
+exit=0
+---- case: test_mixed_pool_enters_free_own_slot
+ok - a mixed pool with a free own-clone slot is entered by exact slot name
+exit=0
+---- case: test_mixed_pool_claimed_own_slot_uses_treehouse_get
+ok - a claimed own-clone slot is left alone and treehouse get is used instead
+exit=0
+---- case: test_dirty_own_slot_is_not_entered
+ok - a dirty own-clone slot is not entered
+exit=0
+---- case: test_unmerged_own_slot_is_not_entered
+ok - an unmerged own-clone slot is not entered
+exit=0
+### head 636f9f8d: head's tests/fm-spawn-worktree-settle.test.sh cases against 636f9f8d bin/
+---- case: test_allocator_claimed_own_slot_becomes_target
+ok - a claimed own-clone slot the allocator hands out becomes the target, not a leaked lease
+exit=0
+---- case: test_allocator_claimed_slot_is_never_returned success
+ok - a success spawn never enters or returns a claimed slot the reuse test refuses
+exit=0
+---- case: test_allocator_claimed_slot_is_never_returned abort
+ok - a abort spawn never enters or returns a claimed slot the reuse test refuses
+exit=0
+---- case: test_mixed_pool_makes_new_own_slot_when_none_free
+ok - no free own-clone slot: the allocator is leased forward until Treehouse makes one
+exit=0
+---- case: test_mixed_pool_enters_free_own_slot
+ok - a mixed pool with a free own-clone slot is entered by exact slot name
+exit=0
+---- case: test_mixed_pool_claimed_own_slot_uses_treehouse_get
+ok - a claimed own-clone slot is left alone and treehouse get is used instead
+exit=0
+---- case: test_dirty_own_slot_is_not_entered
+ok - a dirty own-clone slot is not entered
+exit=0
+---- case: test_unmerged_own_slot_is_not_entered
+ok - an unmerged own-clone slot is not entered
+exit=0
