@@ -381,12 +381,13 @@ EOF
 # tree) names a task for it, and each tree the pool can still create below its
 # size is free too. A claimed tree with nothing running in it reads
 # `available` to Treehouse, but it is a task's copy (one whose worker ended and
-# that is not yet torn down): no spawn takes it, and `treehouse get` would reset
-# it if asked for a tree, so it is held, and named in
-# FM_PROJECT_CAPACITY_POOL_EXPOSED for bin/fm-spawn.sh to keep the allocator
-# away from. `available` is otherwise Treehouse's status, not its reuse test,
-# so the count can be high, never low: a spawn whose `treehouse get` then
-# refuses the pool still defers (bin/fm-spawn.sh).
+# that is not yet torn down): a spawn takes it only when the allocator hands it
+# out (bin/fm-spawn.sh), and `treehouse get` would reset it if asked for a tree,
+# so it is held, and named in FM_PROJECT_CAPACITY_POOL_EXPOSED for
+# bin/fm-spawn.sh to keep the allocator away from. `available` is otherwise
+# Treehouse's status, not its reuse test, so the count can be high, never low:
+# a spawn whose `treehouse get` then refuses the pool still defers
+# (bin/fm-spawn.sh).
 # Sets FM_PROJECT_CAPACITY_POOL_KNOWN to 1 with FM_PROJECT_CAPACITY_POOL_MAX,
 # FM_PROJECT_CAPACITY_POOL_FREE, FM_PROJECT_CAPACITY_POOL_HELD (each held tree
 # as <name> <status>[ by <lease holder>] or <name> claimed by <task>, nothing
