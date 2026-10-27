@@ -1,0 +1,8 @@
+== base fm-spawn.sh (fb4463d9), success
+not ok - spawn left its steering lease (fm-spawn-settle-pool-claimed-clean-success) on a claimed slot the reuse test refuses (expected '', got 'fm-spawn-settle-pool-claimed-clean-success')
+== base fm-spawn.sh (fb4463d9), abort
+not ok - spawn left its steering lease (fm-spawn-settle-pool-claimed-clean-abort) on a claimed slot the reuse test refuses (expected '', got 'fm-spawn-settle-pool-claimed-clean-abort')
+== change fm-spawn.sh (6f1f6649), success
+ok - a success spawn releases its steering lease on a clean claimed slot the reuse test refuses
+== change fm-spawn.sh (6f1f6649), abort
+ok - a abort spawn releases its steering lease on a clean claimed slot the reuse test refuses

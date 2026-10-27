@@ -1,0 +1,36 @@
+ok - a single transient stale pane_current_path read is not accepted as the worktree
+ok - an already-settled pane confirms on the next read, not a whole extra cycle
+ok - a transient primary-checkout pane read is not accepted as the worktree
+ok - a pane stuck on the primary checkout fails loudly at the deadline
+ok - a pane settled in a different clone's worktree is never accepted as the worktree
+ok - a root switch enters the configured pool's slot, never the old pool's
+ok - a root switch to an empty configured pool uses treehouse get, never the old pool's slot
+ok - a mixed pool with a free own-clone slot is entered by exact slot name
+ok - a Treehouse without status --json uses treehouse get, never a direct enter
+ok - a root switch with an unreadable status uses treehouse get, never the old pool's slot
+ok - a claimed own-clone slot is left alone and treehouse get is used instead
+ok - no free own-clone slot: the allocator is leased forward until Treehouse makes one
+ok - a claimed own-clone slot the allocator hands out becomes the target, not a leaked lease
+ok - a success spawn never enters or returns a claimed slot the reuse test refuses
+ok - a abort spawn never enters or returns a claimed slot the reuse test refuses
+ok - a success spawn releases its steering lease on a clean claimed slot the reuse test refuses
+ok - a abort spawn releases its steering lease on a clean claimed slot the reuse test refuses
+ok - a dirty own-clone slot is not entered
+ok - an unmerged own-clone slot is not entered
+ok - a treehouse get that exits on a full pool refuses at once with treehouse's reason and leaves no window
+ok - a pool-full spawn reports its present window after a silent close failure
+ok - a pool-full spawn reports its unreadable window after a silent close failure
+ok - a slow but working treehouse get still launches
+ok - a pool-full flat Herdr refusal after a closed close reports its endpoint truthfully
+ok - a pool-full flat Herdr refusal after a refused close reports its endpoint truthfully
+ok - a pool-full flat Herdr refusal after a noop close reports its endpoint truthfully
+ok - a pool-full flat Herdr refusal after a unknown close reports its endpoint truthfully
+ok - a pool-full contended Herdr refusal after a closed close reports its endpoint truthfully
+ok - a pool-full flat tall Herdr refusal after a closed close reports its endpoint truthfully
+ok - a pool-full flat tall-noscroll Herdr refusal after a closed close reports its endpoint truthfully
+ok - a pool-full projected Herdr refusal after a closed close reports its endpoint truthfully
+ok - a pool-full projected Herdr refusal after a noop close reports its endpoint truthfully
+ok - a pool-full projected-focused Herdr refusal after a closed close reports its endpoint truthfully
+ok - a pool-full projected-clear Herdr refusal after a closed close reports its endpoint truthfully
+# all fm-spawn-worktree-settle tests passed
+settle rc=0

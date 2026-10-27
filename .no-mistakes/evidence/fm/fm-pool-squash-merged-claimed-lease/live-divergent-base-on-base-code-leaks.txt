@@ -1,0 +1,28 @@
+### fm-spawn.sh lab-div-base (/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-failfirst.ivX4Sm) --mode no-mistakes --yolo off --base-branch release --harness sleep 600
+spawn exit=0
+--- spawn output
+warn: no registry at /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.GDLrEX/data/projects.md; defaulting myproj to no-mistakes off
+spawned lab-div-base harness=sleep kind=ship mode=no-mistakes yolo=off window=primary:fm-lab-div-base worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.GDLrEX/fixture/pool/.treehouse/myproj-516176/2/myproj
+--- what the spawn asked Treehouse (real v2.3.0, via the logging wrapper)
+treehouse status --json
+treehouse status --json
+lab: claimed slot worker pid 11283 ended after the pre-steering pool read
+treehouse get --lease --lease-holder fm-spawn-lab-div-base --no-fetch
+  -> rc=0 path=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.GDLrEX/fixture/pool/.treehouse/myproj-516176/1/myproj
+treehouse get
+--- treehouse status --json (real), after the spawn
+{"name":"1","status":"leased","lease_holder":"fm-spawn-lab-div-base","processes":[]}
+{"name":"2","status":"in-use","lease_holder":"","processes":["bash","sleep"]}
+--- claimed slot 1: pool state lease
+{"name":"1","leased":true,"lease_holder":"fm-spawn-lab-div-base"}
+--- claimed slot claim file
+task=other-task
+home=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.GDLrEX
+--- claimed slot checkout
+HEAD 82bec02 main work branch=''
+status: ''
+ref fm/other-task: 82bec02 main work
+--- task record
+worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.GDLrEX/fixture/pool/.treehouse/myproj-516176/2/myproj
+kind=ship
+base_branch=release

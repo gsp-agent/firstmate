@@ -1,0 +1,39 @@
+== live run: variant=clean fm-spawn.sh@fb4463d9 treehouse=v2.3.0
+origin: main=91e89709, release=988555d; main is not an ancestor of release
+claimed slot: pool/.treehouse/proj-656832/1/proj at 91e8970 (origin/main), claim: task=some-other-task, ignored file build.log
+-- treehouse status before the spawn (claimed slot has a live process in it):
+{"name":"1","status":"in-use","path":"pool/.treehouse/proj-656832/1/proj"}
+-- fm-spawn.sh lablease94022clean <project> --mode no-mistakes --yolo off --base-branch release --backend tmux
+warn: no registry at <lab>/data/projects.md; defaulting proj to no-mistakes off
+warning: <lab>/data/lablease94022clean/launch-brief.md records no ship branch; defaulting to legacy branch fm/lablease94022clean
+warning: <lab>/data/lablease94022clean/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+spawned lablease94022clean harness=codex kind=ship mode=no-mistakes yolo=off window=primary:fm-lablease94022clean worktree=<lab>/pool/.treehouse/proj-656832/2/proj
+spawn exit: 0
+-- treehouse calls (wrapper log):
+treehouse get --lease --lease-holder lab-setup --no-fetch
+treehouse return --if-lease-holder lab-setup <lab>/pool/.treehouse/proj-656832/1/proj
+treehouse status --json
+treehouse status --json
+treehouse get --lease --lease-holder fm-spawn-lablease94022clean --no-fetch
+  (wrapper: the claimed slot worker 95303 ended before this lease)
+treehouse get
+-- after the spawn (holder process gone: yes):
+{"name":"1","status":"leased","path":"pool/.treehouse/proj-656832/1/proj"}
+{"name":"2","status":"in-use","path":"pool/.treehouse/proj-656832/2/proj"}
+claimed slot lease in treehouse-state.json: leased=true holder='fm-spawn-lablease94022clean'
+claimed slot claim file: task=some-other-task home=<lab> 
+claimed slot HEAD: 91e8970 (origin/main 91e89709); status: ''
+ignored build.log: present
+task record: worktree=<lab>/pool/.treehouse/proj-656832/2/proj base_branch=release 
+-- adversarial: real treehouse return with the wrong lease holder
+
+failed to return worktree: lease precondition failed: lease holder does not match worktree <lab>/pool/.treehouse/proj-656832/1/proj
+exit: 0
+holder now: 'fm-spawn-lablease94022clean'
+-- worker window fm-lablease94022clean (last lines):
+bash-3.2$ export GOTMPDIR=/tmp/fm-lablease94022clean/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=lablease94022clean
+bash-3.2$ . '/tmp/fm-lablease94022clean+b2b83a9c76037ff1d2a75d6e572366115508287b91b505cbb724518ec975179d/launch.s1793123105.96081.3388.sh'
+lab stub crew worker started (no model call)
+stub turn running (esc to interrupt)

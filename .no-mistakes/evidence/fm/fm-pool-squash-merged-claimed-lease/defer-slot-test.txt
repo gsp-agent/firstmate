@@ -1,0 +1,14 @@
+ok - a clean live-session deferral returns its slot in place, and the retry spawns (origin)
+ok - a clean live-session deferral returns its slot in place, and the retry spawns (originless)
+ok - a return that keeps the ship branch is refused with its claim intact
+ok - cleanup keeps task ownership and rechecks meta under the project lock
+ok - cleanup keeps task ownership and rechecks branch under the project lock
+ok - cleanup keeps task ownership and rechecks dirty under the project lock
+ok - cleanup keeps task ownership and rechecks commits under the project lock
+ok - cleanup keeps task ownership and rechecks owner under the project lock
+ok - a slot holding uncommitted changes is kept and the spawn refuses
+ok - a slot holding task commits is kept and the spawn refuses (origin)
+ok - a slot holding task commits is kept and the spawn refuses (originless)
+ok - an adopted target slot holding task commits keeps its ship branch and claim on refusal
+ok - an originless slot without another local branch is refused
+defer rc=0

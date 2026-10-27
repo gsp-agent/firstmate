@@ -1,0 +1,35 @@
+== live run: variant=dirty fm-spawn.sh@6f1f6649 treehouse=v2.3.0
+origin: main=99c5296b, release=41d669f; main is not an ancestor of release
+claimed slot: pool/.treehouse/proj-1ab922/1/proj at 99c5296 (origin/main), claim: task=some-other-task, ignored file build.log
+-- treehouse status before the spawn (claimed slot has a live process in it):
+{"name":"1","status":"in-use","path":"pool/.treehouse/proj-1ab922/1/proj"}
+-- fm-spawn.sh lablease44629dirty <project> --mode no-mistakes --yolo off --base-branch release --backend tmux
+warn: no registry at <lab>/data/projects.md; defaulting proj to no-mistakes off
+warning: <lab>/data/lablease44629dirty/launch-brief.md records no ship branch; defaulting to legacy branch fm/lablease44629dirty
+warning: <lab>/data/lablease44629dirty/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+spawned lablease44629dirty harness=codex kind=ship mode=no-mistakes yolo=off window=primary:fm-lablease44629dirty worktree=<lab>/pool/.treehouse/proj-1ab922/2/proj
+spawn exit: 0
+-- treehouse calls (wrapper log):
+treehouse get --lease --lease-holder lab-setup --no-fetch
+treehouse return --if-lease-holder lab-setup <lab>/pool/.treehouse/proj-1ab922/1/proj
+treehouse status --json
+treehouse status --json
+treehouse get --lease --lease-holder fm-spawn-lablease44629dirty --no-fetch
+  (wrapper: the claimed slot worker 49165 ended before this lease)
+  (wrapper: wrote uncommitted residue into <lab>/pool/.treehouse/proj-1ab922/1/proj)
+treehouse get
+-- after the spawn (holder process gone: yes):
+{"name":"1","status":"leased","path":"pool/.treehouse/proj-1ab922/1/proj"}
+{"name":"2","status":"in-use","path":"pool/.treehouse/proj-1ab922/2/proj"}
+claimed slot lease in treehouse-state.json: leased=true holder='fm-spawn-lablease44629dirty'
+claimed slot claim file: task=some-other-task home=<lab> 
+claimed slot HEAD: 99c5296 (origin/main 99c5296b); status: ' M README.md '
+ignored build.log: present
+task record: worktree=<lab>/pool/.treehouse/proj-1ab922/2/proj base_branch=release 
+-- worker window fm-lablease44629dirty (last lines):
+bash-3.2$ export GOTMPDIR=/tmp/fm-lablease44629dirty/gotmp
+bash-3.2$ export COMPACT_ADVISER_DISABLE=1
+bash-3.2$ export FM_TASK_ID=lablease44629dirty
+bash-3.2$ . '/tmp/fm-lablease44629dirty+a93c62a9a59006f230d7a1eb6ba858ee4b819d36754852e469ed6ad2ba7164e7/launch.s1793123037.50518.7926.sh'
+lab stub crew worker started (no model call)
+stub turn running (esc to interrupt)
