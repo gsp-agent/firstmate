@@ -252,6 +252,17 @@ test_line_reads_the_home_clone_of_a_recorded_older_clone() {
   out=$(FM_FAKE_TREEHOUSE_STATUS=$GSP_FULL_POOL run_helper "$case_dir" "$old") || fail "home-clone: helper failed"
   assert_contains "$out" "and 0 of 4 worktree pool trees free" "home-clone: the older clone's pool answered instead of the home clone's"
   assert_contains "$out" "Nothing starts until a pool tree is returned" "home-clone: told to start into the full home pool"
+  # The projects root bin/fm-spawn.sh selects can be overridden, and the line
+  # follows it (chip, PR 169 review 5661020281): a selected clone sized 3 trees
+  # answers, not the home root's 4-tree clone.
+  mkdir -p "$case_dir/selected"
+  git clone -q "$case_dir/proj.origin.git" "$case_dir/selected/proj" || fail "home-clone: fixture selected clone"
+  git -C "$case_dir/selected/proj" remote set-url origin "$(git -C "$old" remote get-url origin)"
+  printf '%s\n' 'max_trees = 3' > "$case_dir/selected/proj/treehouse.toml"
+  out=$(FM_PROJECTS_OVERRIDE="$case_dir/selected" FM_FAKE_TREEHOUSE_STATUS=$GSP_FULL_POOL run_helper "$case_dir" "$old") ||
+    fail "home-clone: helper failed with a projects override"
+  assert_contains "$out" "worktree pool trees free" "home-clone: no pool read with a projects override"
+  assert_contains "$out" "of 3 worktree pool trees" "home-clone: the overridden projects root was not the clone that answered"
   git -C "$old" remote set-url origin "$case_dir/elsewhere.git"
   out=$(FM_FAKE_TREEHOUSE_STATUS=$GSP_FULL_POOL run_helper "$case_dir" "$old") || fail "home-clone: helper failed for another origin"
   assert_contains "$out" "worktree pool trees free" "home-clone: fixture lost its pool read"
