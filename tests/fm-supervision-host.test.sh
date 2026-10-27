@@ -266,8 +266,10 @@ ln -s "$ROOT/bin" "$MIRROR_ROOT/bin"
 # Every hook payload in $home/mirror-seed.* is first written to the dialog
 # mirror by that same session, as its prompt and Stop hooks would.
 # The session ends with its host unless $home/session.stays exists; then it
-# lives on until $home/session.stop, as a real one outlives its Stop hook, and
-# an arm that outlives the host keeps the live session it reports to.
+# lives on until $home/session.stop or stop_home_processes, as a real one
+# outlives its Stop hook. An arm left for main stops once its session is gone,
+# so every case that checks that successor after the host exits writes
+# session.stays and stops its home when done.
 start_host() {  # <home> [park options...]
   local home=$1
   shift
@@ -1291,6 +1293,7 @@ test_attended_routine_wake_is_handled_on_the_engine_and_stays_off_main() {
 test_attended_captain_outcome_reaches_main_through_branch_outcomes() {
   local home drained
   home=$(make_home attended-captain attended)
+  : > "$home/session.stays"
   echo captain > "$home/stub-mode"
   start_host "$home"
   wait_until 150 watcher_live "$home" || fail "captain: the host never started a watcher cycle"
@@ -1395,6 +1398,7 @@ test_attended_main_only_close_passes_straight_to_main() {
 test_attended_note_queued_while_the_successor_starts_reaches_main() {
   local home real_mktemp
   home=$(make_home attended-successor-start-note attended)
+  : > "$home/session.stays"
   real_mktemp=$(command -v mktemp)
   cat > "$home/fakebin/mktemp" <<SH
 #!/usr/bin/env bash
@@ -2245,6 +2249,7 @@ test_unrecorded_successor_is_stopped_rather_than_left_for_main() {
 test_close_accepted_away_that_turns_attended_passes_to_main() {
   local home real_mktemp
   home=$(make_home away-then-attended away)
+  : > "$home/session.stays"
   printf '{"hook_event_name":"UserPromptSubmit","prompt_id":"p0","prompt":"watch the fleet for me"}' > "$home/mirror-seed.0"
   real_mktemp=$(command -v mktemp)
   # Starting the successor arm is the first step after the loop's away check;
@@ -2272,6 +2277,7 @@ SH
   assert_re '	pass-through	attended	main-only	signal:' "$home/state/.supervision-host.log" "the ledger must record why the close went to main"
   assert_no_re '	no-op	' "$home/state/.supervision-host.log" "the close must not be treated as handled"
   watcher_live "$home" || fail "the pass-through left no successor watcher"
+  stop_home_processes "$home"
   pass "host: a decision close accepted away whose turn starts attended still reaches main unchanged"
 }
 
@@ -2644,6 +2650,7 @@ test_away_wake_is_handled_on_the_engine_and_never_reaches_main() {
 test_away_turn_without_a_report_hands_the_wake_to_main() {
   local home token
   home=$(make_home away-noreport away)
+  : > "$home/session.stays"
   echo noreport > "$home/stub-mode"
   start_host "$home"
   wait_until 150 watcher_live "$home" || fail "noreport: the host never started a watcher cycle"
@@ -2667,6 +2674,7 @@ test_away_turn_without_a_report_hands_the_wake_to_main() {
 test_return_during_an_engine_turn_hands_its_outcomes_to_main() {
   local home
   home=$(make_home away-return away)
+  : > "$home/session.stays"
   echo return > "$home/stub-mode"
   start_host "$home"
   wait_until 150 watcher_live "$home" || fail "return: the host never started a watcher cycle"
@@ -2817,6 +2825,7 @@ test_next_host_clears_a_turn_its_killed_predecessor_left() {
 test_report_without_acknowledgement_hands_the_wake_to_main() {
   local home
   home=$(make_home away-noack away)
+  : > "$home/session.stays"
   echo noack > "$home/stub-mode"
   start_host "$home"
   wait_until 150 watcher_live "$home" || fail "noack: the host never started a watcher cycle"
@@ -3041,6 +3050,7 @@ SH
 test_park_boundary_ends_the_park_before_the_hook_timeout() {
   local home token
   home=$(make_home boundary attended)
+  : > "$home/session.stays"
   # The wall-clock bound must sit past the exit check: only the injected clock
   # can reach the boundary in time, so a host ignoring it fails instead of
   # passing on real elapsed seconds.
@@ -3072,6 +3082,7 @@ test_park_boundary_holds_under_back_to_back_closes() {
   # report work after release, so the product never kills the held turn.
   local home park=300 turn=19 grace=1
   home=$(make_home boundary-busy away)
+  : > "$home/session.stays"
   echo held > "$home/stub-mode"
   mkfifo "$home/stub-release"
   echo 0 > "$home/park-clock"
@@ -3113,6 +3124,7 @@ test_park_boundary_holds_under_back_to_back_closes() {
 test_park_boundary_rechecked_just_before_the_engine_turn() {
   local home real_node pid park=120 turn=3 grace=1
   home=$(make_home boundary-late away)
+  : > "$home/session.stays"
   real_node=$(command -v node)
   mkfifo "$home/render-release"
   echo 0 > "$home/park-clock"
