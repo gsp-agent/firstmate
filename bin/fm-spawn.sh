@@ -5707,10 +5707,14 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
     # leases - or, with no free slot left, creates - a slot of this clone.
     # That slot is the target, entered by name below; the foreign leases are
     # released once the pane settles, and the target's lease is released by
-    # the task's own teardown return like any other slot. A slot another
-    # task has claimed (its worker may be starting) is released at once and
-    # ends the steering: the plain `treehouse get` below, behind the same
-    # candidate screening, owns that case. 64 leases bound the loop.
+    # the task's own teardown return like any other slot. A slot carrying
+    # another task's claim ends the steering. Treehouse handed it out as
+    # free, as the plain `treehouse get` would, so an own-clone one that
+    # passes the reuse test becomes the target and its claim is rewritten
+    # below like any slot `treehouse get` hands out. Any other claimed slot
+    # is skipped and the plain `treehouse get` below, behind the same
+    # candidate screening, owns that case; its lease stays until the slot is
+    # returned. 64 leases bound the loop.
     SPAWN_LEASE_SEEN=
     SPAWN_LEASE_COUNT=0
     while [ "$SPAWN_LEASE_COUNT" -lt 64 ]; do
@@ -5725,11 +5729,19 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
       SPAWN_LEASE_MARKER=$(fm_treehouse_slot_owner_marker "$SPAWN_LEASED" 2>/dev/null || true)
       if [ -n "$SPAWN_LEASE_MARKER" ] &&
         { [ -e "$SPAWN_LEASE_MARKER" ] || [ -L "$SPAWN_LEASE_MARKER" ]; }; then
-        # Another task's slot: never returned here (`treehouse return`
-        # kills the processes inside it). It joins the skip list, whose
-        # guarded release leaves an owned slot alone.
-        SPAWN_SKIP_LEASES="$SPAWN_SKIP_LEASES$SPAWN_LEASED
+        if [ -f "$SPAWN_LEASE_MARKER" ] && [ ! -L "$SPAWN_LEASE_MARKER" ] &&
+          fm_treehouse_pool_slot "$PROJ_ABS" "$SPAWN_LEASED" &&
+          SPAWN_LEASE_RESET=$(fm_treehouse_reset_target "$PROJ_ABS" "$SPAWN_LEASED" "$BASE_BRANCH") &&
+          fm_treehouse_slot_reusable "$SPAWN_LEASED" "$SPAWN_LEASE_RESET"; then
+          SPAWN_ENTER_SLOT=$SPAWN_LEASED
+          SPAWN_TARGET_LEASE=$SPAWN_LEASED
+        else
+          # Never returned here (`treehouse return` kills the processes
+          # inside it). It joins the skip list, whose guarded release
+          # leaves an owned slot alone.
+          SPAWN_SKIP_LEASES="$SPAWN_SKIP_LEASES$SPAWN_LEASED
 "
+        fi
         break
       fi
       if fm_treehouse_pool_slot "$PROJ_ABS" "$SPAWN_LEASED"; then
