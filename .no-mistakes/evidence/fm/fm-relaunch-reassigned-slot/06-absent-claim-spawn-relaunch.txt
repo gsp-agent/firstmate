@@ -1,0 +1,8 @@
+slot claim present: no
+=== bin/fm-spawn.sh nmlab-absent --relaunch
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.luJFL6
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.luJFL6/data/nmlab-absent/launch-brief.md records no ship branch; defaulting to legacy branch fm/nmlab-absent
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.luJFL6/data/nmlab-absent/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+spawned nmlab-absent harness=claude kind=ship mode=no-mistakes yolo=off window=fmlab:fm-nmlab-absent worktree=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.luJFL6/pool/demo-5/demo
+exit=0
+endpoint now runs: 2.1.311

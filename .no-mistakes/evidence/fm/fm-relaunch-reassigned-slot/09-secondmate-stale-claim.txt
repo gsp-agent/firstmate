@@ -1,0 +1,24 @@
+secondmate nmlab-sm2-own: slot demo-6 claim=gsp-dc9j6-lab home marker=nmlab-sm2-own
+secondmate nmlab-sm2-wrong: slot demo-7 claim=gsp-dc9j6-lab home marker=someone-else
+
+=== bin/fm-control.sh nmlab-sm2-wrong relaunch
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.luJFL6
+error: task nmlab-sm2-wrong's home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab-smpool.o54b7c/demo-7/demo is not marked as its own seeded secondmate home (marker: someone-else); refusing to relaunch
+exit=1
+task record: unchanged
+endpoint now runs: bash
+=== bin/fm-spawn.sh nmlab-sm2-wrong --relaunch (direct caller)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.luJFL6
+error: firstmate home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab-smpool.o54b7c/demo-7/demo is marked for secondmate someone-else, expected nmlab-sm2-wrong
+exit=1
+endpoint now runs: bash
+
+=== bin/fm-control.sh nmlab-sm2-own relaunch
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.luJFL6
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.luJFL6
+warning: secondmate nmlab-sm2-own sync skipped before launch: primary default-branch commit cannot be resolved
+relaunched nmlab-sm2-own harness=claude from=claude model=default effort=default backend=tmux endpoint=fmlab:fm-nmlab-sm2-own worktree=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab-smpool.o54b7c/demo-6/demo
+exit=0
+task record: republished
+endpoint now runs: 2.1.311
+

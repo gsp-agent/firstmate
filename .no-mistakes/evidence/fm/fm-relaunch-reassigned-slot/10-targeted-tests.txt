@@ -1,0 +1,31 @@
+### bash tests/fm-pm-live.test.sh
+ok - merge recovery omits relaunch for reassigned slots and retains it for own or absent claims
+ok - a worker that is not alive gets one blocked PM handoff that names only a relaunch that can work, commits its marker, and is never re-judged on replay
+ok - the live-PM proof reads live, grace, stale, malformed, and symlinked registrations exactly
+ok - a live PM receives one pending-verification status handoff without a main queue row
+ok - a plain task's merged outcome still queues the merge-landed wake for main
+ok - a failed PM handoff stays unacknowledged and retries on the same task
+ok - a failed acknowledgement preserves the delivered event and retry deduplicates it
+ok - replay repairs the PM event even when a legacy notification marker already exists
+error: merge handoff for demo has missing, changed, or ambiguous task/PR identity
+error: merge handoff for demo has missing, changed, or ambiguous task/PR identity
+ok - stale PRs and missing records are refused; reused tasks receive explicit current incarnation/PR identity
+ok - restart and concurrent delivery keep one event and leave activation failures with the existing owner
+ok - a merge that reaches a closed task tells its live PM, never hands off into nothing, and binds only the archived PR
+exit=0
+
+### three new tests from tests/fm-control-relaunch.test.sh (subset copy)
+ok - relaunch preserves, clears, or replaces the route reason with its runtime
+ok - fm-control relaunch: the background picker refuses without --stop-background, names the flag, and restores the brief
+ok - fm-control relaunch: a picker already on screen refuses at once with no key, naming the flag
+ok - fm-control relaunch: --stop-background confirms Exit and stop tasks and the relaunch continues
+ok - fm-control relaunch: --stop-background confirms a picker that was already open
+ok - fm-control relaunch: --stop-background presses nothing when the selected row is not Exit and stop tasks
+ok - fm-control relaunch: --stop-background adds no key when the agent exits without a picker
+ok - fm-control relaunch: a routed fallback pair survives the next relaunch and only that pair is exempt
+ok - fm-control removes the dialog file after exit and after relaunch
+ok - fm-control exit removes the dialog file before it releases the control lock
+ok - fm-spawn --relaunch: rejects another task's claim and accepts own or absent claims
+ok - fm-control relaunch: another task's slot claim refuses before the agent, brief, or record is touched
+ok - fm-control and fm-spawn relaunch: a secondmate home ignores a stale slot claim and still checks its marker
+exit=0

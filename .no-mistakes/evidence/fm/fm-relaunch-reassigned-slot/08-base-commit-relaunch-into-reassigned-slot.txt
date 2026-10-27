@@ -1,0 +1,10 @@
+slot demo-3 claim: gsp-p35kr-2-lab
+=== BASE bin/fm-control.sh nmlab-other relaunch --note 'Merged; activation pending'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.luJFL6
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.luJFL6
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.luJFL6/data/nmlab-other/launch-brief.md records no ship branch; defaulting to legacy branch fm/nmlab-other
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.luJFL6/data/nmlab-other/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+relaunched nmlab-other harness=claude from=claude model=default effort=default backend=tmux endpoint=fmlab:fm-nmlab-other worktree=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.luJFL6/pool/demo-3/demo
+exit=0
+slot demo-3 (claimed by gsp-p35kr-2-lab) endpoint now runs: 2.1.311
+progress notes appended to nmlab-other brief: 2

@@ -1,0 +1,10 @@
+=== bin/fm-control.sh nmlab-own relaunch --note 'Merged; activation pending' (slot claim: nmlab-own)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.luJFL6
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.luJFL6
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.luJFL6/data/nmlab-own/launch-brief.md records no ship branch; defaulting to legacy branch fm/nmlab-own
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.luJFL6/data/nmlab-own/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+relaunched nmlab-own harness=claude from=claude model=default effort=default backend=tmux endpoint=fmlab:fm-nmlab-own worktree=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.luJFL6/pool/demo-4/demo
+exit=0
+journal phase: complete
+endpoint now runs: 2.1.311
+brief tail: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.luJFL6/state/nmlab-own.inbox/handled/. A steer sent before the relaunch survives there.  Merged; activation pending 

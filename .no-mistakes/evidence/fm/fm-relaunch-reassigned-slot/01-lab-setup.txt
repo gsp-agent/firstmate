@@ -1,0 +1,10 @@
+/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.luJFL6
+lab home: marked=yes
+--- tmux windows (lab socket) ---
+fm-nmlab-other cmd=bash
+fm-nmlab-own cmd=bash
+fm-nmlab-absent cmd=bash
+--- slot claims ---
+slot demo-3: gsp-p35kr-2-lab
+slot demo-4: nmlab-own
+slot demo-5: (no claim)
