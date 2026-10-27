@@ -887,12 +887,17 @@ slot_lease_holder() {
   jq -r --arg p "$2" '.worktrees[] | select(.path == $p) | .lease_holder // ""' "$1/treehouse-state.json"
 }
 
-# The 10-27 incident: steering's `get --lease` is handed an own-clone slot
-# that a finished task still claims. Treehouse holds it free, as the plain
-# `treehouse get` would, and it passes the reuse test, so it becomes this
-# spawn's target: entered by name, its claim rewritten to this task, and its
-# lease this task's own for teardown to return - never a lease left on a
-# slot whose claim names another task.
+# The no-commit claimed-slot case: steering's `get --lease` is handed an
+# own-clone slot that another task still claims but never committed on.
+# Treehouse holds it free, as the plain `treehouse get` would, and it passes
+# the reuse test, so it becomes this spawn's target: entered by name, its
+# claim rewritten to this task, and its lease this task's own for teardown to
+# return - never a lease left on a slot whose claim names another task.
+# A claimed slot from a squash-merged task (the 10-27 gsp-f7zel shape) fails
+# the reuse test, so it still keeps its steering lease until the claiming
+# task's cleanup. Since PR 173's claimed-slot admission fix a spawn meets
+# such a slot only in a short race; that case is follow-up
+# fm-pool-squash-merged-claimed-lease.
 test_allocator_claimed_own_slot_becomes_target() {
   local rec id out status pool slot pane_log th_log holder
   id=settle-pool-claimed-target-z18
