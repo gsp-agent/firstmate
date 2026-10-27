@@ -830,7 +830,8 @@ test_mixed_pool_makes_new_own_slot_when_none_free() {
 # lease holder in the pool state, and `return <path>` resets that worktree,
 # dropping its untracked files, and clears its lease, as Treehouse's return
 # does. The fake pane settles in slot 2 once it is sent
-# `treehouse enter '2'`, and in the case's own worktree otherwise.
+# `treehouse enter '2'`, reporting it as FM_FAKE_CLAIMED_PANE_PATH when set,
+# and in the case's own worktree otherwise.
 make_claimed_lease_case() {
   local name=$1 id=$2 rec
   rec=$(make_pool_case "$name" "$id")
@@ -870,8 +871,8 @@ SH
 #!/usr/bin/env bash
 case "$*" in
   *"#{pane_current_path}"*)
-    if grep -qF "treehouse enter '2'" "${FM_FAKE_PANE_LOG:?}" 2>/dev/null; then
-      printf '%s\n' "$FM_TREEHOUSE_CLAIMED_SLOT"
+    if [ "${FM_FAKE_CLAIMED_ENTER_FAILS:-}" != 1 ] && grep -qF "treehouse enter '2'" "${FM_FAKE_PANE_LOG:?}" 2>/dev/null; then
+      printf '%s\n' "${FM_FAKE_CLAIMED_PANE_PATH:-$FM_TREEHOUSE_CLAIMED_SLOT}"
       exit 0
     fi
     ;;
@@ -927,6 +928,89 @@ test_allocator_claimed_own_slot_becomes_target() {
   assert_no_grep 'return ' "$th_log" \
     "spawn returned the slot it launched in"
   pass "a claimed own-clone slot the allocator hands out becomes the target, not a leaked lease"
+}
+
+# An abort after steering chose a claimed own-clone slot as its target -
+# here the pane never settles in that slot, so `treehouse enter` fails -
+# must leave no lease of its own on that slot. The slot was clean and had
+# no live owner, so the abort can hand it back once the claim no longer
+# names the finished task, and the pool can hand it out again at once.
+test_allocator_claimed_target_abort_releases_lease() {
+  local rec id out status pool slot pane_log th_log holder
+  id=settle-pool-claimed-target-abort-z19
+  rec=$(make_claimed_lease_case "$id" "$id")
+  read_settle_record "$rec"
+  pool="$CASE_DIR/pool"
+  slot="$pool/2/repo"
+  pane_log="$CASE_DIR/pane.log"
+  th_log="$CASE_DIR/treehouse.log"
+  WT_DIR="$PROJ_DIR"
+  fm_test_fake_sleep_noop "$FAKEBIN_DIR"
+
+  out=$(FM_FAKE_PANE_LOG="$pane_log" FM_TREEHOUSE_LOG="$th_log" \
+    FM_FAKE_CLAIMED_ENTER_FAILS=1 \
+    FM_TREEHOUSE_CLAIMED_SLOT="$slot" run_settle_spawn "$id")
+  status=$?
+  [ "$status" -ne 0 ] || fail "spawn launched although its pane never settled in the claimed target slot"$'\n'"$out"
+  assert_contains "$out" "did not enter an isolated worktree" \
+    "the abort did not explain that the pane never settled"
+  [ ! -e "$HOME_DIR/state/$id.meta" ] || fail "aborted spawn published task metadata"
+  assert_grep "treehouse enter '2'" "$pane_log" \
+    "spawn did not choose the claimed own-clone slot as its target"
+  assert_grep "return $slot" "$th_log" \
+    "aborted spawn did not return the claimed target slot it leased"
+  holder=$(slot_lease_holder "$pool" "$slot")
+  [ -z "$holder" ] ||
+    fail "aborted spawn left its lease ($holder) on the claimed target slot"
+  [ ! -e "$pool/2/.fm-slot-owner" ] && [ ! -L "$pool/2/.fm-slot-owner" ] ||
+    fail "aborted spawn left a slot-owner claim on the returned target slot"
+  pass "an aborted spawn that chose a claimed own-clone slot leaves no lease of its own on it"
+}
+
+# The pane can report the claimed target slot under another spelling of the
+# same path than the one Treehouse leased - here through a symlinked pool
+# prefix. A ship spawn that settles there and is then refused because the
+# slot holds uncommitted changes keeps the slot and this task's claim on
+# it: the abort never releases the claim the refusal kept, so it never
+# hands the slot back for Treehouse to reset.
+test_allocator_claimed_target_refusal_keeps_slot_across_spellings() {
+  local rec id out status pool slot pane_slot pane_log th_log detector
+  id=settle-pool-claimed-target-refused-z20
+  rec=$(make_claimed_lease_case "$id" "$id")
+  read_settle_record "$rec"
+  pool="$CASE_DIR/pool"
+  slot="$pool/2/repo"
+  ln -s pool "$CASE_DIR/pool-link"
+  pane_slot="$CASE_DIR/pool-link/2/repo"
+  pane_log="$CASE_DIR/pane.log"
+  th_log="$CASE_DIR/treehouse.log"
+  detector="$CASE_DIR/live-session.py"
+  cat > "$detector" <<'PY'
+import os
+
+with open(os.path.join(os.environ["FM_FAKE_REFUSED_SLOT"], "keep-me.txt"), "w") as handle:
+    handle.write("keep\n")
+print("live signal=person source=desktop")
+raise SystemExit(75)
+PY
+
+  out=$(FM_FAKE_PANE_LOG="$pane_log" FM_TREEHOUSE_LOG="$th_log" \
+    FM_TREEHOUSE_CLAIMED_SLOT="$slot" FM_FAKE_CLAIMED_PANE_PATH="$pane_slot" \
+    FM_LIVE_SESSION_CHECK="$detector" FM_FAKE_REFUSED_SLOT="$slot" \
+    run_settle_spawn "$id")
+  status=$?
+  expect_code 1 "$status" "a claimed target slot holding uncommitted changes was not refused"$'\n'"$out"
+  assert_contains "$out" "was not returned because it holds uncommitted changes" \
+    "the refusal did not say the dirty slot was kept"
+  assert_grep "treehouse enter '2'" "$pane_log" \
+    "spawn did not choose the claimed own-clone slot as its target"
+  assert_no_grep 'return ' "$th_log" \
+    "the abort returned the claimed target slot the refusal kept"
+  assert_equals keep "$(cat "$slot/keep-me.txt" 2>/dev/null)" \
+    "the abort reset the claimed target slot the refusal kept"
+  grep -Fxq -- "task=$id" "$pool/2/.fm-slot-owner" ||
+    fail "the abort dropped the claim the refusal kept on the claimed target slot"
+  pass "a refused claimed target slot keeps its work and claim when the pane spells it differently"
 }
 
 # A claimed slot the reuse test refuses - here it holds another task's
@@ -1127,6 +1211,8 @@ test_root_switched_pool_without_status_json_uses_treehouse_get
 test_mixed_pool_claimed_own_slot_uses_treehouse_get
 test_mixed_pool_makes_new_own_slot_when_none_free
 test_allocator_claimed_own_slot_becomes_target
+test_allocator_claimed_target_abort_releases_lease
+test_allocator_claimed_target_refusal_keeps_slot_across_spellings
 test_allocator_claimed_slot_is_never_returned success
 test_allocator_claimed_slot_is_never_returned abort
 test_dirty_own_slot_is_not_entered

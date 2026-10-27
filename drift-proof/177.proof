@@ -1,0 +1,2 @@
+# Failing-first: tests/fm-spawn-worktree-settle.test.sh test_allocator_claimed_target_abort_releases_lease fails before the fix with a steering lease left on a claimed target slot and passes after it.
+pr: 177

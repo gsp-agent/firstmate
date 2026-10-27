@@ -1596,6 +1596,7 @@ SPAWN_SLOT_CLAIMED=0
 SPAWN_SLOT_REFUSAL=0
 SPAWN_SKIP_LEASES=
 SPAWN_TARGET_LEASE=
+SPAWN_TARGET_CLAIMED=0
 RELAUNCH_REPLACEMENT_PENDING=0
 RELAUNCH_REPLACEMENT_BUSY_GEN=
 RELAUNCH_REPLACEMENT_HARNESS=
@@ -1948,6 +1949,9 @@ spawn_abort_cleanup() {
     if spawn_slot_checked_out_ship_branch; then
       if ! spawn_return_checked_out_ship_slot; then
         status=1
+      elif [ -n "$SPAWN_TARGET_LEASE" ] && [ "$WT" -ef "$SPAWN_TARGET_LEASE" ]; then
+        SPAWN_TARGET_LEASE=
+        SPAWN_TARGET_CLAIMED=0
       fi
     else
       SPAWN_SLOT_CLAIMED=0
@@ -1962,7 +1966,20 @@ spawn_abort_cleanup() {
   # launched is handed back under the same proof of emptiness, after the
   # claim above has had its chance to be released; a launched task's slot
   # is its teardown's to return, and a surviving task record's claim keeps
-  # this guard from touching its slot.
+  # this guard from touching its slot. A target chosen from a claimed slot
+  # already carries this task's claim, written when the slot was chosen,
+  # so that claim is released first, but only while the project lock that
+  # wrote it is still held and the settled-slot handling above has not
+  # kept the claim by refusing to return the slot. The release removes
+  # only this task's claim, and the proof of emptiness below still
+  # refuses a slot with a live owner.
+  if [ "$status" -ne 0 ] && [ -n "$SPAWN_TARGET_LEASE" ] &&
+    [ "$SPAWN_LAUNCH_SENT" = 0 ] && [ "$SPAWN_TARGET_CLAIMED" = 1 ] &&
+    [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" = 1 ] &&
+    { [ "$SPAWN_SLOT_CLAIMED" != 1 ] || ! [ "${WT:-}" -ef "$SPAWN_TARGET_LEASE" ]; }; then
+    fm_treehouse_slot_owner_release "$SPAWN_TARGET_LEASE" "$ID" || true
+    SPAWN_TARGET_CLAIMED=0
+  fi
   if [ "$status" -ne 0 ] && [ -n "$SPAWN_TARGET_LEASE" ] &&
     [ "$SPAWN_LAUNCH_SENT" = 0 ] &&
     spawn_lease_return_safe "$SPAWN_TARGET_LEASE"; then
@@ -5728,11 +5745,15 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
     # the task's own teardown return like any other slot. A slot carrying
     # another task's claim ends the steering. Treehouse handed it out as
     # free, as the plain `treehouse get` would, so an own-clone one that
-    # passes the reuse test becomes the target and its claim is rewritten
-    # below like any slot `treehouse get` hands out. Any other claimed slot
-    # is skipped and the plain `treehouse get` below, behind the same
-    # candidate screening, owns that case; its lease stays until the slot is
-    # returned. 64 leases bound the loop.
+    # passes the reuse test becomes the target. Its claim is written for
+    # this task at once, under the project lock already held, rather than
+    # only after the pane settles. That early claim is what lets an abort
+    # before the pane settles release this task's claim and then hand the
+    # lease back under the usual proof of emptiness, instead of leaving
+    # the lease on a slot whose claim still names the finished task. Any
+    # other claimed slot is skipped and the plain `treehouse get` below,
+    # behind the same candidate screening, owns that case; its lease stays
+    # until the slot is returned. 64 leases bound the loop.
     SPAWN_LEASE_SEEN=
     SPAWN_LEASE_COUNT=0
     while [ "$SPAWN_LEASE_COUNT" -lt 64 ]; do
@@ -5748,11 +5769,14 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
       if [ -n "$SPAWN_LEASE_MARKER" ] &&
         { [ -e "$SPAWN_LEASE_MARKER" ] || [ -L "$SPAWN_LEASE_MARKER" ]; }; then
         if [ -f "$SPAWN_LEASE_MARKER" ] && [ ! -L "$SPAWN_LEASE_MARKER" ] &&
+          [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" = 1 ] &&
           fm_treehouse_pool_slot "$PROJ_ABS" "$SPAWN_LEASED" &&
           SPAWN_LEASE_RESET=$(fm_treehouse_reset_target "$PROJ_ABS" "$SPAWN_LEASED" "$BASE_BRANCH") &&
-          fm_treehouse_slot_reusable "$SPAWN_LEASED" "$SPAWN_LEASE_RESET"; then
+          fm_treehouse_slot_reusable "$SPAWN_LEASED" "$SPAWN_LEASE_RESET" &&
+          fm_treehouse_slot_owner_claim "$SPAWN_LEASED" "$ID" "$FM_HOME"; then
           SPAWN_ENTER_SLOT=$SPAWN_LEASED
           SPAWN_TARGET_LEASE=$SPAWN_LEASED
+          SPAWN_TARGET_CLAIMED=1
         else
           # Never returned here (`treehouse return` kills the processes
           # inside it). It joins the skip list, whose guarded release
