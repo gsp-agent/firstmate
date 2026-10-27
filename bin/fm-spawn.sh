@@ -1592,6 +1592,7 @@ RELAUNCH_MOVE_OLD=
 RELAUNCH_MOVE_LIVE=
 RELAUNCH_MOVE_BRANCH_CREATED=0
 RELAUNCH_MOVE_OLD_CLAIMED=0
+RELAUNCH_MOVE_PANE_SENT=0
 RELAUNCH_REPLACEMENT_BUSY_GEN=
 RELAUNCH_REPLACEMENT_HARNESS=
 RELAUNCH_REPLACEMENT_STATE=
@@ -1821,11 +1822,31 @@ EOF
 # replacement record is published: the new slot's claim is released, the old
 # copy's claim restored, the branch copy the move made in the live clone
 # removed (the old copy still holds it at the same head), and the lease
-# returned. The old copy and its record were never changed.
+# returned. The old copy and its record were never changed. A pane already
+# sent to the new slot is sent back to the old copy first, and the slot is
+# returned only once the pane is seen out of it: Treehouse's return may end a
+# process standing in the tree it takes back.
 spawn_relaunch_move_rollback() {
-  local new=$RELAUNCH_MOVE_NEW
+  local new=$RELAUNCH_MOVE_NEW pane_out=1 seen old_real cd_path
   RELAUNCH_MOVE_PENDING=0
   [ -n "$new" ] || return 0
+  if [ "$RELAUNCH_MOVE_PANE_SENT" = 1 ]; then
+    pane_out=0
+    old_real=$(real_path_or_raw "$RELAUNCH_MOVE_OLD")
+    cd_path=${RELAUNCH_MOVE_OLD//\'/\'\\\'\'}
+    if spawn_send_text_line "$WT_TARGET" "cd -- '$cd_path'" 2>/dev/null; then
+      for _ in $(seq 1 10); do
+        seen=$(spawn_current_path "$WT_TARGET" 2>/dev/null || true)
+        if [ -n "$seen" ] && [ "$(real_path_or_raw "$seen")" = "$old_real" ]; then
+          pane_out=1
+          break
+        fi
+        sleep 0.5
+      done
+    fi
+    [ "$pane_out" = 1 ] ||
+      echo "warning: task $ID's endpoint did not return to its copy $RELAUNCH_MOVE_OLD after the move was rolled back; send it there by hand" >&2
+  fi
   fm_treehouse_slot_owner_release "$new" "$ID" 2>/dev/null || true
   if [ "$RELAUNCH_MOVE_OLD_CLAIMED" = 1 ]; then
     fm_treehouse_slot_owner_claim "$RELAUNCH_MOVE_OLD" "$ID" "$FM_HOME" 2>/dev/null ||
@@ -1836,7 +1857,9 @@ spawn_relaunch_move_rollback() {
     if [ "$RELAUNCH_MOVE_BRANCH_CREATED" = 1 ]; then
       git -C "$new" branch -q -D "$BRANCH" </dev/null >/dev/null 2>&1 || true
     fi
-    if spawn_lease_return_safe "$new"; then
+    if [ "$pane_out" != 1 ]; then
+      echo "warning: the live clone's slot $new stays leased because task $ID's endpoint may still stand in it" >&2
+    elif spawn_lease_return_safe "$new"; then
       (cd "$RELAUNCH_MOVE_LIVE" 2>/dev/null && treehouse return "$new" >/dev/null 2>&1 </dev/null) ||
         echo "warning: the live clone's slot $new could not be returned after task $ID's move was rolled back" >&2
     fi
@@ -4851,6 +4874,13 @@ spawn_relaunch_move_to_live_clone() {
     echo "error: task $ID lives in $old_real, not this home's clone $live, and its copy $RELAUNCH_WT has no branch $BRANCH to carry over; refusing to relaunch it on the old clone" >&2
     exit 1
   }
+  # The copy must have the ship branch checked out: a clean copy on another
+  # branch or a detached commit would otherwise move the branch ref while its
+  # actual checkout is left behind in a released slot.
+  if [ "$(git -C "$RELAUNCH_WT" symbolic-ref -q HEAD 2>/dev/null)" != "refs/heads/$BRANCH" ]; then
+    echo "error: task $ID lives in $old_real, not this home's clone $live, and its copy $RELAUNCH_WT does not have its branch $BRANCH checked out (HEAD at $(git -C "$RELAUNCH_WT" rev-parse --short=12 HEAD 2>/dev/null || echo unknown)); nothing was moved or relaunched. Check out $BRANCH there, keeping any work on it, then relaunch again" >&2
+    exit 1
+  fi
   dirty=$(git -C "$RELAUNCH_WT" status --porcelain --untracked-files=all 2>/dev/null) || dirty="unreadable status"
   if [ -n "$dirty" ]; then
     save="$DATA/$ID/relaunch-move-$(date -u +%Y%m%dT%H%M%SZ)"
@@ -5736,6 +5766,7 @@ elif [ "$RELAUNCH" -eq 1 ]; then
       exit 1
     fi
     relaunch_cd_path=${WT//\'/\'\\\'\'}
+    [ "$RELAUNCH_MOVE_PENDING" != 1 ] || RELAUNCH_MOVE_PANE_SENT=1
     spawn_send_text_line "$WT_TARGET" "cd -- '$relaunch_cd_path'" || {
       echo "error: task $ID's endpoint is in '${relaunch_seen:-unknown}' and could not be told to return to its recorded worktree '$WT'; refusing to relaunch an agent outside the copy holding its work" >&2
       exit 1

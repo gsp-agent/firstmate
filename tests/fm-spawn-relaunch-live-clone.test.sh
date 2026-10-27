@@ -221,8 +221,61 @@ test_relaunch_refuses_to_move_over_a_different_live_branch() {
   pass "a relaunch refuses to move over a live branch at another commit"
 }
 
+# A relaunch deferred after its pane already went to the new slot (here the
+# live-session check reads a person live) rolls the move back with the pane:
+# the pane is sent back to the old copy before the live slot is returned.
+test_relaunch_rollback_after_the_pane_moved_brings_the_pane_back() {
+  local dir id=back-a1 out rc=0 before
+  dir=$(make_case back "$id")
+  OLDWT="$dir/oldpool/7/proj"
+  # fm-control's own check runs first and is admitted; fm-spawn's, after the
+  # move and the pane's cd, reads a person live.
+  cat > "$dir/live-session.py" <<PY
+import os, sys
+n = "$dir/live-session.calls"
+calls = (int(open(n).read()) if os.path.exists(n) else 0) + 1
+open(n, "w").write(str(calls))
+if calls == 1:
+    sys.exit(0)
+print("a person is live")
+sys.exit(75)
+PY
+  before=$(cat "$dir/home/state/$id.meta")
+  out=$(FM_LIVE_SESSION_CHECK="$dir/live-session.py" run_relaunch "$dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "back: a deferred relaunch reported success: $out"
+  assert_grep "cd -- '$dir/livepool/1/proj'" "$dir/fake/keys" "back: the pane was never sent to the live slot, so this case proves nothing"
+  assert_contains "$out" "rolled back task $id's move" "back: the deferral did not roll the move back"
+  assert_grep "cd -- '$OLDWT'" "$dir/fake/keys" "back: the pane was not sent back to the old copy"
+  assert_equals "$OLDWT" "$(cat "$dir/fake/cwd")" "back: the pane was left in the live slot"
+  assert_equals "$before" "$(cat "$dir/home/state/$id.meta")" "back: the record changed though the relaunch was deferred"
+  [ -e "$dir/oldpool/7/.fm-slot-owner" ] || fail "back: the old slot's claim was not restored"
+  [ -e "$dir/livepool/1/.fm-slot-owner" ] && fail "back: the live slot is still claimed"
+  grep -q "^return .*/back/livepool/1/proj\$" "$dir/treehouse.log" || fail "back: the live slot was not returned once the pane left it"
+  pass "a relaunch rolled back after its pane moved sends the pane back before returning the slot"
+}
+
+# A clean copy not on the ship branch (here detached at another commit) is
+# never moved: the branch ref would move while the actual checkout stayed in
+# a released slot.
+test_relaunch_refuses_a_copy_not_on_its_branch() {
+  local dir id=det-a1 out rc=0 before
+  dir=$(make_case det "$id")
+  OLDWT="$dir/oldpool/7/proj"
+  git -C "$OLDWT" checkout -q --detach HEAD~1
+  before=$(cat "$dir/home/state/$id.meta")
+  out=$(run_relaunch "$dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "det: a copy detached off its branch was relaunched: $out"
+  assert_contains "$out" "does not have its branch fm/$id checked out" "det: the refusal did not say the branch is not checked out"
+  assert_equals "$before" "$(cat "$dir/home/state/$id.meta")" "det: the record changed though nothing moved"
+  [ -e "$dir/livepool/1/proj" ] && fail "det: a live slot was leased"
+  [ -e "$dir/oldpool/7/.fm-slot-owner" ] || fail "det: the old slot's claim was released"
+  pass "a relaunch refuses to move a copy that does not have its branch checked out"
+}
+
 test_relaunch_moves_an_old_clone_ship_onto_the_live_clone
 test_relaunch_saves_and_refuses_a_dirty_old_copy
+test_relaunch_rollback_after_the_pane_moved_brings_the_pane_back
+test_relaunch_refuses_a_copy_not_on_its_branch
 test_relaunch_rolls_back_a_move_when_the_relaunch_refuses
 test_relaunch_refuses_to_move_over_a_different_live_branch
 test_relaunch_matches_origins_by_identity_not_spelling
