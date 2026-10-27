@@ -826,7 +826,7 @@ test_mixed_pool_makes_new_own_slot_when_none_free() {
 # When the allocator hands the spawn a slot another task has claimed,
 # the spawn must never hand it back: `treehouse return` terminates the
 # processes inside its worktree, and the claiming task's worker may be
-# starting there. The lease is left for that task's own teardown return.
+# starting there. A start must not leave a durable lease on that slot.
 test_allocator_claimed_slot_is_never_returned() {
   local rec id out status pool pane_log th_log
   id=settle-pool-claimed-lease-z9
@@ -841,7 +841,9 @@ test_allocator_claimed_slot_is_never_returned() {
 set -u
 printf '%s\n' "$*" >> "${FM_TREEHOUSE_LOG:-/dev/null}"
 case "$*" in
-  *"get --lease"*) printf '%s\n' "$FM_TREEHOUSE_CLAIMED_SLOT"; exit 0 ;;
+  *"get --lease"*)
+    printf 'held\n' > "$FM_TREEHOUSE_CLAIMED_SLOT/steering-lease"
+    printf '%s\n' "$FM_TREEHOUSE_CLAIMED_SLOT"; exit 0 ;;
 esac
 exit 0
 SH
@@ -853,8 +855,7 @@ SH
     run_settle_spawn "$id")
   status=$?
   expect_code 0 "$status" "spawn should still succeed through treehouse get"$'\n'"$out"
-  assert_grep 'get --lease' "$th_log" \
-    "spawn did not consult the allocator before falling back"
+  [ ! -e "$pool/2/repo/steering-lease" ] || fail "spawn leaked a durable lease on another task's claimed slot"
   assert_no_grep 'return ' "$th_log" \
     "spawn returned a slot another task has claimed (treehouse return kills its processes)"
   assert_grep 'treehouse get' "$pane_log" \
