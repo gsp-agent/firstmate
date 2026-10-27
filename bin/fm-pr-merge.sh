@@ -10,6 +10,16 @@
 # change is refused outright: that adapter is read-only, and the refusal at the
 # parse below owns why.
 #
+# On every provider a merge is also refused when the request carries a label
+# named hold, matched without regard to case: the same rule fm-merge-on-green
+# applies before it ever calls this script, read live from the same forge view
+# that verifies the other conditions (GitHub and Forgejo report labels as
+# named objects, GitLab as plain names). The refusal names who added the
+# label and when, read from that forge's label-event history; when that
+# history cannot be read the merge still refuses and says so, because a held
+# request must not merge on an unattributed label. A label list that is
+# present but unreadable refuses the same way a state read does.
+#
 # Merge method on GitHub defaults to --squash when the caller passes none of
 # --squash, --merge, --rebase, or --method after the optional -- separator.
 # On Forgejo the merge style defaults to the repository's own
@@ -579,11 +589,76 @@ fi
 # the merge request. Sets FM_PR_MERGE_HEAD to the verified head on success and
 # returns non-zero after reporting every condition that failed.
 FM_PR_MERGE_HEAD=
+
+# The refusal line for a hold-labeled request. The attribution argument is
+# "<who> at <when>" read from the forge's label-event history, or empty when
+# that history could not be read; the merge refuses either way.
+hold_label_refusal() {
+  local attribution=$1
+  if [ -n "$attribution" ]; then
+    printf '  - the pull request carries the '\''hold'\'' label (labeled by %s); a held pull request must not be merged' "$attribution"
+  else
+    printf '  - the pull request carries the '\''hold'\'' label (who labeled it and when could not be read); a held pull request must not be merged'
+  fi
+}
+
+# Who added the hold label to this GitHub pull request and when, from its
+# timeline: the latest labeled event for that label names both. Prints
+# nothing when the timeline cannot be read or names no such event.
+github_hold_label_attribution() {
+  local events
+  events=$(gh api "repos/$PR_OWNER/$PR_REPO/issues/$PR_NUMBER/timeline?per_page=100" 2>/dev/null) || return 0
+  printf '%s' "$events" | jq -r '
+    if type != "array" then error("timeline payload is not an array") else . end
+    | [ .[] | select(.event == "labeled"
+        and (((.label.name // "") | ascii_downcase) == "hold")
+        and (((.actor.login // "") | length) > 0)
+        and (((.created_at // "") | length) > 0))
+        | {at: .created_at, text: "\(.actor.login) at \(.created_at)"} ]
+    | sort_by(.at) | if length == 0 then "" else last.text end' 2>/dev/null || true
+}
+
+# Who added the hold label to this GitLab merge request and when, from its
+# resource label events: the latest add event for that label names both.
+# Prints nothing when the events cannot be read or name no such event.
+gitlab_hold_label_attribution() {
+  local encoded events
+  encoded=$(printf '%s' "$PR_PATH" | jq -sRr '@uri' 2>/dev/null) || return 0
+  [ -n "$encoded" ] || return 0
+  events=$(GITLAB_HOST="$FM_PR_HOST" glab api \
+    "projects/$encoded/merge_requests/$PR_NUMBER/resource_label_events?per_page=100" \
+    2>/dev/null) || return 0
+  printf '%s' "$events" | jq -r '
+    if type != "array" then error("label events payload is not an array") else . end
+    | [ .[] | select(.action == "add"
+        and (((.label.name // "") | ascii_downcase) == "hold")
+        and ((((.user.username // .user.name) // "") | length) > 0)
+        and (((.created_at // "") | length) > 0))
+        | {at: .created_at, text: "\((.user.username // .user.name)) at \(.created_at)"} ]
+    | sort_by(.at) | if length == 0 then "" else last.text end' 2>/dev/null || true
+}
+
+# Who added the hold label to this Forgejo pull request and when, from its
+# issue timeline: the latest label event for that label names both. Prints
+# nothing when the timeline cannot be read or names no such event.
+forgejo_hold_label_attribution() {
+  local events
+  events=$(tea api --login "$FORGEJO_LOGIN" --repo "$PR_OWNER/$PR_REPO" \
+    "/repos/{owner}/{repo}/issues/$PR_NUMBER/timeline?limit=100" 2>/dev/null) || return 0
+  printf '%s' "$events" | jq -r '
+    if type != "array" then error("timeline payload is not an array") else . end
+    | [ .[] | select((((.label.name // "") | ascii_downcase) == "hold")
+        and (((.user.login // "") | length) > 0)
+        and (((.created_at // "") | length) > 0))
+        | {at: .created_at, text: "\(.user.login) at \(.created_at)"} ]
+    | sort_by(.at) | if length == 0 then "" else last.text end' 2>/dev/null || true
+}
+
 FM_PR_GITLAB_ASYNC_CONFIGURED=false
 gitlab_verify_mergeable() {
   local json fields line
   local total=0 named=0 refusals=''
-  local state='' detail='' conflicts='' discussions=''
+  local state='' detail='' conflicts='' discussions='' hold=''
   local live_head='' pipeline_sha='' pipeline_status='' async_configured=''
 
   # GITLAB_HOST is set to the same host the project URL already carries, so the
@@ -607,7 +682,10 @@ gitlab_verify_mergeable() {
         "head=" + ((.sha // "") | tostring),
         "pipeline_sha=" + ((.head_pipeline.sha // "") | tostring),
         "pipeline_status=" + ((.head_pipeline.status // "") | tostring),
-        "async_configured=" + (if .merge_when_pipeline_succeeds == true or (.merge_after != null) then "true" else "false" end)
+        "async_configured=" + (if .merge_when_pipeline_succeeds == true or (.merge_after != null) then "true" else "false" end),
+        "hold=" + (if (.labels | type) == "array"
+          then (if any(.labels[]; ((. | tostring) | ascii_downcase) == "hold") then "true" else "false" end)
+          elif .labels == null then "false" else error("labels are unreadable") end)
       else
         error("merge request payload is not an object")
       end' 2>/dev/null); then
@@ -625,6 +703,7 @@ gitlab_verify_mergeable() {
       pipeline_sha=*) pipeline_sha=${line#pipeline_sha=} ;;
       pipeline_status=*) pipeline_status=${line#pipeline_status=} ;;
       async_configured=*) async_configured=${line#async_configured=} ;;
+      hold=*) hold=${line#hold=} ;;
       *) continue ;;
     esac
     named=$((named + 1))
@@ -634,7 +713,7 @@ FIELDS
   # Every field named exactly once and no unnamed line: a value carrying a
   # newline would split into a line no name matches, so it is refused here
   # rather than silently truncated into a value a check could accept.
-  if [ "$named" -ne 8 ] || [ "$total" -ne 8 ]; then
+  if [ "$named" -ne 9 ] || [ "$total" -ne 9 ]; then
     echo "error: could not read the GitLab merge request state before merging" >&2
     return 1
   fi
@@ -668,6 +747,9 @@ FIELDS
   [ "$pipeline_sha" = "$live_head" ] \
     || refusals="$refusals  - the head pipeline ran at \"${pipeline_sha:-none}\", not at the current head $live_head
 "
+  [ "$hold" != true ] \
+    || refusals="$refusals$(hold_label_refusal "$(gitlab_hold_label_attribution)")
+"
 
   if [ -n "$refusals" ]; then
     printf 'error: refusing to merge %s\n' "$URL" >&2
@@ -693,7 +775,7 @@ FIELDS
 forgejo_verify_mergeable() {
   local pr_json status_json fields line
   local total=0 named=0 refusals=''
-  local state='' mergeable='' draft='' live_head='' ci_state='' page_state='' page_count='' page=1
+  local state='' mergeable='' draft='' live_head='' ci_state='' page_state='' page_count='' page=1 hold=''
 
   if ! pr_json=$(tea api --login "$FORGEJO_LOGIN" --repo "$PR_OWNER/$PR_REPO" \
       "/repos/{owner}/{repo}/pulls/$PR_NUMBER" 2>/dev/null) || [ -z "$pr_json" ]; then
@@ -705,7 +787,10 @@ forgejo_verify_mergeable() {
         "state=" + ((.state // "") | tostring),
         "mergeable=" + (.mergeable | tostring),
         "draft=" + (.draft | tostring),
-        "head=" + ((.head.sha // "") | tostring)
+        "head=" + ((.head.sha // "") | tostring),
+        "hold=" + (if (.labels | type) == "array"
+          then (if any(.labels[]; (((.name // "") | tostring) | ascii_downcase) == "hold") then "true" else "false" end)
+          elif .labels == null then "false" else error("labels are unreadable") end)
       else
         error("pull request payload is not an object")
       end' 2>/dev/null); then
@@ -719,13 +804,14 @@ forgejo_verify_mergeable() {
       mergeable=*) mergeable=${line#mergeable=} ;;
       draft=*) draft=${line#draft=} ;;
       head=*) live_head=${line#head=} ;;
+      hold=*) hold=${line#hold=} ;;
       *) continue ;;
     esac
     named=$((named + 1))
   done <<FIELDS
 $fields
 FIELDS
-  if [ "$named" -ne 4 ] || [ "$total" -ne 4 ]; then
+  if [ "$named" -ne 5 ] || [ "$total" -ne 5 ]; then
     echo "error: could not read the Forgejo pull request state before merging" >&2
     return 1
   fi
@@ -797,6 +883,9 @@ FIELDS
 "
   [ "$ci_state" = success ] \
     || refusals="$refusals  - the combined commit status is \"$ci_state\", not success
+"
+  [ "$hold" != true ] \
+    || refusals="$refusals$(hold_label_refusal "$(forgejo_hold_label_attribution)")
 "
 
   if [ -n "$refusals" ]; then
@@ -1127,10 +1216,10 @@ VERDICT
 github_verify_mergeable() {
   local json fields line red name covered missing unreported producers runs
   local total=0 named=0 refusals='' mergeable_refusal=''
-  local state='' draft='' mergeable='' merge_state='' live_head='' base=''
+  local state='' draft='' mergeable='' merge_state='' live_head='' base='' hold=''
   local rollup_json='' review_refusal=''
 
-  if ! json=$(gh pr view "$URL" --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName 2>/dev/null) \
+  if ! json=$(gh pr view "$URL" --json state,isDraft,mergeable,mergeStateStatus,headRefOid,baseRefName,labels 2>/dev/null) \
     || [ -z "$json" ]; then
     echo "error: could not read the GitHub pull request state before merging" >&2
     return 1
@@ -1141,7 +1230,10 @@ github_verify_mergeable() {
         "mergeable=" + ((.mergeable // "") | tostring),
         "merge_state=" + ((.mergeStateStatus // "") | tostring),
         "head=" + ((.headRefOid // "") | tostring),
-        "base=" + ((.baseRefName // "") | tostring)
+        "base=" + ((.baseRefName // "") | tostring),
+        "hold=" + (if (.labels | type) == "array"
+          then (if any(.labels[]; (((.name // "") | tostring) | ascii_downcase) == "hold") then "true" else "false" end)
+          elif .labels == null then "false" else error("labels are unreadable") end)
       else
         error("pull request payload is not an object")
       end' 2>/dev/null); then
@@ -1156,13 +1248,14 @@ github_verify_mergeable() {
       merge_state=*) merge_state=${line#merge_state=} ;;
       head=*) live_head=${line#head=} ;;
       base=*) base=${line#base=} ;;
+      hold=*) hold=${line#hold=} ;;
       *) continue ;;
     esac
     named=$((named + 1))
   done <<FIELDS
 $fields
 FIELDS
-  if [ "$named" -ne 5 ] || [ "$total" -ne 5 ] || [ -z "$base" ]; then
+  if [ "$named" -ne 6 ] || [ "$total" -ne 6 ] || [ -z "$base" ]; then
     echo "error: could not read the GitHub pull request state before merging" >&2
     return 1
   fi
@@ -1182,6 +1275,9 @@ FIELDS
   esac
   [ "$draft" = false ] \
     || refusals="$refusals  - the pull request is a draft
+"
+  [ "$hold" != true ] \
+    || refusals="$refusals$(hold_label_refusal "$(github_hold_label_attribution)")
 "
   [ "$mergeable" = MERGEABLE ] \
     || mergeable_refusal="  - mergeable is \"${mergeable:-unreadable}\", not MERGEABLE
