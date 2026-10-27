@@ -602,14 +602,14 @@ hold_label_refusal() {
   fi
 }
 
-# Who added the hold label to this GitHub pull request and when, from its
-# timeline: the latest labeled event for that label names both. Prints
-# nothing when the timeline cannot be read or names no such event.
+# Who added the hold label to this GitHub pull request and when, from every
+# page of its timeline: the latest labeled event for that label names both.
+# Prints nothing when the timeline cannot be read or names no such event.
 github_hold_label_attribution() {
   local events
-  events=$(gh api "repos/$PR_OWNER/$PR_REPO/issues/$PR_NUMBER/timeline?per_page=100" 2>/dev/null) || return 0
-  printf '%s' "$events" | jq -r '
-    if type != "array" then error("timeline payload is not an array") else . end
+  events=$(gh api --paginate "repos/$PR_OWNER/$PR_REPO/issues/$PR_NUMBER/timeline?per_page=100" 2>/dev/null) || return 0
+  printf '%s' "$events" | jq -rs '
+    if all(.[]; type == "array") then add // [] else error("timeline payload is not an array") end
     | [ .[] | select(.event == "labeled"
         and (((.label.name // "") | ascii_downcase) == "hold")
         and (((.actor.login // "") | length) > 0)
@@ -618,18 +618,19 @@ github_hold_label_attribution() {
     | sort_by(.at) | if length == 0 then "" else last.text end' 2>/dev/null || true
 }
 
-# Who added the hold label to this GitLab merge request and when, from its
-# resource label events: the latest add event for that label names both.
-# Prints nothing when the events cannot be read or name no such event.
+# Who added the hold label to this GitLab merge request and when, from every
+# page of its resource label events: the latest add event for that label
+# names both. Prints nothing when the events cannot be read or name no such
+# event.
 gitlab_hold_label_attribution() {
   local encoded events
   encoded=$(printf '%s' "$PR_PATH" | jq -sRr '@uri' 2>/dev/null) || return 0
   [ -n "$encoded" ] || return 0
-  events=$(GITLAB_HOST="$FM_PR_HOST" glab api \
+  events=$(GITLAB_HOST="$FM_PR_HOST" glab api --paginate \
     "projects/$encoded/merge_requests/$PR_NUMBER/resource_label_events?per_page=100" \
     2>/dev/null) || return 0
-  printf '%s' "$events" | jq -r '
-    if type != "array" then error("label events payload is not an array") else . end
+  printf '%s' "$events" | jq -rs '
+    if all(.[]; type == "array") then add // [] else error("label events payload is not an array") end
     | [ .[] | select(.action == "add"
         and (((.label.name // "") | ascii_downcase) == "hold")
         and ((((.user.username // .user.name) // "") | length) > 0)
@@ -638,16 +639,28 @@ gitlab_hold_label_attribution() {
     | sort_by(.at) | if length == 0 then "" else last.text end' 2>/dev/null || true
 }
 
-# Who added the hold label to this Forgejo pull request and when, from its
-# issue timeline: the latest label event for that label names both. Prints
-# nothing when the timeline cannot be read or names no such event.
+# Who added the hold label to this Forgejo pull request and when, from every
+# page of its issue timeline: the latest label event that added that label
+# (body "1"; a removal has an empty body) names both. Pages are read until an
+# empty one, since the server may cap a page below the limit asked for.
+# Prints nothing when a page cannot be read or no such event is named.
 forgejo_hold_label_attribution() {
-  local events
-  events=$(tea api --login "$FORGEJO_LOGIN" --repo "$PR_OWNER/$PR_REPO" \
-    "/repos/{owner}/{repo}/issues/$PR_NUMBER/timeline?limit=100" 2>/dev/null) || return 0
-  printf '%s' "$events" | jq -r '
-    if type != "array" then error("timeline payload is not an array") else . end
-    | [ .[] | select((((.label.name // "") | ascii_downcase) == "hold")
+  local rows count events='' page=1
+  while :; do
+    rows=$(tea api --login "$FORGEJO_LOGIN" --repo "$PR_OWNER/$PR_REPO" \
+      "/repos/{owner}/{repo}/issues/$PR_NUMBER/timeline?limit=50&page=$page" 2>/dev/null) || return 0
+    count=$(printf '%s' "$rows" | jq -r \
+      'if type == "array" then length else error("timeline payload is not an array") end' 2>/dev/null) \
+      || return 0
+    [ "$count" != 0 ] || break
+    events="$events$rows
+"
+    page=$((page + 1))
+    [ "$page" -le 100 ] || return 0
+  done
+  printf '%s' "$events" | jq -rs '
+    [ .[][] | select(.type == "label" and .body == "1"
+        and (((.label.name // "") | ascii_downcase) == "hold")
         and (((.user.login // "") | length) > 0)
         and (((.created_at // "") | length) > 0))
         | {at: .created_at, text: "\(.user.login) at \(.created_at)"} ]
