@@ -554,7 +554,9 @@ test_covering_attachments_handoff_and_continue_through_both_owners() {
       turn_end "$home"
       wait_until 200 watcher_live "$home" || fail "$mode $attach_path: the first watcher did not start"
       append_status "$home" 'first notification for main' needs-decision
-      wait_until 400 test -s "$home/attachment-ready.out" \
+      # The hook, arm, watcher and covering successor all run before this
+      # file appears, which took over 40 s at load 120.
+      wait_until 1200 test -s "$home/attachment-ready.out" \
         || fail "$mode $attach_path: the covering successor did not report attachment"
       [ ! -e "$home/attachment-unregistered" ] \
         || fail "$mode $attach_path: attached covering readiness preceded coverage registration"
