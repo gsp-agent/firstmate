@@ -1796,11 +1796,9 @@ fm_treehouse_configured_pool() {  # <project-dir>
 # created it. A worktree of the project's own clone is listed by the
 # project's own `git worktree list`; a slot is free when Treehouse's state
 # records no live owner process and no durable lease for it, and no
-# Firstmate slot-owner claim names a task for it. It must also pass the
-# allocator's reuse test the caller cannot undo by entering it directly:
-# a clean worktree whose HEAD is already in the fetched reset target, so
-# the spawn's base freshen never has to refuse residue or reset away
-# commits. The lowest slot name wins so the choice is stable.
+# Firstmate slot-owner claim names a task for it. It must also pass
+# fm_treehouse_slot_reusable's reuse test, which the caller cannot undo by
+# entering it directly. The lowest slot name wins so the choice is stable.
 # A candidate qualifies only in the pool `treehouse status --json` reports
 # for the project: `git worktree list` names own-clone slots in every pool,
 # while the caller's `treehouse enter <name>` resolves that name only in
