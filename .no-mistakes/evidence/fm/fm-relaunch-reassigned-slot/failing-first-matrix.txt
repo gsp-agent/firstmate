@@ -1,0 +1,48 @@
+### code from 2703782f, test test_spawn_relaunch_respects_slot_claim
+not ok - relaunch must refuse a slot reassigned to another task
+warning: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-control-relaunch.vbCrjj/slot-another-task-22158/home/data/rl-slot/launch-brief.md records no ship branch; defaulting to legacy branch fm/rl-slot
+warning: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-control-relaunch.vbCrjj/slot-another-task-22158/home/data/rl-slot/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+spawned rl-slot harness=claude kind=ship mode=no-mistakes yolo=off window=fmses:fm-rl-slot worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-control-relaunch.vbCrjj/slot-another-task-22158/wt: expected exit 1, got 0
+### exit 1
+
+### code from 2703782f, test test_control_relaunch_refuses_a_reassigned_slot_before_touching_anything
+not ok - fm-control relaunch must refuse a slot reassigned to another task (claude endpoint)
+warning: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-control-relaunch.bPZNw6/control-slot-claude-15890/home/data/rl-cslot/launch-brief.md records no ship branch; defaulting to legacy branch fm/rl-cslot
+warning: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-control-relaunch.bPZNw6/control-slot-claude-15890/home/data/rl-cslot/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+relaunched rl-cslot harness=claude from=claude model=default effort=default backend=tmux endpoint=fmses:fm-rl-cslot worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-control-relaunch.bPZNw6/control-slot-claude-15890/wt: expected exit 1, got 0
+### exit 1
+
+### code from 6ef1669e, test test_control_relaunch_refuses_a_reassigned_slot_before_touching_anything
+not ok - the refusal must not point at another task's copy as this task's work (unexpected: 'preserved at')
+--- output ---
+error: task rl-cslot's recorded worktree '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-control-relaunch.RyDUot/control-slot-claude-23631/wt' is claimed by task another-task; refusing to relaunch into a reassigned slot
+error: the replacement agent for rl-cslot could not be launched on claude
+error: rl-cslot's agent was stopped but the replacement did not launch; no agent is running, and its work plus the recorded progress note are preserved at /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-control-relaunch.RyDUot/control-slot-claude-23631/wt
+### exit 1
+
+### code from fdfc6a83, test test_secondmate_relaunch_ignores_a_stale_slot_claim
+not ok - a secondmate's leased home must not be refused for a stale claim (control) (unexpected: 'claimed by task another-task')
+--- output ---
+error: task smc's recorded worktree '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-control-relaunch.HObfkJ/sm-claim-control-own-29346/smhome' is claimed by task another-task; refusing to relaunch into a reassigned slot
+### exit 1
+
+### code from 2703782f, test test_merge_recovery_respects_slot_claim
+not ok - reassigned slot recommended relaunch: blocked [key=merged-owner-demo] [at=1793102969]: merged demo https://github.com/example/repo/pull/80 spawn_gen=first; activation and live verification have no confirmed live owner: tmux endpoint /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-pm-live.REFRh9/claim-another-task-tmux/home/state/demo reads dead; relaunch it with bin/fm-control.sh demo relaunch --note 'Merged https://github.com/example/repo/pull/80; activation and live verification remain pending'
+### exit 1
+
+### code from 8d3f66b3, test test_spawn_relaunch_respects_slot_claim
+ok - fm-spawn --relaunch: rejects another task's claim and accepts own or absent claims
+### exit 0
+
+### code from 8d3f66b3, test test_control_relaunch_refuses_a_reassigned_slot_before_touching_anything
+ok - fm-control relaunch: another task's slot claim refuses before the agent, brief, or record is touched
+### exit 0
+
+### code from 8d3f66b3, test test_secondmate_relaunch_ignores_a_stale_slot_claim
+ok - fm-control and fm-spawn relaunch: a secondmate home ignores a stale slot claim and still checks its marker
+### exit 0
+
+### code from 8d3f66b3, test test_merge_recovery_respects_slot_claim
+ok - merge recovery omits relaunch for reassigned slots and retains it for own or absent claims
+### exit 0
+

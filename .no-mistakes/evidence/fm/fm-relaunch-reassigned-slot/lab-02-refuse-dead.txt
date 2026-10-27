@@ -1,0 +1,30 @@
+endpoint before: zsh (agent-free shell); slot 3 claim: task=gsp-p35kr-2 home=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home 
+
+=== S1 bin/fm-control.sh gsp-dc9j6 relaunch --note 'Merged; activation and live verification remain pending'
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home
+error: task gsp-dc9j6's recorded worktree '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/pool/3/repo' is claimed by task gsp-p35kr-2; refusing to relaunch into a reassigned slot
+exit code: 1
+PASS: fm-control relaunch exits 1
+PASS: refusal names the claimant gsp-p35kr-2 and the reason
+PASS: no 'stopped'/'preserved at' rollback message pointing into the other task's copy
+PASS: gsp-dc9j6 task record unchanged
+PASS: gsp-dc9j6 brief unchanged (no progress note appended)
+PASS: gsp-dc9j6 has no relaunch journal
+PASS: gsp-dc9j6 has no recorded relaunch note
+PASS: nothing typed into gsp-dc9j6's endpoint pane
+
+=== S2 bin/fm-spawn.sh gsp-dc9j6 --relaunch (direct launch-owner caller)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home
+error: task gsp-dc9j6's recorded worktree '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/pool/3/repo' is claimed by task gsp-p35kr-2; refusing to relaunch into a reassigned slot
+exit code: 1
+PASS: fm-spawn --relaunch exits 1
+PASS: fm-spawn refusal names claimant and reason
+PASS: gsp-dc9j6 task record unchanged
+PASS: gsp-dc9j6 brief unchanged (no progress note appended)
+PASS: gsp-dc9j6 has no relaunch journal
+PASS: gsp-dc9j6 has no recorded relaunch note
+PASS: nothing typed into gsp-dc9j6's endpoint pane
+endpoint after: zsh; windows: fm-gsp-dc9j6 fm-own-1 fm-pre-1 fm-alias-1 fm-near-1 fm-sm-own fm-sm-bad fm-sm-spawn 
+PASS: slot 3 claim still names gsp-p35kr-2
+PASS: gsp-p35kr-2's copy untouched (?? p35kr-work.txt )
+PASS: no harness trust/config dropped into gsp-p35kr-2's copy

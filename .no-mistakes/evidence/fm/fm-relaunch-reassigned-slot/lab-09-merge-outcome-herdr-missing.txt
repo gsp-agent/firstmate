@@ -1,0 +1,27 @@
+
+=== herdr merge outcome for h-gsp-dc9j6 (window fm-lab-relaunchslot-92191-21909:w1-1, server stopped); claim: task=gsp-p35kr-2 home=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home 
+fm_backend_agent_state herdr fm-lab-relaunchslot-92191-21909:w1-1 -> missing
+merge handoff for h-gsp-dc9j6 blocked: its worker reads missing, so its live PM was told on /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home/state/h-gsp-dc9j6.status
+fm_merge_outcome_report exit: 0
+PM status line:
+blocked [key=merged-owner-h-gsp-dc9j6] [at=1793102701]: merged h-gsp-dc9j6 https://github.com/example/groove-sight-platform/pull/93 spawn_gen=g1; activation and live verification have no confirmed live owner: herdr endpoint fm-lab-relaunchslot-92191-21909:w1-1 reads missing; relaunch would refuse because its recorded worktree '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/pool/3/repo' is claimed by task gsp-p35kr-2; reconcile the task's worktree before recovery
+PASS: line does not recommend relaunch for h-gsp-dc9j6
+PASS: line names claimant gsp-p35kr-2
+
+=== herdr merge outcome for h-own-1 (window fm-lab-relaunchslot-92191-21909:w1-1, server stopped); claim: task=h-own-1 home=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home 
+slot 4 claim set to this record: task=h-own-1 home=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home 
+fm_backend_agent_state herdr fm-lab-relaunchslot-92191-21909:w1-1 -> missing
+merge handoff for h-own-1 blocked: its worker reads missing, so its live PM was told on /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home/state/h-own-1.status
+fm_merge_outcome_report exit: 0
+PM status line:
+blocked [key=merged-owner-h-own-1] [at=1793102704]: merged h-own-1 https://github.com/example/groove-sight-platform/pull/94 spawn_gen=s1793102471.52411.9996; activation and live verification have no confirmed live owner: herdr endpoint fm-lab-relaunchslot-92191-21909:w1-1 reads missing; relaunch it with bin/fm-control.sh h-own-1 relaunch --note 'Merged https://github.com/example/groove-sight-platform/pull/94; activation and live verification remain pending'
+PASS: line still recommends relaunch for h-own-1
+/Users/dalecarman/.no-mistakes/evidence/01M5YH3WDCBBNYWFRT0WGKC2Z6/lab-driver.sh: line 47: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/pool/5/.fm-slot-owner: No such file or directory
+
+=== herdr merge outcome for h-pre-1 (window fm-lab-relaunchslot-92191-21909:w1-1, server stopped); claim: (no claim file)
+fm_backend_agent_state herdr fm-lab-relaunchslot-92191-21909:w1-1 -> missing
+merge handoff for h-pre-1 blocked: its worker reads missing, so its live PM was told on /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home/state/h-pre-1.status
+fm_merge_outcome_report exit: 0
+PM status line:
+blocked [key=merged-owner-h-pre-1] [at=1793102708]: merged h-pre-1 https://github.com/example/groove-sight-platform/pull/95 spawn_gen=s1793102489.66689.32235; activation and live verification have no confirmed live owner: herdr endpoint fm-lab-relaunchslot-92191-21909:w1-1 reads missing; relaunch it with bin/fm-control.sh h-pre-1 relaunch --note 'Merged https://github.com/example/groove-sight-platform/pull/95; activation and live verification remain pending'
+PASS: line still recommends relaunch for h-pre-1

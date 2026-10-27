@@ -1,0 +1,37 @@
+sm-own: marker=sm-own stale claim: task=fm-old-ship-8 home=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home 
+
+=== S8 bin/fm-control.sh sm-own relaunch (own home marker, stale other-task claim)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home
+warning: secondmate sm-own sync skipped before launch: primary default-branch commit cannot be resolved
+relaunched sm-own harness=claude from=claude model=default effort=default backend=tmux endpoint=fmlab:fm-sm-own worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/pool/8/repo
+exit code: 0
+PASS: secondmate relaunch with stale claim exits 0
+PASS: no reassigned-slot refusal for a leased secondmate home
+PASS: fm-control reports relaunched sm-own
+sm-bad: marker=someone-else stale claim: task=fm-old-ship-9 home=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home 
+
+=== S9 bin/fm-control.sh sm-bad relaunch (home marked for someone-else)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home
+error: task sm-bad's home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/pool/9/repo is not marked as its own seeded secondmate home (marker: someone-else); refusing to relaunch
+exit code: 1
+PASS: wrong-marker secondmate relaunch exits 1
+PASS: refusal names the home-marker mismatch
+PASS: sm-bad task record unchanged
+PASS: sm-bad brief unchanged (no progress note appended)
+PASS: sm-bad has no relaunch journal
+PASS: sm-bad has no recorded relaunch note
+PASS: nothing typed into sm-bad's endpoint pane
+sm-spawn: marker=sm-spawn stale claim: task=fm-old-ship-10 home=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home 
+
+=== S10 bin/fm-spawn.sh sm-spawn --relaunch (direct, own marker, stale claim)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home
+warning: secondmate sm-spawn sync skipped before launch: primary default-branch commit cannot be resolved
+spawned sm-spawn harness=claude kind=secondmate mode=secondmate yolo=off window=fmlab:fm-sm-spawn worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/pool/10/repo
+exit code: 0
+PASS: direct secondmate relaunch with stale claim exits 0
+PASS: no reassigned-slot refusal from fm-spawn for a secondmate
+PASS: fm-spawn reports spawned sm-spawn
+sm-own endpoint now: 2.1.311
+sm-bad endpoint now: zsh
+sm-spawn endpoint now: 2.1.311

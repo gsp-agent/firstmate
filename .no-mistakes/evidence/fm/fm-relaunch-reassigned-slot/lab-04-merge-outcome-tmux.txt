@@ -1,0 +1,23 @@
+
+=== merge outcome for gsp-dc9j6 (https://github.com/example/groove-sight-platform/pull/3); endpoint zsh; claim: task=gsp-p35kr-2 home=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home 
+merge handoff for gsp-dc9j6 blocked: its worker reads dead, so its live PM was told on /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home/state/gsp-dc9j6.status
+fm_merge_outcome_report exit: 0
+PM status line:
+blocked [key=merged-owner-gsp-dc9j6] [at=1793102438]: merged gsp-dc9j6 https://github.com/example/groove-sight-platform/pull/3 spawn_gen=g1; activation and live verification have no confirmed live owner: tmux endpoint fmlab:fm-gsp-dc9j6 reads dead; relaunch would refuse because its recorded worktree '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/pool/3/repo' is claimed by task gsp-p35kr-2; reconcile the task's worktree before recovery
+PASS: line does not recommend bin/fm-control.sh gsp-dc9j6 relaunch
+PASS: line names claimant gsp-p35kr-2
+
+=== merge outcome for own-1 (https://github.com/example/groove-sight-platform/pull/4); endpoint zsh; claim: task=own-1 home=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home 
+merge handoff for own-1 blocked: its worker reads dead, so its live PM was told on /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home/state/own-1.status
+fm_merge_outcome_report exit: 0
+PM status line:
+blocked [key=merged-owner-own-1] [at=1793102441]: merged own-1 https://github.com/example/groove-sight-platform/pull/4 spawn_gen=g1; activation and live verification have no confirmed live owner: tmux endpoint fmlab:fm-own-1 reads dead; relaunch it with bin/fm-control.sh own-1 relaunch --note 'Merged https://github.com/example/groove-sight-platform/pull/4; activation and live verification remain pending'
+PASS: line still recommends relaunch for own-1
+/Users/dalecarman/.no-mistakes/evidence/01M5YH3WDCBBNYWFRT0WGKC2Z6/lab-driver.sh: line 47: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/pool/5/.fm-slot-owner: No such file or directory
+
+=== merge outcome for pre-1 (https://github.com/example/groove-sight-platform/pull/5); endpoint zsh; claim: (no claim file)
+merge handoff for pre-1 blocked: its worker reads dead, so its live PM was told on /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home/state/pre-1.status
+fm_merge_outcome_report exit: 0
+PM status line:
+blocked [key=merged-owner-pre-1] [at=1793102444]: merged pre-1 https://github.com/example/groove-sight-platform/pull/5 spawn_gen=g1; activation and live verification have no confirmed live owner: tmux endpoint fmlab:fm-pre-1 reads dead; relaunch it with bin/fm-control.sh pre-1 relaunch --note 'Merged https://github.com/example/groove-sight-platform/pull/5; activation and live verification remain pending'
+PASS: line still recommends relaunch for pre-1

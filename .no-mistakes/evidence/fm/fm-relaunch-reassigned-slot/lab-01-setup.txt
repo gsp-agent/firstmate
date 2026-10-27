@@ -1,0 +1,25 @@
+
+=== lab root: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s
+lab home marker present: yes
+
+=== slot claims
+slot 3 claim: task=gsp-p35kr-2 home=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home 
+slot 4 claim: task=own-1 home=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home 
+/Users/dalecarman/.no-mistakes/evidence/01M5YH3WDCBBNYWFRT0WGKC2Z6/lab-driver.sh: line 47: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/pool/5/.fm-slot-owner: No such file or directory
+slot 5 claim: (no claim file)
+slot 6 claim: task=gsp-other-6 home=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home 
+slot 7 claim: task=near-1-2 home=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home 
+slot 8 claim: task=fm-old-ship-8 home=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home 
+slot 9 claim: task=fm-old-ship-9 home=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home 
+slot 10 claim: task=fm-old-ship-10 home=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/home 
+alias-1 recorded worktree: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/slot6-alias/repo
+
+=== tmux endpoints (private lab socket, not the default server)
+fmlab:fm-gsp-dc9j6 cmd=zsh cwd=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/pool/3/repo
+fmlab:fm-own-1 cmd=zsh cwd=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/pool/4/repo
+fmlab:fm-pre-1 cmd=zsh cwd=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/pool/5/repo
+fmlab:fm-alias-1 cmd=zsh cwd=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/pool/6/repo
+fmlab:fm-near-1 cmd=zsh cwd=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/pool/7/repo
+fmlab:fm-sm-own cmd=zsh cwd=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/pool/8/repo
+fmlab:fm-sm-bad cmd=zsh cwd=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/pool/9/repo
+fmlab:fm-sm-spawn cmd=zsh cwd=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s/pool/10/repo

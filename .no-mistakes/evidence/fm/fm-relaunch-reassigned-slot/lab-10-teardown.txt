@@ -1,0 +1,3 @@
+herdr lab teardown rc=0 (helper verifies the default-session tripwire is unchanged)
+lab tmux server stopped; lab root to remove: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.R0J66s
+tmux teardown rc=0
