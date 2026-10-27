@@ -112,11 +112,16 @@ NAME=$(basename "$PROJ")
 # worktree pool is not the one a start draws from: on 10-26 a recorded PR
 # handoff read the retired clone's 36-tree pool as free while the live 4-tree
 # pool was full. So a same-origin home clone answers instead.
+# shellcheck source=bin/fm-role-lib.sh
+. "$SCRIPT_DIR/fm-role-lib.sh"
 HOME_CLONE="${FM_PROJECTS_OVERRIDE:-$FM_HOME/projects}/$NAME"
 if [ -d "$HOME_CLONE" ] && HOME_CLONE=$(CDPATH='' cd -- "$HOME_CLONE" 2>/dev/null && pwd -P) &&
   [ "$HOME_CLONE" != "$PROJ" ]; then
-  proj_origin=$(git -C "$PROJ" remote get-url origin 2>/dev/null || true)
-  home_origin=$(git -C "$HOME_CLONE" remote get-url origin 2>/dev/null || true)
+  # Same origin by identity, not spelling: an SSH and an HTTPS clone of one
+  # repository are one origin (fm_role_remote_identity reduces either to
+  # host/owner/repo; chip, PR 169 review 5661093722).
+  proj_origin=$(fm_role_remote_identity "$(git -C "$PROJ" remote get-url origin 2>/dev/null || true)" "$PROJ")
+  home_origin=$(fm_role_remote_identity "$(git -C "$HOME_CLONE" remote get-url origin 2>/dev/null || true)" "$HOME_CLONE")
   if [ -n "$proj_origin" ] && [ "$proj_origin" = "$home_origin" ]; then
     PROJ=$HOME_CLONE
   fi

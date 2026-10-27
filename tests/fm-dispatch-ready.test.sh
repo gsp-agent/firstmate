@@ -263,6 +263,13 @@ test_line_reads_the_home_clone_of_a_recorded_older_clone() {
     fail "home-clone: helper failed with a projects override"
   assert_contains "$out" "worktree pool trees free" "home-clone: no pool read with a projects override"
   assert_contains "$out" "of 3 worktree pool trees" "home-clone: the overridden projects root was not the clone that answered"
+  # One origin spelled two ways is still one origin (chip, PR 169 review
+  # 5661093722): an SSH old clone and an HTTPS home clone of the same repo.
+  git -C "$old" remote set-url origin "git@github.com:Example/Proj.git"
+  git -C "$case_dir/selected/proj" remote set-url origin "https://github.com/example/proj"
+  out=$(FM_PROJECTS_OVERRIDE="$case_dir/selected" FM_FAKE_TREEHOUSE_STATUS=$GSP_FULL_POOL run_helper "$case_dir" "$old") ||
+    fail "home-clone: helper failed with SSH and HTTPS origins"
+  assert_contains "$out" "of 3 worktree pool trees" "home-clone: an SSH and an HTTPS spelling of one origin were treated as two"
   git -C "$old" remote set-url origin "$case_dir/elsewhere.git"
   out=$(FM_FAKE_TREEHOUSE_STATUS=$GSP_FULL_POOL run_helper "$case_dir" "$old") || fail "home-clone: helper failed for another origin"
   assert_contains "$out" "worktree pool trees free" "home-clone: fixture lost its pool read"
