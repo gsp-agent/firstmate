@@ -2753,7 +2753,7 @@ if [ "$RELAUNCH" -eq 1 ]; then
     # slot. bin/fm-control.sh ran these same checks before it stopped the
     # agent; they run again here, under the task's record lock.
     if [ "$KIND" = ship ] && RELAUNCH_LIVE=$(fm_relaunch_live_clone "$RELAUNCH_META" "$FM_HOME"); then
-      if RELAUNCH_FRESH_REFUSAL=$(fm_relaunch_fresh_slot_refusal "$RELAUNCH_WT" "$BRANCH" "$RELAUNCH_LIVE"); then
+      if RELAUNCH_FRESH_REFUSAL=$(fm_relaunch_fresh_slot_refusal "$RELAUNCH_WT" "$PROJ" "$BRANCH" "$RELAUNCH_LIVE"); then
         echo "error: task $ID lives in $PROJ, not this home's clone $RELAUNCH_LIVE, and cannot start in a fresh slot there: $RELAUNCH_FRESH_REFUSAL; nothing was relaunched" >&2
         exit 1
       fi

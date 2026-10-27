@@ -1988,16 +1988,32 @@ fm_relaunch_live_clone() {  # <meta> <home>
   printf '%s\n' "$live_real"
 }
 
-# fm_relaunch_fresh_slot_refusal <old-copy> <branch> <live-clone>: print why
-# the old copy's branch cannot start in a fresh slot of <live-clone> and
-# return 0, or return 1 when nothing stops it. The old copy must have <branch>
-# checked out and read clean with no submodule ignored (uncommitted work is
-# never carried, and is never left behind either). The live clone must not
+# fm_relaunch_fresh_slot_refusal <old-copy> <old-project> <branch> <live-clone>:
+# print why the old copy's branch cannot start in a fresh slot of <live-clone>
+# and return 0, or return 1 when nothing stops it. The old copy must be a
+# worktree root of <old-project>'s own repository (the same Git common
+# directory, as a relaunch's worktree validation requires), so a record whose
+# worktree names another repository never has that history imported. It must
+# have <branch> checked out and read clean with no submodule ignored
+# (uncommitted work is never carried, and is never left behind either). The
+# live clone must not
 # have <branch> checked out anywhere, and a <branch> it already has must be in
 # the old copy's history, so starting the slot there moves that branch forward
 # and never over commits it holds.
-fm_relaunch_fresh_slot_refusal() {  # <old-copy> <branch> <live-clone>
-  local old=$1 branch=$2 live=$3 head dirty got
+fm_relaunch_fresh_slot_refusal() {  # <old-copy> <old-project> <branch> <live-clone>
+  local old=$1 project=$2 branch=$3 live=$4 head dirty got old_real top common project_common
+  old_real=$(CDPATH='' cd -- "$old" 2>/dev/null && pwd -P) || old_real=
+  top=$(git -C "$old" rev-parse --show-toplevel 2>/dev/null) &&
+    top=$(CDPATH='' cd -- "$top" 2>/dev/null && pwd -P) || top=
+  common=$(git -C "$old" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) &&
+    common=$(CDPATH='' cd -- "$common" 2>/dev/null && pwd -P) || common=
+  project_common=$(git -C "$project" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) &&
+    project_common=$(CDPATH='' cd -- "$project_common" 2>/dev/null && pwd -P) || project_common=
+  if [ -z "$old_real" ] || [ "$top" != "$old_real" ] || [ -z "$common" ] || [ "$common" != "$project_common" ]; then
+    printf 'its copy %s is not a worktree of its recorded project %s (git common dir %s, not %s)\n' \
+      "$old" "$project" "${common:-unreadable}" "${project_common:-unreadable}"
+    return 0
+  fi
   if [ "$(git -C "$old" symbolic-ref -q HEAD 2>/dev/null)" != "refs/heads/$branch" ]; then
     printf 'its copy %s does not have its branch %s checked out (HEAD at %s)\n' \
       "$old" "$branch" "$(git -C "$old" rev-parse --short=12 HEAD 2>/dev/null || echo unknown)"

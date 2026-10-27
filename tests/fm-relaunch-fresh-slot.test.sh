@@ -20,15 +20,7 @@ SPAWN="$ROOT/bin/fm-spawn.sh"
 TMP_ROOT=$(fm_test_tmproot fm-relaunch-fresh-slot)
 mkdir -p "$TMP_ROOT"
 TMP_ROOT=$(cd "$TMP_ROOT" && pwd -P)
-TASK_TMPS=()
-fresh_cleanup() {
-  local d
-  for d in "${TASK_TMPS[@]:-}"; do
-    [ -n "$d" ] && rm -rf "$d"
-  done
-  fm_test_remove_tree "$TMP_ROOT"
-}
-trap fresh_cleanup EXIT
+trap 'fm_test_remove_tree "$TMP_ROOT"' EXIT
 
 command -v jq >/dev/null 2>&1 || {
   echo "skip - the herdr adapter and the Treehouse pool reads need jq"
@@ -179,7 +171,7 @@ make_case() {  # <name> <id> [noslot]
     echo "mode=no-mistakes"
     echo "yolo=off"
     echo "branch=fm/$id"
-    echo "tasktmp=/tmp/fm-$id"
+    echo "tasktmp=$dir/tasktmp"
     echo "model=default"
     echo "effort=default"
     echo "backend=herdr"
@@ -191,7 +183,6 @@ make_case() {  # <name> <id> [noslot]
   printf '%s' "$OLDWT" > "$dir/fake/cwd"
   printf '%s' '%7' > "$dir/fake/herdr-pane"
   : > "$dir/fake/herdr-log"
-  TASK_TMPS+=("/tmp/fm-$id")
 }
 
 run_env() {  # <case-dir> <program> <args...>
@@ -340,6 +331,34 @@ test_control_defers_on_a_full_live_pool_before_stopping_the_agent() {
   pass "fm-control defers an old-clone relaunch on a full live pool before stopping the agent"
 }
 
+# A record whose worktree is a clean copy of another repository (on a branch
+# of the right name) is refused before any agent stops, and that history is
+# never imported: the old copy must belong to the recorded project.
+test_control_refuses_a_worktree_of_another_repository() {
+  local dir id=lineage-a1 out rc=0 before
+  make_case lineage "$id"
+  dir=$CASE_DIR
+  : > "$dir/fake/herdr-agent-live"
+  git init -q "$dir/unrelated"
+  git -C "$dir/unrelated" -c user.email=t@t -c user.name=t commit -q --allow-empty -m unrelated
+  git -C "$dir/unrelated" checkout -q -b "fm/$id"
+  sed -i.bak "s|^worktree=.*|worktree=$dir/unrelated|" "$dir/home/state/$id.meta" && rm -f "$dir/home/state/$id.meta.bak"
+  before=$(cat "$dir/home/state/$id.meta")
+  out=$(run_control_relaunch "$dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "lineage: a worktree of another repository was relaunched: $out"
+  assert_contains "$out" "is not a worktree of its recorded project" "lineage: the refusal did not name the foreign worktree"
+  [ -e "$dir/fake/herdr-agent-live" ] || fail "lineage: the agent was stopped"
+  assert_equals "$before" "$(cat "$dir/home/state/$id.meta")" "lineage: the record changed"
+  rm -f "$dir/fake/herdr-agent-live"
+  out=$(run_spawn_relaunch "$dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "lineage: fm-spawn relaunched a worktree of another repository: $out"
+  assert_contains "$out" "is not a worktree of its recorded project" "lineage: fm-spawn's refusal did not name the foreign worktree"
+  git -C "$dir/home/projects/proj" rev-parse -q --verify "refs/heads/fm/$id" >/dev/null &&
+    fail "lineage: the other repository's branch was imported into this home's clone"
+  [ -e "$dir/livepool/1/.fm-slot-owner" ] && fail "lineage: a live slot was claimed"
+  pass "an old-clone relaunch refuses a recorded worktree that belongs to another repository"
+}
+
 # A copy not on its ship branch is refused: the slot would start on a branch
 # ref the copy's checkout does not match.
 test_relaunch_refuses_a_copy_not_on_its_branch() {
@@ -444,6 +463,7 @@ test_control_refuses_uncommitted_work_before_stopping_the_agent
 test_control_refuses_an_ignored_submodule_edit
 test_control_defers_on_a_full_live_pool_before_stopping_the_agent
 test_relaunch_refuses_a_copy_not_on_its_branch
+test_control_refuses_a_worktree_of_another_repository
 test_relaunch_refuses_a_live_branch_outside_the_copys_history
 test_relaunch_moves_an_older_live_branch_forward
 test_relaunch_deferred_before_the_record_returns_the_slot
