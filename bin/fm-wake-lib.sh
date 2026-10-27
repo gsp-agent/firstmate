@@ -1955,6 +1955,78 @@ fm_treehouse_slot_owner_release() {  # <worktree> <task-id>
   rm -f "$marker" 2>/dev/null || true
 }
 
+# A relaunch of an old-clone ship. A ship recorded in another clone of its
+# project's origin (one made before a home move) would otherwise relaunch in
+# that clone's copy and go on pushing through its old no-mistakes registration.
+# Its relaunch instead starts the task in a fresh slot of this home's own clone
+# through the ordinary spawn path (bin/fm-spawn.sh: slot, claim and pane), with
+# the task's branch at the old copy's HEAD. Nothing crosses clones but that
+# branch. bin/fm-control.sh runs the same checks before it stops any agent, so
+# a refusal leaves the running agent alone.
+#
+# fm_relaunch_live_clone <meta> <home>: print this home's clone of the task's
+# project (<projects>/<name>, the root a fresh spawn takes) and return 0 when
+# task record <meta> is a herdr ship whose recorded project is another clone
+# with the same origin; return 1 otherwise. Origins compare by
+# fm_role_remote_identity (bin/fm-role-lib.sh), so an https and an ssh URL of
+# one repository match. Herdr only: the relaunch's fresh endpoint is the one
+# relaunch already creates for a proven-gone herdr pane.
+fm_relaunch_live_clone() {  # <meta> <home>
+  local meta=$1 home=$2 kind proj live live_real proj_real old_origin live_origin
+  kind=$(fm_meta_get "$meta" kind)
+  [ "${kind:-ship}" = ship ] || return 1
+  [ "$(fm_backend_of_meta "$meta")" = herdr ] || return 1
+  proj=$(fm_meta_get "$meta" project)
+  [ -n "$proj" ] || return 1
+  live="${FM_PROJECTS_OVERRIDE:-$home/projects}/$(basename "$proj")"
+  live_real=$(CDPATH='' cd -- "$live" 2>/dev/null && pwd -P) || return 1
+  proj_real=$(CDPATH='' cd -- "$proj" 2>/dev/null && pwd -P) || return 1
+  [ "$live_real" != "$proj_real" ] || return 1
+  old_origin=$(fm_role_remote_identity "$(git -C "$proj_real" remote get-url origin 2>/dev/null || true)" "$proj_real")
+  live_origin=$(fm_role_remote_identity "$(git -C "$live_real" remote get-url origin 2>/dev/null || true)" "$live_real")
+  [ -n "$old_origin" ] && [ "$old_origin" = "$live_origin" ] || return 1
+  printf '%s\n' "$live_real"
+}
+
+# fm_relaunch_fresh_slot_refusal <old-copy> <branch> <live-clone>: print why
+# the old copy's branch cannot start in a fresh slot of <live-clone> and
+# return 0, or return 1 when nothing stops it. The old copy must have <branch>
+# checked out and read clean with no submodule ignored (uncommitted work is
+# never carried, and is never left behind either). The live clone must not
+# have <branch> checked out anywhere, and a <branch> it already has must be in
+# the old copy's history, so starting the slot there moves that branch forward
+# and never over commits it holds.
+fm_relaunch_fresh_slot_refusal() {  # <old-copy> <branch> <live-clone>
+  local old=$1 branch=$2 live=$3 head dirty got
+  if [ "$(git -C "$old" symbolic-ref -q HEAD 2>/dev/null)" != "refs/heads/$branch" ]; then
+    printf 'its copy %s does not have its branch %s checked out (HEAD at %s)\n' \
+      "$old" "$branch" "$(git -C "$old" rev-parse --short=12 HEAD 2>/dev/null || echo unknown)"
+    return 0
+  fi
+  head=$(git -C "$old" rev-parse --verify -q 'HEAD^{commit}' 2>/dev/null) || {
+    printf 'its copy %s has an unreadable HEAD\n' "$old"
+    return 0
+  }
+  dirty=$(git -C "$old" -c core.quotePath=false status --porcelain --untracked-files=all --ignore-submodules=none 2>/dev/null) ||
+    dirty="unreadable status"
+  if [ -n "$dirty" ]; then
+    printf 'its copy %s has uncommitted or untracked changes (%s); commit them on %s first\n' \
+      "$old" "$(printf '%s\n' "$dirty" | head -3 | tr '\n' ';')" "$branch"
+    return 0
+  fi
+  if git -C "$live" worktree list --porcelain 2>/dev/null | grep -qxF "branch refs/heads/$branch"; then
+    printf "this home's clone %s already has %s checked out in one of its copies\n" "$live" "$branch"
+    return 0
+  fi
+  if got=$(git -C "$live" rev-parse --verify -q "refs/heads/$branch^{commit}" 2>/dev/null) &&
+    [ "$got" != "$head" ] && ! git -C "$old" merge-base --is-ancestor "$got" "$head" 2>/dev/null; then
+    printf "this home's clone %s already has a branch %s at %s, which is not in the copy's history (HEAD %s)\n" \
+      "$live" "$branch" "${got:0:12}" "${head:0:12}"
+    return 0
+  fi
+  return 1
+}
+
 fm_failure_episode_reset() {
   local state=$1 mode=${2:-acquire} lock current pid acquired=0 path
   lock="$state/.turnend-claude-blocks.lock"
