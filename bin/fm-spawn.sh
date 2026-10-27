@@ -1781,21 +1781,20 @@ spawn_return_checked_out_ship_slot() {
 # records no live owner process. `treehouse return` terminates the
 # processes inside its worktree, so a slot this check cannot prove empty
 # is never returned; a lease left behind on an owned slot is cleared by
-# that task's own teardown return, which returns by path. With
-# `clean-claim`, a claimed slot is returned too when it is clean, so the
-# return resets no uncommitted work away (the claimed commit stays on its
-# branch); only the steering skip-lease release passes it, for slots
-# another task claims. Callers return with `--if-lease-holder` naming
-# this spawn, so a lease that changed hands since the check is never
-# returned.
-spawn_lease_return_safe() { # <path> [clean-claim]
-  local path=$1 allow=${2:-} marker slot pool state lease_line owner_pid worktree_status
+# that task's own teardown return, which returns by path.
+spawn_lease_return_safe() { # <path>
+  local path=$1 marker
   marker=$(fm_treehouse_slot_owner_marker "$path" 2>/dev/null || true)
   if [ -n "$marker" ] && { [ -e "$marker" ] || [ -L "$marker" ]; }; then
-    [ "$allow" = clean-claim ] || return 1
-    worktree_status=$(git -C "$path" -c core.quotePath=false status --porcelain 2>/dev/null) || return 1
-    [ -z "$worktree_status" ] || return 1
+    return 1
   fi
+  spawn_lease_owner_gone "$path"
+}
+
+# True when Treehouse's state records no live owner process for a leased
+# pool slot; a state it cannot read counts as a live owner.
+spawn_lease_owner_gone() { # <path>
+  local path=$1 slot pool state lease_line owner_pid
   slot=$(CDPATH='' cd -- "$path" 2>/dev/null && pwd -P) || return 1
   pool=$(dirname "$(dirname "$slot")")
   state="$pool/treehouse-state.json"
@@ -1812,16 +1811,24 @@ spawn_lease_return_safe() { # <path> [clean-claim]
 }
 
 # Release the foreign pool slots this spawn leased while steering the pool
-# allocator toward an own-clone slot (see the treehouse acquisition below).
-# Each one is returned only when it still proves empty, because another
-# task can have claimed or entered a slot since it was leased; the list
-# is cleared so the exit trap's second call is a no-op.
+# allocator toward an own-clone slot (see the treehouse acquisition below),
+# and the claimed slot steering skipped. Each one is returned only when it
+# still proves empty, because another task can have claimed or entered a
+# slot since it was leased; a slot another task claims is returned only
+# when it is also clean, so the return resets no uncommitted work away
+# (the claimed commit stays on its branch), and a dirty one keeps the
+# lease until that task's own teardown return. The return names this
+# spawn as the lease holder, so a lease that changed hands since the
+# check is never returned. The list is cleared so the exit trap's second
+# call is a no-op.
 spawn_release_skip_leases() {
-  local leased
+  local leased worktree_status
   [ -n "$SPAWN_SKIP_LEASES" ] || return 0
   while IFS= read -r leased; do
     [ -n "$leased" ] || continue
-    if spawn_lease_return_safe "$leased" clean-claim; then
+    if spawn_lease_return_safe "$leased" ||
+      { worktree_status=$(git -C "$leased" -c core.quotePath=false status --porcelain 2>/dev/null) &&
+        [ -z "$worktree_status" ] && spawn_lease_owner_gone "$leased"; }; then
       (cd "$PROJ_ABS" 2>/dev/null && treehouse return --if-lease-holder "fm-spawn-$ID" "$leased" >/dev/null 2>&1 </dev/null) || true
     fi
   done <<EOF
@@ -1974,7 +1981,7 @@ spawn_abort_cleanup() {
   if [ "$status" -ne 0 ] && [ -n "$SPAWN_TARGET_LEASE" ] &&
     [ "$SPAWN_LAUNCH_SENT" = 0 ] &&
     spawn_lease_return_safe "$SPAWN_TARGET_LEASE"; then
-    (cd "$PROJ_ABS" 2>/dev/null && treehouse return --if-lease-holder "fm-spawn-$ID" "$SPAWN_TARGET_LEASE" >/dev/null 2>&1 </dev/null) || true
+    (cd "$PROJ_ABS" 2>/dev/null && treehouse return "$SPAWN_TARGET_LEASE" >/dev/null 2>&1 </dev/null) || true
     SPAWN_TARGET_LEASE=
   fi
   # An admitted extra start past project capacity that launched no worker
