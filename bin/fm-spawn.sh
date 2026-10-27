@@ -1777,19 +1777,23 @@ spawn_return_checked_out_ship_slot() {
   return 0
 }
 
-# True when this spawn may hand a leased pool slot back to Treehouse:
-# Treehouse's state records no live owner process, and a slot another
-# task claims is also clean, so the return resets no uncommitted work
-# away (the claimed commit stays on its branch). `treehouse return`
-# terminates the processes inside its worktree, so a slot this check
-# cannot prove empty is never returned; a lease left behind on a dirty
-# claimed slot is cleared by that task's own teardown return, which
-# returns by path. Callers return with `--if-lease-holder` naming this
-# spawn, so a lease that changed hands since the check is never returned.
-spawn_lease_return_safe() { # <path>
-  local path=$1 marker slot pool state lease_line owner_pid worktree_status
+# True when this spawn may hand a leased pool slot back to Treehouse: no
+# Firstmate slot-owner claim names a task for it and Treehouse's state
+# records no live owner process. `treehouse return` terminates the
+# processes inside its worktree, so a slot this check cannot prove empty
+# is never returned; a lease left behind on an owned slot is cleared by
+# that task's own teardown return, which returns by path. With
+# `clean-claim`, a claimed slot is returned too when it is clean, so the
+# return resets no uncommitted work away (the claimed commit stays on its
+# branch); only the steering skip-lease release passes it, for slots
+# another task claims. Callers return with `--if-lease-holder` naming
+# this spawn, so a lease that changed hands since the check is never
+# returned.
+spawn_lease_return_safe() { # <path> [clean-claim]
+  local path=$1 allow=${2:-} marker slot pool state lease_line owner_pid worktree_status
   marker=$(fm_treehouse_slot_owner_marker "$path" 2>/dev/null || true)
   if [ -n "$marker" ] && { [ -e "$marker" ] || [ -L "$marker" ]; }; then
+    [ "$allow" = clean-claim ] || return 1
     worktree_status=$(git -C "$path" -c core.quotePath=false status --porcelain 2>/dev/null) || return 1
     [ -z "$worktree_status" ] || return 1
   fi
@@ -1818,7 +1822,7 @@ spawn_release_skip_leases() {
   [ -n "$SPAWN_SKIP_LEASES" ] || return 0
   while IFS= read -r leased; do
     [ -n "$leased" ] || continue
-    if spawn_lease_return_safe "$leased"; then
+    if spawn_lease_return_safe "$leased" clean-claim; then
       (cd "$PROJ_ABS" 2>/dev/null && treehouse return --if-lease-holder "fm-spawn-$ID" "$leased" >/dev/null 2>&1 </dev/null) || true
     fi
   done <<EOF

@@ -83,6 +83,11 @@ case "${1:-}" in
         printf '%s\n' "$seq" > "$FM_FAKE_SLOT_SEQ"
         slot=$(CDPATH='' cd -- "${FM_FAKE_SLOT_ROOT:?}/$seq/project" && pwd -P) || exit 1
         printf '%s\n' "$slot" > "${FM_FAKE_PANE_FILE:?}"
+      elif [[ "$arg" == "treehouse enter "* ]]; then
+        name=${arg#treehouse enter }
+        name=${name//\'/}
+        slot=$(CDPATH='' cd -- "${FM_FAKE_SLOT_ROOT:?}/$name/project" && pwd -P) || exit 1
+        printf '%s\n' "$slot" > "${FM_FAKE_PANE_FILE:?}"
       fi
     done
     prev=
@@ -110,6 +115,19 @@ SH
 #!/usr/bin/env bash
 set -u
 printf 'treehouse %s\n' "$*" >> "${FM_FAKE_TREEHOUSE_LOG:?}"
+if [ "${1:-} ${2:-}" = "get --lease" ] && [ -n "${FM_FAKE_LEASE_SLOT:-}" ]; then
+  holder=
+  while [ "$#" -gt 1 ]; do
+    [ "$1" != --lease-holder ] || holder=$2
+    shift
+  done
+  slot=$(CDPATH='' cd -- "$FM_FAKE_LEASE_SLOT" && pwd -P) || exit 1
+  jq -n --arg p "$slot" --arg n "$(basename "$(dirname "$slot")")" --arg h "$holder" \
+    '{worktrees: [{name: $n, path: $p, leased: true, lease_holder: $h}]}' \
+    > "$(dirname "$(dirname "$slot")")/treehouse-state.json"
+  printf '%s\n' "$slot"
+  exit 0
+fi
 if [ "${1:-}" = return ]; then
   shift
   target=
@@ -448,6 +466,43 @@ test_slot_with_unpushed_commits_is_not_returned() {
   pass "a slot holding task commits is kept and the spawn refuses ($origin)"
 }
 
+# The same refusal on a slot the spawn adopted through the allocator: steering's
+# `get --lease` hands out a clean slot another task still claims, it passes the
+# reuse test, so it becomes the spawn's target lease and its claim is rewritten
+# to this task. Its ship branch then holds commits origin lacks and the
+# live-session gate refuses: the abort trap's target-lease return must leave
+# that claimed slot alone, as the plain path does.
+test_adopted_slot_with_unpushed_commits_is_not_returned() {
+  local id="defer-$$-adopted" case_dir out rc slot1
+  case_dir=$(make_world adopted "$id")
+  slot1="$case_dir/slots/1/project"
+  git -C "$slot1" checkout --quiet -b "fm/$id"
+  printf 'keep\n' > "$slot1/extra.txt"
+  git -C "$slot1" add extra.txt
+  git -C "$slot1" -c user.name='Firstmate Tests' -c user.email='tests@example.invalid' commit -qm extra
+  git -C "$slot1" checkout --quiet --detach main
+  slot1=$(CDPATH='' cd -- "$slot1" && pwd -P)
+  printf 'task=some-other-task\nhome=%s\n' "$case_dir/home" > "$case_dir/slots/1/.fm-slot-owner"
+
+  rc=0
+  out=$(FM_FAKE_LEASE_SLOT="$slot1" run_spawn "$case_dir" "$id" commits --mode no-mistakes --yolo off) || rc=$?
+  expect_code 1 "$rc" "an adopted slot holding unpushed commits was not refused"$'\n'"$out"
+  assert_grep "get --lease --lease-holder fm-spawn-$id" "$case_dir/treehouse.log" \
+    "the spawn did not lease its slot through the allocator"
+  [ "$(cat "$case_dir/slot-seq")" = 0 ] || fail "the spawn fell back to the plain treehouse get"
+  assert_contains "$out" "was not returned because it holds commits origin does not have" \
+    "the refusal did not say the unpushed commits were kept"
+  if grep -F 'treehouse return' "$case_dir/treehouse.log" >/dev/null; then
+    fail "the abort returned the adopted slot it said it kept"
+  fi
+  assert_grep 'keep' "$slot1/extra.txt" "the unpushed commit did not survive"
+  [ "$(git -C "$slot1" branch --show-current)" = "fm/$id" ] \
+    || fail "the refused spawn detached the ship branch on its adopted slot"
+  grep -Fxq -- "task=$id" "$case_dir/slots/1/.fm-slot-owner" \
+    || fail "the refused spawn dropped the claim on the adopted slot it kept"
+  pass "an adopted target slot holding task commits keeps its ship branch and claim on refusal"
+}
+
 test_originless_slot_without_other_local_branches_is_refused() {
   local id="defer-$$-no-peer" case_dir out rc slot1
   case_dir=$(make_world no-peer "$id" originless)
@@ -480,4 +535,5 @@ test_slot_is_rechecked_after_retaking_the_project_lock
 test_dirty_slot_is_not_returned
 test_slot_with_unpushed_commits_is_not_returned
 test_slot_with_unpushed_commits_is_not_returned originless
+test_adopted_slot_with_unpushed_commits_is_not_returned
 test_originless_slot_without_other_local_branches_is_refused
