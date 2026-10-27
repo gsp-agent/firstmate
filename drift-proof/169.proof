@@ -1,0 +1,2 @@
+# Failing-first home-clone replay in tests/fm-dispatch-ready.test.sh: a record naming an older same-origin clone (36-tree pool) reads this home's full 4-tree pool and says nothing starts; on the base it reads the older clone's pool as free.
+pr: 169

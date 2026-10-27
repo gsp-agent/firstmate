@@ -174,5 +174,3 @@ pr: 163
 pr: 165
 # Failing-first pool-tree, freed-place and captain-row replays: tests/fm-project-capacity.test.sh (a full worktree pool beside free places defers 75 and names the pool; base launches), tests/fm-dispatch-ready.test.sh (full pool, captain row, --freed-by), tests/fm-supervision-host.test.sh (a paused worker hands main its Dispatch line) and tests/fm-teardown.test.sh (an out-of-root slot is destroyed with the safe default); each fails on its base and passes here.
 pr: 164
-# Failing-first home-clone replay in tests/fm-dispatch-ready.test.sh: a record naming an older same-origin clone (36-tree pool) reads this home's full 4-tree pool and says nothing starts; on the base it reads the older clone's pool as free.
-pr: 169
