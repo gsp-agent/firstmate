@@ -105,6 +105,21 @@ PROJ=$(CDPATH='' cd -- "$1" 2>/dev/null && pwd -P) || {
   exit 2
 }
 NAME=$(basename "$PROJ")
+# Starts go to this home's own clone of the project ($FM_HOME/projects/<name>,
+# the directory main hands bin/fm-spawn.sh). A task record can still name
+# another clone of the same origin (one made before a home move), whose
+# worktree pool is not the one a start draws from: on 10-26 a recorded PR
+# handoff read the retired clone's 36-tree pool as free while the live 4-tree
+# pool was full. So a same-origin home clone answers instead.
+HOME_CLONE="$FM_HOME/projects/$NAME"
+if [ -d "$HOME_CLONE" ] && HOME_CLONE=$(CDPATH='' cd -- "$HOME_CLONE" 2>/dev/null && pwd -P) &&
+  [ "$HOME_CLONE" != "$PROJ" ]; then
+  proj_origin=$(git -C "$PROJ" remote get-url origin 2>/dev/null || true)
+  home_origin=$(git -C "$HOME_CLONE" remote get-url origin 2>/dev/null || true)
+  if [ -n "$proj_origin" ] && [ "$proj_origin" = "$home_origin" ]; then
+    PROJ=$HOME_CLONE
+  fi
+fi
 
 # <list> <max>: the first <max> comma-separated items, then "+N more".
 short_list() {

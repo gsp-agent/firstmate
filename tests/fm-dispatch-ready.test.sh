@@ -234,6 +234,31 @@ test_full_pool_holds_ready_rows_beside_free_places() {
   pass "a full worktree pool holds ready rows back beside free places, a free tree offers them, and only a top-level max_trees sizes the pool"
 }
 
+# A record can name an older clone of the project; starts draw from this home's
+# own clone ($FM_HOME/projects/<name>), so its pool answers (10-26: a retired
+# clone's 36-tree pool read free while the live 4-tree pool was full).
+test_line_reads_the_home_clone_of_a_recorded_older_clone() {
+  local case_dir out old
+  case_dir=$(make_case home-clone)
+  declare_capacity "$case_dir" "proj 5"
+  axi "$case_dir" add ready-a "first ready" --kind ship --repo proj
+  mkdir -p "$case_dir/home/projects"
+  git clone -q "$case_dir/proj.origin.git" "$case_dir/home/projects/proj" || fail "home-clone: fixture clone"
+  old="$case_dir/retired/proj"
+  git clone -q "$case_dir/proj.origin.git" "$old" || fail "home-clone: fixture old clone"
+  git -C "$old" remote set-url origin "$(git -C "$case_dir/home/projects/proj" remote get-url origin)"
+  printf '%s\n' 'max_trees = 36' > "$old/treehouse.toml"
+  printf '%s\n' 'max_trees = 4' > "$case_dir/home/projects/proj/treehouse.toml"
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$GSP_FULL_POOL run_helper "$case_dir" "$old") || fail "home-clone: helper failed"
+  assert_contains "$out" "and 0 of 4 worktree pool trees free" "home-clone: the older clone's pool answered instead of the home clone's"
+  assert_contains "$out" "Nothing starts until a pool tree is returned" "home-clone: told to start into the full home pool"
+  git -C "$old" remote set-url origin "$case_dir/elsewhere.git"
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$GSP_FULL_POOL run_helper "$case_dir" "$old") || fail "home-clone: helper failed for another origin"
+  assert_contains "$out" "worktree pool trees free" "home-clone: fixture lost its pool read"
+  assert_not_contains "$out" "of 4 worktree pool trees" "home-clone: a clone of another origin was redirected"
+  pass "a recorded older clone reads this home's same-origin clone, and another origin is left alone"
+}
+
 test_captain_rows_are_not_offered() {
   local case_dir out
   case_dir=$(make_case captain-row)
@@ -429,6 +454,7 @@ test_free_places_are_counted_by_spawns_rule_not_backlog_rows
 test_full_project_names_its_ready_rows_and_waits
 test_full_project_with_headroom_leaves_the_extra_start_to_spawn
 test_full_pool_holds_ready_rows_beside_free_places
+test_line_reads_the_home_clone_of_a_recorded_older_clone
 test_captain_rows_are_not_offered
 test_freed_by_prints_only_for_a_worker_that_stopped
 test_signal_rows_name_every_coalesced_task
