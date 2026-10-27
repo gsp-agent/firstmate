@@ -405,6 +405,31 @@ SH
 
 # --- 1. same-harness relaunch -----------------------------------------------
 
+test_spawn_relaunch_respects_slot_claim() {
+  local dir out rc owner before
+  for owner in another-task rl-slot absent; do
+    dir=$(new_case "slot-$owner" rl-slot)
+    add_ship_task "$dir" rl-slot claude
+    printf 'zsh' > "$dir/fake/command"
+    if [ "$owner" != absent ]; then
+      printf 'task=%s\nhome=%s\n' "$owner" "$dir/home" > "$dir/.fm-slot-owner"
+    fi
+    before=$(cat "$dir/home/state/rl-slot.meta")
+    out=$(run_spawn "$dir" rl-slot --relaunch); rc=$?
+    if [ "$owner" = another-task ]; then
+      expect_code 1 "$rc" "relaunch must refuse a slot reassigned to another task"$'\n'"$out"
+      assert_contains "$out" "claimed by task another-task" "refusal must identify the current claimant"
+      [ "$(cat "$dir/home/state/rl-slot.meta")" = "$before" ] || fail "refusal changed task metadata"
+      [ ! -s "$dir/fake/keys" ] || fail "refusal sent keys to the endpoint"
+      [ ! -s "$dir/fake/literal" ] || fail "refusal launched a worker"
+    else
+      expect_code 0 "$rc" "$owner claim must allow relaunch"$'\n'"$out"
+      assert_contains "$out" "spawned rl-slot" "compatible claim did not launch"
+    fi
+  done
+  pass "fm-spawn --relaunch: rejects another task's claim and accepts own or absent claims"
+}
+
 test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint() {
   local dir out rc gen_before gen_after
   dir=$(new_case same rl1)
@@ -3664,6 +3689,7 @@ if [ "${FM_CONTROL_RELAUNCH_TEST_GROUP:-}" = restore ]; then
   exit 0
 fi
 
+test_spawn_relaunch_respects_slot_claim
 test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint
 test_relaunch_refuses_before_exit_when_the_composer_holds_pending_text
 test_relaunch_refuses_before_exit_when_the_composer_state_is_unproven
