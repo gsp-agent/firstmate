@@ -1592,7 +1592,7 @@ RELAUNCH_MOVE_NEW_PRIOR=
 RELAUNCH_MOVE_OLD=
 RELAUNCH_MOVE_BRANCH_CREATED=0
 RELAUNCH_MOVE_OLD_CLAIMED=0
-RELAUNCH_MOVE_PANE_SENT=0
+RELAUNCH_MOVED=0
 RELAUNCH_MOVE_LOCK=
 RELAUNCH_MOVE_LOCK_HELD=0
 RELAUNCH_REPLACEMENT_BUSY_GEN=
@@ -1835,58 +1835,49 @@ spawn_pool_slot_idle() {  # <project-dir> <slot>
   [ -n "$row" ] && [ "${row%%|*}" != in-use ] && [ -z "${row#*|}" ]
 }
 
-# Finish a published move: the old copy's claim is released, now that the
-# record names the live slot, and with it the project lock the move held.
-spawn_relaunch_move_commit() {
-  [ -n "$RELAUNCH_MOVE_NEW" ] || return 0
-  RELAUNCH_MOVE_PENDING=0
-  if [ "$RELAUNCH_MOVE_OLD_CLAIMED" = 1 ]; then
-    fm_treehouse_slot_owner_release "$RELAUNCH_MOVE_OLD" "$ID" 2>/dev/null || true
+# After a published move, let the old copy's claim go once the task's endpoint
+# is seen outside it (the endpoint check sends it to the new slot). Called once
+# the replacement record is published and from the exit trap; while the
+# endpoint may still stand in the old copy, or cannot be read, the claim stays
+# and the warning names it.
+spawn_relaunch_move_release_old() {
+  local seen=''
+  [ "$RELAUNCH_MOVED" = 1 ] && [ "$RELAUNCH_MOVE_OLD_CLAIMED" = 1 ] || return 0
+  RELAUNCH_MOVE_OLD_CLAIMED=0
+  if [ -n "${WT_TARGET:-}" ] && declare -F spawn_current_path >/dev/null 2>&1; then
+    seen=$(spawn_current_path "$WT_TARGET" 2>/dev/null || true)
   fi
-  if [ "$RELAUNCH_MOVE_LOCK_HELD" = 1 ]; then
-    RELAUNCH_MOVE_LOCK_HELD=0
-    fm_lock_release "$RELAUNCH_MOVE_LOCK" || true
+  if [ -z "$seen" ] || [ "$(real_path_or_raw "$seen")" = "$(real_path_or_raw "$RELAUNCH_MOVE_OLD")" ]; then
+    echo "warning: task $ID now lives in $RELAUNCH_MOVE_NEW, but its endpoint ${seen:+is still in $seen}${seen:-could not be read}, so its old copy $RELAUNCH_MOVE_OLD keeps the task's claim; release it once the endpoint has left" >&2
+    return 0
   fi
+  fm_treehouse_slot_owner_release "$RELAUNCH_MOVE_OLD" "$ID" 2>/dev/null || true
 }
 
-# Undo a relaunch's move onto the live clone when the relaunch ends before its
-# replacement record is published. It runs under the project lock the move
-# still holds, and the old copy kept its claim throughout. A pane already sent
-# to the new slot is sent back to the old copy first; once it is seen there the
-# new slot's claim is released and the branch copy the move made is removed
-# (the old copy still holds it at the same head). A pane that does not return
-# leaves the new slot claimed, so no other task is put where it stands. The
-# slot is put back on the commit it held, so it qualifies as free again.
+# Undo a move that failed before the task's record was rewritten to name the
+# live slot (spawn_relaunch_move_to_live_clone): no endpoint has been touched
+# yet and the project lock is still held. The slot is forced back to the commit
+# it held, everything the move added is removed (the slot was exactly clean
+# when chosen), and its submodules are put back; only a slot that then reads
+# exactly clean has its claim released and the branch copy removed. One that
+# does not stays claimed by this task, so no spawn is handed it, and the
+# warning names it.
 spawn_relaunch_move_rollback() {
-  local new=$RELAUNCH_MOVE_NEW pane_out=1 seen old_real cd_path
+  local new=$RELAUNCH_MOVE_NEW state
   RELAUNCH_MOVE_PENDING=0
-  [ -n "$new" ] || return 0
-  if [ "$RELAUNCH_MOVE_PANE_SENT" = 1 ]; then
-    pane_out=0
-    old_real=$(real_path_or_raw "$RELAUNCH_MOVE_OLD")
-    cd_path=${RELAUNCH_MOVE_OLD//\'/\'\\\'\'}
-    if spawn_send_text_line "$WT_TARGET" "cd -- '$cd_path'" 2>/dev/null; then
-      for _ in $(seq 1 10); do
-        seen=$(spawn_current_path "$WT_TARGET" 2>/dev/null || true)
-        if [ -n "$seen" ] && [ "$(real_path_or_raw "$seen")" = "$old_real" ]; then
-          pane_out=1
-          break
-        fi
-        sleep 0.5
-      done
-    fi
+  [ -n "$new" ] && [ -d "$new" ] || return 0
+  git -C "$new" checkout -q -f --detach ${RELAUNCH_MOVE_NEW_PRIOR:+"$RELAUNCH_MOVE_NEW_PRIOR"} </dev/null >/dev/null 2>&1 || true
+  git -C "$new" clean -ffdq </dev/null >/dev/null 2>&1 || true
+  if [ -f "$new/.gitmodules" ]; then
+    fm_run_timed 300 env GIT_TERMINAL_PROMPT=0 git -C "$new" submodule update --init --recursive -f -q </dev/null >/dev/null 2>&1 || true
   fi
-  if [ "$pane_out" != 1 ]; then
-    echo "warning: task $ID's endpoint did not return to its copy $RELAUNCH_MOVE_OLD after the move was rolled back; the live clone's slot $new stays claimed by it - send the endpoint back by hand" >&2
+  state=$(git -C "$new" status --porcelain --untracked-files=all --ignore-submodules=none 2>/dev/null) || state="unreadable status"
+  if [ -n "$state" ]; then
+    fm_treehouse_slot_owner_claim "$new" "$ID" "$FM_HOME" 2>/dev/null || true
+    echo "warning: the live clone's slot $new could not be put back clean after task $ID's move failed ($(printf '%s' "$state" | head -3 | tr '\n' ';')); it stays claimed by $ID so no spawn is handed it - clean it, then remove its .fm-slot-owner" >&2
   else
-    if [ -d "$new" ]; then
-      git -C "$new" checkout -q --detach ${RELAUNCH_MOVE_NEW_PRIOR:+"$RELAUNCH_MOVE_NEW_PRIOR"} </dev/null >/dev/null 2>&1 || true
-      if [ -f "$new/.gitmodules" ]; then
-        fm_run_timed 300 env GIT_TERMINAL_PROMPT=0 git -C "$new" submodule update --init --recursive -q </dev/null >/dev/null 2>&1 || true
-      fi
-      if [ "$RELAUNCH_MOVE_BRANCH_CREATED" = 1 ]; then
-        git -C "$new" branch -q -D "$BRANCH" </dev/null >/dev/null 2>&1 || true
-      fi
+    if [ "$RELAUNCH_MOVE_BRANCH_CREATED" = 1 ]; then
+      git -C "$new" branch -q -D "$BRANCH" </dev/null >/dev/null 2>&1 || true
     fi
     fm_treehouse_slot_owner_release "$new" "$ID" 2>/dev/null || true
   fi
@@ -1897,6 +1888,7 @@ spawn_abort_cleanup() {
   local status=$?
   spawn_release_skip_leases
   [ "$RELAUNCH_MOVE_PENDING" != 1 ] || spawn_relaunch_move_rollback
+  spawn_relaunch_move_release_old
   if [ "$RELAUNCH_MOVE_LOCK_HELD" = 1 ]; then
     RELAUNCH_MOVE_LOCK_HELD=0
     fm_lock_release "$RELAUNCH_MOVE_LOCK" || true
@@ -4911,7 +4903,7 @@ spawn_relaunch_move_to_live_clone() {
     echo "error: task $ID lives in $old_real, not this home's clone $live, and its copy $RELAUNCH_WT does not have its branch $BRANCH checked out (HEAD at $(git -C "$RELAUNCH_WT" rev-parse --short=12 HEAD 2>/dev/null || echo unknown)); nothing was moved or relaunched. Check out $BRANCH there, keeping any work on it, then relaunch again" >&2
     exit 1
   fi
-  dirty=$(git -C "$RELAUNCH_WT" status --porcelain --untracked-files=all 2>/dev/null) || dirty="unreadable status"
+  dirty=$(git -C "$RELAUNCH_WT" status --porcelain --untracked-files=all --ignore-submodules=none 2>/dev/null) || dirty="unreadable status"
   if [ -n "$dirty" ]; then
     save="$DATA/$ID/relaunch-move-$(date -u +%Y%m%dT%H%M%SZ)"
     if ! { mkdir -p "$save" &&
@@ -4980,7 +4972,7 @@ spawn_relaunch_move_to_live_clone() {
     echo "error: task $ID's submodules could not be put on the commits $BRANCH records in the live clone's slot $new (a submodule commit may be unpushed); nothing was relaunched" >&2
     exit 1
   fi
-  got=$(git -C "$new" status --porcelain --untracked-files=all 2>/dev/null) || got="unreadable status"
+  got=$(git -C "$new" status --porcelain --untracked-files=all --ignore-submodules=none 2>/dev/null) || got="unreadable status"
   if [ -n "$got" ]; then
     echo "error: the live clone's slot $new is not clean after carrying $BRANCH there ($(printf '%s' "$got" | head -3 | tr '\n' ';')); nothing was relaunched" >&2
     exit 1
@@ -4989,10 +4981,28 @@ spawn_relaunch_move_to_live_clone() {
     echo "error: could not claim the live clone's slot $new for task $ID; nothing was relaunched" >&2
     exit 1
   }
-  # The old copy keeps its claim until the replacement record is published
-  # (spawn_relaunch_move_commit), so a rollback always finds it as it was.
+  # The move is made by rewriting the task's record to name the live clone and
+  # slot, under the lock, before any endpoint is touched: from here on this is
+  # an ordinary relaunch of a task living in that slot, and a later refusal
+  # leaves it there, consistent, rather than needing an undo. The old copy
+  # keeps its claim until the endpoint has left it
+  # (spawn_relaunch_move_release_old).
   fm_treehouse_slot_owner_state "$RELAUNCH_WT" "$ID" 2>/dev/null || true
   [ "${FM_TREEHOUSE_SLOT_OWNER:-}" != mine ] || RELAUNCH_MOVE_OLD_CLAIMED=1
+  got="$STATE/.$ID.meta.move.${BASHPID:-$$}"
+  if ! LC_ALL=C awk -v p="$live" -v w="$new" '
+      /^project=/ { print "project=" p; next }
+      /^worktree=/ { print "worktree=" w; next }
+      { print }' "$STATE/$ID.meta" > "$got" 2>/dev/null ||
+    ! fm_backlog_atomic_transition publish "$got" "$STATE/$ID.meta" "task record" "$STATE"; then
+    rm -f "$got"
+    echo "error: task $ID's record could not be rewritten to name the live clone's slot $new (${FM_BACKLOG_TRANSITION_ERROR:-write failed}); nothing was relaunched" >&2
+    exit 1
+  fi
+  RELAUNCH_MOVE_PENDING=0
+  RELAUNCH_MOVED=1
+  RELAUNCH_MOVE_LOCK_HELD=0
+  fm_lock_release "$RELAUNCH_MOVE_LOCK" || true
   echo "relaunch: moving task $ID from $old_real ($RELAUNCH_WT) onto this home's clone $live, slot $new, branch $BRANCH at ${head_old:0:12}" >&2
   PROJ=$live
   PROJ_ABS=$live
@@ -5826,12 +5836,11 @@ elif [ "$RELAUNCH" -eq 1 ]; then
   if [ -z "$relaunch_seen" ] || [ "$(real_path_or_raw "$relaunch_seen")" != "$relaunch_wt_real" ]; then
     # A task just moved onto the live clone is told to go to its new slot on
     # every backend: its shell still stands in the old copy.
-    if [ "$BACKEND" != herdr ] && [ "$RELAUNCH_MOVE_PENDING" != 1 ]; then
+    if [ "$BACKEND" != herdr ] && [ "$RELAUNCH_MOVED" != 1 ]; then
       echo "error: task $ID's endpoint is in '${relaunch_seen:-unknown}', not its recorded worktree '$WT'; refusing to relaunch an agent outside the copy holding its work" >&2
       exit 1
     fi
     relaunch_cd_path=${WT//\'/\'\\\'\'}
-    [ "$RELAUNCH_MOVE_PENDING" != 1 ] || RELAUNCH_MOVE_PANE_SENT=1
     spawn_send_text_line "$WT_TARGET" "cd -- '$relaunch_cd_path'" || {
       echo "error: task $ID's endpoint is in '${relaunch_seen:-unknown}' and could not be told to return to its recorded worktree '$WT'; refusing to relaunch an agent outside the copy holding its work" >&2
       exit 1
@@ -7296,7 +7305,7 @@ if [ "$RELAUNCH" -eq 1 ]; then
     exit 1
   fi
   RELAUNCH_REPLACEMENT_PENDING=0
-  spawn_relaunch_move_commit
+  spawn_relaunch_move_release_old
   SPAWN_META_PUBLISH_STARTED=0
   SPAWN_META_TMP=
 fi

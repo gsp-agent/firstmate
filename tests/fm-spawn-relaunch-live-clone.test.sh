@@ -217,26 +217,24 @@ test_relaunch_leaves_a_ship_whose_home_clone_is_another_origin() {
   pass "a relaunch leaves a ship alone when the home clone has another origin"
 }
 
-# A relaunch that moved the task but then refuses (here the pane will not go
-# to the new slot) rolls the move back: the record and the old slot's claim
-# stand as before, the live slot is unclaimed, carries no copy of the branch,
-# and is back on the commit it held.
-test_relaunch_rolls_back_a_move_when_the_relaunch_refuses() {
-  local dir id=roll-a1 out rc=0 before
+# The move is made when the task's record is rewritten, before any endpoint
+# is touched, so a relaunch that refuses afterwards (here the pane will not
+# go to the new slot) leaves the task living on the live clone, consistent:
+# the record names the live slot, which stays claimed and on the branch, and
+# the old copy keeps its claim because the pane still stands in it.
+test_relaunch_that_refuses_after_the_move_leaves_the_task_on_the_live_clone() {
+  local dir id=roll-a1 out rc=0
   dir=$(make_case roll "$id")
   OLDWT="$dir/oldpool/7/proj"
   : > "$dir/fake/nofollow"
-  before=$(cat "$dir/home/state/$id.meta")
   out=$(run_relaunch "$dir" "$id") || rc=$?
   [ "$rc" -ne 0 ] || fail "roll: a relaunch whose pane stayed in the old copy succeeded: $out"
-  assert_contains "$out" "rolled back task $id's move" "roll: the refusal did not roll the move back"
-  assert_equals "$before" "$(cat "$dir/home/state/$id.meta")" "roll: the record changed though the relaunch refused"
-  [ -e "$dir/oldpool/7/.fm-slot-owner" ] || fail "roll: the old slot's claim was not restored"
-  [ -e "$dir/livepool/1/.fm-slot-owner" ] && fail "roll: the live slot is still claimed by a task whose record names the old copy"
-  git -C "$dir/home/projects/proj" rev-parse --verify -q "refs/heads/fm/$id" >/dev/null && fail "roll: the live clone kept a copy of the branch"
-  assert_equals "$(git -C "$dir/home/projects/proj" rev-parse main)" "$(git -C "$dir/livepool/1/proj" rev-parse HEAD)" "roll: the live slot was not put back on the commit it held"
-  assert_equals "" "$(git -C "$dir/livepool/1/proj" status --porcelain)" "roll: the live slot was left dirty"
-  pass "a relaunch that refuses after a move rolls the move back"
+  assert_grep "worktree=$dir/livepool/1/proj" "$dir/home/state/$id.meta" "roll: the record does not name the live slot after the move"
+  [ -e "$dir/livepool/1/.fm-slot-owner" ] || fail "roll: the live slot the record names is not claimed"
+  assert_equals "fm/$id" "$(git -C "$dir/livepool/1/proj" rev-parse --abbrev-ref HEAD)" "roll: the live slot is not on the ship branch"
+  [ -e "$dir/oldpool/7/.fm-slot-owner" ] || fail "roll: the old copy's claim was released while the pane still stands in it"
+  assert_contains "$out" "keeps the task's claim" "roll: the warning did not say the old copy keeps its claim"
+  pass "a relaunch that refuses after the move leaves the task consistent on the live clone"
 }
 
 # A live clone that already has the ship branch at another commit is never
@@ -255,11 +253,12 @@ test_relaunch_refuses_to_move_over_a_different_live_branch() {
   pass "a relaunch refuses to move over a live branch at another commit"
 }
 
-# A relaunch deferred after its pane already went to the new slot (here the
-# live-session check reads a person live) rolls the move back with the pane:
-# the pane is sent back to the old copy before the live slot is released.
-test_relaunch_rollback_after_the_pane_moved_brings_the_pane_back() {
-  local dir id=back-a1 out rc=0 before
+# A relaunch deferred after its pane went to the new slot (here the
+# live-session check reads a person live) leaves the task on the live clone:
+# the record names the live slot, the pane stands there, and the old copy's
+# claim is let go now that the pane has left it.
+test_relaunch_deferred_after_the_move_keeps_the_task_on_the_live_clone() {
+  local dir id=back-a1 out rc=0
   dir=$(make_case back "$id")
   OLDWT="$dir/oldpool/7/proj"
   # fm-control's own check runs first and is admitted; fm-spawn's, after the
@@ -274,18 +273,15 @@ if calls == 1:
 print("a person is live")
 sys.exit(75)
 PY
-  before=$(cat "$dir/home/state/$id.meta")
   out=$(FM_LIVE_SESSION_CHECK="$dir/live-session.py" run_relaunch "$dir" "$id") || rc=$?
   [ "$rc" -ne 0 ] || fail "back: a deferred relaunch reported success: $out"
   assert_grep "cd -- '$dir/livepool/1/proj'" "$dir/fake/keys" "back: the pane was never sent to the live slot, so this case proves nothing"
-  assert_contains "$out" "rolled back task $id's move" "back: the deferral did not roll the move back"
-  assert_grep "cd -- '$OLDWT'" "$dir/fake/keys" "back: the pane was not sent back to the old copy"
-  assert_equals "$OLDWT" "$(cat "$dir/fake/cwd")" "back: the pane was left in the live slot"
-  assert_equals "$before" "$(cat "$dir/home/state/$id.meta")" "back: the record changed though the relaunch was deferred"
-  [ -e "$dir/oldpool/7/.fm-slot-owner" ] || fail "back: the old slot's claim was not restored"
-  [ -e "$dir/livepool/1/.fm-slot-owner" ] && fail "back: the live slot is still claimed"
-  assert_equals "$(git -C "$dir/home/projects/proj" rev-parse main)" "$(git -C "$dir/livepool/1/proj" rev-parse HEAD)" "back: the live slot was not put back on the commit it held"
-  pass "a relaunch rolled back after its pane moved sends the pane back before releasing the slot"
+  assert_not_contains "$out" "rolled back" "back: a move already recorded was rolled back"
+  assert_grep "worktree=$dir/livepool/1/proj" "$dir/home/state/$id.meta" "back: the record does not name the live slot"
+  assert_equals "$dir/livepool/1/proj" "$(cat "$dir/fake/cwd")" "back: the pane is not in the live slot"
+  [ -e "$dir/livepool/1/.fm-slot-owner" ] || fail "back: the live slot the record names is not claimed"
+  [ -e "$dir/oldpool/7/.fm-slot-owner" ] && fail "back: the old copy kept its claim after the pane left it"
+  pass "a relaunch deferred after the move keeps the task on the live clone"
 }
 
 # A clean copy not on the ship branch (here detached at another commit) is
@@ -315,12 +311,15 @@ submodule_env() {
 # main, and whose task branch moves the pin to <sub-rev> in the old copy:
 # "pushed" is the submodule's second commit, in its remote; "unpushed" is a
 # commit only the old copy's submodule has. Prints the case dir.
-make_submodule_case() {  # <name> <id> pushed|unpushed
+make_submodule_case() {  # <name> <id> pushed|unpushed|ignored-edit
   local dir="$TMP_ROOT/$1" id=$2 old sub2
   git init -q --bare "$dir.sub.git"
   git clone -q "$dir.sub.git" "$dir.subseed" 2>/dev/null
-  git -C "$dir.subseed" -c user.email=t@t -c user.name=t commit -q --allow-empty -m s1
-  git -C "$dir.subseed" -c user.email=t@t -c user.name=t commit -q --allow-empty -m s2
+  printf 's1\n' > "$dir.subseed/s.txt"
+  git -C "$dir.subseed" add s.txt
+  git -C "$dir.subseed" -c user.email=t@t -c user.name=t commit -q -m s1
+  printf 's2\n' > "$dir.subseed/s.txt"
+  git -C "$dir.subseed" -c user.email=t@t -c user.name=t commit -q -am s2
   git -C "$dir.subseed" push -q origin HEAD:main 2>/dev/null
   git -C "$dir.sub.git" symbolic-ref HEAD refs/heads/main
   sub2=$(git -C "$dir.subseed" rev-parse HEAD)
@@ -340,13 +339,40 @@ make_submodule_case() {  # <name> <id> pushed|unpushed
   git -C "$dir/old/proj" fetch -q origin
   git -C "$old" -c user.email=t@t -c user.name=t rebase -q origin/main >/dev/null 2>&1
   git -C "$old" submodule update --init -q >/dev/null 2>&1
-  if [ "$3" = pushed ]; then
+  if [ "$3" = pushed ] || [ "$3" = ignored-edit ]; then
     git -C "$old/sub" checkout -q "$sub2"
   else
     git -C "$old/sub" -c user.email=t@t -c user.name=t commit -q --allow-empty -m "only here"
   fi
   git -C "$old" add sub
   git -C "$old" -c user.email=t@t -c user.name=t commit -q -m "move the sub pin"
+  if [ "$3" = ignored-edit ]; then
+    # The project tells git status to ignore the submodule, and the task has
+    # an uncommitted edit inside it.
+    git -C "$old" config -f .gitmodules submodule.sub.ignore all
+    git -C "$old" -c user.email=t@t -c user.name=t commit -q -am "ignore sub in status"
+    printf 'edit\n' >> "$old/sub/s.txt"
+  fi
+  printf '%s\n' "$dir"
+}
+
+# A case whose task branch adds a submodule main never had, pinned at a
+# commit only the old copy's submodule holds (unpushed). Prints the case dir.
+make_added_submodule_case() {  # <name> <id>
+  local dir="$TMP_ROOT/$1" id=$2 old
+  git init -q --bare "$dir.sub.git"
+  git clone -q "$dir.sub.git" "$dir.subseed" 2>/dev/null
+  printf 's1\n' > "$dir.subseed/s.txt"
+  git -C "$dir.subseed" add s.txt
+  git -C "$dir.subseed" -c user.email=t@t -c user.name=t commit -q -m s1
+  git -C "$dir.subseed" push -q origin HEAD:main 2>/dev/null
+  git -C "$dir.sub.git" symbolic-ref HEAD refs/heads/main
+  make_case "$1" "$id" >/dev/null
+  old="$dir/oldpool/7/proj"
+  git -C "$old" submodule add -q "$dir.sub.git" sub >/dev/null 2>&1
+  git -C "$old/sub" -c user.email=t@t -c user.name=t commit -q --allow-empty -m "only here"
+  git -C "$old" add .gitmodules sub
+  git -C "$old" -c user.email=t@t -c user.name=t commit -q -m "add sub at an unpushed commit"
   printf '%s\n' "$dir"
 }
 
@@ -467,11 +493,13 @@ test_relaunch_never_takes_a_slot_in_use() {
   pass "a relaunch never takes a slot Treehouse reads in use"
 }
 
-# Between the move and the replacement record's publication, the old copy
-# keeps its claim and the move keeps the project lock, so no other spawn can
-# adopt either slot; both are let go once the record is published. Read here
-# from inside fm-spawn's own live-session check, which runs in that window.
-test_relaunch_holds_the_old_claim_and_the_lock_until_published() {
+# The move is recorded before any endpoint is touched: read from inside
+# fm-spawn's own live-session check (after the pane went to the new slot,
+# before the replacement record is published), the task's record already
+# names the live slot, that slot is claimed, and the project lock the move
+# held is released; the old copy keeps its claim until publication, then lets
+# it go.
+test_relaunch_records_the_move_before_touching_the_endpoint() {
   local dir id=hold-a1 out rc=0 lock
   dir=$(make_case hold "$id")
   OLDWT="$dir/oldpool/7/proj"
@@ -482,16 +510,21 @@ n = "$dir/live-session.calls"
 calls = (int(open(n).read()) if os.path.exists(n) else 0) + 1
 open(n, "w").write(str(calls))
 if calls == 2:
+    meta = open("$dir/home/state/$id.meta").read()
     with open("$dir/window.txt", "w") as f:
-        f.write("old-claim=%d lock=%d\\n" % (os.path.exists("$OLDWT/../.fm-slot-owner"), os.path.isdir("$lock")))
+        f.write("record=%d new-claim=%d lock=%d old-claim=%d\n" % (
+            "worktree=$dir/livepool/1/proj\n" in meta,
+            os.path.exists("$dir/livepool/1/.fm-slot-owner"),
+            os.path.isdir("$lock"),
+            os.path.exists("$dir/oldpool/7/.fm-slot-owner")))
 sys.exit(0)
 PY
   out=$(FM_LIVE_SESSION_CHECK="$dir/live-session.py" run_relaunch "$dir" "$id") || rc=$?
   expect_code 0 "$rc" "hold: the relaunch failed: $out"
-  assert_grep "old-claim=1 lock=1" "$dir/window.txt" "hold: the old claim or the project lock was let go before the record was published"
-  [ -e "$dir/oldpool/7/.fm-slot-owner" ] && fail "hold: the old claim outlived the published move"
-  [ -d "$lock" ] && fail "hold: the project lock outlived the published move"
-  pass "a relaunch holds the old claim and the project lock until the record is published"
+  assert_grep "record=1 new-claim=1 lock=0 old-claim=1" "$dir/window.txt" "hold: the move was not recorded, claimed and unlocked before the endpoint work, with the old claim kept"
+  [ -e "$dir/oldpool/7/.fm-slot-owner" ] && fail "hold: the old claim outlived the published relaunch"
+  [ -d "$lock" ] && fail "hold: the project lock outlived the relaunch"
+  pass "a relaunch records the move before touching the endpoint and lets the old copy go at publication"
 }
 
 # The move chooses and claims its slot under the shared Treehouse project
@@ -530,9 +563,49 @@ test_relaunch_refuses_when_the_live_pool_cannot_be_read() {
   pass "a relaunch refuses when the live pool's status cannot be read"
 }
 
+# A move whose branch adds a submodule the slot's commit never had, pinned at
+# an unpushed commit, fails at the submodule step; the rollback leaves the slot
+# exactly clean (the half-made submodule directory removed) and unclaimed.
+test_relaunch_rollback_cleans_a_submodule_the_branch_added() {
+  local dir id=add-a1 out rc=0 before
+  submodule_env
+  dir=$(make_added_submodule_case add "$id")
+  OLDWT="$dir/oldpool/7/proj"
+  [ -z "$(git -C "$OLDWT" status --porcelain)" ] || fail "add: fixture: the old copy is not clean"
+  before=$(cat "$dir/home/state/$id.meta")
+  out=$(run_relaunch "$dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "add: a move with an unpushed added submodule relaunched: $out"
+  assert_contains "$out" "rolled back task $id's move" "add: the move was not rolled back"
+  assert_equals "$before" "$(cat "$dir/home/state/$id.meta")" "add: the record changed"
+  assert_equals "" "$(git -C "$dir/livepool/1/proj" status --porcelain --untracked-files=all --ignore-submodules=none)" "add: the rolled-back slot was left dirty"
+  [ -e "$dir/livepool/1/.fm-slot-owner" ] && fail "add: the clean rolled-back slot is still claimed"
+  [ -e "$dir/oldpool/7/.fm-slot-owner" ] || fail "add: the old slot's claim was released"
+  pass "a rolled-back move removes a submodule the branch added and leaves the slot clean"
+}
+
+# An uncommitted edit inside a submodule the project tells git status to
+# ignore is still uncommitted work: the copy is saved and refused, not moved.
+test_relaunch_refuses_an_ignored_submodule_edit() {
+  local dir id=ign-a1 out rc=0 before
+  submodule_env
+  dir=$(make_submodule_case ign "$id" ignored-edit)
+  OLDWT="$dir/oldpool/7/proj"
+  [ -z "$(git -C "$OLDWT" status --porcelain)" ] || fail "ign: fixture: plain git status should not see the ignored edit"
+  before=$(cat "$dir/home/state/$id.meta")
+  out=$(run_relaunch "$dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "ign: a copy with an ignored submodule edit was moved: $out"
+  assert_contains "$out" "has uncommitted or untracked changes" "ign: the refusal did not name the uncommitted work"
+  assert_equals "$before" "$(cat "$dir/home/state/$id.meta")" "ign: the record changed"
+  [ -e "$dir/livepool/1/.fm-slot-owner" ] && fail "ign: a live slot was claimed"
+  assert_grep 'edit' "$OLDWT/sub/s.txt" "ign: the edit was touched"
+  pass "a relaunch refuses a copy with an uncommitted edit in an ignored submodule"
+}
+
 test_relaunch_moves_an_old_clone_ship_onto_the_live_clone
 test_relaunch_saves_and_refuses_a_dirty_old_copy
-test_relaunch_holds_the_old_claim_and_the_lock_until_published
+test_relaunch_rollback_cleans_a_submodule_the_branch_added
+test_relaunch_refuses_an_ignored_submodule_edit
+test_relaunch_records_the_move_before_touching_the_endpoint
 test_relaunch_refuses_when_the_live_pool_cannot_be_read
 test_relaunch_refuses_while_the_project_lock_is_held
 test_relaunch_passes_over_a_claimed_slot_for_a_free_one
@@ -542,9 +615,9 @@ test_relaunch_refuses_when_only_a_foreign_slot_is_free
 test_relaunch_never_takes_a_slot_another_task_claims
 test_relaunch_moves_submodules_to_the_recorded_commits
 test_relaunch_refuses_an_unpushed_submodule_commit
-test_relaunch_rollback_after_the_pane_moved_brings_the_pane_back
+test_relaunch_deferred_after_the_move_keeps_the_task_on_the_live_clone
 test_relaunch_refuses_a_copy_not_on_its_branch
-test_relaunch_rolls_back_a_move_when_the_relaunch_refuses
+test_relaunch_that_refuses_after_the_move_leaves_the_task_on_the_live_clone
 test_relaunch_refuses_to_move_over_a_different_live_branch
 test_relaunch_matches_origins_by_identity_not_spelling
 test_relaunch_leaves_a_ship_whose_home_clone_is_another_origin
