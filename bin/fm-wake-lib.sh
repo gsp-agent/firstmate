@@ -1988,20 +1988,22 @@ fm_relaunch_live_clone() {  # <meta> <home>
   printf '%s\n' "$live_real"
 }
 
-# fm_relaunch_fresh_slot_refusal <old-copy> <old-project> <branch> <live-clone>:
+# fm_relaunch_fresh_slot_refusal <old-copy> <old-project> <task-id> <branch> <live-clone>:
 # print why the old copy's branch cannot start in a fresh slot of <live-clone>
 # and return 0, or return 1 when nothing stops it. The old copy must be a
 # worktree root of <old-project>'s own repository (the same Git common
 # directory, as a relaunch's worktree validation requires), so a record whose
-# worktree names another repository never has that history imported. It must
+# worktree names another repository never has that history imported. Its slot
+# claim must name <task-id> or be absent, as teardown requires before it
+# returns a copy, so a slot another task now holds is never taken from. It must
 # have <branch> checked out and read clean with no submodule ignored
 # (uncommitted work is never carried, and is never left behind either). The
 # live clone must not
 # have <branch> checked out anywhere, and a <branch> it already has must be in
 # the old copy's history, so starting the slot there moves that branch forward
 # and never over commits it holds.
-fm_relaunch_fresh_slot_refusal() {  # <old-copy> <old-project> <branch> <live-clone>
-  local old=$1 project=$2 branch=$3 live=$4 head dirty got old_real top common project_common
+fm_relaunch_fresh_slot_refusal() {  # <old-copy> <old-project> <task-id> <branch> <live-clone>
+  local old=$1 project=$2 id=$3 branch=$4 live=$5 head dirty got old_real top common project_common
   old_real=$(CDPATH='' cd -- "$old" 2>/dev/null && pwd -P) || old_real=
   top=$(git -C "$old" rev-parse --show-toplevel 2>/dev/null) &&
     top=$(CDPATH='' cd -- "$top" 2>/dev/null && pwd -P) || top=
@@ -2014,6 +2016,19 @@ fm_relaunch_fresh_slot_refusal() {  # <old-copy> <old-project> <branch> <live-cl
       "$old" "$project" "${common:-unreadable}" "${project_common:-unreadable}"
     return 0
   fi
+  fm_treehouse_slot_owner_state "$old" "$id"
+  case "$FM_TREEHOUSE_SLOT_OWNER" in
+    mine | absent) ;;
+    other)
+      printf 'its copy %s is now claimed by task %s, so it is no longer this task'"'"'s to carry or return\n' \
+        "$old" "$FM_TREEHOUSE_SLOT_OWNER_ID"
+      return 0
+      ;;
+    *)
+      printf 'its copy %s carries a slot claim that cannot be read, so it cannot be proved to still be this task'"'"'s\n' "$old"
+      return 0
+      ;;
+  esac
   if [ "$(git -C "$old" symbolic-ref -q HEAD 2>/dev/null)" != "refs/heads/$branch" ]; then
     printf 'its copy %s does not have its branch %s checked out (HEAD at %s)\n' \
       "$old" "$branch" "$(git -C "$old" rev-parse --short=12 HEAD 2>/dev/null || echo unknown)"

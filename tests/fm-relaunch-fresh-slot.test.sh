@@ -20,7 +20,17 @@ SPAWN="$ROOT/bin/fm-spawn.sh"
 TMP_ROOT=$(fm_test_tmproot fm-relaunch-fresh-slot)
 mkdir -p "$TMP_ROOT"
 TMP_ROOT=$(cd "$TMP_ROOT" && pwd -P)
-trap 'fm_test_remove_tree "$TMP_ROOT"' EXIT
+# fm-spawn stages each task's launch under /tmp/fm-<id> (bin/fm-spawn.sh's
+# per-task temp root), so those are removed here too.
+TASK_TMPS=()
+fresh_cleanup() {
+  local d
+  for d in "${TASK_TMPS[@]:-}"; do
+    [ -n "$d" ] && rm -rf "$d"
+  done
+  fm_test_remove_tree "$TMP_ROOT"
+}
+trap fresh_cleanup EXIT
 
 command -v jq >/dev/null 2>&1 || {
   echo "skip - the herdr adapter and the Treehouse pool reads need jq"
@@ -183,6 +193,7 @@ make_case() {  # <name> <id> [noslot]
   printf '%s' "$OLDWT" > "$dir/fake/cwd"
   printf '%s' '%7' > "$dir/fake/herdr-pane"
   : > "$dir/fake/herdr-log"
+  TASK_TMPS+=("/tmp/fm-$id")
 }
 
 run_env() {  # <case-dir> <program> <args...>
@@ -359,6 +370,33 @@ test_control_refuses_a_worktree_of_another_repository() {
   pass "an old-clone relaunch refuses a recorded worktree that belongs to another repository"
 }
 
+# An old copy whose slot claim now names another task is never taken from
+# or returned: fm-control refuses before the agent stops, and fm-spawn
+# refuses before any slot, import or return.
+test_relaunch_refuses_an_old_copy_another_task_claims() {
+  local dir id=owned-a1 out rc=0 before
+  make_case owned "$id"
+  dir=$CASE_DIR
+  : > "$dir/fake/herdr-agent-live"
+  (. "$ROOT/bin/fm-wake-lib.sh" && fm_treehouse_slot_owner_claim "$OLDWT" other-task "$dir/home") ||
+    fail "owned: fixture: could not hand the old copy to another task"
+  before=$(cat "$dir/home/state/$id.meta")
+  out=$(run_control_relaunch "$dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "owned: a copy another task claims was relaunched: $out"
+  assert_contains "$out" "is now claimed by task other-task" "owned: the refusal did not name the other claimant"
+  [ -e "$dir/fake/herdr-agent-live" ] || fail "owned: the agent was stopped"
+  assert_equals "$before" "$(cat "$dir/home/state/$id.meta")" "owned: the record changed"
+  rm -f "$dir/fake/herdr-agent-live"
+  rc=0
+  out=$(run_spawn_relaunch "$dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "owned: fm-spawn relaunched a copy another task claims: $out"
+  assert_contains "$out" "is now claimed by task other-task" "owned: fm-spawn's refusal did not name the other claimant"
+  [ -e "$dir/treehouse.log" ] && grep -q '^return' "$dir/treehouse.log" && fail "owned: a slot was returned"
+  assert_grep 'task=other-task' "$dir/oldpool/7/.fm-slot-owner" "owned: the other task's claim was changed"
+  [ -e "$dir/livepool/1/.fm-slot-owner" ] && fail "owned: a live slot was claimed"
+  pass "an old-clone relaunch refuses an old copy another task now claims"
+}
+
 # A copy not on its ship branch is refused: the slot would start on a branch
 # ref the copy's checkout does not match.
 test_relaunch_refuses_a_copy_not_on_its_branch() {
@@ -464,6 +502,7 @@ test_control_refuses_an_ignored_submodule_edit
 test_control_defers_on_a_full_live_pool_before_stopping_the_agent
 test_relaunch_refuses_a_copy_not_on_its_branch
 test_control_refuses_a_worktree_of_another_repository
+test_relaunch_refuses_an_old_copy_another_task_claims
 test_relaunch_refuses_a_live_branch_outside_the_copys_history
 test_relaunch_moves_an_older_live_branch_forward
 test_relaunch_deferred_before_the_record_returns_the_slot

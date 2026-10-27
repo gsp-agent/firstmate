@@ -2753,7 +2753,7 @@ if [ "$RELAUNCH" -eq 1 ]; then
     # slot. bin/fm-control.sh ran these same checks before it stopped the
     # agent; they run again here, under the task's record lock.
     if [ "$KIND" = ship ] && RELAUNCH_LIVE=$(fm_relaunch_live_clone "$RELAUNCH_META" "$FM_HOME"); then
-      if RELAUNCH_FRESH_REFUSAL=$(fm_relaunch_fresh_slot_refusal "$RELAUNCH_WT" "$PROJ" "$BRANCH" "$RELAUNCH_LIVE"); then
+      if RELAUNCH_FRESH_REFUSAL=$(fm_relaunch_fresh_slot_refusal "$RELAUNCH_WT" "$PROJ" "$ID" "$BRANCH" "$RELAUNCH_LIVE"); then
         echo "error: task $ID lives in $PROJ, not this home's clone $RELAUNCH_LIVE, and cannot start in a fresh slot there: $RELAUNCH_FRESH_REFUSAL; nothing was relaunched" >&2
         exit 1
       fi
@@ -4783,8 +4783,9 @@ spawn_relaunch_carry_branch() { # <slot>
 # endpoint, proven agent-free by the relaunch gate, is closed, the copy goes
 # back to its own clone's pool, and its claim is let go. Only a copy that holds
 # nothing the new slot lacks is returned (clean with no submodule ignored, and
-# its HEAD in the new slot's history); otherwise it keeps its claim and
-# endpoint, and the warning names it.
+# its HEAD in the new slot's history) and whose claim still names this task or
+# is absent, as teardown requires; otherwise it keeps its claim and endpoint,
+# and the warning names it.
 spawn_relaunch_retire_old_copy() {
   local old=$RELAUNCH_OLD_WT dirty head out lock
   [ "$RELAUNCH_FRESH" = 1 ] && [ -n "$old" ] && [ -d "$old" ] || return 0
@@ -4806,6 +4807,15 @@ spawn_relaunch_retire_old_copy() {
     echo "warning: task $ID now lives in $WT, but the Treehouse project lock for $RELAUNCH_OLD_PROJ could not be taken, so its old copy $old was not returned and keeps its claim" >&2
     return 0
   fi
+  fm_treehouse_slot_owner_state "$old" "$ID"
+  case "$FM_TREEHOUSE_SLOT_OWNER" in
+    mine | absent) ;;
+    *)
+      fm_lock_release "$lock" || true
+      echo "warning: task $ID now lives in $WT, but its old copy $old reads claimed by ${FM_TREEHOUSE_SLOT_OWNER_ID:-an unreadable claim}, so it was left untouched" >&2
+      return 0
+      ;;
+  esac
   if ! out=$(CDPATH='' cd -- "$RELAUNCH_OLD_PROJ" && treehouse return --force "$old" </dev/null 2>&1); then
     fm_lock_release "$lock" || true
     echo "warning: task $ID now lives in $WT, but treehouse return of its old copy $old failed, so it keeps its claim: ${out:-no output}" >&2

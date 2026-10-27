@@ -1657,7 +1657,7 @@ safe_checkpoint() {
   if [ "$KIND" = ship ] && RELAUNCH_LIVE_CLONE=$(fm_relaunch_live_clone "$META" "$FM_HOME"); then
     RELAUNCH_BRANCH=$(fm_meta_get "$META" branch)
     [ -n "$RELAUNCH_BRANCH" ] || RELAUNCH_BRANCH="fm/$ID"
-    if fresh_refusal=$(fm_relaunch_fresh_slot_refusal "$WT" "$(fm_meta_get "$META" project)" "$RELAUNCH_BRANCH" "$RELAUNCH_LIVE_CLONE"); then
+    if fresh_refusal=$(fm_relaunch_fresh_slot_refusal "$WT" "$(fm_meta_get "$META" project)" "$ID" "$RELAUNCH_BRANCH" "$RELAUNCH_LIVE_CLONE"); then
       die "task $ID lives in $(fm_meta_get "$META" project), not this home's clone $RELAUNCH_LIVE_CLONE, so its relaunch starts in a fresh slot there, and it cannot: $fresh_refusal. Its agent was not stopped"
     fi
     CHECKPOINT_LINES+=("fresh_slot=$RELAUNCH_LIVE_CLONE")
