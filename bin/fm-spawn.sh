@@ -4784,6 +4784,73 @@ if [ -e "$STATE/$ID.backlog-close" ] || [ -L "$STATE/$ID.backlog-close" ]; then
   exit 1
 fi
 
+# Relaunch onto the live clone. A ship recorded in another clone of its
+# project's origin (one made before a home move) would otherwise relaunch in
+# that clone's worktree and go on pushing through its old no-mistakes
+# registration. When this home's own clone (<projects>/<name>, the root a fresh
+# spawn takes) has the same origin and is not the recorded one, the relaunch
+# leases a slot in the live clone's pool, carries the ship branch there from
+# the old copy, verifies the branch head is unchanged, claims the slot, and
+# releases the old copy's claim; the record then names the live clone and the
+# new slot. A copy with uncommitted or untracked changes is never moved: its
+# branch bundle and uncommitted diff are saved under data/<id>/ first and the
+# relaunch refuses, so committing (or discarding) and relaunching again moves
+# it. Orca, a secondmate, a scout, and a ship already on the live clone are
+# unchanged.
+spawn_relaunch_move_to_live_clone() {
+  local live old_real old_origin live_origin head_old dirty save new got
+  [ "$RELAUNCH" -eq 1 ] && [ "$KIND" = ship ] && [ "$BACKEND" != orca ] || return 0
+  live="${FM_PROJECTS_OVERRIDE:-$FM_HOME/projects}/$(basename "$PROJ_ABS")"
+  [ -d "$live" ] || return 0
+  live=$(CDPATH='' cd -- "$live" 2>/dev/null && pwd -P) || return 0
+  old_real=$(CDPATH='' cd -- "$PROJ_ABS" 2>/dev/null && pwd -P) || return 0
+  [ "$live" != "$old_real" ] || return 0
+  old_origin=$(git -C "$old_real" remote get-url origin 2>/dev/null || true)
+  live_origin=$(git -C "$live" remote get-url origin 2>/dev/null || true)
+  [ -n "$old_origin" ] && [ "$old_origin" = "$live_origin" ] || return 0
+  head_old=$(git -C "$RELAUNCH_WT" rev-parse --verify -q "refs/heads/$BRANCH" 2>/dev/null) || {
+    echo "error: task $ID lives in $old_real, not this home's clone $live, and its copy $RELAUNCH_WT has no branch $BRANCH to carry over; refusing to relaunch it on the old clone" >&2
+    exit 1
+  }
+  dirty=$(git -C "$RELAUNCH_WT" status --porcelain --untracked-files=all 2>/dev/null) || dirty="unreadable status"
+  if [ -n "$dirty" ]; then
+    save="$DATA/$ID/relaunch-move-$(date -u +%Y%m%dT%H%M%SZ)"
+    mkdir -p "$save" &&
+      git -C "$RELAUNCH_WT" bundle create "$save/branch.bundle" "refs/heads/$BRANCH" >/dev/null 2>&1 &&
+      git -C "$RELAUNCH_WT" diff --binary HEAD > "$save/uncommitted.patch" 2>/dev/null &&
+      printf '%s\n' "$dirty" > "$save/status.txt" || {
+      echo "error: task $ID's copy $RELAUNCH_WT has uncommitted changes and they could not be saved to $save; nothing was moved or relaunched" >&2
+      exit 1
+    }
+    echo "error: task $ID lives in $old_real, not this home's clone $live, and its copy $RELAUNCH_WT has uncommitted or untracked changes. Saved the branch bundle and the uncommitted diff in $save first and moved nothing; commit or discard those changes, then relaunch again to move the task onto the live clone" >&2
+    exit 1
+  fi
+  new=$( (cd "$live" && treehouse get --lease --lease-holder "fm-spawn-$ID" --no-fetch) </dev/null 2>/dev/null) || new=
+  [ -n "$new" ] && [ -d "$new" ] && fm_treehouse_pool_slot "$live" "$new" || {
+    echo "error: task $ID lives in $old_real, not this home's clone $live, and no slot of the live clone's worktree pool could be leased for it${new:+ (got '$new')}; nothing was moved or relaunched" >&2
+    exit 1
+  }
+  if ! git -C "$new" fetch -q --no-tags "$RELAUNCH_WT" "refs/heads/$BRANCH" </dev/null 2>/dev/null ||
+    ! git -C "$new" checkout -q -B "$BRANCH" FETCH_HEAD </dev/null 2>/dev/null; then
+    echo "error: task $ID's branch $BRANCH could not be carried from $RELAUNCH_WT into the live clone's slot $new; the old copy is untouched, nothing was relaunched, and slot $new stays leased to fm-spawn-$ID" >&2
+    exit 1
+  fi
+  got=$(git -C "$new" rev-parse HEAD 2>/dev/null || true)
+  [ "$got" = "$head_old" ] || {
+    echo "error: the live clone's slot $new reads $BRANCH at ${got:-nothing}, not the old copy's $head_old; nothing was relaunched" >&2
+    exit 1
+  }
+  fm_treehouse_slot_owner_claim "$new" "$ID" "$FM_HOME" || {
+    echo "error: could not claim the live clone's slot $new for task $ID; nothing was relaunched" >&2
+    exit 1
+  }
+  fm_treehouse_slot_owner_release "$RELAUNCH_WT" "$ID" 2>/dev/null || true
+  echo "relaunch: moved task $ID from $old_real ($RELAUNCH_WT) onto this home's clone $live, slot $new, branch $BRANCH at ${head_old:0:12}; the old copy is left clean for its pool" >&2
+  PROJ=$live
+  PROJ_ABS=$live
+  RELAUNCH_WT=$new
+}
+
 W="fm-$ID"
 if [ "$RELAUNCH" -eq 1 ]; then
   # A secondmate's home already resolved WT above through the same validation a
@@ -4791,6 +4858,7 @@ if [ "$RELAUNCH" -eq 1 ]; then
   # Either way the worktree is REUSED, never re-created: its branch, commits and
   # uncommitted changes are exactly as the previous agent left them, and nothing
   # below may touch them.
+  spawn_relaunch_move_to_live_clone
   [ "$KIND" = secondmate ] || WT=$RELAUNCH_WT
   if [ "$RELAUNCH_REBIND" -eq 0 ]; then
     # Adopt the recorded endpoint instead of creating one. This is what keeps a
