@@ -932,6 +932,28 @@ test_exclude_tools_refusals_happen_before_the_agent_stops() {
   pass "fm-control relaunch: exclusion-list refusals happen before the running agent stops"
 }
 
+test_grok_worker_skills_refusal_happens_before_the_agent_stops() {
+  local dir out rc id=rl-grok-skills-refuse skills
+  dir=$(new_case grok-skills-refuse "$id")
+  add_ship_task "$dir" "$id" claude
+  mkdir -p "$dir/home/config"
+  skills="$dir/home/config/grok-worker-skills"
+  printf 'deslop\n\377\376\n' > "$skills"
+  out=$(run_control "$dir" "$id" relaunch --harness grok --note "switch to grok"); rc=$?
+  expect_code 1 "$rc" "a grok worker skills file that is not UTF-8 text must refuse a relaunch onto grok"
+  assert_contains "$out" "cannot read $skills" "refusal must name the grok worker skills file"
+  [ "$(cat "$dir/fake/command")" = claude ] || fail "an unreadable grok worker skills file stopped the running agent"
+  [ ! -s "$dir/fake/literal" ] || fail "a refused relaunch sent lifecycle input"
+  rm -f -- "$skills"
+  mkdir -p "$skills"
+  out=$(run_control "$dir" "$id" relaunch --harness grok --note "switch to grok"); rc=$?
+  expect_code 1 "$rc" "a grok worker skills path that is a directory must refuse a relaunch onto grok"
+  assert_contains "$out" "cannot read $skills" "refusal must name the grok worker skills file"
+  [ "$(cat "$dir/fake/command")" = claude ] || fail "an unreadable grok worker skills file stopped the running agent"
+  [ ! -s "$dir/fake/literal" ] || fail "a refused relaunch sent lifecycle input"
+  pass "fm-control relaunch: an unreadable grok worker skills file refuses before the running agent stops"
+}
+
 test_explicit_model_wins_over_the_recorded_one() {
   local dir out rc
   dir=$(new_case explicit rl7)
@@ -3662,6 +3684,7 @@ test_signed_out_worker_account_pin_refuses_before_stop
 test_worker_account_pin_follows_the_relaunch
 test_pi_exclude_tools_follow_the_relaunch
 test_exclude_tools_refusals_happen_before_the_agent_stops
+test_grok_worker_skills_refusal_happens_before_the_agent_stops
 test_explicit_model_wins_over_the_recorded_one
 test_relaunch_onto_an_unverified_harness_is_refused
 test_prior_harness_turnend_registry_entry_is_cleared

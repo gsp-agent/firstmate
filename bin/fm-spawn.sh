@@ -586,6 +586,14 @@
 # that count. A viewport read that fails outright fails readiness at once.
 # grok uses a firstmate-owned global hook under ${GROK_HOME:-$HOME/.grok}/hooks
 # plus a gitignored .fm-grok-turnend worktree pointer and a state token.
+# A grok crewmate or scout additionally runs under a per-task worker home
+# (state/<id>.grok-home, bin/fm-grok-worker-lib.sh) that trims its skills
+# index, MCP servers, and media tools, and whose launch brief carries the
+# Grok-only worker context discipline; one whose brief carries no relaunch or
+# restore note receives a slim launch brief that links the brief's later-read
+# sections instead of inlining them.
+# A grok secondmate keeps the operator configuration and the full charter
+# launch.
 # muse installs no hook at all - its plugin engine is off in the default build - so
 # it writes state/<id>.muse-session to bind the pane to muse's own session event
 # log; muse, gemini, agy, and devin are crewmate/scout only and are refused for --secondmate.
@@ -858,6 +866,8 @@ fm_backlog_directory_present "$STATE" "state directory" || {
 . "$SCRIPT_DIR/fm-pr-lib.sh"
 # shellcheck source=/dev/null
 . "$SCRIPT_DIR/fm-dod-lib.sh"
+# shellcheck source=bin/fm-grok-worker-lib.sh
+. "$SCRIPT_DIR/fm-grok-worker-lib.sh"
 # shellcheck source=bin/fm-role-lib.sh
 . "$SCRIPT_DIR/fm-role-lib.sh"
 # shellcheck source=bin/fm-trace-context-lib.sh
@@ -3323,6 +3333,11 @@ EXCLUDE_TOOLS=
 if [ "$KIND" != secondmate ]; then
   EXCLUDE_TOOLS=$(fm_exclude_tools_check "$HARNESS" "$RAW_LAUNCH" "$CONFIG") || exit 1
 fi
+# Likewise config/grok-worker-skills, which Grok worker provisioning reads only
+# after the window and turn-end wiring exist.
+if [ "$HARNESS" = grok ] && [ "$KIND" != secondmate ]; then
+  fm_grok_worker_skills "$CONFIG/grok-worker-skills" >/dev/null || exit 1
+fi
 
 case "$HARNESS" in
 devin)
@@ -4234,9 +4249,17 @@ if [ "$KIND" = ship ] || [ "$KIND" = scout ]; then
   BRIEF="$DATA/$ID/launch-brief.md"
   BRIEF_TMP="$DATA/$ID/.launch-brief.md.${BASHPID:-$$}"
   {
-    fm_brief_worker_role "$STATE" "$ID" "$FM_ROOT" &&
-      printf '\nDecision owner for this dispatch: %s\n\n' "$DECISION_OWNER" &&
-      cat "$SOURCE_BRIEF" &&
+    if [ "$HARNESS" = grok ] && [ "$KIND" != secondmate ] &&
+      fm_grok_slim_launch_brief "$SOURCE_BRIEF" "$STATE" "$ID" "$FM_ROOT" "$DECISION_OWNER"; then
+      true
+    else
+      fm_brief_worker_role "$STATE" "$ID" "$FM_ROOT" &&
+        printf '\nDecision owner for this dispatch: %s\n\n' "$DECISION_OWNER" &&
+        cat "$SOURCE_BRIEF"
+    fi &&
+      if [ "$HARNESS" = grok ]; then
+        printf '\n' && fm_grok_worker_context_rules
+      fi &&
       if [ "$KIND" = ship ] && [ "$MODE" = no-mistakes ]; then
         fm_brief_intent_overlay "$CAPTAIN_INTENT"
       fi
@@ -6810,6 +6833,25 @@ fi
 # worktree's root: the worker must read the CODEX_HOME that registration wrote.
 if [ "$HARNESS" = codex ] && [ "$KIND" != secondmate ]; then
   LAUNCH="CODEX_HOME=$(shell_quote "$CODEX_STORE_DIR") $LAUNCH"
+fi
+# A Grok crewmate or scout runs under a per-task worker home so it does not
+# inherit the operator seat's skills index, MCP servers, or media tools.
+# bin/fm-grok-worker-lib.sh owns that home; the operator's own Grok home is
+# only read there (config discovery and symlinks to its sign-in, trust,
+# global-instruction, policy, hooks, and sessions entries), and its one write
+# beyond the turn-end hook wiring above is creating the sessions directory
+# when absent.
+# A Grok secondmate is a supervisor seat and keeps the full configuration.
+if [ "$HARNESS" = grok ] && [ "$KIND" != secondmate ]; then
+  GROK_WORKER_HOME=$(fm_grok_worker_home "$STATE" "$ID") || {
+    echo "error: could not resolve the Grok worker home for $ID" >&2
+    exit 1
+  }
+  fm_grok_worker_provision "${GROK_HOME:-$HOME/.grok}" "$GROK_WORKER_HOME" "$WT" "$CONFIG/grok-worker-skills" || {
+    echo "error: could not provision the Grok worker home for $ID at $GROK_WORKER_HOME" >&2
+    exit 1
+  }
+  LAUNCH="GROK_HOME=$(shell_quote "$GROK_WORKER_HOME") $LAUNCH"
 fi
 if [ "$KIND" = secondmate ]; then
   sq_home=$(shell_quote "$PROJ_ABS")

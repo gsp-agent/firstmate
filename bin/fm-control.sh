@@ -228,6 +228,8 @@ DATA="${FM_DATA_OVERRIDE:-$FM_HOME/data}"
 . "$SCRIPT_DIR/fm-worker-account-lib.sh"
 # shellcheck source=bin/fm-exclude-tools-lib.sh
 . "$SCRIPT_DIR/fm-exclude-tools-lib.sh"
+# shellcheck source=bin/fm-grok-worker-lib.sh
+. "$SCRIPT_DIR/fm-grok-worker-lib.sh"
 # shellcheck source=bin/fm-live-session-lib.sh
 . "$SCRIPT_DIR/fm-live-session-lib.sh"
 # shellcheck source=bin/fm-dispatch-profile-lib.sh
@@ -1599,6 +1601,10 @@ resolve_relaunch_profile() {
   # agent stops. Secondmate agents are not covered.
   if [ "$KIND" != secondmate ]; then
     fm_exclude_tools_check "$TARGET_HARNESS" 0 "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" >/dev/null || return 1
+  fi
+  # And config/grok-worker-skills, which a Grok worker launch reads.
+  if [ "$TARGET_HARNESS" = grok ] && [ "$KIND" != secondmate ]; then
+    fm_grok_worker_skills "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}/grok-worker-skills" >/dev/null || return 1
   fi
 }
 
