@@ -55,7 +55,7 @@
 # An unreadable review read or an unreadable head commit time refuses the merge.
 # The check rollup is a second read, and only after the cheap fields show the
 # pull request is open, not a draft, and otherwise mergeable. A closed, draft,
-# conflicting, or still-UNKNOWN pull request never requests that rollup.
+# held, conflicting, or still-UNKNOWN pull request never requests that rollup.
 # Its head must match the cheap read before either check set is evaluated.
 # UNKNOWN remains the bounded retry the caller already owns.
 # A required check that never reported is absent from the checks
@@ -639,7 +639,8 @@ gitlab_hold_label_attribution() {
 # (body "1"; a removal has an empty body) names both. Pages are read until an
 # empty one, since the server may cap a page below the limit asked for; a page
 # past the end comes back as null rather than an empty list.
-# Prints nothing when a page cannot be read or no such event is named.
+# Prints nothing when a page cannot be read, 100 pages are read without
+# reaching an empty one, or no such event is named.
 forgejo_hold_label_attribution() {
   local rows count events='' page=1
   while :; do
