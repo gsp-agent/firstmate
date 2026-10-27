@@ -1555,10 +1555,11 @@ test_attended_close_with_unidentified_main_session_passes_to_main() {
 # Change the task immediately before the second offer computation, rather
 # than racing the successor startup. The first offer accepts the close; the
 # turn-boundary offer must see the new main-owned decision.
+# $home/queue-at-turn keeps the queue as the turn found it, before the decision.
 turn_main_only_at_second_offer() {  # <home> [quiet]
   local real_node turn
   real_node=$(command -v node)
-  turn='printf '"'"'needs-decision [at=%s]: which export format?\n'"'"' "$(date +%s)" >> "$FM_HOME/state/demo.status"'
+  turn='cp "$FM_HOME/state/.wake-queue" "$FM_HOME/queue-at-turn"; printf '"'"'needs-decision [at=%s]: which export format?\n'"'"' "$(date +%s)" >> "$FM_HOME/state/demo.status"'
   # Quiet: the offer alone turns main-only, with no status line for the
   # successor watcher to close on.
   [ "${2:-}" != quiet ] || turn='echo eligible=0; exit 0'
@@ -1582,6 +1583,7 @@ test_attended_close_that_turns_main_only_before_its_turn_passes_to_main() {
   local home
   home=$(make_home attended-turns-main-only attended)
   turn_main_only_at_second_offer "$home"
+  : > "$home/session.stays"
   start_host "$home"
   wait_until 150 watcher_live "$home" || fail "turns-main-only: the host never started a watcher cycle"
   append_status "$home" 'step one'
@@ -1592,14 +1594,22 @@ test_attended_close_that_turns_main_only_before_its_turn_passes_to_main() {
   assert_no_re '^supervision-host' "$home/host.out" "the close must reach main exactly as the arm printed it"
   [ "$(engine_calls "$home")" -eq 0 ] || fail "turns-main-only: the engine ran on a stale offer"
   assert_grep 'demo.status' "$home/state/.wake-queue" "the wake must stay queued for main"
+  # Pi reads the rows this close carried beside the status log that now holds
+  # the decision. A live watcher may already have queued that decision line as
+  # its own needs-decision row, which Pi's per-row rule rightly keeps on main.
   local pi_offer
+  mkdir -p "$home/pi-state"
+  cp "$home/state/demo.meta" "$home/state/demo.status" "$home/pi-state/"
+  cp "$home/queue-at-turn" "$home/pi-state/.wake-queue" || fail "fixture: the turn kept no queue snapshot"
   pi_offer=$(node --input-type=module -e '
     const dispatch = await import(process.argv[1]);
     console.log(dispatch.branchOfferForWake(process.argv[2], process.argv[3], false).eligible);
-  ' "$ROOT/.pi/extensions/lib/fm-branch-dispatch.ts" "$home/state" "signal: $home/state/demo.status")
+  ' "$ROOT/.pi/extensions/lib/fm-branch-dispatch.ts" "$home/pi-state" "signal: $home/state/demo.status")
   [ "$pi_offer" = true ] || fail "the host-only transition veto changed Pi's existing offer rule"
   assert_re '	pass-through	attended	main-only	signal:' "$home/state/.supervision-host.log" "the ledger must record why the close went to main"
   watcher_live "$home" || fail "the pass-through left no successor watcher"
+  : > "$home/session.stop"
+  stop_home_processes "$home"
   pass "host: an attended close whose task turns main-only before its turn still reaches main unchanged"
 }
 
