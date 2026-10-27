@@ -430,6 +430,38 @@ test_spawn_relaunch_respects_slot_claim() {
   pass "fm-spawn --relaunch: rejects another task's claim and accepts own or absent claims"
 }
 
+test_control_relaunch_refuses_a_reassigned_slot_before_touching_anything() {
+  local dir out rc agent
+  for agent in claude zsh; do
+    dir=$(new_case "control-slot-$agent" rl-cslot)
+    add_ship_task "$dir" rl-cslot claude
+    printf '%s' "$agent" > "$dir/fake/command"
+    printf 'task=another-task\nhome=%s\n' "$dir/home" > "$dir/.fm-slot-owner"
+    cp -p "$dir/home/data/rl-cslot/brief.md" "$dir/brief-before"
+    cp -p "$dir/home/state/rl-cslot.meta" "$dir/meta-before"
+    out=$(run_control "$dir" rl-cslot relaunch --note "merged; resume"); rc=$?
+    expect_code 1 "$rc" "fm-control relaunch must refuse a slot reassigned to another task ($agent endpoint)"$'\n'"$out"
+    assert_contains "$out" "claimed by task another-task" "the refusal must identify the current claimant"
+    assert_not_contains "$out" "preserved at" "the refusal must not point at another task's copy as this task's work"
+    cmp -s "$dir/brief-before" "$dir/home/data/rl-cslot/brief.md" \
+      || fail "the refusal appended a progress note to the brief ($agent endpoint)"
+    cmp -s "$dir/meta-before" "$dir/home/state/rl-cslot.meta" \
+      || fail "the refusal changed task metadata ($agent endpoint)"
+    assert_absent "$dir/home/state/rl-cslot.control-relaunch" "the refusal must not journal a relaunch"
+    assert_absent "$dir/home/state/rl-cslot.control-relaunch.note" "the refusal must not record the note"
+    [ "$(cat "$dir/fake/command")" = "$agent" ] || fail "the refusal changed the endpoint's agent"
+    [ ! -s "$dir/fake/keys" ] || fail "the refusal sent keys to the endpoint ($agent endpoint)"
+    [ ! -s "$dir/fake/literal" ] || fail "the refusal typed into the endpoint ($agent endpoint)"
+  done
+  dir=$(new_case control-slot-mine rl-cslot)
+  add_ship_task "$dir" rl-cslot claude
+  printf 'task=rl-cslot\nhome=%s\n' "$dir/home" > "$dir/.fm-slot-owner"
+  out=$(run_control "$dir" rl-cslot relaunch --note "own slot; resume"); rc=$?
+  expect_code 0 "$rc" "fm-control relaunch must accept the task's own slot claim"$'\n'"$out"
+  assert_contains "$out" "relaunched rl-cslot" "an own-claim relaunch should complete"
+  pass "fm-control relaunch: another task's slot claim refuses before the agent, brief, or record is touched"
+}
+
 test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint() {
   local dir out rc gen_before gen_after
   dir=$(new_case same rl1)
@@ -3690,6 +3722,7 @@ if [ "${FM_CONTROL_RELAUNCH_TEST_GROUP:-}" = restore ]; then
 fi
 
 test_spawn_relaunch_respects_slot_claim
+test_control_relaunch_refuses_a_reassigned_slot_before_touching_anything
 test_same_harness_relaunch_keeps_identity_and_reuses_the_endpoint
 test_relaunch_refuses_before_exit_when_the_composer_holds_pending_text
 test_relaunch_refuses_before_exit_when_the_composer_state_is_unproven
