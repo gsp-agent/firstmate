@@ -1,0 +1,2 @@
+# Failing-first per-PR proof replay in tests/fm-drift-nightly.test.sh (test_two_open_prs_with_their_own_proof_files_land_without_a_conflict): on the base, two PRs appending to drift-proof.txt conflict and drift-proof/<N>.proof entries are unread (missing manifest entry for PR 7 and 8); here both squash cleanly and are proven. Old and new check output is byte-identical on upstream-lean ec15c830 and on 4778d821 (385 lines).
+pr: 170

@@ -50,9 +50,14 @@
 # commit lands, and a wrong number leaves the real PR unproven and prints
 # "error: missing manifest entry for PR <number>" even if its paths match.
 # Blank lines and lines whose first character is # are ignored.
-# When --proof is omitted, the proof file is drift-proof.txt in the captured
-# fork commit's tree; a working-tree, staged, or untracked copy is never read.
-# When that tree has no drift-proof.txt, no commit is proven.
+# When --proof is omitted, the proof is drift-proof.txt followed by every
+# drift-proof/<number>.proof, in path order, all read from the captured fork
+# commit's tree; a working-tree, staged, or untracked copy is never read.
+# drift-proof.txt closed at PR 167. Each later PR writes its own
+# drift-proof/<N>.proof, so two open PRs never touch the same file. Every entry
+# in drift-proof/<N>.proof must name PR <N>, and any other file under
+# drift-proof/ is an error (exit 2). When the tree has neither, no commit is
+# proven.
 #
 # With fetch left on, check runs git fetch --no-tags kunchenguid main when
 # that remote exists in the repo. --no-fetch skips that. A missing remote
@@ -165,6 +170,33 @@ load_proof() {
       KEEP_PRS="${KEEP_PRS}${pr}|"
     fi
   done < "$PROOF"
+}
+
+collect_tree_proof() { # <fork sha> -> $CHECK_TMP/proof from drift-proof.txt and drift-proof/<N>.proof
+  local fork=$1 path name n line pr
+  : > "$CHECK_TMP/proof" || die "cannot write the proof copy"
+  if git -C "$REPO" cat-file -e "$fork:drift-proof.txt" 2>/dev/null; then
+    git -C "$REPO" cat-file blob "$fork:drift-proof.txt" > "$CHECK_TMP/proof" || die "cannot read drift-proof.txt from $fork"
+    printf '\n' >> "$CHECK_TMP/proof"
+  fi
+  while IFS= read -r -d '' path; do
+    name=${path#drift-proof/}
+    n=${name%.proof}
+    if [ "$n.proof" != "$name" ] || ! printf '%s\n' "$n" | grep -Eq '^[0-9]+$'; then
+      die "drift-proof entry is not drift-proof/<number>.proof: $path"
+    fi
+    git -C "$REPO" cat-file blob "$fork:$path" > "$CHECK_TMP/entry" || die "cannot read $path from $fork"
+    while IFS= read -r line || [ -n "$line" ]; do
+      case $line in
+        'pr: '*) pr=${line#pr: } ;;
+        'pending-pr: '*) pr=${line#pending-pr: } ;;
+        *) continue ;;
+      esac
+      [ "${pr%% *}" = "$n" ] || die "$path holds an entry for another PR: $line"
+    done < "$CHECK_TMP/entry"
+    cat "$CHECK_TMP/entry" >> "$CHECK_TMP/proof" || die "cannot copy $path"
+    printf '\n' >> "$CHECK_TMP/proof"
+  done < <(git -C "$REPO" ls-tree -r -z --full-tree --name-only "$fork" -- drift-proof/)
 }
 
 classify_commits() {
@@ -332,9 +364,9 @@ cmd_check() {
   fork=$fork_sha
   upstream=$upstream_sha
   CHECK_TMP=$(mktemp -d "${TMPDIR:-/tmp}/fm-drift.XXXXXX") || die "cannot create a temporary directory"
-  trap 'rm -f -- "$CHECK_TMP/proof" "$CHECK_TMP/paths" "$CHECK_TMP/commits" "$CHECK_TMP/fp"; rmdir -- "$CHECK_TMP"' EXIT
-  if [ -z "$PROOF" ] && git -C "$REPO" cat-file -e "$fork:drift-proof.txt" 2>/dev/null; then
-    git -C "$REPO" cat-file blob "$fork:drift-proof.txt" > "$CHECK_TMP/proof" || die "cannot read drift-proof.txt from $fork"
+  trap 'rm -f -- "$CHECK_TMP/proof" "$CHECK_TMP/entry" "$CHECK_TMP/paths" "$CHECK_TMP/commits" "$CHECK_TMP/fp"; rmdir -- "$CHECK_TMP"' EXIT
+  if [ -z "$PROOF" ]; then
+    collect_tree_proof "$fork"
     PROOF=$CHECK_TMP/proof
   fi
   local base behind ahead path sha subject parents bead pr drift=0
