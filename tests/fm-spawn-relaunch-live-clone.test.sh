@@ -28,6 +28,7 @@ case "\$*" in
     pool="$1/livepool"
     mkdir -p "\$pool/1"
     git -C "$2" worktree add -q --detach "\$pool/1/proj" >/dev/null 2>&1 || exit 1
+    [ ! -f "\$pool/1/proj/.gitmodules" ] || git -C "\$pool/1/proj" submodule update --init -q >/dev/null 2>&1 || exit 1
     printf '{"worktrees":[{"name":"1","path":"%s"}]}\\n' "\$pool/1/proj" > "\$pool/treehouse-state.json"
     printf '%s\\n' "\$pool/1/proj"
     ;;
@@ -272,8 +273,84 @@ test_relaunch_refuses_a_copy_not_on_its_branch() {
   pass "a relaunch refuses to move a copy that does not have its branch checked out"
 }
 
+# Local file submodules need protocol.file.allow (git 2.38.1+); test-only.
+submodule_env() {
+  export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=protocol.file.allow GIT_CONFIG_VALUE_0=always
+}
+
+# A case whose project has a submodule (sub) pinned at its first commit on
+# main, and whose task branch moves the pin to <sub-rev> in the old copy:
+# "pushed" is the submodule's second commit, in its remote; "unpushed" is a
+# commit only the old copy's submodule has. Prints the case dir.
+make_submodule_case() {  # <name> <id> pushed|unpushed
+  local dir="$TMP_ROOT/$1" id=$2 old sub2
+  git init -q --bare "$dir.sub.git"
+  git clone -q "$dir.sub.git" "$dir.subseed" 2>/dev/null
+  git -C "$dir.subseed" -c user.email=t@t -c user.name=t commit -q --allow-empty -m s1
+  git -C "$dir.subseed" -c user.email=t@t -c user.name=t commit -q --allow-empty -m s2
+  git -C "$dir.subseed" push -q origin HEAD:main 2>/dev/null
+  git -C "$dir.sub.git" symbolic-ref HEAD refs/heads/main
+  sub2=$(git -C "$dir.subseed" rev-parse HEAD)
+  make_case "$1" "$id" >/dev/null
+  old="$dir/oldpool/7/proj"
+  # Pin the submodule on main at s1 and refresh both clones.
+  git clone -q "$dir/origin.git" "$dir/seed2" 2>/dev/null
+  git -C "$dir/seed2" submodule add -q "$dir.sub.git" sub >/dev/null 2>&1
+  git -C "$dir/seed2/sub" checkout -q "$sub2~1"
+  git -C "$dir/seed2" add sub
+  git -C "$dir/seed2" -c user.email=t@t -c user.name=t commit -q -m "add sub"
+  git -C "$dir/seed2" push -q origin HEAD:main 2>/dev/null
+  git -C "$dir/home/projects/proj" pull -q --ff-only 2>/dev/null
+  git -C "$dir/old/proj" fetch -q origin
+  git -C "$old" -c user.email=t@t -c user.name=t rebase -q origin/main >/dev/null 2>&1
+  git -C "$old" submodule update --init -q >/dev/null 2>&1
+  if [ "$3" = pushed ]; then
+    git -C "$old/sub" checkout -q "$sub2"
+  else
+    git -C "$old/sub" -c user.email=t@t -c user.name=t commit -q --allow-empty -m "only here"
+  fi
+  git -C "$old" add sub
+  git -C "$old" -c user.email=t@t -c user.name=t commit -q -m "move the sub pin"
+  printf '%s\n' "$dir"
+}
+
+# The move carries the submodule too: the live slot ends exactly clean with
+# the submodule on the commit the branch records.
+test_relaunch_moves_submodules_to_the_recorded_commits() {
+  local dir id=sub-a1 out rc=0 want
+  submodule_env
+  dir=$(make_submodule_case sub "$id" pushed)
+  OLDWT="$dir/oldpool/7/proj"
+  [ -z "$(git -C "$OLDWT" status --porcelain)" ] || fail "sub: fixture: the old copy is not clean"
+  want=$(git -C "$OLDWT" rev-parse HEAD:sub)
+  out=$(run_relaunch "$dir" "$id") || rc=$?
+  expect_code 0 "$rc" "sub: the relaunch failed: $out"
+  assert_equals "" "$(git -C "$dir/livepool/1/proj" status --porcelain)" "sub: the live slot is not clean after the move"
+  assert_equals "$want" "$(git -C "$dir/livepool/1/proj/sub" rev-parse HEAD)" "sub: the live slot's submodule is not on the recorded commit"
+  pass "a relaunch's move puts submodules on the commits the branch records"
+}
+
+# A pin to a submodule commit no remote has cannot be carried: the relaunch
+# refuses and the move is rolled back.
+test_relaunch_refuses_an_unpushed_submodule_commit() {
+  local dir id=unp-a1 out rc=0 before
+  submodule_env
+  dir=$(make_submodule_case unp "$id" unpushed)
+  OLDWT="$dir/oldpool/7/proj"
+  before=$(cat "$dir/home/state/$id.meta")
+  out=$(run_relaunch "$dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "unp: a move with an unpushed submodule commit relaunched: $out"
+  assert_contains "$out" "submodules could not be put on the commits" "unp: the refusal did not name the submodules: $out"
+  assert_contains "$out" "rolled back task $id's move" "unp: the move was not rolled back"
+  assert_equals "$before" "$(cat "$dir/home/state/$id.meta")" "unp: the record changed"
+  [ -e "$dir/oldpool/7/.fm-slot-owner" ] || fail "unp: the old slot's claim was not restored"
+  pass "a relaunch refuses and rolls back a move whose submodule commit is unpushed"
+}
+
 test_relaunch_moves_an_old_clone_ship_onto_the_live_clone
 test_relaunch_saves_and_refuses_a_dirty_old_copy
+test_relaunch_moves_submodules_to_the_recorded_commits
+test_relaunch_refuses_an_unpushed_submodule_commit
 test_relaunch_rollback_after_the_pane_moved_brings_the_pane_back
 test_relaunch_refuses_a_copy_not_on_its_branch
 test_relaunch_rolls_back_a_move_when_the_relaunch_refuses

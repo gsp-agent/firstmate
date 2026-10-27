@@ -4909,7 +4909,7 @@ spawn_relaunch_move_to_live_clone() {
   RELAUNCH_MOVE_OLD=$RELAUNCH_WT
   RELAUNCH_MOVE_LIVE=$live
   RELAUNCH_MOVE_PENDING=1
-  if ! git -C "$new" fetch -q --no-tags "$RELAUNCH_WT" "refs/heads/$BRANCH" </dev/null 2>/dev/null ||
+  if ! git -C "$new" fetch -q --no-tags --no-recurse-submodules "$RELAUNCH_WT" "refs/heads/$BRANCH" </dev/null 2>/dev/null ||
     ! git -C "$new" checkout -q -B "$BRANCH" FETCH_HEAD </dev/null 2>/dev/null; then
     echo "error: task $ID's branch $BRANCH could not be carried from $RELAUNCH_WT into the live clone's slot $new; the old copy is untouched and nothing was relaunched" >&2
     exit 1
@@ -4919,6 +4919,21 @@ spawn_relaunch_move_to_live_clone() {
     echo "error: the live clone's slot $new reads $BRANCH at ${got:-nothing}, not the old copy's $head_old; nothing was relaunched" >&2
     exit 1
   }
+  # The checkout moves only the superproject: submodules are put on the commits
+  # the branch records, and the slot must then be exactly clean, so the
+  # replacement starts on the same tree the old copy held. A submodule commit
+  # no remote has (unpushed) cannot be fetched, so the move refuses and rolls
+  # back.
+  if [ -f "$new/.gitmodules" ] &&
+    ! fm_run_timed 300 env GIT_TERMINAL_PROMPT=0 git -C "$new" submodule update --init --recursive -q </dev/null >/dev/null 2>&1; then
+    echo "error: task $ID's submodules could not be put on the commits $BRANCH records in the live clone's slot $new (a submodule commit may be unpushed); nothing was relaunched" >&2
+    exit 1
+  fi
+  got=$(git -C "$new" status --porcelain --untracked-files=all 2>/dev/null) || got="unreadable status"
+  if [ -n "$got" ]; then
+    echo "error: the live clone's slot $new is not clean after carrying $BRANCH there ($(printf '%s' "$got" | head -3 | tr '\n' ';')); nothing was relaunched" >&2
+    exit 1
+  fi
   fm_treehouse_slot_owner_claim "$new" "$ID" "$FM_HOME" || {
     echo "error: could not claim the live clone's slot $new for task $ID; nothing was relaunched" >&2
     exit 1
