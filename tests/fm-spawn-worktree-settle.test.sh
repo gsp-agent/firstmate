@@ -893,10 +893,13 @@ slot_lease_holder() {
 # the reuse test, so it becomes this spawn's target: entered by name, its
 # claim rewritten to this task, and its lease this task's own for teardown to
 # return - never a lease left on a slot whose claim names another task.
-# A claimed slot from a squash-merged task (the 10-27 gsp-f7zel shape) fails
-# the reuse test, so it still keeps its steering lease until the claiming
-# task's cleanup. Since PR 173's claimed-slot admission fix a spawn meets
-# such a slot only in a short race; that case is follow-up
+# With real Treehouse the squash-merged 10-27 gsp-f7zel shape is adopted the
+# same way and freed at teardown, or never leased: `get --lease` hands such a
+# slot out only once its work is in the fetched origin/main, resetting it
+# there, and otherwise makes a new slot. The lease still leaks only for a
+# slot Treehouse hands out that the reuse test refuses - by code read, a
+# --base-branch that origin's default branch is not an ancestor of, or a
+# rewritten main; that remainder is follow-up
 # fm-pool-squash-merged-claimed-lease.
 test_allocator_claimed_own_slot_becomes_target() {
   local rec id out status pool slot pane_log th_log holder
