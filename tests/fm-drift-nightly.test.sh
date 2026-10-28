@@ -85,7 +85,7 @@ nightly_fixture() { # <root>: <root>/repo clones <root>/upstream as its kuncheng
 
 run_nightly() { # <root>: one scheduled run, its output appended to <root>/drift.log as launchd does
   NIGHTLY_RC=0
-  # nightly only names --log in its note; launchd owns the append, as here.
+  # launchd owns the append to the log, as here.
   # shellcheck disable=SC2094
   FM_HOME="$1/home" FM_STATE_OVERRIDE="$1/home/state" FM_DATA_OVERRIDE="$1/home/data" \
     "$SCRIPT" nightly --repo "$1/repo" --log "$1/drift.log" >> "$1/drift.log" 2>&1 || NIGHTLY_RC=$?
@@ -93,10 +93,6 @@ run_nightly() { # <root>: one scheduled run, its output appended to <root>/drift
 
 note_count() { # <home>
   find "$1/state/inbox" -maxdepth 1 -name '*.note' 2>/dev/null | wc -l | tr -d ' '
-}
-
-note_body() { # <home> -> the body of its only note
-  sed '1,/^--$/d' "$1"/state/inbox/*.note
 }
 
 test_unproven_file_is_path_drift_and_exits_1() {
@@ -739,8 +735,8 @@ test_reverted_numbered_pr_without_manifest_stays_red() {
     assert_not_contains "$CHECK_OUT" 'error: missing manifest entry for PR 17' "a carried PR is not a first-parent PR"
     run_nightly "$root"
     expect_code 1 "$NIGHTLY_RC" "the nightly stays red for the forgotten $kind PR"
-    assert_equals 1 "$(note_count "$root/home")" "the forgotten $kind PR sends one note"
-    assert_contains "$(note_body "$root/home")" 'error: missing manifest entry for PR 7' "the nightly note names the forgotten $kind PR"
+    assert_equals 0 "$(note_count "$root/home")" "the forgotten $kind PR sends no note"
+    assert_grep 'error: missing manifest entry for PR 7' "$root/drift.log" "the nightly log names the forgotten $kind PR"
     for entry in 'pr: 7' 'pending-pr: 7 bead-7'; do
       printf 'pr: 8\n%s\n' "$entry" > "$repo/proof.txt"
       run_check "$repo" --upstream kunchenguid/main --proof "$repo/proof.txt"
@@ -748,7 +744,7 @@ test_reverted_numbered_pr_without_manifest_stays_red() {
       assert_not_contains "$CHECK_OUT" 'error:' "a listed $kind PR has no missing entry"
     done
   done
-  pass "reverted numbered squash and merge PRs require manifest entries and send nightly notes"
+  pass "reverted numbered squash and merge PRs require manifest entries and send no nightly note"
 }
 
 test_open_pr_own_line_is_unmatched_until_its_squash_lands() {
@@ -823,8 +819,8 @@ merge: $merge merge side" "$CHECK_OUT" "the merge commit is labeled merge"
   pass "a merge commit is labeled merge and adds no path-drift when its tree matches upstream"
 }
 
-test_nightly_red_sends_one_note_a_day_and_green_sends_none() {
-  local root day
+test_nightly_logs_every_run_and_sends_no_note() {
+  local root
   root=$(fm_test_tmproot drift-nightly-note)
   nightly_fixture "$root"
   run_nightly "$root"
@@ -833,36 +829,33 @@ test_nightly_red_sends_one_note_a_day_and_green_sends_none() {
   printf 'custom\n' > "$root/repo/notes.txt"
   git -C "$root/repo" add notes.txt
   fixture_commit "$root/repo" "add notes"
-  day=$(date +%F)
   run_nightly "$root"
   expect_code 1 "$NIGHTLY_RC" "a nightly with path-drift exits 1"
   run_nightly "$root"
-  expect_code 1 "$NIGHTLY_RC" "a same-day rerun still exits 1"
-  assert_equals 1 "$(note_count "$root/home")" "a red nightly and its same-day rerun make exactly one note"
-  assert_equals "Nightly drift check red on $day: exit 1 for $root/repo.
-path-drift: notes.txt
-Log: $root/drift.log" "$(note_body "$root/home")" "the note names the red line and the log"
-  assert_grep "request_id=fm-drift-nightly-$day" "$root/home/state/inbox/"*.note "the note is keyed to the run date"
+  expect_code 1 "$NIGHTLY_RC" "a rerun still exits 1"
+  assert_equals 0 "$(note_count "$root/home")" "a red nightly and its rerun send no note"
+  assert_grep 'run: ' "$root/drift.log" "the log keeps each run's time"
   assert_grep 'ahead: 0' "$root/drift.log" "the log keeps the green run's report"
   assert_grep 'path-drift: notes.txt' "$root/drift.log" "the log keeps the red run's report"
-  pass "a red nightly sends one note a day naming its red lines and log, and a green one sends none"
+  assert_grep 'exit: 1' "$root/drift.log" "the log keeps the red run's exit code"
+  pass "a nightly logs the run time, the check output and its exit code, and sends no note"
 }
 
-test_nightly_check_error_is_red() {
+test_nightly_check_error_is_logged_without_a_note() {
   local root
   root=$(fm_test_tmproot drift-nightly-error)
   fm_git_init_commit "$root/repo"
   mkdir -p "$root/home"
   run_nightly "$root"
   expect_code 2 "$NIGHTLY_RC" "a nightly whose check cannot run exits 2"
-  assert_equals "Nightly drift check red on $(date +%F): exit 2 for $root/repo.
-error: kunchenguid remote is missing
-Log: $root/drift.log" "$(note_body "$root/home")" "the note names the check error and the log"
-  pass "a nightly whose check exits 2 sends one note naming the error"
+  assert_equals 0 "$(note_count "$root/home")" "a nightly whose check exits 2 sent a note"
+  assert_grep 'error: kunchenguid remote is missing' "$root/drift.log" "the log keeps the check error"
+  assert_grep 'exit: 2' "$root/drift.log" "the log keeps the check's exit code"
+  pass "a nightly whose check exits 2 logs the error and sends no note"
 }
 
-test_nightly_note_names_at_most_ten_red_lines() {
-  local root i body
+test_nightly_log_keeps_every_red_line() {
+  local root i
   root=$(fm_test_tmproot drift-nightly-cap)
   nightly_fixture "$root"
   for i in 01 02 03 04 05 06 07 08 09 10 11 12; do
@@ -872,13 +865,9 @@ test_nightly_note_names_at_most_ten_red_lines() {
   fixture_commit "$root/repo" "add twelve notes"
   run_nightly "$root"
   expect_code 1 "$NIGHTLY_RC" "a nightly with twelve drifted paths exits 1"
-  body=$(note_body "$root/home")
-  assert_contains "$body" "path-drift: notes-10.txt
-2 more red lines in the log.
-Log: $root/drift.log" "the note stops after ten red lines and points at the log"
-  assert_not_contains "$body" "notes-11.txt" "the note pasted an eleventh red line"
+  assert_equals 0 "$(note_count "$root/home")" "a nightly with twelve drifted paths sent a note"
   assert_grep 'path-drift: notes-12.txt' "$root/drift.log" "the log keeps every red line"
-  pass "a nightly note names at most ten red lines and counts the rest in the log"
+  pass "a nightly log keeps every red line and sends no note"
 }
 
 test_install_dry_run_writes_nothing() {
@@ -1104,9 +1093,9 @@ test_reverted_numbered_pr_without_manifest_stays_red
 test_open_pr_own_line_is_unmatched_until_its_squash_lands
 test_behind_count_is_reported_and_does_not_fail_alone
 test_merge_commit_is_labeled_merge
-test_nightly_red_sends_one_note_a_day_and_green_sends_none
-test_nightly_check_error_is_red
-test_nightly_note_names_at_most_ten_red_lines
+test_nightly_logs_every_run_and_sends_no_note
+test_nightly_check_error_is_logged_without_a_note
+test_nightly_log_keeps_every_red_line
 test_install_dry_run_writes_nothing
 test_install_and_uninstall_round_trip
 test_install_escapes_xml_in_script_repo_and_log_paths

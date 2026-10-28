@@ -75,13 +75,9 @@
 #
 # nightly is the installed job's command. It prints the run time, check's
 # output for --repo with the default refs, fetch and proof file, and check's
-# exit code, then exits with that code. A nonzero check sends one note through
-# fm-inbox.sh beside this script, which picks the Firstmate home (FM_HOME, else
-# the home holding this script). The note names the exit code, the first ten
-# path-drift and error lines, a count of the rest, and the
-# log, under request id fm-drift-nightly-<local date>, so a same-day rerun
-# makes no second note. A green check sends nothing.
-# --log names the job's log in the note and defaults to
+# exit code, then exits with that code. It sends no note on any outcome; the
+# log is the only record of a red run.
+# --log names the job's log and defaults to
 # ~/Library/Logs/dev.firstmate.drift-nightly.log; it must be absolute.
 #
 # install writes ~/Library/LaunchAgents/dev.firstmate.drift-nightly.plist and
@@ -457,7 +453,7 @@ cmd_check() {
 }
 
 cmd_nightly() {
-  local repo=$DEFAULT_REPO log='' day out rc red
+  local repo=$DEFAULT_REPO log='' out rc
   while [ $# -gt 0 ]; do
     case $1 in
       --repo) [ $# -ge 2 ] || die "--repo needs a directory"; repo=$2; shift 2 ;;
@@ -467,20 +463,11 @@ cmd_nightly() {
   done
   [ -n "$log" ] || log=$(default_log)
   require_absolute_log "$log"
-  day=$(date +%F)
   printf 'run: %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')"
   rc=0
   out=$(cmd_check --repo "$repo" 2>&1) || rc=$?
   printf '%s\n' "$out"
   printf 'exit: %s\n' "$rc"
-  [ "$rc" -ne 0 ] || return 0
-  red=$(printf '%s\n' "$out" | awk '/^(path-drift|error): / { if (++n <= 10) print } END { if (n > 10) printf "%d more red lines in the log.\n", n - 10 }')
-  {
-    printf 'Nightly drift check red on %s: exit %s for %s.\n' "$day" "$rc" "$repo"
-    [ -z "$red" ] || printf '%s\n' "$red"
-    printf 'Log: %s\n' "$log"
-  } | "$SCRIPT_DIR/fm-inbox.sh" note --request-id "fm-drift-nightly-$day" - ||
-    printf 'error: fm-inbox.sh note failed with exit %s\n' "$?" >&2
   return "$rc"
 }
 
