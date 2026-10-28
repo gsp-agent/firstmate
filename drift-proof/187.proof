@@ -1,0 +1,2 @@
+# Failing-first test "test_queue_start_refuses_while_a_dale_stop_stands" in tests/fm-spawn-queue-start.test.sh: on the base a queue start under a Dale-stop token proceeds to claim its backlog row; with the gate it refuses at admission and again before the brief claim, leaving the row, task record and window untouched.
+pr: 187

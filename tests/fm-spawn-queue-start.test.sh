@@ -296,6 +296,51 @@ test_queue_start_defers_at_capacity_without_a_brief() {
   pass "a queue start in a full project defers before it claims the brief"
 }
 
+test_queue_start_refuses_while_a_dale_stop_stands() {
+  local case_dir id out rc=0 token refusal
+  id=qs-dale-stop-a6
+  case_dir=$(make_home dale-stop)
+  add_item "$case_dir" "$id" "$TEMPLATE_NOTE"
+  token="$case_dir/dale-stop.json"
+  printf '%s\n' '{"by":"Dale","at":"2026-10-28T00:00:00Z","words":"stop everything now"}' > "$token"
+  refusal='Refused by the Dale-stop guard: Dale stopped the pipeline on 2026-10-28T00:00:00Z ("stop everything now", ~/Library/Application Support/agent-observer/dale-stop.json). Nothing starts, and no agent may lift this, slate work, or raise places while it stands. Dale lifts it himself in a terminal: pipeline-resume. If he has told you to restart, tell him this guard is what is holding and stop.'
+
+  out=$(DALE_STOP_FILE="$token" queue_start "$case_dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "a queue start started under a Dale-stop: $out"
+  assert_contains "$out" "queue start refused: task $id: $refusal" "the Dale-stop refusal is not verbatim: $out"
+  [ "$(show_field "$case_dir" "$id" state)" = queued ] || fail "the refused item moved"
+  assert_absent "$(brief_of "$case_dir" "$id")" "a Dale-stop refusal left a brief"
+  assert_absent "$(home_of "$case_dir")/state/$id.meta" "a Dale-stop refusal left a record"
+  assert_equals 0 "$(windows_for "$case_dir" "$id")" "a Dale-stop refusal opened a window"
+
+  # A corrupt token holds the stop too.
+  printf 'not json\n' > "$token"
+  rc=0
+  out=$(DALE_STOP_FILE="$token" queue_start "$case_dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "a queue start started under a corrupt Dale-stop token: $out"
+  assert_contains "$out" "Refused by the Dale-stop guard" "a corrupt token did not refuse as a Dale-stop: $out"
+  [ "$(show_field "$case_dir" "$id" state)" = queued ] || fail "the corrupt-token refusal moved its item"
+
+  # A dangling symlink at the token path holds the stop too: unreadable is
+  # not absent.
+  rm -f "$token"
+  ln -s "$case_dir/no-such-token" "$token"
+  rc=0
+  out=$(DALE_STOP_FILE="$token" queue_start "$case_dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "a queue start started under a dangling Dale-stop symlink: $out"
+  assert_contains "$out" "Refused by the Dale-stop guard" "a dangling token symlink did not refuse as a Dale-stop: $out"
+  [ "$(show_field "$case_dir" "$id" state)" = queued ] || fail "the dangling-token refusal moved its item"
+
+  # With the token gone the same item starts as before.
+  rm -f "$token"
+  rc=0
+  out=$(DALE_STOP_FILE="$token" queue_start "$case_dir" "$id") || rc=$?
+  expect_code 0 "$rc" "the item a Dale-stop held did not start once the token was lifted: $out"
+  [ "$(show_field "$case_dir" "$id" state)" = in_flight ] || fail "the lifted item is not In flight"
+  assert_equals 1 "$(windows_for "$case_dir" "$id")" "the lifted item did not open exactly one window"
+  pass "a queue start refuses verbatim while a Dale-stop stands (a corrupt token too), leaving nothing behind, and starts the item once lifted"
+}
+
 test_queue_start_failing_before_launch_gives_the_item_back() {
   local case_dir id out rc=0 hook
   id=qs-prelaunch-a4
@@ -651,6 +696,7 @@ test_queue_start_starts_a_clear_label_route_from_its_recorded_labels
 test_queue_start_leaves_a_non_clear_label_route_to_the_captain
 test_queue_start_leaves_every_other_note_to_the_captain
 test_queue_start_defers_at_capacity_without_a_brief
+test_queue_start_refuses_while_a_dale_stop_stands
 test_queue_start_failing_before_launch_gives_the_item_back
 test_queue_start_leaves_an_item_whose_brief_exists
 test_a_hand_start_during_the_read_wins_the_claim
