@@ -449,6 +449,91 @@ test_handling_successor_closes_on_a_row_newer_than_its_start() {
   pass "a handling successor closes on a main row newer than its start and leaves the older row"
 }
 
+# fm-procevent.sh reconcile re-appends an unhandled result every cycle under a
+# fresh sequence. That twin of a row queued at the successor's start is the old
+# row again, so it must not close the successor. A later row that differs only
+# in payload is new work and still does.
+test_handling_successor_ignores_a_reappended_start_row() {
+  local dir home state child now out old new appended beat first second
+  dir=$(make_case successor-reappended-row)
+  home="$dir/home"
+  state="$dir/state"
+  mkdir -p "$home/data" "$home/config"
+  printf 'pending:downtime:park.1.aaa\n' > "$state/.watcher-down"
+  chmod 600 "$state/.watcher-down"
+  old='check: captain inbox note n1 - queued before the successor started'
+  new='check: captain inbox note n1 - edited after the successor started'
+  printf '%s\t4\tcheck\tinbox:n1\t%s\n' "$(date +%s)" "$old" > "$state/.wake-queue"
+  printf '4\n' > "$state/.wake-queue.seq"
+  out="$dir/watch.out"
+  PATH="$dir/fakebin:$PATH" FM_HOME="$home" FM_STATE_OVERRIDE="$state" \
+    FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=600 \
+    FM_WATCH_HANDLING_SUCCESSOR=1 "$WATCH" > "$out" 2>&1 &
+  child=$!
+  fm_test_track_pid "$child"
+  now=0
+  while [ "$now" -lt 40 ]; do
+    [ "$(cat "$state/.watch.lock/pid" 2>/dev/null || true)" = "$child" ] && break
+    sleep 0.1
+    now=$((now + 1))
+  done
+  [ "$(cat "$state/.watch.lock/pid" 2>/dev/null || true)" = "$child" ] \
+    || { kill -TERM "$child" 2>/dev/null || true; fail "handling successor did not take the watcher lock"; }
+  append_wake "$state" check "inbox:n1" "$old" \
+    || { kill -TERM "$child" 2>/dev/null || true; fail "could not re-append the start row"; }
+  grep -c "$(printf '\tcheck\tinbox:n1\t')" "$state/.wake-queue" | grep -qx 2 \
+    || { kill -TERM "$child" 2>/dev/null || true; fail "the re-append did not queue a second row"; }
+  # The beacon is stamped at the top of each poll, before the resurface check,
+  # so a second beacon stamped after the append proves one whole poll saw it.
+  appended=$(date +%s)
+  first=
+  second=
+  now=0
+  while [ "$now" -lt 240 ]; do
+    kill -0 "$child" 2>/dev/null || break
+    if [ "$(uname)" = Darwin ]; then
+      beat=$(stat -f %m "$state/.last-watcher-beat" 2>/dev/null || true)
+    else
+      beat=$(stat -c %Y "$state/.last-watcher-beat" 2>/dev/null || true)
+    fi
+    if [ -n "$beat" ] && [ "$beat" -gt "$appended" ]; then
+      if [ -z "$first" ]; then
+        first=$beat
+      elif [ "$beat" != "$first" ]; then
+        second=$beat
+        break
+      fi
+    fi
+    sleep 0.25
+    now=$((now + 1))
+  done
+  kill -0 "$child" 2>/dev/null \
+    || fail "a re-append of the row queued at start closed the successor: $(cat "$out")"
+  [ -n "$second" ] \
+    || { kill -TERM "$child" 2>/dev/null || true; fail "the successor never completed a poll after the re-append"; }
+  ! grep -F "$old" "$out" >/dev/null \
+    || { kill -TERM "$child" 2>/dev/null || true; fail "the re-appended start row was delivered: $(cat "$out")"; }
+  append_wake "$state" check "inbox:n1" "$new" \
+    || { kill -TERM "$child" 2>/dev/null || true; fail "could not append the edited note"; }
+  now=0
+  while [ "$now" -lt 40 ]; do
+    kill -0 "$child" 2>/dev/null || break
+    sleep 0.5
+    now=$((now + 1))
+  done
+  if kill -0 "$child" 2>/dev/null; then
+    kill -TERM "$child" 2>/dev/null || true
+    wait "$child" 2>/dev/null || true
+    fail "a note differing only in payload did not close the successor: $(cat "$out")"
+  fi
+  wait "$child" 2>/dev/null || true
+  grep -Fx "$new" "$out" >/dev/null \
+    || fail "the successor did not close on the edited note: $(cat "$out")"
+  ! grep -F "$old" "$out" >/dev/null \
+    || fail "the successor also delivered the start row: $(cat "$out")"
+  pass "a handling successor ignores a re-append of its start row and still closes on new work"
+}
+
 if [ -n "${FM_TEST_ONLY:-}" ]; then
   run_case "$FM_TEST_ONLY"
   exit
@@ -460,3 +545,4 @@ run_case test_host_recovery_closes_on_its_oldest_branch_row
 run_case test_plain_recovery_over_live_pm_rows_stays_quiet
 run_case test_host_recovery_with_failed_output_retries_the_close
 run_case test_handling_successor_closes_on_a_row_newer_than_its_start
+run_case test_handling_successor_ignores_a_reappended_start_row

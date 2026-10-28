@@ -172,7 +172,7 @@ On each actionable close the engine takes, the host runs these steps:
    A teardown holds the lease-command lock for its whole length, so a release waits for it only a bounded time and is otherwise retried while the host parks, never during an engine turn; the host's header owns the bound.
 5. It parks on the successor only for a handled wake.
    A main-only pass-through is not a park: the host exits after leaving that cycle running, as [Attended](#attended) describes.
-   Attended, a handled wake that leaves a main-only row unread is not a park either: the successor closes only on rows newer than its own start, so the host exits with one `supervision-host:` line that sends main to its drain.
+   Attended, a handled wake that leaves a main-only row unread is not a park either: under the [successor queue contract](watcher-continuity.md#durable-queue-and-turn-end-backstop), the host exits with one `supervision-host:` line that sends main to its drain.
 
 The host counts the wake handled only when all three hold:
 
