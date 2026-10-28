@@ -429,7 +429,8 @@ test_proven_patch_built_on_unproven_change_is_drift_not_a_check_error() {
     printf 'proven first line\n'
     for ((i = 2; i <= 20; i++)); do printf 'line %s\n' "$i"; done
   } > "$repo/notes.txt"
-  git -C "$repo" add notes.txt
+  printf 'proven side\n' > "$repo/side.txt"
+  git -C "$repo" add notes.txt side.txt
   fixture_commit "$repo" "proven first line (#7)"
   kept=$(git -C "$repo" rev-parse HEAD)
   printf 'proven\n' > "$repo/kept.txt"
@@ -440,6 +441,7 @@ test_proven_patch_built_on_unproven_change_is_drift_not_a_check_error() {
   run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
   expect_code 1 "$CHECK_RC" "a proven patch that only applies on unproven work exits 1, not 2: $CHECK_ERR"
   assert_contains "$CHECK_OUT" 'path-drift: notes.txt' "the stacked proven patch is reported as drift"
+  assert_contains "$CHECK_OUT" 'path-ok: side.txt' "the conflicting patch still proves the path it merges cleanly"
   assert_contains "$CHECK_OUT" 'path-ok: kept.txt' "a later independent proven patch is still accepted"
   assert_contains "$CHECK_OUT" "keep: $kept proven first line (#7)" "the stacked commit keeps its entry class and is named by the error line"
   assert_contains "$CHECK_OUT" "keep: $later independent proven file (#8)" "the later independent commit is still reported as keep"

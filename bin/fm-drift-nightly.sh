@@ -256,7 +256,7 @@ replay_proof() {
     case $KEEP_SHAS in *"|$sha|"*) ;; *) case $PENDING_SHA_BEADS in *"|$sha="*) ;; *) continue ;; esac ;; esac
     parent=$(git -C "$REPO" rev-parse "$sha^") || die "cannot read proof parent: $sha"
     rc=0
-    merged=$(git -C "$REPO" merge-tree --write-tree --no-messages --merge-base="$parent" "$EXPECTED_TREE" "$sha" 2>/dev/null) || rc=$?
+    merged=$(git -C "$REPO" merge-tree --write-tree --no-messages --merge-base="$parent" "$EXPECTED_TREE" "$sha") || rc=$?
     if [ "$rc" -eq 0 ]; then
       EXPECTED_TREE=$merged
       continue
