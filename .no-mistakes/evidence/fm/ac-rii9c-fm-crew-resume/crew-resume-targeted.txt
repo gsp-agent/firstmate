@@ -1,0 +1,5 @@
+ok - codex session discovery finds only the crew's new worktree session from the spawn's date folders, not a newer subagent thread or an older resumed session, and is quiet on a missing home
+ok - codex session report sends the exact herdr session-start call, keeps its reply off stdout, and reads the session back
+ok - codex session report fails when the pane does not read back the reported session, and never reports before Herdr registers the codex agent
+ok - a pane reads as running codex only with a live process and a Codex registration
+ok - codex resume record keeps the session's CODEX_HOME and the args its launch line carries, refusing malformed input

@@ -1,0 +1,11 @@
+Herdr registry readback (first launch): codex	fm-crew-resume-session-1
+ok - real herdr: a codex crew launch binds the pane to its own session and records it
+Herdr registry readback (relaunch): codex	fm-crew-resume-session-2
+ok - real herdr: a codex relaunch replaces the pane's binding to the retired session with its own
+Herdr replacement-session readback: codex	fm-crew-resume-session-3
+ok - real herdr: a codex session report replaces a binding Herdr still holds for an earlier session
+Codex binding after nested-shell exit: codex	fm-crew-resume-session-3
+ok - real herdr: a relaunch from codex onto another harness replaces the retained Codex pane and removes its resume record, and that harness's own session report binds the pane
+Harness-switch endpoint: old=w1:p2 new=w2:p2 old-presence=dead
+Replacement harness registry readback: claude	fm-crew-resume-claude-1
+Preserved worktree content: uncommitted crew work

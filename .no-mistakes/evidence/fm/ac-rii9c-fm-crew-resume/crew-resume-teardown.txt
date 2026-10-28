@@ -1,0 +1,1 @@
+ok - teardown removes the task's Codex resume record and leaves other tasks' records alone
