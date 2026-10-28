@@ -1988,22 +1988,56 @@ fm_relaunch_live_clone() {  # <meta> <home>
   printf '%s\n' "$live_real"
 }
 
-# fm_relaunch_fresh_slot_refusal <old-copy> <old-project> <task-id> <branch> <live-clone>:
+# fm_relaunch_old_copy_shared_by <old-copy> <meta> <state>: print the id of
+# another local task record whose worktree or home is <old-copy> and return 0;
+# return 1 when no other record names it, and 2 when the local homes' records
+# cannot all be read (FM_LOCAL_FIRSTMATE_ERROR says why). This is teardown's
+# exclusivity rule (bin/fm-teardown.sh require_exclusive_worktree_slot_record):
+# returning a slot another record names would kill that task's processes and
+# reset its copy, whatever the slot's claim says.
+fm_relaunch_old_copy_shared_by() {  # <old-copy> <meta> <state>
+  local old=$1 meta=$2 state=$3 slot state_dir other field path other_slot
+  slot=$(CDPATH='' cd -- "$old" 2>/dev/null && pwd -P) || return 1
+  if ! declare -F secondmate_registry_parse_line >/dev/null 2>&1; then
+    # shellcheck source=bin/fm-secondmate-registry-lib.sh
+    . "$(dirname "${BASH_SOURCE[0]}")/fm-secondmate-registry-lib.sh" || return 2
+  fi
+  fm_local_firstmate_state_dirs "$state" || return 2
+  for state_dir in "${FM_LOCAL_FIRSTMATE_STATES[@]}"; do
+    for other in "$state_dir"/*.meta; do
+      [ -f "$other" ] && [ ! -L "$other" ] || continue
+      [ "${other##*/}" = "${meta##*/}" ] && [ "$other" -ef "$meta" ] && continue
+      for field in worktree home; do
+        path=$(fm_meta_get "$other" "$field")
+        [ -n "$path" ] || continue
+        other_slot=$(CDPATH='' cd -- "$path" 2>/dev/null && pwd -P) || continue
+        [ "$other_slot" = "$slot" ] || continue
+        printf '%s\n' "$(basename "$other" .meta)"
+        return 0
+      done
+    done
+  done
+  return 1
+}
+
+# fm_relaunch_fresh_slot_refusal <old-copy> <old-project> <task-id> <branch> <live-clone> <meta> <state>:
 # print why the old copy's branch cannot start in a fresh slot of <live-clone>
 # and return 0, or return 1 when nothing stops it. The old copy must be a
 # worktree root of <old-project>'s own repository (the same Git common
 # directory, as a relaunch's worktree validation requires), so a record whose
 # worktree names another repository never has that history imported. Its slot
 # claim must name <task-id> or be absent, as teardown requires before it
-# returns a copy, so a slot another task now holds is never taken from. It must
+# returns a copy, so a slot another task now holds is never taken from, and no
+# other local task record may name it (fm_relaunch_old_copy_shared_by). It must
 # have <branch> checked out and read clean with no submodule ignored
 # (uncommitted work is never carried, and is never left behind either). The
 # live clone must not
 # have <branch> checked out anywhere, and a <branch> it already has must be in
 # the old copy's history, so starting the slot there moves that branch forward
 # and never over commits it holds.
-fm_relaunch_fresh_slot_refusal() {  # <old-copy> <old-project> <task-id> <branch> <live-clone>
-  local old=$1 project=$2 id=$3 branch=$4 live=$5 head dirty got old_real top common project_common
+fm_relaunch_fresh_slot_refusal() {  # <old-copy> <old-project> <task-id> <branch> <live-clone> <meta> <state>
+  local old=$1 project=$2 id=$3 branch=$4 live=$5 meta=$6 state=$7 head dirty got old_real top common project_common
+  local sharer sharer_rc
   old_real=$(CDPATH='' cd -- "$old" 2>/dev/null && pwd -P) || old_real=
   top=$(git -C "$old" rev-parse --show-toplevel 2>/dev/null) &&
     top=$(CDPATH='' cd -- "$top" 2>/dev/null && pwd -P) || top=
@@ -2026,6 +2060,20 @@ fm_relaunch_fresh_slot_refusal() {  # <old-copy> <old-project> <task-id> <branch
       ;;
     *)
       printf 'its copy %s carries a slot claim that cannot be read, so it cannot be proved to still be this task'"'"'s\n' "$old"
+      return 0
+      ;;
+  esac
+  sharer_rc=0
+  sharer=$(fm_relaunch_old_copy_shared_by "$old" "$meta" "$state") || sharer_rc=$?
+  case "$sharer_rc" in
+    0)
+      printf 'its copy %s is also task %s'"'"'s recorded worktree, and returning it would kill that task'"'"'s processes and reset its copy; reconcile whichever record is wrong first\n' \
+        "$old" "$sharer"
+      return 0
+      ;;
+    2)
+      printf 'the local task records cannot all be read (%s), so its copy %s cannot be proved to be named by no other task\n' \
+        "${FM_LOCAL_FIRSTMATE_ERROR:-unknown}" "$old"
       return 0
       ;;
   esac

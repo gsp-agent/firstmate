@@ -397,6 +397,39 @@ test_relaunch_refuses_an_old_copy_another_task_claims() {
   pass "an old-clone relaunch refuses an old copy another task now claims"
 }
 
+# An old copy another local task record also names (here a legacy copy with
+# no claim at all) is never taken from or returned: returning it would kill
+# that task's processes. fm-control refuses before the agent stops, and
+# fm-spawn before any slot, import or return.
+test_relaunch_refuses_an_old_copy_another_record_names() {
+  local dir id=shared-a1 out rc=0 before
+  make_case shared "$id"
+  dir=$CASE_DIR
+  : > "$dir/fake/herdr-agent-live"
+  rm -f "$dir/oldpool/7/.fm-slot-owner"
+  {
+    echo "window=fmlab:%8"
+    echo "worktree=$OLDWT"
+    echo "project=$dir/old/proj"
+    echo "kind=ship"
+    echo "backend=herdr"
+  } > "$dir/home/state/other-task.meta"
+  before=$(cat "$dir/home/state/$id.meta")
+  out=$(run_control_relaunch "$dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "shared: a copy another record names was relaunched: $out"
+  assert_contains "$out" "is also task other-task's recorded worktree" "shared: the refusal did not name the other record"
+  [ -e "$dir/fake/herdr-agent-live" ] || fail "shared: the agent was stopped"
+  assert_equals "$before" "$(cat "$dir/home/state/$id.meta")" "shared: the record changed"
+  rm -f "$dir/fake/herdr-agent-live"
+  rc=0
+  out=$(run_spawn_relaunch "$dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "shared: fm-spawn relaunched a copy another record names: $out"
+  assert_contains "$out" "is also task other-task's recorded worktree" "shared: fm-spawn's refusal did not name the other record"
+  [ -e "$dir/treehouse.log" ] && grep -q '^return' "$dir/treehouse.log" && fail "shared: a slot was returned"
+  [ -e "$dir/livepool/1/.fm-slot-owner" ] && fail "shared: a live slot was claimed"
+  pass "an old-clone relaunch refuses an old copy another local task record names"
+}
+
 # A copy not on its ship branch is refused: the slot would start on a branch
 # ref the copy's checkout does not match.
 test_relaunch_refuses_a_copy_not_on_its_branch() {
@@ -503,6 +536,7 @@ test_control_defers_on_a_full_live_pool_before_stopping_the_agent
 test_relaunch_refuses_a_copy_not_on_its_branch
 test_control_refuses_a_worktree_of_another_repository
 test_relaunch_refuses_an_old_copy_another_task_claims
+test_relaunch_refuses_an_old_copy_another_record_names
 test_relaunch_refuses_a_live_branch_outside_the_copys_history
 test_relaunch_moves_an_older_live_branch_forward
 test_relaunch_deferred_before_the_record_returns_the_slot
