@@ -438,6 +438,11 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
       . "$(dirname "${BASH_SOURCE[0]}")/fm-wake-lib.sh" || exit 1
       # shellcheck source=/dev/null
       . "$(dirname "${BASH_SOURCE[0]}")/fm-pr-lib.sh" || exit 1
+      # Every offload holds the single-instance lock the pass takes, so the
+      # one-copy check and the copy's journal entry cannot race.
+      offload_lock="$3/.task-data-offload.lock"
+      fm_lock_try_acquire "$offload_lock" || { echo "error: another offload is running; nothing was offloaded" >&2; exit 1; }
+      trap 'fm_lock_release "$offload_lock"' EXIT
       fm_task_data_offload_task "$2" "$3" "$4"
       ;;
     backlog-location)

@@ -176,15 +176,24 @@ record/data-offload.json's archives list before it is written, and only a file
 that list names is ever removed: offload removes the task's listed leftovers
 first, and offload-plan lists tasks holding any so each offload pass reaches
 them, moves or not; a refusal waits for the next pass.
-Extended attributes, macOS resource forks included, ride in the archive's
-SCHILY.xattr headers. macOS access control lists and file flags (other than
-transparent compression) do not, so a unit holding any stays in place. While
-any task's journal still lists a copy, no new archive is written anywhere.
+A unit is archived only when every property that matters for content and
+access is carried exactly, and otherwise stays in place under a named reason.
+Carried: content, mode, owner and group, extended attributes (macOS resource
+forks included, in SCHILY.xattr headers), symlinks as written, and hard links
+(one shared with a path outside the unit restores as an identical copy).
+Retained: macOS access control lists, file flags, special files, sparse or
+transparently compressed files (the archive would hold every byte), names that
+are not UTF-8, files another user owns, and groups the restoring user is not in.
+Every offload, by hand or in a pass, holds STATE/.task-data-offload.lock, so the
+one-copy check and the copy's journal entry cannot race. Timestamps beyond
+modification time, such as birth time, are not kept. While any task's journal
+still lists a copy, no new archive is written anywhere.
 A linked worktree of a repository in another task or outside DATA (its index,
 HEAD, reflog and refs live in that repository, outside any archive), a
 repository whose .git is a symlink, a repository with linked worktrees outside
-the task or sharing no folder below it, an unreadable worktree record (a
-missing gitdir, or one that does not name a .git file, empty included), a
+the task or sharing no folder below it, or any worktree or submodule record
+that does not resolve cleanly both ways (missing, empty, unreadable, stale or
+inconsistent), a
 submodule checkout outside its superproject's unit, and any unit holding one of
 them at any depth stay in place, named with reasons and sizes in offload-plan's
 retained list.
@@ -1214,62 +1223,136 @@ def offload_inventory(root, data):
     return (*inventory(root), units)
 
 
+UNCLEAN = "linked worktree record is unreadable"
+
+
 def offload_unit_links(repository, root, data):
-    """Return the task paths a repository moves with, and why it must stay, if it must."""
+    """Return the task paths a repository moves with, and why it must stay, if it must.
+
+    One rule: every worktree record and link the repository holds or names
+    must resolve cleanly, both ways, to a checkout or git directory. A record
+    that is missing, empty, unreadable, stale or inconsistent keeps the unit
+    as UNCLEAN; one that resolves outside the task keeps it with its place.
+    """
     dotgit = repository / ".git"
-    links = []
+
+    def read(record):
+        if record.is_symlink() or not record.is_file():
+            raise ValueError(f"missing record: {record}")
+        value = record.read_text().strip()
+        if not value:
+            raise ValueError(f"empty record: {record}")
+        return value
+
+    def named(base, value):
+        return (Path(value) if Path(value).is_absolute() else base / value).resolve()
+
+    def gitfile(checkout):
+        value = read(checkout / ".git")
+        if not value.startswith("gitdir: "):
+            raise ValueError(f"unreadable gitfile: {checkout}")
+        return named(checkout, value.removeprefix("gitdir: "))
+
     try:
         if dotgit.is_symlink():
-            return links, "its .git is a symlink; its repository lives elsewhere"
+            return [], "its .git is a symlink; its repository lives elsewhere"
         if dotgit.is_file():
-            text = dotgit.read_text().strip()
-            if not text.startswith("gitdir: "):
-                return links, "linked worktree record is unreadable"
-            gitdir = (repository / text.removeprefix("gitdir: ")).resolve()
-            commondir = gitdir / "commondir"
-            common = (gitdir / commondir.read_text().strip()).resolve() if commondir.is_file() else gitdir
+            gitdir = gitfile(repository)
+            if not gitdir.is_dir():
+                return [], UNCLEAN
+            if not ((gitdir / "commondir").exists() or (gitdir / "commondir").is_symlink()):
+                # A submodule checkout: its git directory lives in the superproject.
+                if root in gitdir.parents:
+                    return [gitdir], None
+                return [], "submodule checkout; offloaded only as part of its superproject"
+            common = named(gitdir, read(gitdir / "commondir"))
+            if named(gitdir, read(gitdir / "gitdir")) != dotgit.resolve() or not (common / "HEAD").is_file():
+                return [], UNCLEAN
             if root in common.parents:
                 return [common], None
-            if not commondir.is_file():
-                return links, "submodule checkout; offloaded only as part of its superproject"
             if common == data or data in common.parents:
-                return links, "linked worktree of a repository in another task"
-            return links, "linked worktree of a repository outside data/"
-        admin = (dotgit if dotgit.is_dir() else repository) / "worktrees"
-        for entry in sorted(admin.iterdir()) if admin.is_dir() and not admin.is_symlink() else ():
+                return [], "linked worktree of a repository in another task"
+            return [], "linked worktree of a repository outside data/"
+        gitdir = dotgit if dotgit.is_dir() else repository
+        links = []
+        admin = gitdir / "worktrees"
+        if admin.is_symlink() or (admin.exists() and not admin.is_dir()):
+            return [], UNCLEAN
+        for entry in sorted(admin.iterdir()) if admin.is_dir() else ():
             if entry.is_symlink() or not entry.is_dir():
-                continue
-            # git writes the worktree's .git file path; a missing, empty or
-            # other record could hide a live checkout.
-            record = entry / "gitdir"
-            named = record.read_text().strip() if record.is_file() and not record.is_symlink() else ""
-            if Path(named).name != ".git":
-                return links, "linked worktree record is unreadable"
-            tree = (record.parent / named).parent.resolve()
-            if not (tree.exists() or tree.is_symlink()) or tree == repository or repository in tree.parents:
+                return [], UNCLEAN
+            marker = named(entry, read(entry / "gitdir"))
+            if marker.name != ".git" or gitfile(marker.parent) != entry.resolve():
+                return [], UNCLEAN
+            tree = marker.parent
+            if tree == repository.resolve() or repository.resolve() in tree.parents:
                 continue
             if root not in tree.parents:
-                return links, "has linked worktrees outside the task"
+                return [], "has linked worktrees outside the task"
             links.append(tree)
-    except (OSError, UnicodeError):
-        return links, "linked worktree record is unreadable"
-    return links, None
+        modules = gitdir / "modules"
+        if modules.is_symlink():
+            return [], UNCLEAN
+        # A submodule git directory names its checkout through core.worktree.
+        for config in sorted(modules.rglob("config")) if modules.is_dir() else ():
+            if not ((config.parent / "HEAD").is_file() and (config.parent / "objects").is_dir()):
+                continue
+            found = subprocess.run(["git", "config", "--file", str(config), "--get", "core.worktree"],
+                                   stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=60)
+            if found.returncode == 1:
+                continue
+            if found.returncode != 0 or not found.stdout.strip():
+                return [], UNCLEAN
+            checkout = named(config.parent, found.stdout.strip())
+            if checkout == repository.resolve() or repository.resolve() in checkout.parents:
+                continue
+            if root not in checkout.parents:
+                return [], "has submodule checkouts outside the task"
+            links.append(checkout)
+        return links, None
+    except (OSError, UnicodeError, ValueError, subprocess.SubprocessError):
+        return [], UNCLEAN
 
 
 ARCHIVE = ".firstmate-offload-"
 ACL_KEPT = "holds access control lists the archive cannot carry"
 FLAGS_KEPT = "holds file flags the archive cannot carry"
-# Transparent compression changes no data, so it is the one flag a restore may drop.
+EXPANDS_KEPT = "holds sparse or compressed files the archive would expand"
+# Transparent compression changes no data; the expansion check owns it.
 FLAGS_CARRIED = getattr(stat, "UF_COMPRESSED", 0)
 
 
-def offload_flagged(path):
-    """Return whether anything under path, path included, has a file flag tar here drops."""
+def offload_unit_metadata(path):
+    """Name the first property under path that tar here cannot carry exactly, or None.
+
+    Carried exactly: content, mode, owner and group the restoring user can set,
+    extended attributes, symlinks as written, and hard links (a link shared
+    with a path outside the unit restores as an identical copy). Not carried:
+    file flags, special files, sparse or transparently compressed files (the
+    archive would hold every byte), names that are not UTF-8,
+    files another user owns, and groups the restoring user is not in.
+    """
+    uid, groups = os.getuid(), set(os.getgroups())
     for directory, names, leaves in os.walk(path, followlinks=False):
         for name in (".", *names, *leaves):
-            if getattr(os.lstat(os.path.join(directory, name)), "st_flags", 0) & ~FLAGS_CARRIED:
-                return True
-    return False
+            entry = os.path.join(directory, name)
+            try:
+                os.fsencode(name).decode("utf-8")
+            except UnicodeDecodeError:
+                return "holds file names tar cannot carry exactly"
+            info = os.lstat(entry)
+            if not (stat.S_ISDIR(info.st_mode) or stat.S_ISREG(info.st_mode) or stat.S_ISLNK(info.st_mode)):
+                return "holds special files (FIFO, socket or device) the archive cannot carry"
+            if getattr(info, "st_flags", 0) & ~FLAGS_CARRIED:
+                return FLAGS_KEPT
+            if info.st_uid != uid or info.st_gid not in groups:
+                return "holds files whose owner or group a restore cannot set"
+            # The archive holds every byte, so a file using fewer blocks than
+            # its size would grow the local copy past what the disk holds now.
+            if stat.S_ISREG(info.st_mode) and (info.st_blocks * 512 < info.st_size
+                                               or getattr(info, "st_flags", 0) & FLAGS_CARRIED):
+                return EXPANDS_KEPT
+    return None
 
 
 def offload_journaled_archives(data):
@@ -1343,15 +1426,9 @@ def offload_archive(source, archive):
     # manifests accept a single file, and tar keeps .git, symlinks and hard
     # links exactly. Extended attributes, macOS resource forks included, ride
     # in SCHILY.xattr headers that `tar --xattrs -x` restores.
-    for directory, names, leaves in os.walk(source, followlinks=False):
-        for name in names + leaves:
-            mode = os.lstat(os.path.join(directory, name)).st_mode
-            if not (stat.S_ISDIR(mode) or stat.S_ISREG(mode) or stat.S_ISLNK(mode)):
-                raise ValueError("special file in repository")
-    if offload_flagged(source):
-        raise ValueError(FLAGS_KEPT)
-    if offload_acl(source):
-        raise ValueError(ACL_KEPT)
+    reason = offload_unit_metadata(source) or (ACL_KEPT if offload_acl(source) else None)
+    if reason:
+        raise ValueError(reason)
 
     def carry(info):
         for name, value in offload_xattrs(source.parent / info.name).items():
@@ -1493,9 +1570,9 @@ def offload_candidates(data, state, task_id, rows, locations, cache):
         summary = totals.get(unit, [0, 0, 0, False])
         if not reason:
             try:
-                reason = FLAGS_KEPT if offload_flagged(unit) else ACL_KEPT if offload_acl(unit) else None
+                reason = offload_unit_metadata(unit) or (ACL_KEPT if offload_acl(unit) else None)
             except (OSError, subprocess.SubprocessError):
-                reason = "file flags or access control lists could not be read"
+                reason = "file metadata or access control lists could not be read"
         if reason:
             kept.append({"task": task_id, "path": str(unit.relative_to(root)), "reason": reason,
                          "size": summary[1], "allocated_bytes": summary[2]})
@@ -1664,7 +1741,6 @@ def offload(data, state, task_id):
     data, state = real_directory(data, resolve_parent=True), real_directory(state, resolve_parent=True)
     command = offload_config(data)  # Refuse before even contacting the remote.
     data, state, rows, locations, cache = offload_context(data, state)
-    offload_closed(data, state, task_id, rows)
     root = real_directory(data / task_id)
     record_path = root / OFFLOAD_RECORD
     record = offload_journal(root, task_id)
@@ -1687,6 +1763,13 @@ def offload(data, state, task_id):
         offload_discard(leftover)
         record["archives"].remove(name)
         offload_write(record_path, record)
+
+    # A journaled copy is always redundant, so it goes even when the task has
+    # reopened or lost its closed row; a refusal waits for the next pass.
+    for name in list(record.get("archives", [])):
+        with contextlib.suppress(OSError, ValueError, subprocess.SubprocessError):
+            release(name)
+    offload_closed(data, state, task_id, rows)
     candidates = {item["path"]: item for item in offload_candidates(data, state, task_id, rows, locations, cache)[0]}
     # A crash after Trash but before pointer publication leaves this journal.
     # Complete the pointer only after both copies are freshly verified again.
@@ -1701,10 +1784,6 @@ def offload(data, state, task_id):
     result = {"offloaded": moved}
     relative = None
     try:
-        # An interrupted or refused round can leave its own journaled copy.
-        for name in list(record.get("archives", [])):
-            with contextlib.suppress(OSError, ValueError, subprocess.SubprocessError):
-                release(name)
         for relative, candidate in candidates.items():
             source = root / relative
             if source.parent.resolve() != source.parent:

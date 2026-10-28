@@ -17,11 +17,13 @@ trap 'exit 143' TERM
 trap 'exit 130' INT
 python3 - "$ROOT" "$TMP_ROOT" <<'PY' &
 import atexit
+import contextlib
 from datetime import date, timedelta
 import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import signal
 import sqlite3
 import stat
@@ -317,6 +319,8 @@ def snapshot(path):
             entries[rel] = ("link", os.readlink(item))
         elif item.is_dir():
             entries[rel] = ("directory", item.stat().st_mode & 0o777)
+        elif not item.is_file():
+            entries[rel] = ("special", stat.S_IFMT(item.lstat().st_mode))
         else:
             entries[rel] = ("file", item.stat().st_mode & 0o777, item.read_bytes())
     return entries
@@ -565,6 +569,91 @@ def check_flagged_repository_kept():
     finally:
         subprocess.run(["/usr/bin/chflags", "nouchg", str(clone / "work.txt")], check=True)
 
+def kept_reason(name, damage):
+    home, clone = repo_fixture(name)
+    damage(home, clone)
+    before = snapshot(clone)
+    plan = run(home, "offload-plan")
+    assert plan["moves"] == [], plan
+    assert run(home, "offload")["offloaded"] == []
+    assert snapshot(clone) == before
+    return [(item.get("path"), item["reason"]) for item in plan["retained"]]
+
+def check_unclean_worktree_records_kept():
+    def stale(home, clone):
+        git("-C", clone, "worktree", "add", "-q", "-b", "side", home / "user/wt")
+        shutil.rmtree(home / "user/wt")
+    def no_backlink(home, clone):
+        git("-C", clone, "worktree", "add", "-q", "-b", "side", home / "user/wt")
+        (home / "user/wt/.git").write_text("gitdir: " + str(home / "user/elsewhere") + "\n")
+    for name, damage in (("stale", stale), ("no-backlink", no_backlink)):
+        reasons = kept_reason("repo-record-" + name, damage)
+        assert reasons == [("clone", "linked worktree record is unreadable")], (name, reasons)
+
+def check_uncarried_metadata_kept():
+    def sparse(home, clone):
+        with (clone / "disk.img").open("wb") as stream:
+            stream.truncate(64 * 1024 * 1024)
+    reasons = kept_reason("repo-meta-sparse", sparse)
+    assert reasons == [("clone", "holds sparse or compressed files the archive would expand")], reasons
+    # A special file anywhere keeps the whole task, named, before any unit is weighed.
+    home, clone = repo_fixture("repo-meta-fifo")
+    os.mkfifo(clone / "pipe")
+    before = snapshot(clone)
+    plan = run(home, "offload-plan")
+    assert plan["moves"] == [] and [item["reason"].split(":")[0] for item in plan["retained"]] == \
+        ["special file in task data"], plan
+    run(home, "offload", ok=False)
+    assert snapshot(clone) == before and not (home / "calls").exists()
+
+def check_offloads_take_one_lock():
+    home = fixture("one-offload-at-a-time")
+    shutil.copytree(home / "data/task-one", home / "data/task-two")
+    closed = (date.today() - timedelta(days=10)).isoformat()
+    with (home / "data/backlog.md").open("a") as stream:
+        stream.write(f"- [x] task-two - fixture (repo: example) (closed {closed})\n")
+    env = dict(os.environ, HOME=str(home / "user"), FM_HOME=str(home), PATH=str(fake) + os.pathsep + os.environ["PATH"],
+               OFFLOAD_HELPER=str(code / "bin/fm-task-data.py"), OFFLOAD_FAULT="backup-hang", FM_TASK_DATA_SWEEP="off",
+               OFFLOAD_REAL_RSYNC="0", FM_TASK_DATA_TRASH=str(fake / "safe/trash"))
+    first = subprocess.Popen(["bash", str(code / "bin/fm-task-data-lib.sh"), "offload", str(home / "data"),
+                              str(home / "state"), "task-one"], env=env, stdin=subprocess.DEVNULL,
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try:
+        deadline = time.monotonic() + 60
+        while not (home / "backup-started").exists():
+            assert time.monotonic() < deadline and first.poll() is None, "the first offload never reached its backup"
+            time.sleep(0.05)
+        stderr = run(home, "offload", task=("task-two",), ok=False)
+        assert "another offload is running" in stderr, stderr
+        assert (home / "data/task-two/build/evidence.bin").is_file()
+    finally:
+        with contextlib.suppress(ProcessLookupError):
+            os.killpg(first.pid, signal.SIGTERM)
+        first.communicate(timeout=60)
+
+def check_reopened_task_leftover_removed():
+    home = fixture("reopened-leftover", status="open")
+    task = home / "data/task-one"
+    owned = ".firstmate-offload-0123456789abcdef.tar"
+    (task / owned).write_bytes(b"redundant archive copy")
+    (task / "record").mkdir()
+    (task / "record/data-offload.json").write_text(json.dumps(
+        {"version": 1, "task": "task-one", "entries": {}, "archives": [owned]}))
+    run(home, "offload", ok=False)
+    assert not (task / owned).exists(), "a reopened task kept its journaled archive copy"
+    assert json.loads((task / "record/data-offload.json").read_text())["archives"] == []
+
+def check_outside_links_carried():
+    home, clone = repo_fixture("repo-outside-links")
+    (home / "user/shared.bin").write_bytes(b"shared by a hard link")
+    os.link(home / "user/shared.bin", clone / "linked.bin")
+    (clone / "elsewhere").symlink_to(home / "user/shared.bin")
+    before = snapshot(clone)
+    result = run(home, "offload")
+    assert [(item["path"], item.get("archive")) for item in result["offloaded"]] == [("clone", "tar")], result
+    assert restored(home, json.loads(clone.read_text()), "clone") == before
+    assert (home / "user/shared.bin").read_bytes() == b"shared by a hard link"
+
 # Collect the independent review regressions so a broken directory copy cannot
 # hide the single-file, retry, or partial-report result on the reviewed head.
 regressions = [("fake directory placement", lambda: check_placement("directory")),
@@ -590,7 +679,12 @@ regressions.extend([("verified existing payload is reused", check_verified_reuse
                     ("an offload pass removes only archive copies its journal names", check_pass_removes_only_journaled_archives),
                     ("a repository whose worktree record is empty stays", check_unreadable_worktree_record_kept),
                     ("a repository whose worktree record is missing stays", check_missing_worktree_record_kept),
-                    ("no new archive while an earlier copy is still on disk", check_refused_cleanup_blocks_new_archive)])
+                    ("no new archive while an earlier copy is still on disk", check_refused_cleanup_blocks_new_archive),
+                    ("stale or inconsistent worktree records keep the unit", check_unclean_worktree_records_kept),
+                    ("special and sparse files keep the unit", check_uncarried_metadata_kept),
+                    ("hard links and symlinks reaching outside the unit are archived exactly", check_outside_links_carried),
+                    ("a by-hand offload waits for the offload another run holds", check_offloads_take_one_lock),
+                    ("a reopened task's journaled archive copy is still removed", check_reopened_task_leftover_removed)])
 if sys.platform == "darwin":
     regressions.extend([("a repository archive keeps resource forks and other extended attributes",
                          check_archive_keeps_extended_attributes),
