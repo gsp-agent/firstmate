@@ -198,6 +198,21 @@ inside its unit (core.worktree; a separated git directory names none), a
 submodule checkout outside its superproject's unit, and any unit holding one of
 them at any depth stay in place, named with reasons and sizes in offload-plan's
 retained list.
+A dependency the unit itself records (worktree records, core.worktree,
+submodules) is honored that way, and so is a borrow the unit itself records:
+a unit whose objects/info/alternates, in any git directory at any depth,
+names a path outside the unit stays in place as "borrows objects from a
+repository outside the unit", because its archive would leave the borrowed
+objects out. A dependent outside the unit that records
+nothing inside it - a checkout elsewhere borrowing objects through git
+alternates (git clone --shared or --reference), or an outside symlink pointing
+in - is a known limit, not a retained reason: no record in the unit can name
+it, and Firstmate itself never creates one (no --shared, --reference or
+alternates use in bin/). It is not data loss: every byte is in the verified
+MINI-DATA archive behind an independent backup, and the pointer at the old
+path names it. To recover such a dependent, move the pointer aside and run
+tar --xattrs -xpf on the archive at that path; the outside checkout or link
+then works again.
 
 Live offload must run through the shell wrapper, which holds the spawn meta lock.
 It requires private config/task-data-offload.json, mode without group/other writes,
@@ -1391,6 +1406,26 @@ def offload_journaled_archives(data):
     return tasks
 
 
+BORROWS_KEPT = "borrows objects from a repository outside the unit"
+
+
+def offload_borrows_outside(path):
+    """Name a borrow from outside the unit that an alternates file in it records, or None."""
+    root = Path(path).resolve()
+    for directory, names, leaves in os.walk(path, followlinks=False):
+        objects = Path(directory)
+        if objects.name != "info" or objects.parent.name != "objects" or "alternates" not in leaves:
+            continue
+        for line in (objects / "alternates").read_text().splitlines():
+            value = line.strip()
+            if not value or value.startswith("#"):
+                continue
+            target = (Path(value) if Path(value).is_absolute() else objects.parent / value).resolve()
+            if target != root and root not in target.parents:
+                return BORROWS_KEPT
+    return None
+
+
 def offload_acl(path):
     """Return whether anything under path has a macOS extended ACL, which tar here drops."""
     if sys.platform != "darwin":
@@ -1451,7 +1486,8 @@ def offload_archive(source, archive):
     # manifests accept a single file, and tar keeps .git, symlinks and hard
     # links exactly. Extended attributes, macOS resource forks included, ride
     # in SCHILY.xattr headers that `tar --xattrs -x` restores.
-    reason = offload_unit_metadata(source) or (ACL_KEPT if offload_acl(source) else None)
+    reason = (offload_unit_metadata(source) or (ACL_KEPT if offload_acl(source) else None)
+              or offload_borrows_outside(source))
     if reason:
         raise ValueError(reason)
 
@@ -1595,8 +1631,9 @@ def offload_candidates(data, state, task_id, rows, locations, cache):
         summary = totals.get(unit, [0, 0, 0, False])
         if not reason:
             try:
-                reason = offload_unit_metadata(unit) or (ACL_KEPT if offload_acl(unit) else None)
-            except (OSError, subprocess.SubprocessError):
+                reason = (offload_unit_metadata(unit) or (ACL_KEPT if offload_acl(unit) else None)
+                          or offload_borrows_outside(unit))
+            except (OSError, UnicodeError, subprocess.SubprocessError):
                 reason = "file metadata or access control lists could not be read"
         if reason:
             kept.append({"task": task_id, "path": str(unit.relative_to(root)), "reason": reason,

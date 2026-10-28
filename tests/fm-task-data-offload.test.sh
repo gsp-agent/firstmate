@@ -658,6 +658,24 @@ def check_separated_git_dir_kept():
     assert snapshot(task / "repo.git") == before
     git("-C", home / "user/work", "status", "--short")
 
+def check_borrowing_repository_kept():
+    home = fixture("repo-borrows-outside")
+    task = home / "data/task-one"
+    (task / "report.md").write_text("Completed.\n")
+    seed = home / "user/seed"
+    git("init", "-q", "-b", "main", seed)
+    commit(seed, "shared.txt", "shared history\n")
+    clone = task / "clone"
+    git("clone", "-q", "--shared", seed, clone)
+    before = snapshot(clone)
+    plan = run(home, "offload-plan")
+    assert plan["moves"] == [], plan
+    assert [(item.get("path"), item["reason"]) for item in plan["retained"]] == \
+        [("clone", "borrows objects from a repository outside the unit")], plan
+    assert run(home, "offload")["offloaded"] == []
+    assert snapshot(clone) == before
+    git("-C", clone, "log", "-1", "--format=%s")
+
 def check_outside_links_carried():
     home, clone = repo_fixture("repo-outside-links")
     (home / "user/shared.bin").write_bytes(b"shared by a hard link")
@@ -700,7 +718,8 @@ regressions.extend([("verified existing payload is reused", check_verified_reuse
                     ("hard links and symlinks reaching outside the unit are archived exactly", check_outside_links_carried),
                     ("a by-hand offload waits for the offload another run holds", check_offloads_take_one_lock),
                     ("a reopened task's journaled archive copy is still removed", check_reopened_task_leftover_removed),
-                    ("a separated git directory stays while a bare one is archived", check_separated_git_dir_kept)])
+                    ("a separated git directory stays while a bare one is archived", check_separated_git_dir_kept),
+                    ("a repository borrowing objects from outside its unit stays", check_borrowing_repository_kept)])
 if sys.platform == "darwin":
     regressions.extend([("a repository archive keeps resource forks and other extended attributes",
                          check_archive_keeps_extended_attributes),
