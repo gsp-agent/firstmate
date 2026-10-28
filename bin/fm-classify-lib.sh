@@ -494,6 +494,70 @@ _fm_status_declared_wait_scan() {  # <resolve-verb> <legacy-captain-re>
   return 1
 }
 
+# The newest status event that states the task's state, or nothing. A note or
+# a resolved line is not a state, so the read walks back past it. A skipped
+# note ends every earlier pause, as any later event other than resolved does
+# for status_declared_wait_line. A needs-decision or blocked line that a later
+# resolved line closed, and a pause it retracted under that same phase-key
+# rule, are passed too, so skipping the resolved line never revives what it
+# ended, and either of those passed lines also ends every earlier pause.
+# Bounded like last_status_line: a tail window with no such event widens the
+# read to the whole file. bin/fm-crew-state.sh weighs this line against a done
+# or failed run and bin/fm-inactive-reconcile.sh keeps a pane open while it
+# says working.
+status_newest_state_line() {  # <status-file>
+  local f=$1 legacy_re
+  [ -f "$f" ] && [ -r "$f" ] || return 0
+  legacy_re="^[[:space:]]*(${FM_CAPTAIN_RE:-$FM_CLASSIFY_CAPTAIN_RE_DEFAULT})"
+  tail -n "$FM_CLASSIFY_EVENT_WINDOW_LINES" "$f" 2>/dev/null \
+    | _fm_status_state_scan "$legacy_re" \
+    || _fm_status_state_scan "$legacy_re" < "$f" || :
+}
+
+# Walk the status lines on stdin back from the newest event as
+# status_newest_state_line describes, and print the first state it reaches.
+# Returns 1 when none is reached, so a caller reading a bounded window knows to
+# widen it.
+_fm_status_state_scan() {  # <legacy-captain-re>
+  local legacy_re=$1 resolve paused line verb key closed=$'\n' retracted=$'\n' pause_ended='' i=0
+  local -a lines=()
+  resolve=${FM_CLASSIFY_RESOLVE_VERB:-$FM_CLASSIFY_RESOLVE_VERB_DEFAULT}
+  paused=${FM_CLASSIFY_PAUSED_VERB:-$FM_CLASSIFY_PAUSED_VERB_DEFAULT}
+  while IFS= read -r line || [ -n "$line" ]; do
+    lines[i]=$line
+    i=$((i + 1))
+  done
+  while [ "$i" -gt 0 ]; do
+    i=$((i - 1))
+    line=${lines[i]}
+    case "$line" in *[![:space:]]*) ;; *) continue ;; esac
+    _fm_status_line_is_event "$line" "$legacy_re" || continue
+    status_line_verb "$line" verb
+    case "$verb" in
+      note) pause_ended=1; continue ;;
+      "$resolve")
+        _fm_decision_key "$line" default key && closed="$closed$key"$'\n'
+        _fm_decision_key "$line" "$_FM_CLASSIFY_KEYLESS_PHASE" key || key=
+        retracted="$retracted$key"$'\n'
+        continue
+        ;;
+      needs-decision|blocked)
+        if _fm_decision_key "$line" default key; then
+          case "$closed" in *$'\n'"$key"$'\n'*) pause_ended=1; continue ;; esac
+        fi
+        ;;
+      "$paused")
+        [ -z "$pause_ended" ] || continue
+        _fm_decision_key "$line" "$_FM_CLASSIFY_KEYLESS_PHASE" key || key=
+        case "$retracted" in *$'\n'"$key"$'\n'*) pause_ended=1; continue ;; esac
+        ;;
+    esac
+    printf '%s\n' "$line"
+    return 0
+  done
+  return 1
+}
+
 # A condition-aware declared wait: a `paused:` line may say WHEN it expects to
 # clear with `until <YYYY-MM-DDTHH:MM[:SS]Z>` anywhere in its text (UTC only, so
 # no local-zone guess is ever recorded). Prints that time as epoch seconds so a
@@ -520,7 +584,10 @@ status_paused_until() {  # <status-line> -> epoch on stdout
 # their grammar. Missing, malformed, or duplicate time fields mean UNKNOWN time;
 # never infer emission time from file mtime, a wake, or observation time. Relays
 # preserve source tags and leave legacy source events unstamped. Time describes
-# event history only and must never decide current state or decision closure.
+# event history and must never decide decision closure. It decides current
+# state in one place only: bin/fm-crew-state.sh reports a done or failed
+# run's task from status_newest_state_line when that line is stamped after the
+# run record (that reader's header, step 2).
 # This parser owns that grammar; every reader below is a thin adapter over it,
 # so no second spelling of "well-formed" can drift against this one.
 # Internals carry a reserved prefix: bash locals are dynamically scoped, so a

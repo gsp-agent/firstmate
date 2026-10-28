@@ -55,7 +55,13 @@
 # captain-held. In a secondmate home a child whose ledger already ends in a
 # terminal done or failed line belongs to the ledger-first delivery path above,
 # but remains eligible for pane closure. Terminal outcomes use fm-crew-state.sh
-# as the sole current-state source; context-limit pauses use the shared
+# as the sole current-state source. This scan's own rule: while the task's
+# newest state line (status_newest_state_line in bin/fm-classify-lib.sh) says
+# working, whatever that line's stamp, no pane closes and a done answer
+# records no outcome. A failed answer is still recorded and delivered as
+# below; only its pane stays open. A worker often says it is continuing before
+# the run record's last write.
+# Context-limit pauses use the shared
 # status_is_context_paused predicate in bin/fm-classify-lib.sh directly.
 # Only a done or failed state is suspicious enough to create a durable terminal
 # outcome record or wake the supervisor.
@@ -572,6 +578,7 @@ close_inactive_child_pane() {
 close_terminal_child_pane() { # <id> <meta> <fingerprint>
   local id=$1 meta=$2 fingerprint=$3 record suffix kind mode last state spawn_gen
   [ "$(meta_field "$meta" backend)" = herdr ] || return 0
+  [ "$(status_line_verb "$(status_newest_state_line "$STATE/$id.status")")" != working ] || return 0
   spawn_gen=$(meta_field "$meta" spawn_gen)
   valid_id "$spawn_gen" || return 0
   record=
@@ -651,6 +658,8 @@ reconcile_direct_child_locked() { # <id> <meta> <secondmate-id-or-empty> <timeou
     'state: failed '*) state='failed' ;;
     *) return 0 ;;
   esac
+  [ "$state" = failed ] \
+    || [ "$(status_line_verb "$(status_newest_state_line "$status")")" != working ] || return 0
   pr=$(pr_for_task "$meta")
   incarnation=$(meta_incarnation "$meta")
   if [ "$ledger_rc" -eq 0 ]; then

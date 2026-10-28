@@ -92,6 +92,45 @@ fm_nm_state_db() {  # <worktree>
   printf '%s/state.sqlite\n' "$root"
 }
 
+# Unix seconds of run $2's updated_at in the state database fm_nm_state_db
+# locates for worktree $1. That column is the run record's last word, so a
+# status line stamped after it is newer evidence than the outcome a terminal
+# read would otherwise trust. Empty when the database, the row, or the value
+# is missing or not a canonical epoch. Read-only: a missing database is never
+# created. The read is bounded at 2 seconds.
+fm_nm_run_updated_epoch() {  # <worktree> <run-id>
+  local db id epoch
+  id=${2:-}
+  case "$id" in ''|*[!A-Za-z0-9_-]*) return 0 ;; esac
+  db=$(fm_nm_state_db "$1")
+  [ -f "$db" ] && [ ! -L "$db" ] || return 0
+  epoch=$(fm_nm_bounded "$1" 2 python3 -I - "$db" "$id" 2>/dev/null <<'PY'
+import sqlite3
+import sys
+from pathlib import Path
+
+database, run_id = sys.argv[1:]
+try:
+    connection = sqlite3.connect(Path(database).as_uri() + "?mode=ro", uri=True, timeout=1)
+    try:
+        row = connection.execute(
+            "SELECT updated_at FROM runs WHERE id = ?",
+            (run_id,),
+        ).fetchone()
+    finally:
+        connection.close()
+except (OSError, sqlite3.Error, ValueError):
+    raise SystemExit(0)
+if not row or isinstance(row[0], bool) or not isinstance(row[0], int) or row[0] <= 0:
+    raise SystemExit(0)
+print(row[0])
+PY
+) || return 0
+  case "$epoch" in ''|*[!0-9]*|0*) return 0 ;; esac
+  [ "${#epoch}" -le 12 ] || return 0
+  printf '%s' "$epoch"
+}
+
 # Scalar value of a TOON key in captured `axi status` output $1.
 fm_nm_field() {  # <toon-output> <key>
   printf '%s\n' "$1" | sed -n "s/^[[:space:]]*$2:[[:space:]]*\(.*\)/\1/p" | head -1

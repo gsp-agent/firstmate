@@ -1,0 +1,2 @@
+# Failing-first: tests/fm-crew-state.test.sh test_newer_working_line_outranks_merged_run answered done from the merged run while a newer working line existed, and tests/fm-inactive-reconcile.test.sh test_newer_working_line_survives_inactive_sweep closed that pane; both pass on this head.
+pr: 182
