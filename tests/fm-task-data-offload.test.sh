@@ -348,6 +348,31 @@ def unproven_fixture(variant, name=""):
     elif variant == "stash":
         (clone / "work.txt").write_text("stashed edit\n")
         git("-C", clone, "stash", "-q")
+    elif variant == "dropped-stash":
+        (clone / "work.txt").write_text("stashed then dropped\n")
+        git("-C", clone, "stash", "-q")
+        git("-C", clone, "stash", "drop", "-q")
+    elif variant == "unpushed-tag":
+        git("-C", clone, "tag", "-a", "v1", "-m", "release notes kept only here")
+    elif variant == "unfinished-rebase":
+        commit(clone, "more.txt", "pushed second commit\n")
+        git("-C", clone, "push", "-q", "origin", "main")
+        try:
+            git("-C", clone, "rebase", "-q", "--exec", "false", "HEAD~1")
+        except subprocess.CalledProcessError:
+            pass
+        assert (clone / ".git/rebase-merge").is_dir()
+    elif variant == "depopulated-submodule":
+        seed, sub = home / "user/sub-seed", home / "user/sub.git"
+        git("init", "-q", "--bare", "-b", "main", sub)
+        git("init", "-q", "-b", "main", seed)
+        commit(seed, "sub.txt", "pushed submodule work\n")
+        git("-C", seed, "push", "-q", sub, "main")
+        git("-C", clone, "-c", "protocol.file.allow=always", "submodule", "add", "-q", sub, "vendor/x")
+        git("-C", clone, "commit", "-q", "-m", "add submodule")
+        git("-C", clone, "push", "-q", "origin", "main")
+        commit(clone / "vendor/x", "sub.txt", "unpushed submodule work\n")
+        git("-C", clone, "submodule", "deinit", "-q", "-f", "vendor/x")
     elif variant in ("skip-worktree", "assume-unchanged"):
         git("-C", clone, "update-index", "--" + variant, "work.txt")
         (clone / "work.txt").write_text("edit status cannot see\n")
@@ -539,7 +564,8 @@ for kind in ("directory", "file"):
 regressions.extend([("verified existing payload is reused", check_verified_reuse),
                     ("partial round reports completed moves", check_partial_report),
                     ("a repository proven on its remote is removed with a pointer", check_proven_removed)])
-for variant in ("unpushed", "dirty", "untracked", "ignored", "stash", "skip-worktree", "assume-unchanged",
+for variant in ("unpushed", "dirty", "untracked", "ignored", "stash", "dropped-stash", "unpushed-tag",
+                "unfinished-rebase", "depopulated-submodule", "skip-worktree", "assume-unchanged",
                 "remote-inside", "gate-only", "unreadable"):
     regressions.append(("a repository with " + variant + " work is offloaded whole and restores exactly",
                         lambda variant=variant: check_unproven_archived(variant)))

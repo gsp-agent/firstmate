@@ -169,14 +169,17 @@ folder below the task holding them all, with any other repository inside it.
 A unit whose every commit and file is proven to survive elsewhere goes to Trash
 with nothing copied, and a pointer naming its remotes and HEAD replaces it.
 Proof needs the unit to hold its git directory, every work tree of it and
-nothing else, with nothing at the git directory's top level but git's own
-layout and work trees; each work tree has a clean status with no untracked or
-ignored file, no assume-unchanged entry, no present skip-worktree file and no
-nested repository; no Git LFS objects; and every commit any ref, reflog or
-worktree HEAD reaches is reachable from a tip a network or forge remote
-advertises now (git ls-remote, no fetch). Only an https://, ssh:// or
-user@host: URL, as configured rather than as an insteadOf rewrite, is such a
-remote; a local path or file:// remote, such as the no-mistakes gate, never is.
+nothing else, with nothing at the top of the git directory or a worktree's
+admin directory but git's own layout and work trees: no submodule repository,
+no unfinished merge, rebase, am, cherry-pick, revert or bisect, no stray file.
+Each work tree has a clean status with no untracked or ignored file, no
+assume-unchanged entry, no present skip-worktree file and no nested repository;
+there are no Git LFS objects; and every object the object store holds (and
+its alternates), reachable from a ref or not, is reachable from a tip a
+network or forge remote advertises now (git ls-remote, no fetch). Only an
+https://, ssh:// or user@host: URL, as configured rather than as an insteadOf
+rewrite, is such a remote; a local path or file:// remote, such as the
+no-mistakes gate, never is.
 Offload-plan never runs the proof.
 Any other unit is offloaded whole as one tar archive under the copy, checksum
 and independent-backup rule below; its pointer adds archive "tar" and why the
@@ -1262,10 +1265,9 @@ def offload_git_env():
 # Only a network or forge remote is elsewhere. A local path or file:// remote,
 # such as the no-mistakes gate, shares this disk.
 NETWORK_REMOTE = re.compile(r"(?:ssh|https)://[^/]|[^/@:\s]+@[^/:\s]+:")
-GIT_LAYOUT = re.compile(r"(?:[A-Z_]*_)?HEAD|[A-Z_]+MSG|BISECT_[A-Z_]+|AUTO_MERGE|MERGE_MODE|MERGE_RR|EDIT_DESCRIPTION"
-                        r"|config|config\.worktree|description|index|packed-refs|shallow|gitk\.cache|objects|refs|logs"
-                        r"|hooks|info|branches|remotes|worktrees|modules|lfs|rr-cache|reftable|sequencer|rebase-merge"
-                        r"|rebase-apply")
+GIT_LAYOUT = re.compile(r"HEAD|ORIG_HEAD|FETCH_HEAD|AUTO_MERGE|COMMIT_EDITMSG|config|config\.worktree|description"
+                        r"|index|packed-refs|shallow|gitk\.cache|objects|refs|logs|hooks|info|branches|remotes"
+                        r"|worktrees|lfs|rr-cache|reftable|commondir|gitdir|locked")
 
 
 def offload_repository_proof(unit):
@@ -1302,8 +1304,10 @@ def offload_repository_proof(unit):
 
     if not inside(common) or not all(inside(tree) for tree in trees):
         raise ValueError("its git directory or another of its work trees is outside it")
-    if any(not GIT_LAYOUT.fullmatch(entry.name) and entry not in trees for entry in common.iterdir()):
-        raise ValueError("its git directory holds files outside git's own layout")
+    admins = [common, *(path for path in (common / "worktrees").glob("*") if path.is_dir() and not path.is_symlink())]
+    if any(not GIT_LAYOUT.fullmatch(entry.name) and entry not in trees for admin in admins for entry in admin.iterdir()):
+        raise ValueError("its git directory holds a submodule repository, an unfinished operation "
+                         "or files outside git's own layout")
     for directory, names, leaves in os.walk(unit, followlinks=False):
         path = Path(directory)
         if path in trees:
@@ -1348,12 +1352,14 @@ def offload_repository_proof(unit):
     checked = git(repository, "cat-file", "--batch-check=%(objectname) %(objecttype)",
                   stdin="".join(sha + "\n" for sha in sorted(advertised)))
     present = [line.split()[0] for line in checked.splitlines() if line.split()[-1] in ("commit", "tag")]
-    # Every commit any ref, reflog or worktree HEAD reaches must be reachable
-    # from a tip a network or forge remote advertises right now.
-    unproven = git(repository, "rev-list", "--all", "--reflog", "--stdin",
-                   stdin="".join(f"^{sha}\n" for sha in present)).split()
+    # Every object the store holds, reachable from a ref or not, must be
+    # reachable from a tip a network or forge remote advertises right now.
+    covered = set(git(repository, "rev-list", "--objects", "--no-object-names", "--missing=allow-any", "--stdin",
+                      stdin="".join(sha + "\n" for sha in present)).split())
+    held = git(repository, "cat-file", "--batch-all-objects", "--batch-check=%(objectname)", "--unordered").split()
+    unproven = [sha for sha in held if sha not in covered]
     if unproven:
-        raise ValueError(f"{len(unproven)} commits are on no network or forge remote")
+        raise ValueError(f"{len(unproven)} objects are on no network or forge remote")
     head = subprocess.run(["git", *repository, "rev-parse", "--verify", "-q", "HEAD"], cwd=unit, env=env,
                           capture_output=True, text=True, timeout=600).stdout.strip()
     return {"remotes": remotes, "head": head or None}
