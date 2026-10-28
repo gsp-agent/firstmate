@@ -1,0 +1,71 @@
+fm-lab-working-proof-47178-11701
+{"id":"cli:workspace:create","result":{"root_pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M60X5M30YBMSCHE5DF1QX64H","focused":true,"foreground_cwd":"/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M60X5M30YBMSCHE5DF1QX64H","pane_id":"w1:p1","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t1","terminal_id":"term_65ee35034222d1","workspace_id":"w1"},"tab":{"agent_status":"unknown","focused":true,"label":"1","number":1,"pane_count":1,"tab_id":"w1:t1","workspace_id":"w1"},"type":"workspace_created","workspace":{"active_tab_id":"w1:t1","agent_status":"unknown","focused":true,"label":"post-merge-proof","number":1,"pane_count":1,"tab_count":1,"workspace_id":"w1"}}}
+{"id":"cli:tab:create","result":{"root_pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M60X5M30YBMSCHE5DF1QX64H/.test-local/project","focused":false,"foreground_cwd":"/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M60X5M30YBMSCHE5DF1QX64H/.test-local/project","pane_id":"w1:p2","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t2","terminal_id":"term_65ee35036804b2","workspace_id":"w1"},"tab":{"agent_status":"unknown","focused":false,"label":"continuing","number":2,"pane_count":1,"tab_id":"w1:t2","workspace_id":"w1"},"type":"tab_created"}}
+g1793180257.47911.409
+BASELINE: same run clock and exact incident continuation
+state: done · source: run-step · run passed: PR state unknown (forge read skipped) · run: 01M5Z0TXN5172BSC901X18AA1C
+TARGET: incident continuation
+state: working · source: status-log · #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side
+SWEEP RECEIPT: epoch=1793180272
+cursor=
+
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M60X5M30YBMSCHE5DF1QX64H/.test-local/project","focused":false,"foreground_cwd":"/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M60X5M30YBMSCHE5DF1QX64H/.test-local/project","pane_id":"w1:p2","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t2","terminal_id":"term_65ee35036804b2","workspace_id":"w1"},"type":"pane_info"}}
+PASS: post-merge continuation survives completed sweep with no terminal outcome
+CASE: older working
+state: done · source: run-step · run passed: PR state unknown (forge read skipped) · run: 01M5Z0TXN5172BSC901X18AA1C
+SWEEP RECEIPT: epoch=1793180279
+cursor=
+
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M60X5M30YBMSCHE5DF1QX64H/.test-local/project","focused":false,"foreground_cwd":"/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M60X5M30YBMSCHE5DF1QX64H/.test-local/project","pane_id":"w1:p2","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t2","terminal_id":"term_65ee35036804b2","workspace_id":"w1"},"type":"pane_info"}}
+CASE: unstamped working
+state: done · source: run-step · run passed: PR state unknown (forge read skipped) · run: 01M5Z0TXN5172BSC901X18AA1C
+SWEEP RECEIPT: epoch=1793180288
+cursor=
+
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M60X5M30YBMSCHE5DF1QX64H/.test-local/project","focused":false,"foreground_cwd":"/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M60X5M30YBMSCHE5DF1QX64H/.test-local/project","pane_id":"w1:p2","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t2","terminal_id":"term_65ee35036804b2","workspace_id":"w1"},"type":"pane_info"}}
+CASE: note and resolved after working
+state: working · source: status-log · #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side
+SWEEP RECEIPT: epoch=1793180295
+cursor=
+
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M60X5M30YBMSCHE5DF1QX64H/.test-local/project","focused":false,"foreground_cwd":"/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M60X5M30YBMSCHE5DF1QX64H/.test-local/project","pane_id":"w1:p2","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t2","terminal_id":"term_65ee35036804b2","workspace_id":"w1"},"type":"pane_info"}}
+CASE: retracted pause
+state: working · source: status-log · #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side
+SWEEP RECEIPT: epoch=1793180304
+cursor=
+
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M60X5M30YBMSCHE5DF1QX64H/.test-local/project","focused":false,"foreground_cwd":"/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M60X5M30YBMSCHE5DF1QX64H/.test-local/project","pane_id":"w1:p2","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t2","terminal_id":"term_65ee35036804b2","workspace_id":"w1"},"type":"pane_info"}}
+CASE: keyless retract
+state: working · source: status-log · #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side
+SWEEP RECEIPT: epoch=1793180311
+cursor=
+
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M60X5M30YBMSCHE5DF1QX64H/.test-local/project","focused":false,"foreground_cwd":"/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M60X5M30YBMSCHE5DF1QX64H/.test-local/project","pane_id":"w1:p2","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t2","terminal_id":"term_65ee35036804b2","workspace_id":"w1"},"type":"pane_info"}}
+CASE: default key not keyless
+state: paused · source: status-log · waiting
+CASE: closed decision ends earlier pause
+state: done · source: run-step · run passed: PR state unknown (forge read skipped) · run: 01M5Z0TXN5172BSC901X18AA1C
+PASS: status clock and resolved-event boundaries
+1793124079
+PASS: clock reader ignores client Python module
+state: failed · source: run-step · run failed · run: 01M5Z0TXN5172BSC901X18AA1C
+actionable: inactive terminal outcome awaiting captain presentation: child=child state=failed pr=https://github.com/o/r/pull/178
+SWEEP RECEIPT: epoch=1793180325
+cursor=
+
+{"id":"cli:pane:get","result":{"pane":{"agent_status":"unknown","cwd":"/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M60X5M30YBMSCHE5DF1QX64H/.test-local/project","focused":false,"foreground_cwd":"/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M60X5M30YBMSCHE5DF1QX64H/.test-local/project","pane_id":"w1:p2","revision":0,"scroll":{"max_offset_from_bottom":0,"offset_from_bottom":0,"viewport_rows":40},"tab_id":"w1:t2","terminal_id":"term_65ee35036804b2","workspace_id":"w1"},"type":"pane_info"}}
+FAILED OUTCOME RECEIPT: schema=fm-terminal-outcome.v1
+fingerprint=8a8d5fa212d95e9b62349d1c9541a7e4
+task_id=child
+incarnation=s1793109158.39977.7604
+state=failed
+outcome_key=inactive-outcome-main-child-failed
+origin=direct
+pr=https://github.com/o/r/pull/178
+created_epoch=1793180324
+notice_emitted=0
+status_head=d438cee0f5a26e530251c30963a92def
+phase=presentation
+
+PASS: failure is recorded and queued while the working pane stays open
+LIVE VALIDATION COMPLETE

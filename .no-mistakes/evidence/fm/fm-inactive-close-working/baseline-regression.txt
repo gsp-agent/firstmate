@@ -1,0 +1,3 @@
+not ok - a working line newer than the merged run is the current state: state: done · source: run-step · run passed: PR merged (missing: 'state: working')
+--- output ---
+state: done · source: run-step · run passed: PR merged

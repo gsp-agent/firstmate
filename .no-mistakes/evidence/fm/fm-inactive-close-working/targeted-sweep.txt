@@ -1,0 +1,9 @@
+ok - a newer working line survives the inactive sweep and a finished task still closes
+ok - an unterminated continuation line does not withhold a proven child outcome
+ok - later status prose does not change the inactive terminal receipt identity
+ok - remote parent-replies mirror input is durable and idempotent
+actionable: inactive terminal outcome needs parent report: child=child state=failed (missing or unreadable parent binding .fm-secondmate-parent)
+ok - notice recovery remains idempotent across queue acknowledgement
+actionable: inactive terminal outcome awaiting captain presentation: child=child state=done pr=https://example.test/owner/repo/pull/1
+actionable: inactive terminal outcome awaiting captain presentation: child=child state=failed pr=https://example.test/owner/repo/pull/1
+ok - terminal herdr panes close after persistence and retain current state through presentation
