@@ -4999,8 +4999,16 @@ if [ "$RELAUNCH" -eq 1 ]; then
     crew_bound=$(fm_backend_herdr_pane_agent_session_ref "$HERDR_SES" "$HERDR_PANE_ID") || crew_bound=
     case $crew_bound in
     codex$'\t'*)
-      if [ "$(fm_backend_herdr_pane_process_state "$HERDR_SES" "$HERDR_PANE_ID")" != shell ] ||
-        ! fm_backend_herdr_explicit_close_pane_confirmed "$HERDR_SES" "$HERDR_PANE_ID"; then
+      if [ "$(fm_backend_herdr_pane_process_state "$HERDR_SES" "$HERDR_PANE_ID")" != shell ]; then
+        echo "error: Herdr pane $HERDR_PANE_ID still holds its retired Codex session and could not be replaced; refusing to launch $HARNESS for $ID" >&2
+        exit 1
+      fi
+      # Close through the session-locked, focus-safe kill: a bare pane close
+      # here would be unlocked, and on Herdr without the focus fixes it can
+      # move the operator's focus with nothing restoring it. The kill's own
+      # return proves nothing, so the pane must read back gone.
+      fm_backend_kill herdr "$RELAUNCH_TARGET" >/dev/null 2>&1 || true
+      if [ "$(fm_backend_herdr_pane_presence_state "$HERDR_SES" "$HERDR_PANE_ID")" != dead ]; then
         echo "error: Herdr pane $HERDR_PANE_ID still holds its retired Codex session and could not be replaced; refusing to launch $HARNESS for $ID" >&2
         exit 1
       fi
@@ -7472,7 +7480,7 @@ fi
 # another harness replaces a stopped pane still bound to Codex before launch
 # and reads the new pane back afterward: a surviving Codex binding would keep
 # the new harness's own session report out.
-if [ "$BACKEND" = herdr ] && [ "$RELAUNCH" -eq 1 ] && [ "$HARNESS" != codex ]; then
+if [ "$BACKEND" = herdr ] && [ "$RELAUNCH" -eq 1 ] && [ "$HARNESS" != codex ] && [ "$KIND" != secondmate ]; then
   crew_bound=$(fm_backend_herdr_pane_agent_session_ref "$HERDR_SES" "$HERDR_PANE_ID") || crew_bound=
   case $crew_bound in
   codex$'\t'*)
