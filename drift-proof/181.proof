@@ -1,2 +1,2 @@
-# Failing-first: tests/fm-task-data-offload.test.sh whole-archive repository offload (pushed clone, lane, outside-parent and other-task worktree units), unreachable-mini, TERM lock release, sweep offload pass, and trash-never-from-PATH checks; all fail on the base and pass here.
+# Failing-first: tests/fm-task-data-offload.test.sh whole-archive repository offload (pushed clone, lane, outside-parent and other-task worktree units), outside-parent detached worktree kept, unreachable-mini, sweep offload pass, and trash-never-from-PATH checks fail on the base and pass here; the TERM lock-release check is a regression guard that passes on both.
 pr: 181

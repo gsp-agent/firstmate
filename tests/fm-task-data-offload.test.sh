@@ -399,6 +399,22 @@ def check_outside_parent_worktree_archived():
     assert snapshot(main) == parent, "offload edited the parent repository"
     assert "prunable" in git("-C", main, "worktree", "list", "--porcelain").split()
 
+def check_outside_parent_detached_worktree_kept():
+    home = fixture("repo-outside-parent-detached")
+    (home / "data/task-one/report.md").write_text("Completed.\n")
+    main = home / "user/main"
+    git("init", "-q", "-b", "main", main)
+    commit(main, "work.txt", "parent work\n")
+    worktree = home / "data/task-one/wt"
+    git("-C", main, "worktree", "add", "-q", "--detach", worktree)
+    commit(worktree, "detached.txt", "a commit only this worktree's HEAD reaches\n")
+    before, parent = snapshot(worktree), snapshot(main)
+    plan = run(home, "offload-plan")
+    assert plan["moves"] == [] and [(item.get("path"), item["reason"]) for item in plan["retained"]] == [
+        ("wt", "its HEAD, reflog or worktree refs reach commits no branch or tag of its repository outside DATA has")], plan
+    assert run(home, "offload")["offloaded"] == []
+    assert snapshot(worktree) == before and snapshot(main) == parent and not (home / "calls").exists()
+
 def check_other_task_worktree_kept():
     home = fixture("repo-other-task-worktree")
     (home / "data/task-one/report.md").write_text("Completed.\n")
@@ -457,6 +473,8 @@ regressions.extend([("verified existing payload is reused", check_verified_reuse
                     ("an unreachable mini writes no archive and the next pass offloads", check_unreachable_mini_writes_no_archive),
                     ("a repository and its lanes in the task are offloaded whole as one folder", check_lanes_join_their_repository),
                     ("a worktree of a repository outside DATA is offloaded whole as files", check_outside_parent_worktree_archived),
+                    ("a worktree of a repository outside DATA on a commit no branch has stays",
+                     check_outside_parent_detached_worktree_kept),
                     ("a worktree of a repository in another task stays", check_other_task_worktree_kept),
                     ("an offload stopped with TERM releases the task meta lock", check_interrupted_offload_releases_lock),
                     ("offload never runs a trash from PATH or feeds it stdin", check_trash_never_empties),
