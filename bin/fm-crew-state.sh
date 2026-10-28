@@ -126,13 +126,15 @@
 #      FAILED record whose daemon an explicit probe proves down reads unknown,
 #      never failed: an instrument failure must not read as work failure
 #      (nm_daemon_probe_down).
-#      A terminal done or failed run yields to the task's newest status line
-#      when that line's [at=] epoch is strictly newer than the run record's
-#      updated_at (fm_nm_run_updated_epoch in bin/fm-nm-run-lib.sh) and the
-#      line's verb maps to a current state. The run stays authoritative when
-#      the line has no stamp, the stamp is not newer, the run clock cannot be
-#      read, or the line is not a state. A newer done line does not replace a
-#      run that already passed, so the unpushed-head gate cannot reopen it.
+#      A terminal done or failed run yields to the task's newest state line
+#      (status_newest_state_line in bin/fm-classify-lib.sh, which reads past
+#      note and resolved events) when that line's [at=] epoch is strictly
+#      newer than the run record's updated_at (fm_nm_run_updated_epoch in
+#      bin/fm-nm-run-lib.sh) and the line's verb maps to a current state. The
+#      run stays authoritative when the line has no stamp, the stamp is not
+#      newer, the run clock cannot be read, or the line is not a state. A
+#      newer done line does not replace a run that already passed, so the
+#      unpushed-head gate cannot reopen it.
 #   3. Reconcile the status log through fm-classify-lib.sh's status_current_line:
 #      open decisions survive unrelated events and continuation prose cannot
 #      hide a declaration. Ship/scout terminal declarations supersede stale log
@@ -301,19 +303,19 @@ map_log_state() {  # <line> <out-var>
   printf -v "$2" '%s' "$mapped_state"
 }
 
-# Header step 2 owns when a newest status line replaces a terminal run.
+# Header step 2 owns when the newest state line replaces a terminal run.
 # emit exits, so a line that wins never falls through to the run-step answer.
 emit_status_newer_than_run() {
   local run_id outcome newest newest_epoch newest_state newest_note
   [ "${RUN_SOURCE:-}" = full ] || return 0
   case "${RUN_STATE:-}" in done|failed) ;; *) return 0 ;; esac
-  newest=$(last_status_line "$LOG")
+  newest=$(status_newest_state_line "$LOG")
   [ -n "$newest" ] || return 0
   newest_epoch=$(status_line_at_epoch "$newest") || return 0
   run_id=${SELECTED_RUN_ID:-}
   [ -n "$run_id" ] || run_id=$(strip_quotes "$(nm_field id)")
   [ -n "$run_id" ] || return 0
-  outcome=$(fm_nm_run_updated_epoch "$WT" "$run_id" 2) || return 0
+  outcome=$(fm_nm_run_updated_epoch "$WT" "$run_id") || return 0
   case "$outcome" in ''|*[!0-9]*) return 0 ;; esac
   [ "$newest_epoch" -gt "$outcome" ] || return 0
   map_log_state "$newest" newest_state
@@ -1287,7 +1289,7 @@ if [ "$HAVE_RUN" = 1 ]; then
     fi
   fi
 
-  # A terminal run is the last word only until the newest status line is
+  # A terminal run is the last word only until the newest state line is
   # newer than that run record. The header owns the comparison.
   emit_status_newer_than_run
 

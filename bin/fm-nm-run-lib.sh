@@ -97,16 +97,14 @@ fm_nm_state_db() {  # <worktree>
 # status line stamped after it is newer evidence than the outcome a terminal
 # read would otherwise trust. Empty when the database, the row, or the value
 # is missing or not a canonical epoch. Read-only: a missing database is never
-# created. $3 is the bound in seconds (default 2).
-fm_nm_run_updated_epoch() {  # <worktree> <run-id> [timeout-secs]
-  local db id timeout epoch
+# created. The read is bounded at 2 seconds.
+fm_nm_run_updated_epoch() {  # <worktree> <run-id>
+  local db id epoch
   id=${2:-}
   case "$id" in ''|*[!A-Za-z0-9_-]*) return 0 ;; esac
   db=$(fm_nm_state_db "$1")
   [ -f "$db" ] && [ ! -L "$db" ] || return 0
-  timeout=${3:-2}
-  case "$timeout" in ''|*[!0-9]*|0) timeout=2 ;; esac
-  epoch=$(fm_nm_bounded "$1" "$timeout" python3 - "$db" "$id" 2>/dev/null <<'PY'
+  epoch=$(fm_nm_bounded "$1" 2 python3 - "$db" "$id" 2>/dev/null <<'PY'
 import sqlite3
 import sys
 from pathlib import Path

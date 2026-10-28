@@ -777,7 +777,7 @@ SH
 # fallback still reports the attributed failure upward.
 test_secondmate_unterminated_prose_reports_run_outcome() {
   make_world unterminated-prose; bind_secondmate local
-  write_child "$MATE" child 'working: compiling'
+  write_child "$MATE" child 'note: compiling'
   printf 'Still going' >> "$MATE/state/child.status"
   age "$MATE/state/child.status"
   FM_FAKE_CREW_STATE='failed' run_reconcile "$MATE" --startup
@@ -798,14 +798,14 @@ test_secondmate_unterminated_prose_reports_run_outcome() {
 # child's last status line.
 test_inactive_receipt_ignores_later_status_prose() {
   make_world prose-after-outcome; bind_secondmate local
-  write_child "$MATE" child 'working: quiet since'
+  write_child "$MATE" child 'note: quiet since'
   FM_FAKE_CREW_STATE='failed' run_reconcile "$MATE" --startup
   [ "$(grep -c 'inactive-outcome-mate-child-failed' "$MAIN/state/mate.status")" = 1 ] \
     || fail "inactive fallback did not publish exactly once"
-  printf 'working: tidying up after the run\n' >> "$MATE/state/child.status"
+  printf 'note: tidying up after the run\n' >> "$MATE/state/child.status"
   age "$MATE/state/child.status"
   FM_FAKE_CREW_STATE='failed' run_reconcile "$MATE" --startup
-  printf 'working: still tidying\n' >> "$MATE/state/child.status"
+  printf 'note: still tidying\n' >> "$MATE/state/child.status"
   age "$MATE/state/child.status"
   FM_FAKE_CREW_STATE='failed' run_reconcile "$MATE" --startup
   [ "$(wc -l < "$MAIN/state/mate.status" | tr -d ' ')" = 1 ] \
@@ -957,7 +957,7 @@ SH
 # same-state completion remains independently deliverable.
 test_terminal_line_after_inactive_delivery_is_not_reported_twice() {
   make_world inactive-ledger-race; bind_secondmate local
-  write_child "$MATE" child 'working: finishing now'
+  write_child "$MATE" child 'note: finishing now'
   FM_FAKE_CREW_STATE='done' run_reconcile "$MATE" --startup
   [ "$(grep -c 'inactive-outcome-mate-child-done' "$MAIN/state/mate.status")" = 1 ] \
     || fail "inactive fallback did not publish exactly once"
@@ -982,7 +982,7 @@ test_terminal_line_after_inactive_delivery_is_not_reported_twice() {
 # not a late ledger rendering of the inactive fallback.
 test_progress_after_inactive_delivery_starts_a_new_event() {
   make_world inactive-recovery; bind_secondmate local
-  write_child "$MATE" child 'working: first attempt finishing'
+  write_child "$MATE" child 'note: first attempt finishing'
   FM_FAKE_CREW_STATE='done' run_reconcile "$MATE" --startup
   printf 'working: retry started\ndone: retry completed\n' >> "$MATE/state/child.status"
   FM_FAKE_CREW_STATE='done' run_reconcile "$MATE"
@@ -1180,7 +1180,7 @@ test_invalid_secondmate_marker_blocks_routing() {
 
 # A remote child route writes the existing mirror input once even across restarts.
 test_remote_parent_reply_is_idempotent() {
-  make_world remote; bind_secondmate remote; write_child "$MATE" child 'working: quiet since'
+  make_world remote; bind_secondmate remote; write_child "$MATE" child 'note: quiet since'
   FM_FAKE_CREW_STATE='done' run_reconcile "$MATE" --startup
   FM_FAKE_CREW_STATE='done' run_reconcile "$MATE" --startup
   [ "$(grep -c 'inactive-outcome-mate-child-done' "$MATE/state/parent-replies.status")" = 1 ] \
@@ -1193,10 +1193,10 @@ test_remote_parent_reply_is_idempotent() {
 # when its terminal state and status text match the retired worker exactly.
 test_reused_task_id_reports_each_incarnation() {
   make_world reused-id; bind_secondmate remote
-  write_child "$MATE" child 'working: quiet since' spawn-one
+  write_child "$MATE" child 'note: quiet since' spawn-one
   FM_FAKE_CREW_STATE='failed' run_reconcile "$MATE" --startup
   rm -f "$MATE/state/child.meta" "$MATE/state/child.status" "$MATE/state/child.turn-ended"
-  write_child "$MATE" child 'working: quiet since' spawn-two
+  write_child "$MATE" child 'note: quiet since' spawn-two
   FM_FAKE_CREW_STATE='failed' run_reconcile "$MATE" --startup
   [ "$(outcome_count "$MATE" reported)" = 2 ] \
     || fail "reused task id collided with the retired incarnation receipt"
@@ -1210,7 +1210,7 @@ test_reused_task_id_reports_each_incarnation() {
 test_legacy_metadata_rewrite_keeps_receipt_identity() {
   local meta tmp
   make_world legacy-rewrite; bind_secondmate remote
-  write_child "$MATE" child 'working: quiet since' spawn-old
+  write_child "$MATE" child 'note: quiet since' spawn-old
   meta="$MATE/state/child.meta"
   tmp="$MATE/state/.child.meta.legacy"
   awk '$0 !~ /^spawn_gen=/' "$meta" > "$tmp"
@@ -1236,7 +1236,7 @@ test_legacy_metadata_rewrite_keeps_receipt_identity() {
 test_relaunch_cannot_replace_metadata_during_state_snapshot() {
   local recon_pid update_pid record i
   make_world relaunch-race; bind_secondmate remote
-  write_child "$MATE" child 'working: quiet since' spawn-old
+  write_child "$MATE" child 'note: quiet since' spawn-old
   cat > "$WORLD/fakebin/fm-crew-state.sh" <<'SH'
 #!/usr/bin/env bash
 : > "${FM_RACE_WORLD:?}/state-started"
@@ -1749,7 +1749,7 @@ test_missing_parent_binding_names_itself() {
   make_world missing-binding
   printf 'mate\n' > "$MATE/.fm-secondmate-home"
   write_child "$MATE" child 'done: PR merged'
-  write_child "$MATE" quiet 'working: quiet since'
+  write_child "$MATE" quiet 'note: quiet since'
   out=$(FM_FAKE_CREW_STATE='done' run_reconcile "$MATE" --startup)
   case "$out" in
     *"actionable: child outcome needs parent report: child=child"*".fm-secondmate-parent"*) ;;
@@ -1768,7 +1768,7 @@ test_notice_recovery_does_not_duplicate_wake() {
   local record err seq generation
   make_world notice-recovery; bind_secondmate remote
   printf 'schema=fm-secondmate-parent.v1\nroute=invalid\n' > "$MATE/.fm-secondmate-parent"
-  write_child "$MATE" child 'working: quiet since'
+  write_child "$MATE" child 'note: quiet since'
   FM_FAKE_CREW_STATE='failed' run_reconcile "$MATE" --startup
   [ "$(wake_count "$MATE" 'inactive-reconcile:')" = 1 ] || fail "parent-report failure did not queue one notice"
 
@@ -1815,7 +1815,7 @@ SH
 # heru-geu-1027's sequence, driven through the real current-state reader:
 # the run passed and its PR merged (updated_at 1793124079), then the same
 # incarnation appended working [at=1793148334] and went idle past the
-# threshold. The sweep log is the herdr command log plus the scan output.
+# threshold.
 seed_merged_run_clock() {  # <epoch>
   mkdir -p "$WORLD/nm"
   python3 - "$WORLD/nm/state.sqlite" "$1" <<'PY' || fail "could not seed the merged run clock"
@@ -1875,14 +1875,30 @@ read_merged_child_state() {
 scan_merged_child() {
   PATH="$WORLD/fakebin:$PATH" FM_ROOT_OVERRIDE="$WORLD/root" FM_HOME="$MAIN" \
     FM_STATE_OVERRIDE="$MAIN/state" FM_DATA_OVERRIDE="$MAIN/data" FM_CONFIG_OVERRIDE="$MAIN/config" \
-    FM_INACTIVE_RECONCILE_SECS=60 FM_INACTIVE_CREW_STATE_BIN="$ROOT/bin/fm-crew-state.sh" \
+    FM_INACTIVE_RECONCILE_SECS=60 FM_INACTIVE_RECONCILE_BUDGET_SECS=30 \
+    FM_INACTIVE_CREW_STATE_BIN="$ROOT/bin/fm-crew-state.sh" \
     FM_TMUX_LOG="$WORLD/tmux.log" FM_FORGE_LOG="$WORLD/forge.log" FM_HERDR_WORLD="$WORLD" \
     NM_HOME="$WORLD/nm" \
     "$RECON" scan --startup
 }
 
+# The sweep log is the herdr command log plus the scan output; neither may
+# record a close, and no terminal outcome may be recorded or presented. The
+# scan marker's empty cursor proves the scan decided the child rather than
+# running out of budget on it.
+assert_sweep_keeps_open() {  # <what>
+  scan_merged_child > "$WORLD/scan.log" 2>&1
+  grep -qx 'cursor=' "$MAIN/state/.inactive-outcome-reconcile" \
+    || fail "the sweep did not finish deciding $1: $(cat "$WORLD/scan.log")"
+  [ "$(herdr_close_count)" = 0 ] || fail "the sweep closed $1: $(cat "$WORLD/herdr.log")"
+  [ "$(outcome_count "$MAIN" pending)" = 0 ] || fail "the sweep recorded a terminal outcome for $1"
+  [ "$(outcome_count "$MAIN" presented)" = 0 ] || fail "the sweep presented a terminal outcome for $1"
+  ! grep -q 'pane close ' "$WORLD/herdr.log" "$WORLD/scan.log" 2>/dev/null \
+    || fail "the sweep log recorded a pane close for $1"
+}
+
 test_newer_working_line_survives_inactive_sweep() {
-  local out scan_log
+  local out
   make_world newer-working-sweep
   prepare_merged_herdr_child "$(printf '%s\n' \
     'working [at=1793123903]: PR https://github.com/o/r/pull/178 merged; Alpha build continues' \
@@ -1890,27 +1906,45 @@ test_newer_working_line_survives_inactive_sweep() {
   out=$(read_merged_child_state)
   assert_not_contains "$out" "state: done" "crew-state still answered done after the newer working line: $out"
   assert_contains "$out" "state: working" "crew-state did not answer working for the newer line: $out"
-  scan_log=$WORLD/scan.log
-  scan_merged_child > "$scan_log" 2>&1
-  [ "$(herdr_close_count)" = 0 ] || fail "the sweep closed a pane whose newest status says working: $(cat "$WORLD/herdr.log")"
-  [ "$(outcome_count "$MAIN" pending)" = 0 ] || fail "the sweep recorded a terminal outcome for a newer working line"
-  [ "$(outcome_count "$MAIN" presented)" = 0 ] || fail "the sweep presented a terminal outcome for a newer working line"
-  ! grep -q 'pane close ' "$WORLD/herdr.log" "$scan_log" \
-    || fail "the sweep log recorded a pane close after the newer working line"
+  assert_sweep_keeps_open "a pane whose newest status says working"
 
+  # The worker said it was continuing before the run record's last write.
+  # crew-state may still answer done; the sweep keeps the pane open anyway.
   make_world older-working-sweep
   prepare_merged_herdr_child 'working [at=1793123903]: PR https://github.com/o/r/pull/178 merged; Alpha build continues'
   out=$(read_merged_child_state)
-  assert_contains "$out" "state: done" "a merged run with no newer working line did not read done: $out"
-  scan_merged_child > "$WORLD/scan.log" 2>&1
-  [ "$(herdr_close_count)" = 1 ] || fail "a merged run with no newer working line was not closed: $out"
-  [ "$(outcome_count "$MAIN" pending)" = 1 ] || fail "a merged run with no newer working line recorded no outcome"
+  assert_contains "$out" "state: done" "a working line older than the run record did not read done: $out"
+  assert_sweep_keeps_open "a working line older than the run record"
 
   make_world unstamped-working-sweep
   prepare_merged_herdr_child 'working: still on the merged run'
+  assert_sweep_keeps_open "an unstamped working line"
+
+  make_world resolved-after-working-sweep
+  prepare_merged_herdr_child "$(printf '%s\n' \
+    'working [at=1793148334]: rebuilding with its car export swapped in PC-side' \
+    'resolved [key=car] [at=1793148400]: answered: use the PC export')"
+  out=$(read_merged_child_state)
+  assert_contains "$out" "state: working" "a trailing resolved line hid the newer working line: $out"
+  assert_sweep_keeps_open "a working line followed by a resolved line"
+
+  make_world merge-note-after-working-sweep
+  prepare_merged_herdr_child "$(printf '%s\n' \
+    'working [at=1793148334]: rebuilding with its car export swapped in PC-side' \
+    'note [key=merged-child] [at=1793148400]: merged child https://github.com/o/r/pull/178 spawn_gen=1; activation and live verification pending with the existing owner')"
+  out=$(read_merged_child_state)
+  assert_contains "$out" "state: working" "a trailing merge handoff note hid the newer working line: $out"
+  assert_sweep_keeps_open "a working line followed by the merge handoff note"
+
+  # A merged run whose newest state line is not working still closes: a
+  # resolved line closes its decision rather than reviving it.
+  make_world resolved-decision-sweep
+  prepare_merged_herdr_child "$(printf '%s\n' \
+    'needs-decision [key=car] [at=1793148350]: which car export?' \
+    'resolved [key=car] [at=1793148400]: answered: use the PC export')"
   scan_merged_child > "$WORLD/scan.log" 2>&1
-  [ "$(herdr_close_count)" = 1 ] || fail "an unstamped working line kept a merged run open: $(read_merged_child_state)"
-  [ "$(outcome_count "$MAIN" pending)" = 1 ] || fail "an unstamped working line recorded no outcome"
+  [ "$(herdr_close_count)" = 1 ] || fail "a merged run with a resolved decision was not closed: $(read_merged_child_state)"
+  [ "$(outcome_count "$MAIN" pending)" = 1 ] || fail "a merged run with a resolved decision recorded no outcome"
 
   # A plain done: on a no-mistakes ship is the pipeline handoff and stays
   # open. The finished line is the CI-ready report the close path accepts.

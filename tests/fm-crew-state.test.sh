@@ -1440,9 +1440,10 @@ test_top_level_fixing_done_log_stays_working() {
 
 # heru-geu-1027: a passed run whose PR merged, then a newer working line in
 # the same incarnation. The run record's updated_at is 1793124079. The
-# continuation line is the 1793148334 Alpha rebuild. An earlier working line
-# from before that clock, an unstamped working line, and a newest done line
-# stay on the passed run.
+# continuation line is the 1793148334 Alpha rebuild. A later resolved line or
+# merge handoff note does not hide it, and a decision a resolved line closed
+# does not come back. An earlier working line from before that clock, an
+# unstamped working line, and a newest done line stay on the passed run.
 test_newer_working_line_outranks_merged_run() {
   reset_fakes
   local d url out saved_nm
@@ -1475,6 +1476,31 @@ EOF
   assert_contains "$out" "source: status-log" "the newer working line answers from the status log: $out"
   assert_contains "$out" "rebuilding with its car export" "the newer working line supplies the detail: $out"
   assert_not_contains "$out" "state: done" "a newer working line must not stay done from the merged run: $out"
+
+  printf '%s\n' \
+    'working [at=1793148334]: rebuilding with its car export swapped in PC-side' \
+    'resolved [key=car] [at=1793148400]: answered: use the PC export' \
+    > "$d/state/feat-newer.status"
+  out=$(run_crew_state "$d" feat-newer)
+  assert_contains "$out" "state: working" "a trailing resolved line hid the newer working line: $out"
+  assert_contains "$out" "rebuilding with its car export" "the working line, not the resolved line, supplies the detail: $out"
+
+  printf '%s\n' \
+    'working [at=1793148334]: rebuilding with its car export swapped in PC-side' \
+    "note [key=merged-feat-newer] [at=1793148400]: merged feat-newer $url spawn_gen=7; activation and live verification pending with the existing owner" \
+    > "$d/state/feat-newer.status"
+  out=$(run_crew_state "$d" feat-newer)
+  assert_contains "$out" "state: working" "a trailing merge handoff note hid the newer working line: $out"
+  assert_contains "$out" "rebuilding with its car export" "the working line, not the merge note, supplies the detail: $out"
+
+  printf '%s\n' \
+    'working [at=1793148334]: rebuilding with its car export swapped in PC-side' \
+    'needs-decision [key=car] [at=1793148350]: which car export?' \
+    'resolved [key=car] [at=1793148400]: answered: use the PC export' \
+    > "$d/state/feat-newer.status"
+  out=$(run_crew_state "$d" feat-newer)
+  assert_contains "$out" "state: working" "a resolved decision came back as the newest state: $out"
+  assert_not_contains "$out" "state: parked" "a resolved decision must not read parked: $out"
 
   printf '%s\n' \
     'working [at=1793123903]: PR https://github.com/o/r/pull/178 merged; Alpha build continues' \
