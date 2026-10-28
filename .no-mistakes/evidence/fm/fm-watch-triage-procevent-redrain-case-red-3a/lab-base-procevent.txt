@@ -1,0 +1,28 @@
+08:39:08 fm-watch.sh blob 84efb2bd4a66cf78c6377e5b5c4ce33735310f2d; lab home is a fresh marked fm-lab-home
+08:39:08 STEP register a real lavish process-event source and let it capture one result
+08:39:46 queue rows (epoch seq kind key payload) and counter 1:
+    seq=1 kind=check key=procevent:lab-src:1 payload=check: procevent lavish lab-src 1
+08:39:46 STEP watcher 1: first proactive wake
+08:40:22 watcher 1 printed:
+    check: process-event result captured: procevent:lab-src:1
+08:40:46 drain 1 (not acknowledged: the handler is interrupted) exit 0
+08:40:46 STEP watcher 2: successor after the interrupted handler
+08:41:06 watcher 2 printed:
+    check: procevent lavish lab-src 1
+08:41:06 queue rows (epoch seq kind key payload) and counter 3:
+    seq=1 kind=check key=procevent:lab-src:1 payload=check: procevent lavish lab-src 1
+    seq=2 kind=check key=procevent:lab-src:1 payload=check: procevent lavish lab-src 1
+    seq=3 kind=check key=procevent:lab-src:1 payload=check: procevent lavish lab-src 1
+08:41:06 CHECK FAIL - successor closed through 'check: rearm-resurface'
+08:41:07 CHECK FAIL - successor did not close on the re-appended row's payload
+08:41:33 drain 2 exit 0; check rows it printed:
+    check | check: procevent lavish lab-src 1
+08:41:33 CHECK ok   - successor drain re-printed the durable process-event row
+08:41:33 STEP mark the result handled and acknowledge the drain
+08:41:36 acknowledging drain: --ack-through 3 --recovery-generation <generation>
+08:41:40 CHECK ok   - acknowledged replay left the queue empty
+08:41:40 STEP watcher 3: nothing pending, must stay quiet
+08:42:18 CHECK ok   - watcher 3 stayed alive through 3 poll cycles
+08:42:22 watcher 3 printed: 
+08:42:22 CHECK ok   - handled result was not announced again (0 -> 0 rows)
+08:42:22 RESULT procevent: FAIL

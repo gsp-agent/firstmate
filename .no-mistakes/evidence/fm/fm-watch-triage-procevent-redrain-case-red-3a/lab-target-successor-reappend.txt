@@ -1,0 +1,23 @@
+08:34:14 fm-watch.sh blob 20d53a5a2f5ef67829c5494e553593b4376e53e2; lab home is a fresh marked fm-lab-home
+08:34:14 STEP queue one main-only row before the handling successor starts, with a downtime marker
+08:34:17 queue rows (epoch seq kind key payload) and counter 1:
+    seq=1 kind=check key=inbox:x1 payload=check: captain inbox note x1 - queued before the successor started
+08:34:17 STEP start a handling successor (FM_WATCH_HANDLING_SUCCESSOR=1)
+08:34:36 CHECK ok   - successor stays up over the row queued at its start (2 poll cycles)
+08:34:36 STEP re-append the same row (same kind, key and payload; fresh sequence), as reconcile does
+08:34:41 queue rows (epoch seq kind key payload) and counter 2:
+    seq=1 kind=check key=inbox:x1 payload=check: captain inbox note x1 - queued before the successor started
+    seq=2 kind=check key=inbox:x1 payload=check: captain inbox note x1 - queued before the successor started
+08:35:10 CHECK ok   - successor stays up after the re-announced twin (4 poll cycles)
+08:35:10 CHECK ok   - successor printed nothing for the re-announced row
+08:35:10 STEP append a genuinely new main-only row (different key)
+08:35:13 queue rows (epoch seq kind key payload) and counter 3:
+    seq=1 kind=check key=inbox:x1 payload=check: captain inbox note x1 - queued before the successor started
+    seq=2 kind=check key=inbox:x1 payload=check: captain inbox note x1 - queued before the successor started
+    seq=3 kind=check key=inbox:y1 payload=check: captain inbox note y1 - genuinely new
+08:35:17 successor closed
+08:35:17 successor printed:
+    check: captain inbox note y1 - genuinely new
+08:35:17 CHECK ok   - successor closed on the new row
+08:35:17 CHECK ok   - successor never delivered the row queued at its start
+08:35:17 RESULT successor-reappend: PASS

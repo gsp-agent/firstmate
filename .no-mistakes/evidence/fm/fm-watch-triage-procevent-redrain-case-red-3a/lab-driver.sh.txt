@@ -1,0 +1,185 @@
+#!/usr/bin/env bash
+# Live lab driver for the resurface_after_downtime re-append fix.
+# Usage: nm-01M60-lab.sh <lab-dir> procevent|successor-reappend|successor-same-key
+# Runs the real bin/fm-watch.sh, bin/fm-procevent.sh and bin/fm-wake-drain.sh
+# from the gate worktree against a marked disposable lab home. Does not remove
+# the lab; the caller removes it as its own command.
+set -u
+ROOT=/Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M60R1RJKN080YP21M763J9Y8
+LAB=$1
+MODE=$2
+cd "$ROOT" || exit 1
+
+"$ROOT/bin/fm-lab-home.sh" create "$LAB" >/dev/null || { echo "lab create failed"; exit 1; }
+mkdir -p "$LAB/tmux" "$LAB/claims" "$LAB/tmp" || exit 1
+STATE="$LAB/state"
+
+unset FM_ROOT_OVERRIDE FM_STATE_OVERRIDE FM_DATA_OVERRIDE FM_CONFIG_OVERRIDE FM_PROJECTS_OVERRIDE TMUX
+export FM_HOME="$LAB" FM_PROCEVENT_CLAIM_ROOT="$LAB/claims" TMUX_TMPDIR="$LAB/tmux" TMPDIR="$LAB/tmp"
+export FM_HOME_SUMMARY_INTERVAL=9999999 FM_HOME_SUMMARY_TIMEOUT=1
+export FM_WEDGE_ALARM_EXEC=discard
+# The host runs at load ~100-150 on 16 CPUs; the 3s default launch-confirm
+# window misreads a slow runner as a failed launch there.
+export FM_PROCEVENT_LAUNCH_CONFIRM_SECONDS=60
+
+say() { printf '%s %s\n' "$(date -u +%H:%M:%S)" "$*"; }
+show_queue() {
+  say "queue rows (epoch seq kind key payload) and counter $(cat "$STATE/.wake-queue.seq" 2>/dev/null || echo none):"
+  if [ -s "$STATE/.wake-queue" ]; then
+    awk -F '\t' '{ printf "    seq=%s kind=%s key=%s payload=%s\n", $2, $3, $4, $5 }' "$STATE/.wake-queue"
+  else
+    echo "    (empty)"
+  fi
+}
+mtime() { stat -f '%m' "$1" 2>/dev/null; }
+wait_lock() {  # <pid>
+  local i=0
+  while [ "$i" -lt 600 ]; do
+    [ "$(cat "$STATE/.watch.lock/pid" 2>/dev/null || true)" = "$1" ] && return 0
+    kill -0 "$1" 2>/dev/null || return 1
+    sleep 0.1; i=$((i + 1))
+  done
+  return 1
+}
+wait_exit() {  # <pid> <seconds>
+  local i=0 lim=$(( $2 * 10 ))
+  while [ "$i" -lt "$lim" ]; do
+    kill -0 "$1" 2>/dev/null || { wait "$1" 2>/dev/null; return 0; }
+    sleep 0.1; i=$((i + 1))
+  done
+  return 1
+}
+wait_beats() {  # <pid> <n> <seconds>: n distinct poll beacons while alive
+  local pid=$1 n=$2 lim=$(( $3 * 10 )) i=0 seen=0 last now
+  last=$(mtime "$STATE/.last-watcher-beat")
+  while [ "$i" -lt "$lim" ]; do
+    kill -0 "$pid" 2>/dev/null || return 1
+    now=$(mtime "$STATE/.last-watcher-beat")
+    if [ -n "$now" ] && [ "$now" != "$last" ]; then
+      seen=$((seen + 1)); last=$now
+      [ "$seen" -ge "$n" ] && return 0
+    fi
+    sleep 0.1; i=$((i + 1))
+  done
+  return 1
+}
+stop_watcher() {  # <pid>
+  kill -TERM "$1" 2>/dev/null || true
+  wait "$1" 2>/dev/null || true
+}
+watch_bg() {  # <out> [extra env assignments...]
+  local out=$1; shift
+  env "$@" FM_POLL=1 FM_SIGNAL_GRACE=1 FM_CHECK_INTERVAL=9999999 FM_HEARTBEAT=999999 \
+    "$ROOT/bin/fm-watch.sh" > "$out" 2>&1 &
+  WPID=$!
+}
+append() {  # <kind> <key> <payload>
+  bash -c '. "$1/bin/fm-wake-lib.sh"; fm_wake_append "$2" "$3" "$4"' _ "$ROOT" "$1" "$2" "$3"
+}
+ack_from() {  # <stderr-file>
+  local seq gen
+  seq=$(sed -n 's/^WAKE_ACK_REQUIRED:.*--ack-through \([0-9][0-9]*\) --recovery-generation [A-Za-z0-9._-][A-Za-z0-9._-]*$/\1/p' "$1")
+  gen=$(sed -n 's/^WAKE_ACK_REQUIRED:.*--ack-through [0-9][0-9]* --recovery-generation \([A-Za-z0-9._-][A-Za-z0-9._-]*\)$/\1/p' "$1")
+  [ -n "$seq" ] && [ -n "$gen" ] || return 1
+  say "acknowledging drain: --ack-through $seq --recovery-generation <generation>"
+  "$ROOT/bin/fm-wake-drain.sh" --ack-through "$seq" --recovery-generation "$gen"
+}
+
+say "fm-watch.sh blob $(git hash-object bin/fm-watch.sh); lab home is a fresh marked fm-lab-home"
+RESULT=PASS
+check() {  # <description> <command...>
+  local d=$1; shift
+  if "$@"; then say "CHECK ok   - $d"; else say "CHECK FAIL - $d"; RESULT=FAIL; fi
+}
+
+case "$MODE" in
+procevent)
+  say "STEP register a real lavish process-event source and let it capture one result"
+  "$ROOT/bin/fm-procevent.sh" register lavish lab-src -- \
+    /bin/sh -c 'printf "session:\n  file: /a.html\n  status: waiting\n"' >/dev/null || { say "register failed"; exit 1; }
+  "$ROOT/bin/fm-procevent.sh" reconcile >/dev/null || { say "reconcile failed"; exit 1; }
+  i=0; while [ "$i" -lt 900 ] && [ ! -s "$STATE/.wake-queue" ]; do sleep 0.1; i=$((i + 1)); done
+  i=0; while [ "$i" -lt 900 ] && [ -e "$LAB/claims/lab-src.claim" ]; do sleep 0.1; i=$((i + 1)); done
+  "$ROOT/bin/fm-procevent.sh" retire lab-src >/dev/null || { say "retire failed"; exit 1; }
+  show_queue
+
+  say "STEP watcher 1: first proactive wake"
+  watch_bg "$LAB/w1.out"; p=$WPID
+  wait_exit "$p" 180 || { stop_watcher "$p"; say "watcher 1 never woke"; }
+  say "watcher 1 printed:"; sed 's/^/    /' "$LAB/w1.out"
+  "$ROOT/bin/fm-wake-drain.sh" > "$LAB/d1.out" 2> "$LAB/d1.err"
+  say "drain 1 (not acknowledged: the handler is interrupted) exit $?"
+
+  say "STEP watcher 2: successor after the interrupted handler"
+  watch_bg "$LAB/w2.out"; p=$WPID
+  wait_exit "$p" 180 || { stop_watcher "$p"; say "watcher 2 never woke"; }
+  say "watcher 2 printed:"; sed 's/^/    /' "$LAB/w2.out"
+  show_queue
+  check "successor closed through 'check: rearm-resurface'" grep -Fqx 'check: rearm-resurface' "$LAB/w2.out"
+  check "successor did not close on the re-appended row's payload" \
+    bash -c '! grep -Fqx "check: procevent lavish lab-src 1" "$1"' _ "$LAB/w2.out"
+
+  "$ROOT/bin/fm-wake-drain.sh" > "$LAB/d2.out" 2> "$LAB/d2.err"
+  say "drain 2 exit $?; check rows it printed:"
+  grep "$(printf '\tcheck\t')" "$LAB/d2.out" | awk -F '\t' '{ printf "    %s | %s\n", $3, $NF }'
+  check "successor drain re-printed the durable process-event row" \
+    bash -c 'grep "$(printf "\tcheck\t")" "$1" | grep -Fq "procevent lavish lab-src 1"' _ "$LAB/d2.out"
+
+  say "STEP mark the result handled and acknowledge the drain"
+  "$ROOT/bin/fm-procevent.sh" handled lab-src 1 >/dev/null || say "handled failed"
+  ack_from "$LAB/d2.err" || say "ack failed"
+  check "acknowledged replay left the queue empty" test ! -s "$STATE/.wake-queue"
+
+  say "STEP watcher 3: nothing pending, must stay quiet"
+  before=$(awk 'END { print NR + 0 }' "$STATE/.wake-queue" 2>/dev/null || echo 0)
+  watch_bg "$LAB/w3.out"; p=$WPID
+  wait_lock "$p" || say "watcher 3 did not take the lock"
+  check "watcher 3 stayed alive through 3 poll cycles" wait_beats "$p" 3 180
+  stop_watcher "$p"
+  after=$(awk 'END { print NR + 0 }' "$STATE/.wake-queue" 2>/dev/null || echo 0)
+  say "watcher 3 printed: $(tr '\n' ' ' < "$LAB/w3.out")"
+  check "handled result was not announced again ($before -> $after rows)" test "$after" = "$before"
+  ;;
+
+successor-reappend|successor-same-key)
+  old='check: captain inbox note x1 - queued before the successor started'
+  say "STEP queue one main-only row before the handling successor starts, with a downtime marker"
+  append check inbox:x1 "$old" || exit 1
+  printf 'pending:downtime:park.1.aaa\n' > "$STATE/.watcher-down"; chmod 600 "$STATE/.watcher-down"
+  show_queue
+
+  say "STEP start a handling successor (FM_WATCH_HANDLING_SUCCESSOR=1)"
+  watch_bg "$LAB/w.out" FM_WATCH_HANDLING_SUCCESSOR=1; p=$WPID
+  wait_lock "$p" || { say "successor did not take the lock: $(cat "$LAB/w.out")"; exit 1; }
+  check "successor stays up over the row queued at its start (2 poll cycles)" wait_beats "$p" 2 180
+
+  say "STEP re-append the same row (same kind, key and payload; fresh sequence), as reconcile does"
+  append check inbox:x1 "$old" || exit 1
+  show_queue
+  check "successor stays up after the re-announced twin (4 poll cycles)" wait_beats "$p" 4 240
+  check "successor printed nothing for the re-announced row" bash -c '! grep -Fq "$2" "$1"' _ "$LAB/w.out" "$old"
+
+  if [ "$MODE" = successor-reappend ]; then
+    new='check: captain inbox note y1 - genuinely new'
+    say "STEP append a genuinely new main-only row (different key)"
+    append check inbox:y1 "$new" || exit 1
+  else
+    new='check: captain inbox note x1 - edited after start'
+    say "STEP append a row with the same kind and key but a different payload"
+    append check inbox:x1 "$new" || exit 1
+  fi
+  show_queue
+  if wait_exit "$p" 180; then
+    say "successor closed"
+  else
+    stop_watcher "$p"; say "successor did not close within 180s"
+  fi
+  say "successor printed:"; sed 's/^/    /' "$LAB/w.out"
+  check "successor closed on the new row" grep -Fqx "$new" "$LAB/w.out"
+  check "successor never delivered the row queued at its start" bash -c '! grep -Fq "$2" "$1"' _ "$LAB/w.out" "$old"
+  ;;
+*) echo "unknown mode $MODE"; exit 2 ;;
+esac
+
+say "RESULT $MODE: $RESULT"
+[ "$RESULT" = PASS ]

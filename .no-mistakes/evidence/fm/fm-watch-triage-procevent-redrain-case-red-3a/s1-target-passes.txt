@@ -1,0 +1,24 @@
+=== target-ae7ed99d run 1: FM_TEST_ONLY=test_procevent_unacknowledged_result_redrains_until_handled bin/fm-test-run.sh tests/fm-watch-triage.test.sh (fm-watch.sh sha 20d53a5a2f5ef67829c5494e553593b4376e53e2)
+FM_TEST_BEGIN 2026-10-28T08:26:34Z tests/fm-watch-triage.test.sh family=watcher-wake-lock expected_gate_skip=none
+ok - an unacknowledged process-event result re-drains until handling is acknowledged
+FM_TEST_END 2026-10-28T08:27:40Z tests/fm-watch-triage.test.sh exit=0 duration_ms=65874 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=106545
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=1 duration_ms=65874 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-watch-triage.test.sh duration_ms=65874
+=== exit 0
+=== target-ae7ed99d run 2: FM_TEST_ONLY=test_procevent_unacknowledged_result_redrains_until_handled bin/fm-test-run.sh tests/fm-watch-triage.test.sh (fm-watch.sh sha 20d53a5a2f5ef67829c5494e553593b4376e53e2)
+FM_TEST_BEGIN 2026-10-28T08:28:16Z tests/fm-watch-triage.test.sh family=watcher-wake-lock expected_gate_skip=none
+not ok - the fixture captured no process-event result
+FM_TEST_END 2026-10-28T08:28:33Z tests/fm-watch-triage.test.sh exit=1 duration_ms=16270 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=1 skipped_gate=0 duration_ms=50039
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=1 duration_ms=16270 failed=1
+FM_TEST_SLOWEST rank=1 script=tests/fm-watch-triage.test.sh duration_ms=16270
+=== exit 1
+=== target-ae7ed99d run 3: FM_TEST_ONLY=test_procevent_unacknowledged_result_redrains_until_handled bin/fm-test-run.sh tests/fm-watch-triage.test.sh (fm-watch.sh sha 20d53a5a2f5ef67829c5494e553593b4376e53e2)
+FM_TEST_BEGIN 2026-10-28T08:28:54Z tests/fm-watch-triage.test.sh family=watcher-wake-lock expected_gate_skip=none
+ok - an unacknowledged process-event result re-drains until handling is acknowledged
+FM_TEST_END 2026-10-28T08:30:35Z tests/fm-watch-triage.test.sh exit=0 duration_ms=99652 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=121377
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=1 duration_ms=99652 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-watch-triage.test.sh duration_ms=99652
+=== exit 0

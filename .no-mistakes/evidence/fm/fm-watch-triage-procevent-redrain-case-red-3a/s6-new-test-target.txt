@@ -1,0 +1,16 @@
+=== target-ae7ed99d run 1: FM_TEST_ONLY=test_handling_successor_ignores_a_reappended_start_row bin/fm-test-run.sh tests/fm-watch-recovery-loop.test.sh (fm-watch.sh sha 20d53a5a2f5ef67829c5494e553593b4376e53e2)
+FM_TEST_BEGIN 2026-10-28T08:44:37Z tests/fm-watch-recovery-loop.test.sh family=watcher-wake-lock expected_gate_skip=none
+ok - a handling successor ignores a re-append of its start row and still closes on new work
+FM_TEST_END 2026-10-28T08:45:13Z tests/fm-watch-recovery-loop.test.sh exit=0 duration_ms=35189 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=62973
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=1 duration_ms=35189 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-watch-recovery-loop.test.sh duration_ms=35189
+=== exit 0
+=== target-ae7ed99d run 2: FM_TEST_ONLY=test_handling_successor_ignores_a_reappended_start_row bin/fm-test-run.sh tests/fm-watch-recovery-loop.test.sh (fm-watch.sh sha 20d53a5a2f5ef67829c5494e553593b4376e53e2)
+FM_TEST_BEGIN 2026-10-28T08:45:46Z tests/fm-watch-recovery-loop.test.sh family=watcher-wake-lock expected_gate_skip=none
+ok - a handling successor ignores a re-append of its start row and still closes on new work
+FM_TEST_END 2026-10-28T08:46:16Z tests/fm-watch-recovery-loop.test.sh exit=0 duration_ms=29885 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=62717
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=1 duration_ms=29885 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-watch-recovery-loop.test.sh duration_ms=29885
+=== exit 0
