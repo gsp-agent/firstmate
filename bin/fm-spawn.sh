@@ -7445,8 +7445,10 @@ if [ "$HARNESS" = codex ] && [ "$KIND" != secondmate ]; then
 fi
 
 # Herdr restore resume. A Codex crew launches with hooks disabled, so Herdr
-# never learns its session. Report the session Codex wrote for this worktree,
-# then record the CODEX_HOME and the crew arguments the launch line was built
+# never learns its session. Once Herdr has registered the pane's Codex agent,
+# report the session Codex wrote for this worktree, replacing any session an
+# earlier incarnation bound to the pane, then record the CODEX_HOME and the
+# crew arguments the launch line was built
 # from, which a bare `codex resume <id>` cannot carry
 # (bin/fm-crew-resume-lib.sh). A raw launch command was not built from them,
 # so it gets no record. A Grok crew's session reaches Herdr through its hook,
@@ -7455,14 +7457,15 @@ if [ "$BACKEND" = herdr ] && [ "$HARNESS" = codex ] && [ "$KIND" != secondmate ]
   crew_i=0
   crew_session_id=
   while [ "$crew_i" -lt 20 ]; do
-    crew_session_id=$(fm_crew_codex_session_id "$CODEX_STORE_DIR" "$WT" "$CREW_RESUME_SINCE") || crew_session_id=
-    [ -z "$crew_session_id" ] || break
+    [ -n "$crew_session_id" ] ||
+      crew_session_id=$(fm_crew_codex_session_id "$CODEX_STORE_DIR" "$WT" "$CREW_RESUME_SINCE") || crew_session_id=
+    [ -z "$crew_session_id" ] || ! fm_crew_herdr_pane_runs_codex "$HERDR_SES" "$HERDR_PANE_ID" || break
     crew_i=$((crew_i + 1))
     [ "$crew_i" -ge 20 ] || sleep 0.5
   done
   if [ -n "$crew_session_id" ]; then
     fm_crew_report_codex_session "$HERDR_SES" "$HERDR_PANE_ID" "$crew_session_id" ||
-      echo "warning: Herdr pane $HERDR_PANE_ID did not take Codex session $crew_session_id for $ID; a Herdr restore will not resume this crew" >&2
+      echo "warning: Herdr pane $HERDR_PANE_ID did not take Codex session $crew_session_id for $ID; a Herdr restore will not resume this crew's current session" >&2
     if [ -n "${FM_CREW_CODEX_ARGS+set}" ]; then
       fm_crew_codex_resume_record_write "$STATE/$ID.codex-resume" "$crew_session_id" "$CODEX_STORE_DIR" \
         "${FM_CREW_CODEX_ARGS[@]}" ||

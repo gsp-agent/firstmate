@@ -63,10 +63,24 @@ test_codex_report_is_verified_by_reading_the_pane_back() {
   out=$(FM_CREW_HERDR_LOG=$log FM_CREW_HERDR_AGENT_GET=$(agent_get_body codex new-id) PATH="$FAKEBIN:$PATH" \
     fm_crew_report_codex_session fm-lab-test w1:p9 new-id) || fail "an applied codex herdr report was not accepted"
   assert_contains "$(cat "$log")" \
-    "pane report-agent-session w1:p9 --source herdr:codex --agent codex --agent-session-id new-id --session fm-lab-test" \
-    "herdr did not receive the exact codex session report"
+    "pane report-agent-session w1:p9 --source herdr:codex --agent codex --agent-session-id new-id --session-start-source startup --session fm-lab-test" \
+    "herdr did not receive the exact codex session-start report"
   [ -z "$out" ] || fail "the codex report leaked herdr's reply to stdout: '$out'"
-  pass "codex session report sends the exact herdr call, keeps its reply off stdout, and reads the session back"
+  pass "codex session report sends the exact herdr session-start call, keeps its reply off stdout, and reads the session back"
+}
+
+test_herdr_pane_runs_codex_only_once_herdr_registers_the_codex_agent() {
+  FM_CREW_HERDR_AGENT_GET=$(agent_get_body codex new-id) PATH="$FAKEBIN:$PATH" \
+    fm_crew_herdr_pane_runs_codex fm-lab-test w1:p9 || fail "a pane whose registered agent is codex did not read as running codex"
+  if FM_CREW_HERDR_AGENT_GET='{"result":{"agent":null}}' PATH="$FAKEBIN:$PATH" \
+    fm_crew_herdr_pane_runs_codex fm-lab-test w1:p9; then
+    fail "a pane with no registered agent read as running codex"
+  fi
+  if FM_CREW_HERDR_AGENT_GET=$(agent_get_body claude other-id) PATH="$FAKEBIN:$PATH" \
+    fm_crew_herdr_pane_runs_codex fm-lab-test w1:p9; then
+    fail "a pane registered to another agent read as running codex"
+  fi
+  pass "a pane reads as running codex only once Herdr registers its codex agent"
 }
 
 test_codex_report_fails_when_herdr_keeps_another_session() {
@@ -108,4 +122,5 @@ test_codex_resume_record_keeps_home_and_the_launch_line_args() {
 test_codex_session_id_finds_only_the_new_matching_worktree_rollout
 test_codex_report_is_verified_by_reading_the_pane_back
 test_codex_report_fails_when_herdr_keeps_another_session
+test_herdr_pane_runs_codex_only_once_herdr_registers_the_codex_agent
 test_codex_resume_record_keeps_home_and_the_launch_line_args

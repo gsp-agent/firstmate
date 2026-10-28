@@ -6,11 +6,18 @@
 # itself wrote for this worktree, never a subagent thread (whose session_id
 # names its parent), reading only the sessions/YYYY/MM/DD folders from the day
 # before the spawn through tomorrow, and fm_crew_report_codex_session reports it
-# to the pane's Herdr server with the exact report Herdr's Codex hook would
-# have sent, then reads the pane's registration back: Herdr can accept a
-# report with rc=0 and never apply it (bin/backends/herdr.sh's
+# to the pane's Herdr server as the session start Herdr's Codex hook would have
+# reported, then reads the pane's registration back: Herdr can accept a report
+# with rc=0 and never apply it (bin/backends/herdr.sh's
 # fm_backend_herdr_pane_agent_session_ref), so only the read-back counts.
 # A restore then types `codex resume <id>` and the restore gate paces it.
+#
+# Measured on Herdr 0.9.1 in an fm-lab- session, with a codex-named process as
+# the pane's agent: a report sent before Herdr registers that agent is dropped,
+# so bin/fm-spawn.sh reports only once fm_crew_herdr_pane_runs_codex holds; and
+# a pane already bound to an earlier session (a relaunch) keeps that binding
+# unless the report names its session start (--session-start-source startup),
+# which is what lets a relaunch's new session replace the old one.
 #
 # That bare resume carries neither the crew's CODEX_HOME nor its launch flags.
 # fm_crew_codex_args is the one list of Codex crew launch arguments after the
@@ -81,8 +88,15 @@ PY
 fm_crew_report_codex_session() { # <herdr-session> <pane-id> <session-id>
   [ -n "${1:-}" ] && [ -n "${2:-}" ] && [ -n "${3:-}" ] || return 1
   fm_backend_herdr_cli "$1" pane report-agent-session "$2" \
-    --source herdr:codex --agent codex --agent-session-id "$3" >/dev/null || return 1
+    --source herdr:codex --agent codex --agent-session-id "$3" \
+    --session-start-source startup >/dev/null || return 1
   [ "$(fm_backend_herdr_pane_agent_session_ref "$1" "$2")" = "codex	$3" ]
+}
+
+fm_crew_herdr_pane_runs_codex() { # <herdr-session> <pane-id>
+  local identity
+  identity=$(fm_backend_herdr_agent_identity_raw "$1" "$2") || return 1
+  [ "${identity%%$'\t'*}" = codex ]
 }
 
 fm_crew_codex_resume_record_write() { # <record> <session-id> <codex-home> <launch-arg>...
