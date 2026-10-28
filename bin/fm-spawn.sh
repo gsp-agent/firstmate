@@ -2559,7 +2559,7 @@ spawn_queue_start_refuse() {  # <reason>
 spawn_dale_stop_refuse() {
   local f line at words
   f=${DALE_STOP_FILE:-$HOME/Library/Application Support/agent-observer/dale-stop.json}
-  [ -e "$f" ] || return 0
+  { [ -e "$f" ] || [ -L "$f" ]; } || return 0
   line=$(python3 -I -c '
 import json, sys
 try:

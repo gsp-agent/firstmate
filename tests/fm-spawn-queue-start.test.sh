@@ -321,8 +321,18 @@ test_queue_start_refuses_while_a_dale_stop_stands() {
   assert_contains "$out" "Refused by the Dale-stop guard" "a corrupt token did not refuse as a Dale-stop: $out"
   [ "$(show_field "$case_dir" "$id" state)" = queued ] || fail "the corrupt-token refusal moved its item"
 
+  # A dangling symlink at the token path holds the stop too: unreadable is
+  # not absent.
+  rm -f "$token"
+  ln -s "$case_dir/no-such-token" "$token"
+  rc=0
+  out=$(DALE_STOP_FILE="$token" queue_start "$case_dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "a queue start started under a dangling Dale-stop symlink: $out"
+  assert_contains "$out" "Refused by the Dale-stop guard" "a dangling token symlink did not refuse as a Dale-stop: $out"
+  [ "$(show_field "$case_dir" "$id" state)" = queued ] || fail "the dangling-token refusal moved its item"
+
   # With the token gone the same item starts as before.
-  : > "$token"; rm -f "$token"
+  rm -f "$token"
   rc=0
   out=$(DALE_STOP_FILE="$token" queue_start "$case_dir" "$id") || rc=$?
   expect_code 0 "$rc" "the item a Dale-stop held did not start once the token was lifted: $out"
