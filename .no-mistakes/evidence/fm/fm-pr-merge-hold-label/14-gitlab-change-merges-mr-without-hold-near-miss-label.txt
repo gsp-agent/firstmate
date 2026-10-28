@@ -1,0 +1,21 @@
+## 14-gitlab-change-merges-mr-without-hold-near-miss-label
+date (UTC): 2026-10-28T00:03:49Z
+forge: disposable GitLab CE 19.5.1 on localhost:8930 (real glab 1.123.0, isolated GLAB_CONFIG_DIR mapping host localhost to it)
+script: bin/fm-pr-merge.sh at change ba93fd6a
+command: FM_HOME=<lab> bin/fm-pr-merge.sh glcontrol https://localhost/root/fixture-repo/-/merge_requests/4 
+--- MR before:
+!4 state=opened merged_at=none merge_commit=none labels=on-hold,ready
+--- label history on the MR (GitLab resource label events):
+  add ready by root at 2026-10-28T00:02:10.309Z
+  add on-hold by root at 2026-10-28T00:02:10.309Z
+--- fm-pr-merge.sh output (stdout+stderr):
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+armed: state/glcontrol.check.sh
+verified: https://localhost/root/fixture-repo/-/merge_requests/4 is open and mergeable, with a successful pipeline at head 615a44b83ef87db90c18f2bea680c17d9a8d131e
+✓ Pipeline succeeded.
+✓ Merged!
+http://localhost:8930/root/fixture-repo/-/merge_requests/4
+--- exit status: 0
+--- MR after:
+!4 state=merged merged_at=2026-10-28T00:04:01.603Z merge_commit=bfefc262bd62e358b02b85496fb1d683b797a064 labels=on-hold,ready

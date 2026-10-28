@@ -1,0 +1,6 @@
+## 10b-forgejo-issue-blind-login-probe
+the same isolated tea login (HOME fjhome-noissue, token scopes write:repository,read:user) the scenario above used:
+--- tea api /repos/fixture/fixture-repo/pulls/5 (labels field):
+{"number":5,"state":"open","labels":["hold"]}
+--- tea api /repos/fixture/fixture-repo/issues/5/timeline?limit=50&page=1:
+{"message":"token does not have at least one of required scope(s): [read:issue]","url":"http://localhost:3989/api/swagger"}

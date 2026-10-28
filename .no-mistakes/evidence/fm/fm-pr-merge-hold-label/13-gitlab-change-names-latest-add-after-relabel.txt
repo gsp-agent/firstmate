@@ -1,0 +1,20 @@
+## 13-gitlab-change-names-latest-add-after-relabel
+date (UTC): 2026-10-28T00:03:36Z
+forge: disposable GitLab CE 19.5.1 on localhost:8930 (real glab 1.123.0, isolated GLAB_CONFIG_DIR mapping host localhost to it)
+script: bin/fm-pr-merge.sh at change ba93fd6a
+command: FM_HOME=<lab> bin/fm-pr-merge.sh glrelabel https://localhost/root/fixture-repo/-/merge_requests/3 
+--- MR before:
+!3 state=opened merged_at=none merge_commit=none labels=hold
+--- label history on the MR (GitLab resource label events):
+  add hold by root at 2026-10-28T00:02:10.491Z
+  remove hold by root at 2026-10-28T00:02:12.957Z
+  add hold by cutover-owner at 2026-10-28T00:02:15.397Z
+--- fm-pr-merge.sh output (stdout+stderr):
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+armed: state/glrelabel.check.sh
+error: refusing to merge https://localhost/root/fixture-repo/-/merge_requests/3
+  - the pull request carries the 'hold' label (labeled by cutover-owner at 2026-10-28T00:02:15.397Z); a held pull request must not be merged
+--- exit status: 1
+--- MR after:
+!3 state=opened merged_at=none merge_commit=none labels=hold

@@ -1,0 +1,19 @@
+## 07-forgejo-base-merges-hold-labeled-pr
+date (UTC): 2026-10-28T00:11:50Z
+forge: disposable Forgejo 11.0.16+gitea-1.22.0 on localhost:3989 (real tea 0.16.0, login fm-lab-fj from isolated HOME fjhome; no tea wrapper)
+script: bin/fm-pr-merge.sh at base 6e58c8a8
+command: FM_HOME=<lab> bin/fm-pr-merge.sh fjbase https://localhost/fixture/fixture-repo/pulls/1 
+--- PR before:
+#1 state=open merged=false merge_commit=none labels=hold
+--- label history on the PR (Forgejo issue timeline, every page, read with an admin token):
+timeline page 1: "2 items"
+  added hold by cutover-owner at 2026-10-28T00:11:39Z
+timeline page 2: "raw null"
+--- fm-pr-merge.sh output (stdout+stderr):
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+armed: state/fjbase.check.sh
+verified: https://localhost/fixture/fixture-repo/pulls/1 is open and mergeable, with a successful combined status at head 165106a6539964b3720138d30884ab7174019f61
+--- exit status: 0
+--- PR after:
+#1 state=closed merged=true merge_commit=4001c343b5aef8ffa05444bbd62c4d09d480e637 labels=hold

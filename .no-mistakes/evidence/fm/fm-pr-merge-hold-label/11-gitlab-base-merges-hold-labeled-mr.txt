@@ -1,0 +1,20 @@
+## 11-gitlab-base-merges-hold-labeled-mr
+date (UTC): 2026-10-28T00:02:48Z
+forge: disposable GitLab CE 19.5.1 on localhost:8930 (real glab 1.123.0, isolated GLAB_CONFIG_DIR mapping host localhost to it)
+script: bin/fm-pr-merge.sh at base 6e58c8a8
+command: FM_HOME=<lab> bin/fm-pr-merge.sh glbase https://localhost/root/fixture-repo/-/merge_requests/1 
+--- MR before:
+!1 state=opened merged_at=none merge_commit=none labels=hold
+--- label history on the MR (GitLab resource label events):
+  add hold by cutover-owner at 2026-10-28T00:02:09.863Z
+--- fm-pr-merge.sh output (stdout+stderr):
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+armed: state/glbase.check.sh
+verified: https://localhost/root/fixture-repo/-/merge_requests/1 is open and mergeable, with a successful pipeline at head fdc45013cb3db9a094e0555aa919c413948a9e43
+✓ Pipeline succeeded.
+✓ Merged!
+http://localhost:8930/root/fixture-repo/-/merge_requests/1
+--- exit status: 0
+--- MR after:
+!1 state=merged merged_at=2026-10-28T00:03:18.393Z merge_commit=b453c3326242097576f1309217235e7c9f7a4125 labels=hold

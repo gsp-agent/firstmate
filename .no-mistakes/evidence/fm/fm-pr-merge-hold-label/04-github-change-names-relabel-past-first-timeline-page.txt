@@ -1,0 +1,22 @@
+## 04-github-change-names-relabel-past-first-timeline-page
+date (UTC): 2026-10-27T23:52:26Z
+forge: github.com, private scratch repo gsp-agent/fm-hold-label-proof, acting account gsp-agent
+script: bin/fm-pr-merge.sh at change ba93fd6a
+command: FM_HOME=<lab> bin/fm-pr-merge.sh r3paged https://github.com/gsp-agent/fm-hold-label-proof/pull/13 --attended-override
+--- PR before:
+#13 state=OPEN mergedAt=none mergeCommit=none labels=hold
+--- label history on the PR (GitHub timeline, every page; position = index in the timeline):
+timeline events: 114
+  #2 (page 1) labeled hold by gsp-agent at 2026-10-27T23:46:43Z
+  #3 (page 1) unlabeled hold by gsp-agent at 2026-10-27T23:46:49Z
+  #114 (page 2) labeled hold by gsp-agent at 2026-10-27T23:49:32Z
+--- fm-pr-merge.sh output (stdout+stderr):
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+armed: state/r3paged.check.sh
+error: refusing to merge https://github.com/gsp-agent/fm-hold-label-proof/pull/13
+  - the pull request carries the 'hold' label (labeled by gsp-agent at 2026-10-27T23:49:32Z); a held pull request must not be merged
+  - mergeable is "UNKNOWN", not MERGEABLE
+--- exit status: 1
+--- PR after:
+#13 state=OPEN mergedAt=none mergeCommit=none labels=hold

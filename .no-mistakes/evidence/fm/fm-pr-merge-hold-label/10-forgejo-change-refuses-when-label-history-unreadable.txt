@@ -1,0 +1,20 @@
+## 10-forgejo-change-refuses-when-label-history-unreadable
+date (UTC): 2026-10-28T00:12:31Z
+forge: disposable Forgejo 11.0.16+gitea-1.22.0 on localhost:3989 (real tea 0.16.0, login fm-lab-fj from isolated HOME fjhome-noissue; no tea wrapper)
+script: bin/fm-pr-merge.sh at change ba93fd6a
+command: FM_HOME=<lab> bin/fm-pr-merge.sh fjnoissue https://localhost/fixture/fixture-repo/pulls/5 
+--- PR before:
+#5 state=open merged=false merge_commit=none labels=hold
+--- label history on the PR (Forgejo issue timeline, every page, read with an admin token):
+timeline page 1: "2 items"
+  added hold by cutover-owner at 2026-10-28T00:11:39Z
+timeline page 2: "raw null"
+--- fm-pr-merge.sh output (stdout+stderr):
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+armed: state/fjnoissue.check.sh
+error: refusing to merge https://localhost/fixture/fixture-repo/pulls/5
+  - the pull request carries the 'hold' label (who labeled it and when could not be read); a held pull request must not be merged
+--- exit status: 1
+--- PR after:
+#5 state=open merged=false merge_commit=none labels=hold
