@@ -1,0 +1,79 @@
+=== secondmate home: failed child run behind an unstamped newest working line [base code] ===
+home: disposable lab home (marked by bin/fm-lab-home.sh)
+herdr: lab session fm-lab-inactive-work-15076-22648, pane wF:p1
+
+# status log (state/child.status), mtime 1793148334, turn-ended mtime 1793148341
+    working: compiling the Alpha build
+
+# run record the reader trusts (no-mistakes axi status TOON + runs row)
+    run:
+      id: "01M5Z0TXN5172BSC901X18AA1C"
+      branch: fm/heru-geu-1027-wipe6
+      status: failed
+      head: "e39d4473cc55ea3e34e3d59193593982e5cc1f87"
+      findings: none
+    outcome: failed
+    steps[3]{step,status,findings,duration_ms}:
+      intent,completed,0,0
+      review,completed,0,0
+      test,failed,2,1000
+    runs row: 01M5Z0TXN5172BSC901X18AA1C status=failed updated_at=1793124079
+
+# fm-crew-state.sh child (before the sweep)
+    state: failed · source: run-step · run failed
+
+# sweep: FM_INACTIVE_RECONCILE_SECS=300 fm-inactive-reconcile.sh scan (rc=0)
+  stdout:
+    (empty)
+  stderr:
+    (empty)
+  scan marker (state/.inactive-outcome-reconcile):
+    epoch=1793163063
+    cursor=
+  herdr calls the sweep made through the lab wrapper:
+    status --json
+    session list --json
+    workspace list
+    tab list --workspace w1
+    pane get wF:p1
+    tab list --workspace wF
+    pane list --workspace wF
+    workspace list
+    pane process-info --pane wF:p1
+    pane get wF:p1
+    workspace list
+    tab list --workspace w1
+  close-path calls (pane close, or pane process-info for the shell-death close): 1
+
+# real pane after the sweep
+    gone (herdr pane get wF:p1: pane_not_found)
+
+# terminal outcome records
+--- state/terminal-outcomes/86089ae9e564bd55d4044c9d1464f1a8.reported
+    schema=fm-terminal-outcome.v1
+    fingerprint=86089ae9e564bd55d4044c9d1464f1a8
+    task_id=child
+    incarnation=s1793109158.39977.7604
+    state=failed
+    outcome_key=inactive-outcome-mate-child-failed
+    origin=direct
+    phase=upstream
+    pr=https://github.com/carmandale/heru-vr-vision-sim/pull/178
+    created_epoch=1793163058
+    notice_emitted=0
+    status_head=bf6891459cb0155066926f0d231a75fa
+    pane_close_target=fm-lab-inactive-work-15076-22648:wF:p1
+
+# wake queue (state/.wake-queue)
+    (empty)
+
+# no-mistakes stand-in calls (read-only status surface)
+       2 axi
+       2 axi status
+       2 runs --limit 200
+
+# forge calls (must be none)
+    none
+
+# parent home state/mate.status (the parent channel)
+    failed [key=inactive-outcome-mate-child-failed] [at=1793163063]: inactive terminal child=child fingerprint=86089ae9e564bd55d4044c9d1464f1a8 pr=https://github.com/carmandale/heru-vr-vision-sim/pull/178

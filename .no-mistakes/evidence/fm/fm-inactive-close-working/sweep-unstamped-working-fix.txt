@@ -1,0 +1,50 @@
+=== unstamped working line after a merged run [fix code] ===
+home: disposable lab home (marked by bin/fm-lab-home.sh)
+herdr: lab session fm-lab-inactive-work-15076-22648, pane w8:p1
+
+# status log (state/heru-geu-1027.status), mtime 1793148334, turn-ended mtime 1793148341
+    working: rebuilding the Alpha after the merge
+
+# run record the reader trusts (no-mistakes axi status TOON + runs row)
+    run:
+      id: "01M5Z0TXN5172BSC901X18AA1C"
+      branch: fm/heru-geu-1027-wipe6
+      status: completed
+      head: "6bf152ba8e8a8e21b8b13caa4dccfb5b0ddfe83b"
+      pr: "https://github.com/carmandale/heru-vr-vision-sim/pull/178"
+      findings: none
+    outcome: passed
+    runs row: 01M5Z0TXN5172BSC901X18AA1C status=completed updated_at=1793124079
+
+# fm-crew-state.sh heru-geu-1027 (before the sweep)
+    state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+
+# sweep: FM_INACTIVE_RECONCILE_SECS=300 fm-inactive-reconcile.sh scan (rc=0)
+  stdout:
+    (empty)
+  stderr:
+    (empty)
+  scan marker (state/.inactive-outcome-reconcile):
+    epoch=1793162930
+    cursor=
+  herdr calls the sweep made through the lab wrapper:
+    (none)
+  close-path calls (pane close, or pane process-info for the shell-death close): 0
+
+# real pane after the sweep
+    present (herdr pane get w8:p1 answered the pane)
+
+# terminal outcome records
+(none: state/terminal-outcomes holds no record)
+
+# wake queue (state/.wake-queue)
+    (empty)
+
+# no-mistakes stand-in calls (read-only status surface)
+       2 axi
+       2 axi status
+       2 runs --limit 200
+
+# forge calls (must be none)
+    none
+

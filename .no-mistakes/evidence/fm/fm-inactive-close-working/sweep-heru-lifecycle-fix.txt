@@ -1,0 +1,72 @@
+=== heru-geu-1027 lifecycle (fix code) ===
+herdr: lab session fm-lab-inactive-work-15076-22648, pane wM:p1
+status log:
+    working [at=1793123903]: PR https://github.com/carmandale/heru-vr-vision-sim/pull/178 merged in run 01M5Z0TXN5172BSC901X18AA1C; Alpha build continues
+    working [at=1793148334]: #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+
+## watcher cadence 1: newest line is the #179 rebuild working line
+  crew-state: state: working · source: status-log · #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+  scan ran: marker epoch line absent -> 1793163299 (ran)
+  sweep rc=0
+  stdout:
+    (empty)
+  stderr: []
+  close-path calls: 0
+  pane: present (herdr pane get wM:p1 answered the pane)
+  outcome records:
+    (none: state/terminal-outcomes holds no record)
+
+## watcher cadence 2: still working
+  crew-state: state: working · source: status-log · #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+  scan ran: marker epoch line 1793163299 -> 1793163301 (ran)
+  sweep rc=0
+  stdout:
+    (empty)
+  stderr: []
+  close-path calls: 0
+  pane: present (herdr pane get wM:p1 answered the pane)
+  outcome records:
+    (none: state/terminal-outcomes holds no record)
+
+## watcher cadence 3: still working
+  crew-state: state: working · source: status-log · #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+  scan ran: marker epoch line 1793163301 -> 1793163304 (ran)
+  sweep rc=0
+  stdout:
+    (empty)
+  stderr: []
+  close-path calls: 0
+  pane: present (herdr pane get wM:p1 answered the pane)
+  outcome records:
+    (none: state/terminal-outcomes holds no record)
+
+the worker finishes: appended its CI-ready done line and went idle 400 s ago
+    working [at=1793123903]: PR https://github.com/carmandale/heru-vr-vision-sim/pull/178 merged in run 01M5Z0TXN5172BSC901X18AA1C; Alpha build continues
+    working [at=1793148334]: #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+    done [at=1793162905]: PR https://github.com/carmandale/heru-vr-vision-sim/pull/178 checks green
+
+## watcher cadence 4: newest state line is the done report
+  crew-state: state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+  scan ran: marker epoch line 1793163304 -> 1793163307 (ran)
+  sweep rc=0
+  stdout:
+    actionable: inactive terminal outcome awaiting captain presentation: child=heru-geu-1027 state=done pr=https://github.com/carmandale/heru-vr-vision-sim/pull/178
+  stderr: []
+  close-path calls: 1
+  pane: gone (herdr pane get wM:p1: pane_not_found)
+  outcome records:
+    --- state/terminal-outcomes/3cd1314455f1ce84d063b061eea2d8be.pending
+        schema=fm-terminal-outcome.v1
+        fingerprint=3cd1314455f1ce84d063b061eea2d8be
+        task_id=heru-geu-1027
+        incarnation=s1793109158.39977.7604
+        state=done
+        outcome_key=inactive-outcome-main-heru-geu-1027-done
+        origin=direct
+        pr=https://github.com/carmandale/heru-vr-vision-sim/pull/178
+        created_epoch=1793163306
+        notice_emitted=0
+        status_head=785a33a2e3bdfb8048e0c296a1922858
+        pane_close_target=fm-lab-inactive-work-15076-22648:wM:p1
+        phase=presentation
+

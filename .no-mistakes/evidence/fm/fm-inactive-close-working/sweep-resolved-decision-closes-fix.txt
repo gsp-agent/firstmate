@@ -1,0 +1,75 @@
+=== finished task: merged run whose only later lines are a decision and the resolved line that closed it [fix code] ===
+home: disposable lab home (marked by bin/fm-lab-home.sh)
+herdr: lab session fm-lab-inactive-work-15076-22648, pane wE:p1
+
+# status log (state/heru-geu-1027.status), mtime 1793148334, turn-ended mtime 1793148341
+    needs-decision [key=car] [at=1793148350]: which car export?
+    resolved [key=car] [at=1793148400]: answered: use the PC export
+
+# run record the reader trusts (no-mistakes axi status TOON + runs row)
+    run:
+      id: "01M5Z0TXN5172BSC901X18AA1C"
+      branch: fm/heru-geu-1027-wipe6
+      status: completed
+      head: "f09eaf3039a77e089486ca90b086f4451792d5bf"
+      pr: "https://github.com/carmandale/heru-vr-vision-sim/pull/178"
+      findings: none
+    outcome: passed
+    runs row: 01M5Z0TXN5172BSC901X18AA1C status=completed updated_at=1793124079
+
+# fm-crew-state.sh heru-geu-1027 (before the sweep)
+    state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+
+# sweep: FM_INACTIVE_RECONCILE_SECS=300 fm-inactive-reconcile.sh scan (rc=0)
+  stdout:
+    actionable: inactive terminal outcome awaiting captain presentation: child=heru-geu-1027 state=done pr=https://github.com/carmandale/heru-vr-vision-sim/pull/178
+  stderr:
+    (empty)
+  scan marker (state/.inactive-outcome-reconcile):
+    epoch=1793163022
+    cursor=
+  herdr calls the sweep made through the lab wrapper:
+    status --json
+    session list --json
+    workspace list
+    tab list --workspace w1
+    pane get wE:p1
+    tab list --workspace wE
+    pane list --workspace wE
+    workspace list
+    pane process-info --pane wE:p1
+    pane get wE:p1
+    workspace list
+    tab list --workspace w1
+  close-path calls (pane close, or pane process-info for the shell-death close): 1
+
+# real pane after the sweep
+    gone (herdr pane get wE:p1: pane_not_found)
+
+# terminal outcome records
+--- state/terminal-outcomes/3cd1314455f1ce84d063b061eea2d8be.pending
+    schema=fm-terminal-outcome.v1
+    fingerprint=3cd1314455f1ce84d063b061eea2d8be
+    task_id=heru-geu-1027
+    incarnation=s1793109158.39977.7604
+    state=done
+    outcome_key=inactive-outcome-main-heru-geu-1027-done
+    origin=direct
+    pr=https://github.com/carmandale/heru-vr-vision-sim/pull/178
+    created_epoch=1793163018
+    notice_emitted=0
+    status_head=6724e0583715cff812f2bc2673ffd27b
+    pane_close_target=fm-lab-inactive-work-15076-22648:wE:p1
+    phase=presentation
+
+# wake queue (state/.wake-queue)
+    1793163022	1	check	inactive-outcome:3cd1314455f1ce84d063b061eea2d8be	inactive terminal outcome awaiting captain presentation: child=heru-geu-1027 state=done pr=https://github.com/carmandale/heru-vr-vision-sim/pull/178
+
+# no-mistakes stand-in calls (read-only status surface)
+       2 axi
+       2 axi status
+       2 runs --limit 200
+
+# forge calls (must be none)
+    none
+

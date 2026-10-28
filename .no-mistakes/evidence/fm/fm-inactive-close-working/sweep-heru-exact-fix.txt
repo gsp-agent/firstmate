@@ -1,0 +1,51 @@
+=== heru-geu-1027 exact: PR #178 merged, then a newer working line for the #179 Alpha rebuild [fix code] ===
+home: disposable lab home (marked by bin/fm-lab-home.sh)
+herdr: lab session fm-lab-inactive-work-15076-22648, pane w4:p1
+
+# status log (state/heru-geu-1027.status), mtime 1793148334, turn-ended mtime 1793148341
+    working [at=1793123903]: PR https://github.com/carmandale/heru-vr-vision-sim/pull/178 merged in run 01M5Z0TXN5172BSC901X18AA1C; Alpha build continues
+    working [at=1793148334]: #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+
+# run record the reader trusts (no-mistakes axi status TOON + runs row)
+    run:
+      id: "01M5Z0TXN5172BSC901X18AA1C"
+      branch: fm/heru-geu-1027-wipe6
+      status: completed
+      head: "bde32daa8d99d1e201b0a212fbaecfa60dcbbe23"
+      pr: "https://github.com/carmandale/heru-vr-vision-sim/pull/178"
+      findings: none
+    outcome: passed
+    runs row: 01M5Z0TXN5172BSC901X18AA1C status=completed updated_at=1793124079
+
+# fm-crew-state.sh heru-geu-1027 (before the sweep)
+    state: working · source: status-log · #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+
+# sweep: FM_INACTIVE_RECONCILE_SECS=300 fm-inactive-reconcile.sh scan (rc=0)
+  stdout:
+    (empty)
+  stderr:
+    (empty)
+  scan marker (state/.inactive-outcome-reconcile):
+    epoch=1793162898
+    cursor=
+  herdr calls the sweep made through the lab wrapper:
+    (none)
+  close-path calls (pane close, or pane process-info for the shell-death close): 0
+
+# real pane after the sweep
+    present (herdr pane get w4:p1 answered the pane)
+
+# terminal outcome records
+(none: state/terminal-outcomes holds no record)
+
+# wake queue (state/.wake-queue)
+    (empty)
+
+# no-mistakes stand-in calls (read-only status surface)
+       2 axi
+       2 axi status
+       2 runs --limit 200
+
+# forge calls (must be none)
+    none
+

@@ -1,0 +1,167 @@
+=== fm-crew-state.sh after a finished run: newest state line vs the run record ===
+run record: 01M5Z0TXN5172BSC901X18AA1C, updated_at=1793124079; herdr lab session fm-lab-inactive-work-15076-22648
+
+## merged (passed) run, PR https://github.com/carmandale/heru-vr-vision-sim/pull/178
+
+--- PASS: heru-geu-1027 exact sequence
+  status log:
+    working [at=1793123903]: PR https://github.com/carmandale/heru-vr-vision-sim/pull/178 merged in run 01M5Z0TXN5172BSC901X18AA1C; Alpha build continues
+    working [at=1793148334]: #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+  expected (fix): contains "state: working · source: status-log · #179", not "state: done"
+  fix answer:  state: working · source: status-log · #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+  base answer: state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+
+--- PASS: newer working line, then a resolved line
+  status log:
+    working [at=1793148334]: #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+    resolved [key=car] [at=1793148400]: answered: use the PC export
+  expected (fix): contains "state: working · source: status-log · #179"
+  fix answer:  state: working · source: status-log · #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+  base answer: state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+
+--- PASS: newer working line, then the merge handoff note
+  status log:
+    working [at=1793148334]: #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+    note [key=merged-heru-geu-1027] [at=1793148400]: merged heru-geu-1027 https://github.com/carmandale/heru-vr-vision-sim/pull/178 spawn_gen=s1793109158.39977.7604; activation and live verification pending with the existing owner
+  expected (fix): contains "state: working · source: status-log · #179"
+  fix answer:  state: working · source: status-log · #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+  base answer: state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+
+--- PASS: working, needs-decision, resolved: the closed decision does not come back
+  status log:
+    working [at=1793148334]: #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+    needs-decision [key=car] [at=1793148350]: which car export?
+    resolved [key=car] [at=1793148400]: answered: use the PC export
+  expected (fix): contains "state: working", not "state: parked"
+  fix answer:  state: working · source: status-log · #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+  base answer: state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+
+--- PASS: working, needs-decision, paused [key=car], resolved [key=car]: the retracted pause does not come back
+  status log:
+    working [at=1793148334]: #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+    needs-decision [key=car] [at=1793148350]: which car export?
+    paused [key=car] [at=1793148360]: waiting on Dale's answer
+    resolved [key=car] [at=1793148400]: answered: use the PC export
+  expected (fix): contains "state: working", not "state: paused"
+  fix answer:  state: working · source: status-log · #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+  base answer: state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+
+--- PASS: paused [key=car], needs-decision [key=tex], resolved [key=tex]: a pause a later decision ended does not come back
+  status log:
+    paused [key=car] [at=1793148350]: waiting on the PC export
+    needs-decision [key=tex] [at=1793148360]: which texture set?
+    resolved [key=tex] [at=1793148400]: answered: 4k
+  expected (fix): contains "state: done · source: run-step", not "state: paused"
+  fix answer:  state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+  base answer: state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+
+--- PASS: paused [key=car], paused [key=tex], resolved [key=tex]: the earlier pause stays ended
+  status log:
+    paused [key=car] [at=1793148350]: waiting on the PC export
+    paused [key=tex] [at=1793148360]: waiting on textures
+    resolved [key=tex] [at=1793148400]: answered: textures landed
+  expected (fix): contains "source: run-step", not "state: paused"
+  fix answer:  state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+  base answer: state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+
+--- PASS: keyless pause retracted by a keyless resolved line
+  status log:
+    working [at=1793148334]: #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+    paused [at=1793148360]: waiting on the PC export
+    resolved [at=1793148400]: answered: export landed
+  expected (fix): contains "state: working", not "state: paused"
+  fix answer:  state: working · source: status-log · #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+  base answer: state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+
+--- PASS: keyless pause NOT retracted by resolved [key=default]
+  status log:
+    working [at=1793148334]: #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+    paused [at=1793148360]: waiting on the PC export
+    resolved [key=default] [at=1793148400]: answered: another decision
+  expected (fix): contains "state: paused"
+  fix answer:  state: paused · source: status-log · waiting on the PC export
+  base answer: state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+
+--- PASS: newest done line after the merge stays on the passed run (no reopen)
+  status log:
+    working [at=1793123903]: PR https://github.com/carmandale/heru-vr-vision-sim/pull/178 merged in run 01M5Z0TXN5172BSC901X18AA1C; Alpha build continues
+    done [at=1793149000]: finished after the rebuild
+  expected (fix): contains "state: done · source: run-step"
+  fix answer:  state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+  base answer: state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+
+--- PASS: working line stamped before the run clock: run stays authoritative
+  status log:
+    working [at=1793123903]: PR https://github.com/carmandale/heru-vr-vision-sim/pull/178 merged in run 01M5Z0TXN5172BSC901X18AA1C; Alpha build continues
+  expected (fix): contains "state: done · source: run-step"
+  fix answer:  state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+  base answer: state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+
+--- PASS: working line stamped exactly at the run clock (not strictly newer)
+  status log:
+    working [at=1793124079]: same second as the run record
+  expected (fix): contains "state: done · source: run-step"
+  fix answer:  state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+  base answer: state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+
+--- PASS: unstamped working line: run stays authoritative
+  status log:
+    working: still on the merged run
+  expected (fix): contains "state: done · source: run-step"
+  fix answer:  state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+  base answer: state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+
+--- PASS: malformed stamp: run stays authoritative
+  status log:
+    working [at=17931483x4]: malformed stamp
+  expected (fix): contains "state: done · source: run-step"
+  fix answer:  state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+  base answer: state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+
+--- PASS: run clock unreadable (no state database): run stays authoritative
+  status log:
+    working [at=1793148334]: #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+  expected (fix): contains "state: done · source: run-step"
+  fix answer:  state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+  base answer: state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+
+  (the reader did not create a missing database: state.sqlite still absent)
+
+## run-clock reader isolation: a planted sqlite3.py in the task worktree
+
+control: plain `python3 -` run from the worktree imported the plant (marker written), so the plant is live
+
+--- PASS: heru-geu-1027 sequence with sqlite3.py planted in the worktree
+  status log:
+    working [at=1793123903]: PR https://github.com/carmandale/heru-vr-vision-sim/pull/178 merged in run 01M5Z0TXN5172BSC901X18AA1C; Alpha build continues
+    working [at=1793148334]: #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+  expected (fix): contains "state: working · source: status-log · #179"
+  fix answer:  state: working · source: status-log · #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+  base answer: state: done · source: run-step · run passed: PR state unknown (forge read skipped)
+
+PASS: crew-state never imported the planted sqlite3.py (no marker)
+
+## failed run
+
+--- PASS: failed run, newer working line: the newest line answers
+  status log:
+    working [at=1793148334]: #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+  expected (fix): contains "state: working · source: status-log", not "state: failed"
+  fix answer:  state: working · source: status-log · #179 (heru-65n-r4's car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side ...
+  base answer: state: failed · source: run-step · run failed
+
+--- PASS: failed run, unstamped working line: run stays authoritative
+  status log:
+    working: compiling the Alpha build
+  expected (fix): contains "state: failed · source: run-step"
+  fix answer:  state: failed · source: run-step · run failed
+  base answer: state: failed · source: run-step · run failed
+
+--- PASS: failed run, newer failed line: stays on the failed run
+  status log:
+    failed [at=1793148334]: build broke again
+  expected (fix): contains "state: failed · source: run-step"
+  fix answer:  state: failed · source: run-step · run failed
+  base answer: state: failed · source: run-step · run failed
+
+== 20 passed, 0 failed ==

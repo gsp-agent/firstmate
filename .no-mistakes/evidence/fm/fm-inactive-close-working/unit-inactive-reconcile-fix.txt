@@ -1,0 +1,12 @@
+actionable: inactive terminal outcome awaiting captain presentation: child=child state=done pr=https://example.test/owner/repo/pull/1
+ok - main direct terminal presentation has a durable receipt
+ok - an unterminated continuation line does not withhold a proven child outcome
+ok - later status prose does not change the inactive terminal receipt identity
+ok - inactive and ledger paths reconcile one raced completion without hiding later events
+ok - progress after an inactive fallback starts a distinct terminal event
+ok - remote parent-replies mirror input is durable and idempotent
+ok - legacy metadata rewrites preserve terminal receipt identity
+ok - relaunch cannot replace metadata during terminal snapshot
+ok - a secondmate home with no parent binding names the missing binding instead of failing quietly
+ok - a newer working line survives the inactive sweep and a finished task still closes
+not ok - ship context-paused herdr pane was not closed: context passed 300k tokens; stowed
