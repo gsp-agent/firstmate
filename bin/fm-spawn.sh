@@ -4995,6 +4995,19 @@ if [ "$RELAUNCH" -eq 1 ]; then
   # uncommitted changes are exactly as the previous agent left them, and nothing
   # below may touch them.
   [ "$KIND" = secondmate ] || WT=$RELAUNCH_WT
+  if [ "$RELAUNCH_REBIND" -eq 0 ] && [ "$BACKEND" = herdr ] && [ "$HARNESS" != codex ] && [ "$KIND" != secondmate ]; then
+    crew_bound=$(fm_backend_herdr_pane_agent_session_ref "$HERDR_SES" "$HERDR_PANE_ID") || crew_bound=
+    case $crew_bound in
+    codex$'\t'*)
+      if [ "$(fm_backend_herdr_pane_process_state "$HERDR_SES" "$HERDR_PANE_ID")" != shell ] ||
+        ! fm_backend_herdr_explicit_close_pane_confirmed "$HERDR_SES" "$HERDR_PANE_ID"; then
+        echo "error: Herdr pane $HERDR_PANE_ID still holds its retired Codex session and could not be replaced; refusing to launch $HARNESS for $ID" >&2
+        exit 1
+      fi
+      RELAUNCH_REBIND=1
+      ;;
+    esac
+  fi
   if [ "$RELAUNCH_REBIND" -eq 0 ]; then
     # Adopt the recorded endpoint instead of creating one. This is what keeps a
     # relaunch a REPLACEMENT rather than a second copy of the task: no new
@@ -7453,9 +7466,9 @@ fi
 # (bin/fm-crew-resume-lib.sh). A raw launch command was not built from them,
 # so it gets no record. A Grok crew's session reaches Herdr through its hook,
 # and its summary.json already records the worker grok_home. A relaunch onto
-# another harness reads the pane back: Herdr drops a Codex binding when Codex
-# exits so the new harness's own session report can bind the pane, and a Codex
-# binding still there would keep that report out.
+# another harness replaces a stopped pane still bound to Codex before launch
+# and reads the new pane back afterward: a surviving Codex binding would keep
+# the new harness's own session report out.
 if [ "$BACKEND" = herdr ] && [ "$RELAUNCH" -eq 1 ] && [ "$HARNESS" != codex ]; then
   crew_bound=$(fm_backend_herdr_pane_agent_session_ref "$HERDR_SES" "$HERDR_PANE_ID") || crew_bound=
   case $crew_bound in

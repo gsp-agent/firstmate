@@ -12,18 +12,13 @@
 # fm_backend_herdr_pane_agent_session_ref), so only the read-back counts.
 # A restore then types `codex resume <id>` and the restore gate paces it.
 #
-# Measured on Herdr 0.9.1 in an fm-lab- session, with a codex-named process as
-# the pane's agent. A report Herdr takes after it has registered that agent is
-# tied to the process: Herdr drops the binding when Codex exits, so after a
-# relaunch onto another harness that harness's own session report binds the
-# pane, even one naming no session start (measured with a claude report).
-# A report taken before the registration outlives the process and keeps the
-# pane bound to the dead session against any other harness's report, so
-# fm_crew_report_codex_session reports only once fm_crew_herdr_pane_runs_codex
-# holds. A pane still bound to an earlier Codex session (a relaunch that
-# reports before Herdr notices the old process is gone) keeps that binding
-# unless the report names its session start (--session-start-source startup),
-# which is what lets a relaunch's new session replace the old one.
+# Measured on Herdr 0.9.1 with a codex-named process inside a nested
+# interactive worktree shell: the binding survives Codex's exit.
+# A relaunch onto a different harness replaces the stopped, still-bound pane
+# through fm-spawn's endpoint rebind path so its own report can bind the new pane.
+# A Codex relaunch instead reports its new session with
+# --session-start-source startup, which replaces the earlier binding.
+# Both report gates require a live agent, not just a retained registration.
 #
 # That bare resume carries neither the crew's CODEX_HOME nor its launch flags.
 # fm_crew_codex_args is the one list of Codex crew launch arguments after the
@@ -103,7 +98,8 @@ fm_crew_report_codex_session() { # <herdr-session> <pane-id> <session-id>
 fm_crew_herdr_pane_runs_codex() { # <herdr-session> <pane-id>
   local identity
   identity=$(fm_backend_herdr_agent_identity_raw "$1" "$2") || return 1
-  [ "${identity%%$'\t'*}" = codex ]
+  [ "${identity%%$'\t'*}" = codex ] || return 1
+  [ "$(fm_backend_herdr_pane_agent_state "$1" "$2")" = live ]
 }
 
 fm_crew_codex_resume_record_write() { # <record> <session-id> <codex-home> <launch-arg>...

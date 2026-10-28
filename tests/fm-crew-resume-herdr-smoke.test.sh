@@ -2,13 +2,14 @@
 # tests/fm-crew-resume-herdr-smoke.test.sh - real-herdr smoke test for the Codex
 # crew session report (bin/fm-crew-resume-lib.sh, bin/fm-spawn.sh).
 #
-# A Codex crew is launched into a Herdr pane and then relaunched in the same
-# pane. After each launch the pane must be bound to that launch's own Codex
+# A Codex crew is launched inside a nested interactive worktree shell under
+# the Herdr pane's top shell and then relaunched in the same pane.
+# After each launch the pane must be bound to that launch's own Codex
 # session, read back from Herdr's registry, and state/<id>.codex-resume must
 # name it: a relaunch replaces the earlier binding, so nothing stays bound to
 # the retired session. A relaunch onto another harness then leaves neither a
-# Codex binding nor a Codex resume record, and that harness's own session
-# report binds the pane.
+# Codex binding nor a Codex resume record, replacing the stopped pane if its
+# binding survived, and that harness's own session report binds the new pane.
 #
 # No real Codex runs. The stand-in `codex` writes the session rollout Codex
 # writes for its worktree, draws the in-turn footer the spawn's launch gate
@@ -146,7 +147,10 @@ exec "$AGENT_DIR/codex"
 EOF
 chmod +x "$FAKEBIN/codex"
 printf -v FAKEBIN_Q '%q' "$FAKEBIN"
-fm_backend_herdr_send_text_line "$SESSION:$PANE_ID" "export PATH=$FAKEBIN_Q:\$PATH" \
+fm_backend_herdr_send_text_line "$SESSION:$PANE_ID" "bash --noprofile --norc -i" \
+  || fail "could not enter the nested worktree shell"
+printf -v SHELL_RECORD_Q '%q' "$SCRATCH/worktree-shell"
+fm_backend_herdr_send_text_line "$SESSION:$PANE_ID" "printf '%s %s\\n' \$\$ \$PPID > $SHELL_RECORD_Q; export PATH=$FAKEBIN_Q:\$PATH" \
   || fail "could not put the stand-in codex on the pane PATH"
 
 relaunch_codex() {
@@ -165,8 +169,7 @@ assert_bound_to() {  # <session-id> <label>
 
 stop_codex() {
   local pid i=0
-  pid=$(herdr pane process-info --pane "$PANE_ID" --session "$SESSION" 2>/dev/null \
-    | jq -r '.result.process_info.foreground_processes[0].pid // empty')
+  pid=$(fm_backend_herdr_agent_root_pids "$SESSION:$PANE_ID")
   [ -n "$pid" ] || fail "could not read the codex stand-in pid from pane process-info"
   kill "$pid" 2>/dev/null || fail "could not stop the codex stand-in"
   while [ "$i" -lt 50 ]; do
@@ -176,6 +179,18 @@ stop_codex() {
   done
   fail "the pane did not return to its shell after the codex stand-in stopped"
 }
+
+i=0
+until [ -s "$SCRATCH/worktree-shell" ]; do
+  [ "$i" -lt 50 ] || fail "the nested worktree shell did not start"
+  sleep 0.1
+  i=$((i + 1))
+done
+read -r WORKTREE_SHELL_PID WORKTREE_SHELL_PARENT < "$SCRATCH/worktree-shell"
+TOP_SHELL_PID=$(fm_backend_herdr_cli "$SESSION" pane process-info --pane "$PANE_ID" \
+  | jq -r '.result.process_info.shell_pid // empty')
+[ "$WORKTREE_SHELL_PID" != "$TOP_SHELL_PID" ] && [ "$WORKTREE_SHELL_PARENT" = "$TOP_SHELL_PID" ] \
+  || fail "the worktree shell is not nested directly under the pane's top shell"
 
 OUT=$(relaunch_codex) || fail "the first codex launch into the Herdr pane failed: $OUT"
 assert_not_contains "$OUT" "did not take Codex session" "the first codex launch warned that Herdr did not take its session"
@@ -197,8 +212,8 @@ fm_crew_report_codex_session "$SESSION" "$PANE_ID" fm-crew-resume-session-3 \
   || fail "a report into a pane still bound to session 2 did not take session 3: $(fm_backend_herdr_pane_agent_session_ref "$SESSION" "$PANE_ID")"
 pass "real herdr: a codex session report replaces a binding Herdr still holds for an earlier session"
 
-# A relaunch onto another harness must leave no Codex binding behind for that
-# harness's own session report to fight. The stand-in claude reports its session
+# A relaunch onto another harness must replace a still-bound pane so that
+# harness's own session report can bind its replacement. The stand-in claude reports its session
 # from inside the pane the way a Herdr hook does, naming no session start - the
 # report a pane still bound to Codex would keep ignoring - and then becomes a
 # claude-named agent. Its folder-trust registration goes to a throwaway
@@ -209,7 +224,10 @@ ln -s "$STANDIN_BIN" "$AGENT_DIR/claude"
 printf -v HERDR_BIN_Q '%q' "$(command -v herdr)"
 cat > "$FAKEBIN/claude" <<EOF
 #!/usr/bin/env bash
+printf '%s\n' started > "$SCRATCH/claude-started"
 ( for _ in \$(seq 1 60); do
+    $HERDR_BIN_Q pane report-agent "\$HERDR_PANE_ID" --source herdr:claude --agent claude --state working \\
+      --agent-session-id fm-crew-resume-claude-1 --session "$SESSION" >/dev/null 2>&1
     $HERDR_BIN_Q pane report-agent-session "\$HERDR_PANE_ID" --source herdr:claude --agent claude \\
       --agent-session-id fm-crew-resume-claude-1 --session "$SESSION" >/dev/null 2>&1
     sleep 0.5
@@ -218,15 +236,37 @@ exec "$AGENT_DIR/claude"
 EOF
 chmod +x "$FAKEBIN/claude"
 stop_codex
+EXIT_BINDING=$(fm_backend_herdr_pane_agent_session_ref "$SESSION" "$PANE_ID") || EXIT_BINDING=
+case $EXIT_BINDING in
+  '' | "codex"$'\t'"fm-crew-resume-session-3") ;;
+  *) fail "the nested-shell exit left an unexpected session binding: $EXIT_BINDING" ;;
+esac
+printf 'Codex binding after nested-shell exit: %s\n' "${EXIT_BINDING:-none}"
+if fm_crew_herdr_pane_runs_codex "$SESSION" "$PANE_ID"; then
+  fail "the exited nested-shell Codex still passed the live Codex report gate"
+fi
+OLD_PANE_ID=$PANE_ID
+printf '%s\n' 'uncommitted crew work' > "$WT/uncommitted.txt"
 OUT=$(env FM_HOME="$HOME_DIR" HERDR_SESSION="$SESSION" FM_SPAWN_NO_GUARD=1 CLAUDE_CONFIG_DIR="$CLAUDE_CONFIG_LAB" \
-  "$ROOT/bin/fm-spawn.sh" hresume --relaunch --harness claude 2>&1) \
+  "$ROOT/bin/fm-spawn.sh" hresume --relaunch --harness "$FAKEBIN/claude --standin" 2>&1) \
   || fail "the relaunch from codex onto claude failed: $OUT"
+PANE_ID=$(sed -n 's/^herdr_pane_id=//p' "$HOME_DIR/state/hresume.meta")
+[ -n "$PANE_ID" ] || fail "the replacement record names no pane"
+[ "$(sed -n 's/^worktree=//p' "$HOME_DIR/state/hresume.meta")" = "$WT" ] \
+  && [ "$(cat "$WT/uncommitted.txt")" = 'uncommitted crew work' ] \
+  || fail "the harness switch did not preserve the recorded worktree and its uncommitted work"
+if [ -n "$EXIT_BINDING" ]; then
+  [ "$PANE_ID" != "$OLD_PANE_ID" ] || fail "the harness switch reused the pane still bound to Codex"
+  [ "$(fm_backend_herdr_pane_presence_state "$SESSION" "$OLD_PANE_ID")" = dead ] \
+    || fail "the old Codex pane survived the harness switch"
+fi
 assert_not_contains "$OUT" "still holds Codex session" "the relaunch onto claude warned that the retired Codex binding survived"
 [ ! -e "$HOME_DIR/state/hresume.codex-resume" ] || fail "the relaunch onto claude left the Codex resume record behind"
+[ -s "$SCRATCH/claude-started" ] || fail "the replacement pane did not launch the stand-in claude"
 i=0
 until [ "$(fm_backend_herdr_pane_agent_session_ref "$SESSION" "$PANE_ID")" = "claude"$'\t'"fm-crew-resume-claude-1" ]; do
   [ "$i" -lt 60 ] || fail "claude's own session report never bound the pane, which holds '$(fm_backend_herdr_pane_agent_session_ref "$SESSION" "$PANE_ID")'"
   sleep 0.5
   i=$((i + 1))
 done
-pass "real herdr: a relaunch from codex onto another harness drops the Codex binding and record, and that harness's own session report binds the pane"
+pass "real herdr: a relaunch from codex onto another harness replaces the retained Codex pane and removes its resume record, and that harness's own session report binds the pane"

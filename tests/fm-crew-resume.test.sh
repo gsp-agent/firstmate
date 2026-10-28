@@ -21,14 +21,17 @@ case "$1 $2" in
   printf '%s\n' "$*" >> "$FM_CREW_HERDR_LOG"
   printf '%s\n' '{"result":{"ok":true}}'
   ;;
+"pane get") printf '{"result":{"pane":{"pane_id":"w1:p9"}}}\n' ;;
 "agent get") printf '%s\n' "$FM_CREW_HERDR_AGENT_GET" ;;
 *) exit 2 ;;
 esac
 SH
 chmod +x "$FAKEBIN/herdr"
 
+fm_backend_herdr_pane_process_state() { printf '%s' "${FM_CREW_PROCESS_STATE:-agent}"; }
+
 agent_get_body() { # <agent> <session-id>
-  printf '{"result":{"agent":{"agent":"%s","agent_session":{"agent":"%s","kind":"id","source":"herdr:%s","value":"%s"}}}}' \
+  printf '{"result":{"agent":{"agent":"%s","agent_status":"working","agent_session":{"agent":"%s","kind":"id","source":"herdr:%s","value":"%s"}}}}' \
     "$1" "$1" "$1" "$2"
 }
 
@@ -80,7 +83,11 @@ test_herdr_pane_runs_codex_only_once_herdr_registers_the_codex_agent() {
     fm_crew_herdr_pane_runs_codex fm-lab-test w1:p9; then
     fail "a pane registered to another agent read as running codex"
   fi
-  pass "a pane reads as running codex only once Herdr registers its codex agent"
+  if FM_CREW_PROCESS_STATE=shell FM_CREW_HERDR_AGENT_GET=$(agent_get_body codex old-id) PATH="$FAKEBIN:$PATH" \
+    fm_crew_herdr_pane_runs_codex fm-lab-test w1:p9; then
+    fail "a stale Codex registration read as a live Codex process"
+  fi
+  pass "a pane reads as running codex only with a live process and a Codex registration"
 }
 
 test_codex_report_fails_when_herdr_keeps_another_session() {
@@ -94,7 +101,11 @@ test_codex_report_fails_when_herdr_keeps_another_session() {
     fm_crew_report_codex_session fm-lab-test w1:p9 new-id >/dev/null 2>&1; then
     fail "a codex report into a pane with no registered codex agent counted as success"
   fi
-  [ ! -s "$log" ] || fail "a codex session was reported before Herdr registered the pane's codex agent: $(cat "$log")"
+  if FM_CREW_PROCESS_STATE=shell FM_CREW_HERDR_LOG=$log FM_CREW_HERDR_AGENT_GET=$(agent_get_body codex old-id) PATH="$FAKEBIN:$PATH" \
+    fm_crew_report_codex_session fm-lab-test w1:p9 new-id >/dev/null 2>&1; then
+    fail "a stale Codex registration permitted a new session report"
+  fi
+  [ ! -s "$log" ] || fail "a codex session was reported without a live registered Codex agent: $(cat "$log")"
   pass "codex session report fails when the pane does not read back the reported session, and never reports before Herdr registers the codex agent"
 }
 
