@@ -11,8 +11,10 @@
 #        bash fm-task-data-lib.sh sweep DATA STATE [REQUESTING_ID]
 #        bash fm-task-data-lib.sh offload-plan DATA STATE [ID]
 #        bash fm-task-data-lib.sh offload DATA STATE ID
-# Offload is explicit only; it never runs from automatic teardown/sweep.
-# fm-task-data.py --help owns its backup-verifier and pointer contract.
+# Each sweep ends with one offload pass over every eligible task, which does
+# nothing in a home with no config/task-data-offload.json; offload also runs
+# by hand for one task. fm-task-data.py --help owns eligibility and the
+# backup-verifier and pointer contract.
 # A named sweep request atomically replaces STATE/.task-data-sweep.rerun with that completion's id.
 # An active sweep takes another pass when that slot changes.
 # An explicit sweep omits REQUESTING_ID and never replaces an existing slot.
@@ -195,8 +197,44 @@ fm_task_data_sweep() ( # <data> <state>; traps belong only to this sweep
     fm_lock_try_acquire "$lock" || break
   done
   rm -f -- "$snapshot"
+  fm_task_data_offload_pass "$data" "$state" || true
   return 0
 )
+
+# Offload one task under the spawn meta lock; a held lock refuses. The lock is
+# released however the offload ends, including INT, TERM or HUP.
+fm_task_data_offload_task() ( # <data> <state> <id>; traps belong only to this offload
+  local lock
+  fm_task_id_path_safe "$3" || return 1
+  lock=$(fm_meta_lock_path "$2/$3.meta") || return 1
+  fm_lock_try_acquire "$lock" || { echo "error: task is locked; nothing was offloaded" >&2; return 1; }
+  trap 'fm_lock_release "$lock"' EXIT
+  trap 'exit 143' TERM
+  trap 'exit 130' INT
+  trap 'exit 129' HUP
+  python3 "$(dirname "${BASH_SOURCE[0]}")/fm-task-data.py" offload "$1" "$2" "$3"
+)
+
+# Offload every task offload-plan names, once each, in a home whose
+# config/task-data-offload.json names a backup verifier; one pass at a time.
+# A refusal keeps that task's originals for the next pass.
+fm_task_data_offload_pass() { # <data> <state>
+  local data=$1 state=$2 lock plan task rc=0
+  [ -e "$(dirname "$data")/config/task-data-offload.json" ] || return 0
+  lock="$state/.task-data-offload.lock"
+  fm_lock_try_acquire "$lock" || return 0
+  if ! plan=$(python3 "$(dirname "${BASH_SOURCE[0]}")/fm-task-data.py" offload-plan "$data" "$state"); then
+    fm_lock_release "$lock"
+    return 1
+  fi
+  while IFS= read -r task; do
+    [ -n "$task" ] || continue
+    fm_task_data_offload_task "$data" "$state" "$task" || rc=1
+  # Tasks holding a leftover archive copy go first: any copy blocks new archives.
+  done < <(printf '%s\n' "$plan" | jq -r '.leftovers + [.moves[].task] | reduce .[] as $t ([]; if index([$t]) then . else . + [$t] end) | .[]')
+  fm_lock_release "$lock"
+  return "$rc"
+}
 
 # Start one sweep in the background.
 fm_task_data_sweep_start() { # <data> <state>
@@ -400,11 +438,12 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
       . "$(dirname "${BASH_SOURCE[0]}")/fm-wake-lib.sh" || exit 1
       # shellcheck source=/dev/null
       . "$(dirname "${BASH_SOURCE[0]}")/fm-pr-lib.sh" || exit 1
-      fm_task_id_path_safe "$4" || exit 1
-      offload_lock=$(fm_meta_lock_path "$3/$4.meta") || exit 1
-      fm_lock_try_acquire "$offload_lock" || { echo "error: task is locked; nothing was offloaded" >&2; exit 1; }
+      # Every offload holds the single-instance lock the pass takes, so the
+      # one-copy check and the copy's journal entry cannot race.
+      offload_lock="$3/.task-data-offload.lock"
+      fm_lock_try_acquire "$offload_lock" || { echo "error: another offload is running; nothing was offloaded" >&2; exit 1; }
       trap 'fm_lock_release "$offload_lock"' EXIT
-      python3 "$(dirname "${BASH_SOURCE[0]}")/fm-task-data.py" "$@"
+      fm_task_data_offload_task "$2" "$3" "$4"
       ;;
     backlog-location)
       [ "$#" -eq 2 ] || exit 1

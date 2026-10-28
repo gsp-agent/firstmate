@@ -17,15 +17,20 @@ trap 'exit 143' TERM
 trap 'exit 130' INT
 python3 - "$ROOT" "$TMP_ROOT" <<'PY' &
 import atexit
+import contextlib
 from datetime import date, timedelta
 import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import signal
 import sqlite3
+import stat
 import subprocess
 import sys
+import tarfile
+import time
 
 code, base = map(Path, sys.argv[1:])
 active = None
@@ -47,7 +52,7 @@ signal.signal(signal.SIGINT, lambda *_: sys.exit(130))
 fake = base / "fakebin"
 fake.mkdir()
 shim = '''#!/usr/bin/env python3
-import json, os, pathlib, runpy, shutil, sys
+import json, os, pathlib, runpy, shutil, sys, time
 p = pathlib.Path
 home = p(os.environ["FM_HOME"])
 tool = p(sys.argv[0]).name
@@ -58,10 +63,16 @@ def remote(name):
     return home / "remote" / name.removeprefix("mini-ts:").lstrip("/")
 if tool == "ssh":
     request = json.load(sys.stdin)
+    if mode == "mini-unreachable":
+        with (home / "archives-seen").open("a") as seen:
+            seen.writelines(path.name + "\\n" for path in (home / "data/task-one").glob(".firstmate-offload-*"))
+        sys.exit(255)
     path = remote(request["destination"])
     if mode == "remote-failed":
         sys.exit(9)
-    if request["action"] == "prepare":
+    if request["action"] == "ready":
+        print(json.dumps({"ready": True}))
+    elif request["action"] == "prepare":
         path.parent.mkdir(parents=True, exist_ok=True)
         helper = runpy.run_path(os.environ["OFFLOAD_HELPER"])
         print(json.dumps(helper["offload_prepare"](path, request["expected"])))
@@ -103,6 +114,9 @@ elif tool == "backup":
     request = json.load(sys.stdin)
     if mode == "backup-failed" or (mode == "second-backup-failed" and p(request["original"]).name == "z.bin"):
         sys.exit(7)
+    if mode == "backup-hang":
+        (home / "backup-started").write_text("started")
+        time.sleep(600)
     source = remote(request["location"])
     target = home / "independent-backup" / request["checksum"]
     if not target.exists():
@@ -117,6 +131,7 @@ elif tool == "backup":
         result["checksum"] = "f" * 64
     print(json.dumps(result))
 elif tool == "trash":
+    (home / "trash-stdin").write_text(sys.stdin.read())
     source = p(sys.argv[-1])
     trash = home / "Trash"
     trash.mkdir(exist_ok=True)
@@ -124,16 +139,33 @@ elif tool == "trash":
     if mode == "trash-interrupted":
         sys.exit(6)
 elif tool == "dcg":
-    json.load(sys.stdin)
-    if mode == "dcg-deny":
+    request = json.load(sys.stdin)
+    if mode == "dcg-deny" or (mode == "dcg-deny-rm" and request["tool_input"]["command"].startswith("rm ")):
         print(json.dumps({"hookSpecificOutput":{"permissionDecision":"deny"}}))
 else:
     sys.exit(88)
 '''
-for name in ("ssh", "rsync", "backup", "trash", "dcg"):
+for name in ("ssh", "rsync", "backup", "dcg"):
     path = fake / name
     path.write_text(shim)
     path.chmod(0o755)
+# Offload must reach Trash only through FM_TASK_DATA_TRASH (production:
+# /usr/bin/trash). The `trash` earlier on PATH stands for Homebrew's, whose -s
+# securely empties the Trash after reading a y from stdin.
+(fake / "safe").mkdir()
+(fake / "safe/trash").write_text(shim)
+(fake / "safe/trash").chmod(0o755)
+(fake / "trash").write_text('''#!/usr/bin/env python3
+import os, pathlib, shutil, sys
+home = pathlib.Path(os.environ["FM_HOME"])
+with (home / "calls").open("a") as log:
+    log.write("path-trash\\n")
+if sys.stdin.readline().strip().lower() == "y" and (home / "Trash").exists():
+    shutil.rmtree(home / "Trash")
+    (home / "Trash-emptied").write_text("emptied")
+sys.exit(1)
+''')
+(fake / "trash").chmod(0o755)
 
 def fixture(name, *, status="closed", days=10, configured=True):
     home = base / name
@@ -153,17 +185,25 @@ def fixture(name, *, status="closed", days=10, configured=True):
         (home / "config/task-data-offload.json").write_text(json.dumps({"backup_verifier": [str(fake / "backup")]}))
     return home
 
-def run(home, action, *, fault="", ok=True, real_rsync=False, raw=False):
+def run(home, action, *, fault="", ok=True, real_rsync=False, raw=False, task=("task-one",), stdin="", interrupt=None):
     global active
     env = dict(os.environ, HOME=str(home / "user"), FM_HOME=str(home), PATH=str(fake) + os.pathsep + os.environ["PATH"],
                OFFLOAD_HELPER=str(code / "bin/fm-task-data.py"), OFFLOAD_FAULT=fault, FM_TASK_DATA_SWEEP="off",
-               OFFLOAD_REAL_RSYNC="1" if real_rsync else "0")
+               OFFLOAD_REAL_RSYNC="1" if real_rsync else "0", FM_TASK_DATA_TRASH=str(fake / "safe/trash"))
     for name in ("TASKS_AXI_BACKEND", "TASKS_AXI_FILE", "TASKS_AXI_ROOT", "BEADS_DIR", "BEADS_DB", "BR_DB"):
         env.pop(name, None)
-    command = ["bash", str(code / "bin/fm-task-data-lib.sh"), action, str(home / "data"), str(home / "state"), "task-one"]
-    active = subprocess.Popen(command, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    command = ["bash", str(code / "bin/fm-task-data-lib.sh"), action, str(home / "data"), str(home / "state"), *task]
+    active = subprocess.Popen(command, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              text=True, start_new_session=True)
     try:
-        stdout, stderr = active.communicate(timeout=120)
+        if interrupt:
+            # Stop the run with TERM, as a terminal or supervisor would, once it reaches the marker.
+            deadline = time.monotonic() + 60
+            while not interrupt.exists():
+                assert time.monotonic() < deadline and active.poll() is None, "the run never reached its interrupt point"
+                time.sleep(0.05)
+            os.killpg(active.pid, signal.SIGTERM)
+        stdout, stderr = active.communicate(stdin, timeout=120)
         rc = active.returncode
     finally:
         stop()
@@ -238,6 +278,415 @@ def check_partial_report():
     assert (task / "z.bin").read_bytes() == b"second-evidence"
     assert [item["path"] for item in run(home, "offload")["offloaded"]] == ["z.bin"]
 
+def git(*args):
+    env = {name: value for name, value in os.environ.items() if not name.startswith("GIT_")}
+    env.update(GIT_AUTHOR_NAME="Fixture", GIT_AUTHOR_EMAIL="fixture@example.invalid", GIT_COMMITTER_NAME="Fixture",
+               GIT_COMMITTER_EMAIL="fixture@example.invalid", GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull)
+    # Detached auto-maintenance would write lock files while a check snapshots the tree.
+    return subprocess.run(["git", "-c", "maintenance.auto=false", "-c", "gc.auto=0", *map(str, args)],
+                          env=env, check=True, capture_output=True, text=True).stdout.strip()
+
+FORGE = "https://forge.example.invalid/o/r.git"
+
+def forge(home, repository):
+    # A fully pushed repository: its remote is a forge URL that this test
+    # rewrites to a bare repository on this disk.
+    git("--git-dir", repository, "config", f"url.{home / 'user/forge.git'}.insteadOf", FORGE)
+
+def commit(tree, name, text):
+    (tree / name).write_text(text)
+    git("-C", tree, "add", name)
+    git("-C", tree, "commit", "-q", "-m", text.strip())
+
+def repo_fixture(name):
+    home = fixture(name)
+    task = home / "data/task-one"
+    (task / "report.md").write_text("Completed.\n")
+    clone = task / "clone"
+    git("init", "-q", "--bare", "-b", "main", home / "user/forge.git")
+    git("init", "-q", "-b", "main", clone)
+    forge(home, clone / ".git")
+    commit(clone, "work.txt", "pushed work\n")
+    git("-C", clone, "remote", "add", "origin", FORGE)
+    git("-C", clone, "push", "-q", "-u", "origin", "main")
+    return home, clone
+
+def snapshot(path):
+    entries = {}
+    for item in sorted(path.rglob("*")):
+        rel = str(item.relative_to(path))
+        if item.is_symlink():
+            entries[rel] = ("link", os.readlink(item))
+        elif item.is_dir():
+            entries[rel] = ("directory", item.stat().st_mode & 0o777)
+        elif not item.is_file():
+            entries[rel] = ("special", stat.S_IFMT(item.lstat().st_mode))
+        else:
+            entries[rel] = ("file", item.stat().st_mode & 0o777, item.read_bytes())
+    return entries
+
+def restored(home, pointer, name):
+    assert pointer["archive"] == "tar" and pointer["location"].startswith("mini-ts:/Volumes/MINI-DATA/"), pointer
+    payload = home / "remote" / pointer["location"].removeprefix("mini-ts:").lstrip("/")
+    with tarfile.open(payload) as archive:
+        archive.extractall(home / "restored", filter="tar")
+    return snapshot(home / "restored" / name)
+
+def check_repository_archived():
+    home, clone = repo_fixture("repo-archived")
+    before = snapshot(clone)
+    plan = run(home, "offload-plan")
+    assert [(move["path"], move.get("repository")) for move in plan["moves"]] == [("clone", True)], plan
+    result = run(home, "offload")
+    assert [(item["path"], item.get("archive")) for item in result["offloaded"]] == [("clone", "tar")], result
+    assert restored(home, json.loads(clone.read_text()), "clone") == before, "the archive does not restore the repository exactly"
+    assert snapshot(home / "Trash/clone") == before
+    assert any((home / "independent-backup").iterdir())
+    assert not list((home / "data/task-one").glob(".firstmate-offload-*")), "the local archive copy was left behind"
+    calls = (home / "calls").read_text()
+    assert run(home, "offload")["offloaded"] == []
+    assert (home / "calls").read_text() == calls, "an archived repository's pointer was offloaded again"
+
+def check_refused_repository_kept():
+    home, clone = repo_fixture("repo-refused")
+    before = snapshot(clone)
+    run(home, "offload", fault="backup-failed", ok=False)
+    assert snapshot(clone) == before and not (home / "Trash").exists()
+    assert not list((home / "data/task-one").glob(".firstmate-offload-*")), "a refused round left its archive copy"
+    assert [item["path"] for item in run(home, "offload")["offloaded"]] == ["clone"]
+
+def check_unreachable_mini_writes_no_archive():
+    home, clone = repo_fixture("repo-unreachable")
+    before = snapshot(clone)
+    run(home, "offload", fault="mini-unreachable", ok=False)
+    assert (home / "archives-seen").read_text() == "", "an archive was written before mini-ts answered"
+    assert snapshot(clone) == before and not (home / "Trash").exists()
+    assert not list((home / "data/task-one").glob(".firstmate-offload-*"))
+    assert [item["path"] for item in run(home, "offload")["offloaded"]] == ["clone"]
+
+def check_lanes_join_their_repository():
+    home = fixture("repo-lanes")
+    task = home / "data/task-one"
+    (task / "report.md").write_text("Completed.\n")
+    git("init", "-q", "--bare", "-b", "main", home / "user/forge.git")
+    heru, lane = task / "set/laptop/heru", task / "set/lanes/own"
+    git("init", "-q", "-b", "main", heru)
+    forge(home, heru / ".git")
+    commit(heru, "work.txt", "pushed work\n")
+    git("-C", heru, "remote", "add", "origin", FORGE)
+    git("-C", heru, "push", "-q", "-u", "origin", "main")
+    git("-C", heru, "worktree", "add", "-q", "-b", "lane", lane)
+    commit(lane, "lane.txt", "pushed lane work\n")
+    git("-C", lane, "push", "-q", "-u", "origin", "lane")
+    before = snapshot(task / "set")
+    plan = run(home, "offload-plan")
+    assert [(move["path"], move.get("repository")) for move in plan["moves"]] == [("set", True)], plan
+    result = run(home, "offload")
+    assert [(item["path"], item.get("archive")) for item in result["offloaded"]] == [("set", "tar")], result
+    assert restored(home, json.loads((task / "set").read_text()), "set") == before
+    assert snapshot(home / "Trash/set") == before
+
+def check_outside_parent_worktree_kept():
+    home = fixture("repo-outside-parent")
+    (home / "data/task-one/report.md").write_text("Completed.\n")
+    main = home / "user/main"
+    git("init", "-q", "-b", "main", main)
+    commit(main, "work.txt", "parent work\n")
+    worktree = home / "data/task-one/wt"
+    git("-C", main, "worktree", "add", "-q", "-b", "side", worktree)
+    (worktree / "notes.txt").write_text("worktree notes\n")
+    before, parent = snapshot(worktree), snapshot(main)
+    plan = run(home, "offload-plan")
+    assert plan["moves"] == [] and [(item.get("path"), item["reason"]) for item in plan["retained"]] == [
+        ("wt", "linked worktree of a repository outside data/")], plan
+    assert run(home, "offload")["offloaded"] == []
+    assert snapshot(worktree) == before and snapshot(main) == parent and not (home / "calls").exists()
+
+def check_nested_outside_worktree_kept():
+    home, clone = repo_fixture("repo-nested-outside-worktree")
+    main = home / "user/main"
+    git("init", "-q", "-b", "main", main)
+    commit(main, "work.txt", "parent work\n")
+    git("-C", main, "worktree", "add", "-q", "--detach", clone / "ac-wt")
+    commit(clone / "ac-wt", "detached.txt", "a commit only this nested worktree's HEAD reaches\n")
+    before, parent = snapshot(clone), snapshot(main)
+    plan = run(home, "offload-plan")
+    assert plan["moves"] == [] and [(item.get("path"), item["reason"]) for item in plan["retained"]] == [
+        ("clone", "linked worktree of a repository outside data/")], plan
+    assert run(home, "offload")["offloaded"] == []
+    assert snapshot(clone) == before and snapshot(main) == parent and not (home / "calls").exists()
+
+def check_submodule_rides_superproject():
+    home, clone = repo_fixture("repo-submodule")
+    seed, sub = home / "user/sub-seed", home / "user/sub.git"
+    git("init", "-q", "--bare", "-b", "main", sub)
+    git("init", "-q", "-b", "main", seed)
+    commit(seed, "sub.txt", "submodule work\n")
+    git("-C", seed, "push", "-q", sub, "main")
+    git("-C", clone, "-c", "protocol.file.allow=always", "submodule", "add", "-q", sub, "vendor/x")
+    git("-C", clone, "commit", "-q", "-m", "add submodule")
+    before = snapshot(clone)
+    result = run(home, "offload")
+    assert [(item["path"], item.get("archive")) for item in result["offloaded"]] == [("clone", "tar")], result
+    assert restored(home, json.loads(clone.read_text()), "clone") == before
+
+def check_other_task_worktree_kept():
+    home = fixture("repo-other-task-worktree")
+    (home / "data/task-one/report.md").write_text("Completed.\n")
+    main = home / "data/task-two/main"
+    git("init", "-q", "-b", "main", main)
+    commit(main, "work.txt", "other task's work\n")
+    worktree = home / "data/task-one/wt"
+    git("-C", main, "worktree", "add", "-q", "-b", "side", worktree)
+    before = snapshot(worktree)
+    plan = run(home, "offload-plan")
+    assert plan["moves"] == [] and [(item.get("path"), item["reason"]) for item in plan["retained"]] == [
+        ("wt", "linked worktree of a repository in another task")], plan
+    assert run(home, "offload")["offloaded"] == []
+    assert snapshot(worktree) == before and not (home / "calls").exists()
+
+def check_interrupted_offload_releases_lock():
+    home = fixture("interrupted-lock")
+    run(home, "offload", fault="backup-hang", ok=False, interrupt=home / "backup-started")
+    lock = home / "state/.meta-task-one.lock"
+    assert not (lock.exists() or lock.is_symlink()), "an offload stopped with TERM left the task meta lock held"
+    assert [move["path"] for move in run(home, "offload-plan")["moves"]] == ["build"]
+    assert [item["path"] for item in run(home, "offload")["offloaded"]] == ["build"]
+
+def check_trash_never_empties():
+    home = fixture("trash-on-path")
+    (home / "Trash").mkdir()
+    (home / "Trash/earlier.bin").write_bytes(b"recoverable for 24 hours")
+    run(home, "offload", stdin="y\n")
+    assert "path-trash" not in (home / "calls").read_text().splitlines(), "offload ran the trash found on PATH"
+    assert not (home / "Trash-emptied").exists() and (home / "Trash/earlier.bin").is_file()
+    assert (home / "Trash/build/evidence.bin").is_file()
+    assert (home / "trash-stdin").read_text() == "", "the Trash command could read the caller's stdin"
+
+def check_sweep_offloads(configured):
+    home = fixture("sweep-" + ("configured" if configured else "unconfigured"), configured=configured)
+    run(home, "sweep", raw=True, task=())
+    build = home / "data/task-one/build"
+    if configured:
+        assert json.loads(build.read_text())["format"] == "firstmate-task-evidence-v1"
+        assert (home / "Trash/build/evidence.bin").is_file()
+    else:
+        assert (build / "evidence.bin").read_bytes() == b"original-evidence" * 256
+        assert not (home / "calls").exists(), "an unconfigured sweep contacted the remote"
+
+def check_pass_removes_only_journaled_archives():
+    home = fixture("sweep-leftover")
+    task = home / "data/task-one"
+    (task / "report.md").write_text("Completed.\n")
+    owned = ".firstmate-offload-0123456789abcdef.tar"
+    (task / owned).write_bytes(b"redundant archive copy")
+    (task / ".firstmate-offload-backup.tar").write_bytes(b"a file the task made itself")
+    (task / "record").mkdir()
+    (task / "record/data-offload.json").write_text(json.dumps(
+        {"version": 1, "task": "task-one", "entries": {}, "archives": [owned]}))
+    assert run(home, "offload-plan")["moves"] == []
+    run(home, "sweep", raw=True, task=())
+    assert not (task / owned).exists(), "a journaled archive copy in a task with no moves stayed"
+    assert (task / ".firstmate-offload-backup.tar").read_bytes() == b"a file the task made itself", \
+        "a file the offload journal does not name was removed"
+    assert json.loads((task / "record/data-offload.json").read_text())["archives"] == []
+
+def check_archive_keeps_extended_attributes():
+    home, clone = repo_fixture("repo-xattr")
+    subprocess.run(["/usr/bin/xattr", "-w", "com.apple.ResourceFork", "unique-resource-bytes", str(clone / "work.txt")],
+                   check=True)
+    run(home, "offload")
+    pointer = json.loads(clone.read_text())
+    payload = home / "remote" / pointer["location"].removeprefix("mini-ts:").lstrip("/")
+    (home / "restored").mkdir()
+    subprocess.run(["/usr/bin/tar", "--xattrs", "-xpf", str(payload), "-C", str(home / "restored")],
+                   check=True, capture_output=True)
+    fork = subprocess.run(["/usr/bin/xattr", "-p", "com.apple.ResourceFork", str(home / "restored/clone/work.txt")],
+                          capture_output=True, text=True)
+    assert fork.returncode == 0 and fork.stdout.strip() == "unique-resource-bytes", \
+        "the archive dropped the file's resource fork: " + fork.stderr.strip()
+
+def check_unreadable_worktree_record_kept():
+    home, clone = repo_fixture("repo-empty-record")
+    git("-C", clone, "worktree", "add", "-q", "-b", "side", home / "user/wt")
+    (clone / ".git/worktrees/wt/gitdir").write_text("")
+    before = snapshot(clone)
+    plan = run(home, "offload-plan")
+    assert plan["moves"] == [], plan
+    assert [(item.get("path"), item["reason"]) for item in plan["retained"]] == \
+        [("clone", "linked worktree record is unreadable")], plan
+    assert run(home, "offload")["offloaded"] == []
+    assert snapshot(clone) == before
+
+def check_acl_repository_kept():
+    home, clone = repo_fixture("repo-acl")
+    subprocess.run(["/bin/chmod", "+a", "everyone deny write", str(clone / "work.txt")], check=True)
+    plan = run(home, "offload-plan")
+    assert plan["moves"] == [], plan
+    assert [(item.get("path"), item["reason"]) for item in plan["retained"]] == \
+        [("clone", "holds access control lists the archive cannot carry")], plan
+    assert run(home, "offload")["offloaded"] == []
+    acl = subprocess.run(["/bin/ls", "-le", str(clone / "work.txt")], capture_output=True, text=True, check=True).stdout
+    assert "everyone deny write" in acl, acl
+
+def check_missing_worktree_record_kept():
+    home, clone = repo_fixture("repo-missing-record")
+    git("-C", clone, "worktree", "add", "-q", "-b", "side", home / "user/wt")
+    (clone / ".git/worktrees/wt/gitdir").unlink()
+    before = snapshot(clone)
+    plan = run(home, "offload-plan")
+    assert plan["moves"] == [], plan
+    assert [(item.get("path"), item["reason"]) for item in plan["retained"]] == \
+        [("clone", "linked worktree record is unreadable")], plan
+    assert run(home, "offload")["offloaded"] == []
+    assert snapshot(clone) == before
+
+def check_refused_cleanup_blocks_new_archive():
+    home, clone = repo_fixture("repo-refused-cleanup")
+    task = home / "data/task-one"
+    owned = ".firstmate-offload-0123456789abcdef.tar"
+    (task / owned).write_bytes(b"redundant archive copy")
+    (task / "record").mkdir()
+    (task / "record/data-offload.json").write_text(json.dumps(
+        {"version": 1, "task": "task-one", "entries": {}, "archives": [owned]}))
+    before = snapshot(clone)
+    run(home, "offload", fault="dcg-deny-rm", ok=False)
+    assert sorted(path.name for path in task.glob(".firstmate-offload-*")) == [owned], \
+        "a new archive copy was written while an earlier one stayed on disk"
+    assert json.loads((task / "record/data-offload.json").read_text())["archives"] == [owned]
+    assert snapshot(clone) == before
+
+def check_flagged_repository_kept():
+    home, clone = repo_fixture("repo-flags")
+    subprocess.run(["/usr/bin/chflags", "uchg", str(clone / "work.txt")], check=True)
+    try:
+        plan = run(home, "offload-plan")
+        assert plan["moves"] == [], plan
+        assert [(item.get("path"), item["reason"]) for item in plan["retained"]] == \
+            [("clone", "holds file flags the archive cannot carry")], plan
+        assert run(home, "offload")["offloaded"] == []
+        assert os.lstat(clone / "work.txt").st_flags & stat.UF_IMMUTABLE
+    finally:
+        subprocess.run(["/usr/bin/chflags", "nouchg", str(clone / "work.txt")], check=True)
+
+def kept_reason(name, damage):
+    home, clone = repo_fixture(name)
+    damage(home, clone)
+    before = snapshot(clone)
+    plan = run(home, "offload-plan")
+    assert plan["moves"] == [], plan
+    assert run(home, "offload")["offloaded"] == []
+    assert snapshot(clone) == before
+    return [(item.get("path"), item["reason"]) for item in plan["retained"]]
+
+def check_unclean_worktree_records_kept():
+    def stale(home, clone):
+        git("-C", clone, "worktree", "add", "-q", "-b", "side", home / "user/wt")
+        shutil.rmtree(home / "user/wt")
+    def no_backlink(home, clone):
+        git("-C", clone, "worktree", "add", "-q", "-b", "side", home / "user/wt")
+        (home / "user/wt/.git").write_text("gitdir: " + str(home / "user/elsewhere") + "\n")
+    for name, damage in (("stale", stale), ("no-backlink", no_backlink)):
+        reasons = kept_reason("repo-record-" + name, damage)
+        assert reasons == [("clone", "linked worktree record is unreadable")], (name, reasons)
+
+def check_uncarried_metadata_kept():
+    def sparse(home, clone):
+        with (clone / "disk.img").open("wb") as stream:
+            stream.truncate(64 * 1024 * 1024)
+    reasons = kept_reason("repo-meta-sparse", sparse)
+    assert reasons == [("clone", "holds sparse or compressed files the archive would expand")], reasons
+    # A special file anywhere keeps the whole task, named, before any unit is weighed.
+    home, clone = repo_fixture("repo-meta-fifo")
+    os.mkfifo(clone / "pipe")
+    before = snapshot(clone)
+    plan = run(home, "offload-plan")
+    assert plan["moves"] == [] and [item["reason"].split(":")[0] for item in plan["retained"]] == \
+        ["special file in task data"], plan
+    run(home, "offload", ok=False)
+    assert snapshot(clone) == before and not (home / "calls").exists()
+
+def check_offloads_take_one_lock():
+    home = fixture("one-offload-at-a-time")
+    shutil.copytree(home / "data/task-one", home / "data/task-two")
+    closed = (date.today() - timedelta(days=10)).isoformat()
+    with (home / "data/backlog.md").open("a") as stream:
+        stream.write(f"- [x] task-two - fixture (repo: example) (closed {closed})\n")
+    env = dict(os.environ, HOME=str(home / "user"), FM_HOME=str(home), PATH=str(fake) + os.pathsep + os.environ["PATH"],
+               OFFLOAD_HELPER=str(code / "bin/fm-task-data.py"), OFFLOAD_FAULT="backup-hang", FM_TASK_DATA_SWEEP="off",
+               OFFLOAD_REAL_RSYNC="0", FM_TASK_DATA_TRASH=str(fake / "safe/trash"))
+    first = subprocess.Popen(["bash", str(code / "bin/fm-task-data-lib.sh"), "offload", str(home / "data"),
+                              str(home / "state"), "task-one"], env=env, stdin=subprocess.DEVNULL,
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try:
+        deadline = time.monotonic() + 60
+        while not (home / "backup-started").exists():
+            assert time.monotonic() < deadline and first.poll() is None, "the first offload never reached its backup"
+            time.sleep(0.05)
+        stderr = run(home, "offload", task=("task-two",), ok=False)
+        assert "another offload is running" in stderr, stderr
+        assert (home / "data/task-two/build/evidence.bin").is_file()
+    finally:
+        with contextlib.suppress(ProcessLookupError):
+            os.killpg(first.pid, signal.SIGTERM)
+        first.communicate(timeout=60)
+
+def check_reopened_task_leftover_removed():
+    home = fixture("reopened-leftover", status="open")
+    task = home / "data/task-one"
+    owned = ".firstmate-offload-0123456789abcdef.tar"
+    (task / owned).write_bytes(b"redundant archive copy")
+    (task / "record").mkdir()
+    (task / "record/data-offload.json").write_text(json.dumps(
+        {"version": 1, "task": "task-one", "entries": {}, "archives": [owned]}))
+    run(home, "offload", ok=False)
+    assert not (task / owned).exists(), "a reopened task kept its journaled archive copy"
+    assert json.loads((task / "record/data-offload.json").read_text())["archives"] == []
+
+def check_separated_git_dir_kept():
+    home = fixture("repo-separate-git-dir")
+    task = home / "data/task-one"
+    (task / "report.md").write_text("Completed.\n")
+    git("init", "-q", "--separate-git-dir", task / "repo.git", home / "user/work")
+    git("init", "-q", "--bare", "-b", "main", task / "plain.git")
+    before = snapshot(task / "repo.git")
+    plan = run(home, "offload-plan")
+    assert [move["path"] for move in plan["moves"]] == ["plain.git"], plan
+    assert [(item.get("path"), item["reason"]) for item in plan["retained"]] == \
+        [("repo.git", "git directory of a checkout outside the unit")], plan
+    assert [item["path"] for item in run(home, "offload")["offloaded"]] == ["plain.git"]
+    assert snapshot(task / "repo.git") == before
+    git("-C", home / "user/work", "status", "--short")
+
+def check_borrowing_repository_kept():
+    home = fixture("repo-borrows-outside")
+    task = home / "data/task-one"
+    (task / "report.md").write_text("Completed.\n")
+    seed = home / "user/seed"
+    git("init", "-q", "-b", "main", seed)
+    commit(seed, "shared.txt", "shared history\n")
+    clone = task / "clone"
+    git("clone", "-q", "--shared", seed, clone)
+    before = snapshot(clone)
+    plan = run(home, "offload-plan")
+    assert plan["moves"] == [], plan
+    assert [(item.get("path"), item["reason"]) for item in plan["retained"]] == \
+        [("clone", "borrows objects from a repository outside the unit")], plan
+    assert run(home, "offload")["offloaded"] == []
+    assert snapshot(clone) == before
+    git("-C", clone, "log", "-1", "--format=%s")
+
+def check_outside_links_carried():
+    home, clone = repo_fixture("repo-outside-links")
+    (home / "user/shared.bin").write_bytes(b"shared by a hard link")
+    os.link(home / "user/shared.bin", clone / "linked.bin")
+    (clone / "elsewhere").symlink_to(home / "user/shared.bin")
+    before = snapshot(clone)
+    result = run(home, "offload")
+    assert [(item["path"], item.get("archive")) for item in result["offloaded"]] == [("clone", "tar")], result
+    assert restored(home, json.loads(clone.read_text()), "clone") == before
+    assert (home / "user/shared.bin").read_bytes() == b"shared by a hard link"
+
 # Collect the independent review regressions so a broken directory copy cannot
 # hide the single-file, retry, or partial-report result on the reviewed head.
 regressions = [("fake directory placement", lambda: check_placement("directory")),
@@ -246,16 +695,43 @@ for kind in ("directory", "file"):
     for fault in ("copy-partial", "copy-wrong"):
         regressions.append((kind + " retries " + fault, lambda kind=kind, fault=fault: check_retry(kind, fault)))
 regressions.extend([("verified existing payload is reused", check_verified_reuse),
-                    ("partial round reports completed moves", check_partial_report)])
+                    ("partial round reports completed moves", check_partial_report),
+                    ("a fully pushed repository is offloaded whole as one archive, never removed", check_repository_archived),
+                    ("a refused repository offload keeps the repository and no archive copy", check_refused_repository_kept),
+                    ("an unreachable mini writes no archive and the next pass offloads", check_unreachable_mini_writes_no_archive),
+                    ("a repository and its lanes in the task are offloaded whole as one folder", check_lanes_join_their_repository),
+                    ("a worktree of a repository outside DATA stays untouched", check_outside_parent_worktree_kept),
+                    ("a clone holding a detached worktree of a repository outside DATA stays",
+                     check_nested_outside_worktree_kept),
+                    ("a clone with a checked-out submodule is offloaded whole with it", check_submodule_rides_superproject),
+                    ("a worktree of a repository in another task stays", check_other_task_worktree_kept),
+                    ("an offload stopped with TERM releases the task meta lock", check_interrupted_offload_releases_lock),
+                    ("offload never runs a trash from PATH or feeds it stdin", check_trash_never_empties),
+                    ("a sweep ends with an offload pass", lambda: check_sweep_offloads(True)),
+                    ("a sweep in a home without a verifier offloads nothing", lambda: check_sweep_offloads(False)),
+                    ("an offload pass removes only archive copies its journal names", check_pass_removes_only_journaled_archives),
+                    ("a repository whose worktree record is empty stays", check_unreadable_worktree_record_kept),
+                    ("a repository whose worktree record is missing stays", check_missing_worktree_record_kept),
+                    ("no new archive while an earlier copy is still on disk", check_refused_cleanup_blocks_new_archive),
+                    ("stale or inconsistent worktree records keep the unit", check_unclean_worktree_records_kept),
+                    ("special and sparse files keep the unit", check_uncarried_metadata_kept),
+                    ("hard links and symlinks reaching outside the unit are archived exactly", check_outside_links_carried),
+                    ("a by-hand offload waits for the offload another run holds", check_offloads_take_one_lock),
+                    ("a reopened task's journaled archive copy is still removed", check_reopened_task_leftover_removed),
+                    ("a separated git directory stays while a bare one is archived", check_separated_git_dir_kept),
+                    ("a repository borrowing objects from outside its unit stays", check_borrowing_repository_kept)])
 if sys.platform == "darwin":
-    regressions.extend([("real /usr/bin/rsync directory placement", lambda: check_placement("directory", True)),
+    regressions.extend([("a repository archive keeps resource forks and other extended attributes",
+                         check_archive_keeps_extended_attributes),
+                        ("a repository holding an access control list stays", check_acl_repository_kept),
+                        ("a repository holding file flags stays", check_flagged_repository_kept),("real /usr/bin/rsync directory placement", lambda: check_placement("directory", True)),
                         ("real /usr/bin/rsync single-file placement", lambda: check_placement("file", True))])
 failures = []
 for name, check in regressions:
     try:
         check()
         print("PASS: " + name, flush=True)
-    except (AssertionError, ValueError, OSError, StopIteration) as error:
+    except (AssertionError, ValueError, OSError, StopIteration, KeyError, TypeError, subprocess.SubprocessError) as error:
         failures.append(name)
         print("FAIL: " + name + ": " + str(error), flush=True)
 assert not failures, failures
@@ -300,15 +776,6 @@ home = fixture("reopened", status="open")
 assert not run(home, "offload-plan")["moves"]
 run(home, "offload", ok=False)
 print("PASS: current open row wins over an old archived completion without live metadata", flush=True)
-
-home = fixture("unverified")
-(home / "data/task-one/build/.git").mkdir()
-(home / "data/task-one/build/.git/HEAD").write_text("unverified work\n")
-original = tree(home)
-assert not run(home, "offload-plan")["moves"]
-run(home, "offload", ok=False)
-assert tree(home) == original and not (home / "calls").exists()
-print("PASS: repositories with unverified work stay untouched", flush=True)
 
 home = fixture("held-repository")
 (home / "data/task-one/.cleanup-hold/clone/.git").mkdir(parents=True)

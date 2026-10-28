@@ -146,7 +146,9 @@ Moving to the hold does not reclaim disk space; expiry does.
 An unread PR is named in the warning and record, retains the whole folder, and
 does not fail the cleanup pass; later cleanup retries it before moving any data.
 
-Offload is an explicit second retention round, never an automatic sweep action.
+Offload is a second retention round. Each task-data sweep ends with one pass
+over every eligible task (fm-task-data-lib.sh owns that pass), and it also runs
+by hand for one task.
 Offload-plan is read-only and scans the current markdown backlog and its configured
 archive once, using canonical report.md and bead description/comment references without forge/network
 reads or content hashing; it prints candidates, retained reasons, logical bytes
@@ -155,15 +157,67 @@ A closed backlog row and saved cleanup sources can identify relevant beads;
 their path mentions, and those in briefs, logs or other incidental files, do not
 authorize offload.
 A current unchecked row overrides archived completion. Missing/ambiguous dates,
-live metadata, pending closes and every task containing a repository stay whole.
+live metadata, pending closes, a task folder that is itself a repository and
+repository work in the scratch recovery hold keep the whole task.
 Date-only completion waits through seven complete local calendar days.
 Small text and root brief/report files stay. Referenced directories or larger
 files may move, but symlink and hardlink evidence stays pending alias ownership.
 
+Each outermost repository outside record/ is one unit, referenced or not. A
+repository and its linked worktrees in the same task are one unit: the smallest
+folder below the task holding them all, with any other repository inside it.
+Every unit is offloaded whole as one tar archive under the copy, checksum and
+independent-backup rule below, and its pointer adds archive "tar".
+Before writing an archive, offload checks that ssh mini-ts answers and
+MINI-DATA is mounted; if not, it writes nothing and the task waits for the next
+pass. One archive exists at a time, a temporary file in the task folder removed
+through a dcg-checked rm -f right after its move or failure. Its name goes into
+record/data-offload.json's archives list before it is written, and only a file
+that list names is ever removed: offload removes the task's listed leftovers
+first, and offload-plan lists tasks holding any so each offload pass reaches
+them, moves or not; a refusal waits for the next pass.
+A unit is archived only when every property that matters for content and
+access is carried exactly, and otherwise stays in place under a named reason.
+Carried: content, mode, owner and group, extended attributes (macOS resource
+forks included, in SCHILY.xattr headers), symlinks as written, and hard links
+(one shared with a path outside the unit restores as an identical copy).
+Retained: macOS access control lists, file flags, special files, sparse or
+transparently compressed files (the archive would hold every byte), names that
+are not UTF-8, files another user owns, and groups the restoring user is not in.
+Every offload, by hand or in a pass, holds STATE/.task-data-offload.lock, so the
+one-copy check and the copy's journal entry cannot race. Timestamps beyond
+modification time, such as birth time, are not kept. While any task's journal
+still lists a copy, no new archive is written anywhere.
+A linked worktree of a repository in another task or outside DATA (its index,
+HEAD, reflog and refs live in that repository, outside any archive), a
+repository whose .git is a symlink, a repository with linked worktrees outside
+the task or sharing no folder below it, or any worktree or submodule record
+that does not resolve cleanly both ways (missing, empty, unreadable, stale or
+inconsistent), a git directory that is neither bare nor names a checkout
+inside its unit (core.worktree; a separated git directory names none), a
+submodule checkout outside its superproject's unit, and any unit holding one of
+them at any depth stay in place, named with reasons and sizes in offload-plan's
+retained list.
+A dependency the unit itself records (worktree records, core.worktree,
+submodules) is honored that way, and so is a borrow the unit itself records:
+a unit whose objects/info/alternates, in any git directory at any depth,
+names a path outside the unit stays in place as "borrows objects from a
+repository outside the unit", because its archive would leave the borrowed
+objects out. A dependent outside the unit that records
+nothing inside it - a checkout elsewhere borrowing objects through git
+alternates (git clone --shared or --reference), or an outside symlink pointing
+in - is a known limit, not a retained reason: no record in the unit can name
+it, and Firstmate itself never creates one (no --shared, --reference or
+alternates use in bin/). It is not data loss: every byte is in the verified
+MINI-DATA archive behind an independent backup, and the pointer at the old
+path names it. To recover such a dependent, move the pointer aside and run
+tar --xattrs -xpf on the archive at that path; the outside checkout or link
+then works again.
+
 Live offload must run through the shell wrapper, which holds the spawn meta lock.
 It requires private config/task-data-offload.json, mode without group/other writes,
 containing {"backup_verifier": ["/absolute/trusted/executable", "optional-argument"]}.
-No such configuration is installed by this change. The trusted verifier receives
+The trusted verifier receives
 the proposed pointer JSON on stdin after the MINI-DATA copy is checksummed.
 It must independently verify a second copy of this exact object on another
 physical device/failure domain, then emit JSON with independent:true, location,
@@ -173,7 +227,8 @@ Do not put credentials in verifier arguments or output.
 
 Copies use ssh mini-ts and rsync into /Volumes/MINI-DATA/firstmate-task-evidence,
 with a SHA256 content-addressed directory per home/task/source path. Directory
-contents land directly in payload/; a single file lands at payload. MINI-DATA
+contents land directly in payload/; a single file or repository archive lands
+at payload. MINI-DATA
 must be mounted. Existing payloads are reused only after manifest verification;
 mismatched or incomplete copies are preserved in an incomplete-*/payload sibling
 before retrying, without deleting anything on the destination.
@@ -181,19 +236,28 @@ The checksum is SHA256 of a canonical JSON tree manifest: sorted
 arrays [relative-name,type,mode] for directories and
 [relative-name,"file",mode,size,sha256-of-file] for files, with '.' for the root,
 ensure_ascii=True and separators (',', ':'). Size is summed file bytes.
-Only matching remote and independent-backup manifests allow dcg-checked `trash -s`
-on the original, using the machine's existing Trash expiry (24 hours).
+Only matching remote and independent-backup manifests allow dcg-checked
+`/usr/bin/trash -s` (macOS's own tool, where -s stops on error) on the original,
+using the machine's existing Trash expiry (24 hours). It is named by absolute
+path because another `trash` earlier on PATH, such as Homebrew's, reads -s as
+securely empty the Trash. FM_TASK_DATA_TRASH replaces that path in tests only.
+Every dcg-checked command reads stdin from /dev/null, so no prompt can take an
+answer from the caller.
 A small JSON pointer replaces the exact original pathname, naming the destination,
-size, checksum, checksum format and independent backup. No offload path runs rm.
+size, checksum, checksum format and independent backup. Task evidence never
+leaves through rm.
 record/data-offload.json journals verified moves before Trash, so a retry after
 interruption can reverify both copies and finish a missing pointer. Existing
 pointers are no-ops. Recovery copies remain in Trash until its normal expiry;
-restore an original by first moving its pointer aside, never overwriting work.
+restore an original by first moving its pointer aside, never overwriting work;
+a repository archive restores with tar --xattrs -xpf in the pointer's parent
+directory, which also restores its extended attributes.
 If a later candidate fails, stdout still reports completed moves and total bytes,
 plus the failed task/path/reason; the command retains its nonzero exit status.
 """
 
 from array import array
+import contextlib
 import copy
 from datetime import date, timedelta
 import hashlib
@@ -202,6 +266,7 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 import shlex
 import shutil
 import signal
@@ -210,6 +275,7 @@ import stat
 import string
 import subprocess
 import sys
+import tarfile
 import tempfile
 import time
 import unicodedata
@@ -983,6 +1049,9 @@ def write_record(root, record):
     temporary.replace(path)
 
 
+TRASH = os.environ.get("FM_TASK_DATA_TRASH", "/usr/bin/trash")
+
+
 def guard_command(args):
     payload = {"tool_name": "Bash", "tool_input": {"command": shlex.join(args)}}
     result = subprocess.run(["dcg"], input=json.dumps(payload), capture_output=True,
@@ -994,7 +1063,7 @@ def guard_command(args):
         decision = response["hookSpecificOutput"].get("permissionDecision")
         if decision != "allow":
             raise ValueError(f"dcg refused cleanup: {result.stdout.strip()}")
-    subprocess.run(args, check=True)
+    subprocess.run(args, check=True, stdin=subprocess.DEVNULL)
 
 
 def remove_entries(root, files, directories):
@@ -1126,13 +1195,333 @@ def offload_bead_text(bead, locations, cache):
     return text
 
 
-def offload_inventory(root):
-    # Repositories are a separate retention decision. Do not inspect their
-    # objects or treat stale remote-tracking refs as proof that work is safe.
+def offload_repository_marker(path, names, leaves):
+    if ".git" in names or ".git" in leaves:
+        return path / ".git"
+    if {"objects", "refs"} <= set(names) and "HEAD" in leaves:
+        return path
+    return None
+
+
+def offload_inventory(root, data):
+    # Units: each outermost repository outside record/, joined with its linked
+    # worktrees in the task into the smallest folder below the task holding
+    # them all. Every repository below it is classified too. Repository work in
+    # the scratch recovery hold still belongs to expiry and blocks offload.
+    groups = []
     for directory, names, leaves in os.walk(root, followlinks=False):
-        if ".git" in names or ".git" in leaves or {"objects", "refs"} <= set(names) and "HEAD" in leaves:
-            raise ValueError("task contains repository work; repository verification is out of scope")
-    return inventory(root)
+        path = Path(directory)
+        rel = path.relative_to(root)
+        if rel.parts[:1] == ("record",):
+            names[:] = []
+            continue
+        marker = offload_repository_marker(path, names, leaves)
+        names[:] = [name for name in names if name != ".git"]
+        if not marker:
+            continue
+        if not rel.parts:
+            raise ValueError("the task folder is itself a repository")
+        if rel.parts[0] == HOLD:
+            raise ValueError("the scratch recovery hold contains repository work")
+        links, reason = offload_unit_links(path, root, data)
+        unit = Path(os.path.commonpath([path, *links]))
+        if unit == root:
+            unit, reason = path, reason or "shares no folder below the task with its linked worktrees"
+        groups.append((unit, reason))
+    # A unit inside another moves with it, and anything kept keeps the whole.
+    units = {}
+    for unit, reason in sorted(groups, key=lambda item: len(item[0].parts)):
+        outer = next((path for path in units if path == unit or path in unit.parents), None)
+        if outer is None:
+            units[unit] = reason
+        elif units[outer] is None:
+            units[outer] = reason
+    return (*inventory(root), units)
+
+
+UNCLEAN = "linked worktree record is unreadable"
+OUTSIDE_CHECKOUT = "git directory of a checkout outside the unit"
+
+
+def offload_unit_links(repository, root, data):
+    """Return the task paths a repository moves with, and why it must stay, if it must.
+
+    One rule: every worktree record and link the repository holds or names
+    must resolve cleanly, both ways, to a checkout or git directory. A record
+    that is missing, empty, unreadable, stale or inconsistent keeps the unit
+    as UNCLEAN; one that resolves outside the task keeps it with its place.
+    """
+    dotgit = repository / ".git"
+
+    def read(record):
+        if record.is_symlink() or not record.is_file():
+            raise ValueError(f"missing record: {record}")
+        value = record.read_text().strip()
+        if not value:
+            raise ValueError(f"empty record: {record}")
+        return value
+
+    def named(base, value):
+        return (Path(value) if Path(value).is_absolute() else base / value).resolve()
+
+    def gitfile(checkout):
+        value = read(checkout / ".git")
+        if not value.startswith("gitdir: "):
+            raise ValueError(f"unreadable gitfile: {checkout}")
+        return named(checkout, value.removeprefix("gitdir: "))
+
+    try:
+        if dotgit.is_symlink():
+            return [], "its .git is a symlink; its repository lives elsewhere"
+        if dotgit.is_file():
+            gitdir = gitfile(repository)
+            if not gitdir.is_dir():
+                return [], UNCLEAN
+            if not ((gitdir / "commondir").exists() or (gitdir / "commondir").is_symlink()):
+                # A submodule checkout: its git directory lives in the superproject.
+                if root in gitdir.parents:
+                    return [gitdir], None
+                return [], "submodule checkout; offloaded only as part of its superproject"
+            common = named(gitdir, read(gitdir / "commondir"))
+            if named(gitdir, read(gitdir / "gitdir")) != dotgit.resolve() or not (common / "HEAD").is_file():
+                return [], UNCLEAN
+            if root in common.parents:
+                return [common], None
+            if common == data or data in common.parents:
+                return [], "linked worktree of a repository in another task"
+            return [], "linked worktree of a repository outside data/"
+        gitdir = dotgit if dotgit.is_dir() else repository
+        links = []
+
+        def setting(config, key):
+            found = subprocess.run(["git", "config", "--file", str(config), "--get", key],
+                                   stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=60)
+            if found.returncode == 1:
+                return None
+            if found.returncode != 0 or not found.stdout.strip():
+                raise ValueError(f"unreadable {key}: {config}")
+            return found.stdout.strip()
+
+        # The git directory's own config names its checkout: core.worktree
+        # must resolve inside the unit, and a git directory with no .git
+        # above it is self-contained only when it says it is bare. A
+        # separated git directory backs a checkout no record here names.
+        worktree = setting(gitdir / "config", "core.worktree")
+        if worktree is not None:
+            checkout = named(gitdir, worktree)
+            if checkout != repository.resolve() and repository.resolve() not in checkout.parents:
+                if root not in checkout.parents:
+                    return [], OUTSIDE_CHECKOUT
+                links.append(checkout)
+        elif gitdir == repository and setting(gitdir / "config", "core.bare") != "true":
+            return [], OUTSIDE_CHECKOUT
+        admin = gitdir / "worktrees"
+        if admin.is_symlink() or (admin.exists() and not admin.is_dir()):
+            return [], UNCLEAN
+        for entry in sorted(admin.iterdir()) if admin.is_dir() else ():
+            if entry.is_symlink() or not entry.is_dir():
+                return [], UNCLEAN
+            marker = named(entry, read(entry / "gitdir"))
+            if marker.name != ".git" or gitfile(marker.parent) != entry.resolve():
+                return [], UNCLEAN
+            tree = marker.parent
+            if tree == repository.resolve() or repository.resolve() in tree.parents:
+                continue
+            if root not in tree.parents:
+                return [], "has linked worktrees outside the task"
+            links.append(tree)
+        modules = gitdir / "modules"
+        if modules.is_symlink():
+            return [], UNCLEAN
+        # A submodule git directory names its checkout through core.worktree.
+        for config in sorted(modules.rglob("config")) if modules.is_dir() else ():
+            if not ((config.parent / "HEAD").is_file() and (config.parent / "objects").is_dir()):
+                continue
+            found = subprocess.run(["git", "config", "--file", str(config), "--get", "core.worktree"],
+                                   stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=60)
+            if found.returncode == 1:
+                continue
+            if found.returncode != 0 or not found.stdout.strip():
+                return [], UNCLEAN
+            checkout = named(config.parent, found.stdout.strip())
+            if checkout == repository.resolve() or repository.resolve() in checkout.parents:
+                continue
+            if root not in checkout.parents:
+                return [], "has submodule checkouts outside the task"
+            links.append(checkout)
+        return links, None
+    except (OSError, UnicodeError, ValueError, subprocess.SubprocessError):
+        return [], UNCLEAN
+
+
+ARCHIVE = ".firstmate-offload-"
+ACL_KEPT = "holds access control lists the archive cannot carry"
+FLAGS_KEPT = "holds file flags the archive cannot carry"
+EXPANDS_KEPT = "holds sparse or compressed files the archive would expand"
+# Transparent compression changes no data; the expansion check owns it.
+FLAGS_CARRIED = getattr(stat, "UF_COMPRESSED", 0)
+
+
+def offload_unit_metadata(path):
+    """Name the first property under path that tar here cannot carry exactly, or None.
+
+    Carried exactly: content, mode, owner and group the restoring user can set,
+    extended attributes, symlinks as written, and hard links (a link shared
+    with a path outside the unit restores as an identical copy). Not carried:
+    file flags, special files, sparse or transparently compressed files (the
+    archive would hold every byte), names that are not UTF-8,
+    files another user owns, and groups the restoring user is not in.
+    """
+    uid, groups = os.getuid(), set(os.getgroups())
+    for directory, names, leaves in os.walk(path, followlinks=False):
+        for name in (".", *names, *leaves):
+            entry = os.path.join(directory, name)
+            try:
+                os.fsencode(name).decode("utf-8")
+            except UnicodeDecodeError:
+                return "holds file names tar cannot carry exactly"
+            info = os.lstat(entry)
+            if not (stat.S_ISDIR(info.st_mode) or stat.S_ISREG(info.st_mode) or stat.S_ISLNK(info.st_mode)):
+                return "holds special files (FIFO, socket or device) the archive cannot carry"
+            if getattr(info, "st_flags", 0) & ~FLAGS_CARRIED:
+                return FLAGS_KEPT
+            if info.st_uid != uid or info.st_gid not in groups:
+                return "holds files whose owner or group a restore cannot set"
+            # The archive holds every byte, so a file using fewer blocks than
+            # its size would grow the local copy past what the disk holds now.
+            if stat.S_ISREG(info.st_mode) and (info.st_blocks * 512 < info.st_size
+                                               or getattr(info, "st_flags", 0) & FLAGS_CARRIED):
+                return EXPANDS_KEPT
+    return None
+
+
+def offload_journaled_archives(data):
+    """Name the tasks whose offload journal lists an archive copy still on disk or unremoved."""
+    tasks = []
+    for journal in sorted(data.glob(f"*/{OFFLOAD_RECORD}")):
+        task = journal.parent.parent.name
+        with contextlib.suppress(OSError, ValueError):
+            if TASK_ID.fullmatch(task) and offload_journal(journal.parent.parent, task).get("archives"):
+                tasks.append(task)
+    return tasks
+
+
+BORROWS_KEPT = "borrows objects from a repository outside the unit"
+
+
+def offload_borrows_outside(path):
+    """Name a borrow from outside the unit that an alternates file in it records, or None."""
+    root = Path(path).resolve()
+    for directory, names, leaves in os.walk(path, followlinks=False):
+        objects = Path(directory)
+        if objects.name != "info" or objects.parent.name != "objects" or "alternates" not in leaves:
+            continue
+        for line in (objects / "alternates").read_text().splitlines():
+            value = line.strip()
+            if not value or value.startswith("#"):
+                continue
+            target = (Path(value) if Path(value).is_absolute() else objects.parent / value).resolve()
+            if target != root and root not in target.parents:
+                return BORROWS_KEPT
+    return None
+
+
+def offload_acl(path):
+    """Return whether anything under path has a macOS extended ACL, which tar here drops."""
+    if sys.platform != "darwin":
+        return False
+    found = subprocess.run(["/usr/bin/find", str(path), "-acl", "-print", "-quit"], stdin=subprocess.DEVNULL,
+                           capture_output=True, text=True, timeout=600, check=True)
+    return bool(found.stdout.strip())
+
+
+def offload_tree_state(path):
+    entries = []
+    for directory, names, leaves in os.walk(path, followlinks=False):
+        for name in (".", *names, *leaves):
+            info = os.lstat(os.path.join(directory, name))
+            entries.append((os.path.join(directory, name), info.st_mode, info.st_size, info.st_mtime_ns,
+                            info.st_ctime_ns, info.st_ino))
+    return sorted(entries)
+
+
+def offload_discard(path):
+    # Only this round's own archive copy; task evidence leaves through Trash.
+    if path.is_file() and not path.is_symlink():
+        guard_command(["rm", "-f", "--", str(path)])
+
+
+def offload_xattrs(path):
+    """Return every extended attribute of path, without following a symlink."""
+    if hasattr(os, "listxattr"):
+        return {os.fsencode(name): os.getxattr(path, name, follow_symlinks=False)
+                for name in os.listxattr(path, follow_symlinks=False)}
+    if sys.platform != "darwin":
+        return {}
+    import ctypes
+    libc = ctypes.CDLL(None, use_errno=True)
+    libc.listxattr.restype = libc.getxattr.restype = ctypes.c_ssize_t
+    libc.listxattr.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_size_t, ctypes.c_int]
+    libc.getxattr.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_size_t,
+                              ctypes.c_uint32, ctypes.c_int]
+    nofollow, target = 1, os.fsencode(path)
+
+    def read(fetch):
+        size = fetch(None, 0)
+        if size < 0:
+            raise OSError(ctypes.get_errno(), "extended attribute read failed", str(path))
+        buffer = ctypes.create_string_buffer(size)
+        if fetch(buffer, size) != size:
+            raise ValueError(f"extended attributes changed while reading: {path}")
+        return buffer.raw
+
+    names = [name for name in read(lambda out, size: libc.listxattr(target, out, size, nofollow)).split(b"\0")
+             if name]
+    return {name: read(lambda out, size, name=name: libc.getxattr(target, name, out, size, 0, nofollow))
+            for name in names}
+
+
+def offload_archive(source, archive):
+    # A repository travels as one tar file: the remote and independent
+    # manifests accept a single file, and tar keeps .git, symlinks and hard
+    # links exactly. Extended attributes, macOS resource forks included, ride
+    # in SCHILY.xattr headers that `tar --xattrs -x` restores.
+    reason = (offload_unit_metadata(source) or (ACL_KEPT if offload_acl(source) else None)
+              or offload_borrows_outside(source))
+    if reason:
+        raise ValueError(reason)
+
+    def carry(info):
+        for name, value in offload_xattrs(source.parent / info.name).items():
+            info.pax_headers["SCHILY.xattr." + name.decode("utf-8", "surrogateescape")] = (
+                value.decode("utf-8", "surrogateescape"))
+        return info
+
+    descriptor = os.open(archive, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(descriptor, "wb") as stream:
+        with tarfile.open(fileobj=stream, mode="w", format=tarfile.PAX_FORMAT) as tar:
+            tar.add(source, arcname=source.name, filter=carry)
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
+def offload_journal(root, task_id):
+    """Read a task's offload journal, or a new one when it has none."""
+    path = root / OFFLOAD_RECORD
+    if path.parent.is_symlink() or (path.parent.exists() and not path.parent.is_dir()):
+        raise ValueError("unsafe offload record directory")
+    if not (path.exists() or path.is_symlink()):
+        return {"version": 1, "task": task_id, "entries": {}}
+    if path.is_symlink() or path.stat().st_size > LIMIT or path.stat().st_nlink != 1:
+        raise ValueError("unsafe offload record")
+    record = json.loads(path.read_text())
+    archives = record.get("archives", []) if isinstance(record, dict) else None
+    if (not isinstance(record, dict) or record.get("task") != task_id or record.get("version") != 1
+            or not isinstance(record.get("entries"), dict) or not isinstance(archives, list)
+            or any(not isinstance(name, str) or not re.fullmatch(re.escape(ARCHIVE) + "[0-9a-f]{16}[.]tar", name)
+                   for name in archives)):
+        raise ValueError("invalid offload record")
+    return record
 
 
 def offload_pointer(path):
@@ -1185,9 +1574,10 @@ def offload_reference_text(root, row, locations, cache):
 
 
 def offload_candidates(data, state, task_id, rows, locations, cache):
+    """Return the task's moves and the repository units it keeps, with reasons."""
     closed, row = offload_closed(data, state, task_id, rows)
     root = real_directory(data / task_id)
-    files, directories, repos = offload_inventory(root)
+    files, directories, repos, units = offload_inventory(root, data)
     # Only locally available report/bead evidence is needed here. Unlike
     # scratch expiry, offload never consults a forge or reads a live PR.
     text = offload_reference_text(root, row, locations, cache)
@@ -1205,28 +1595,54 @@ def offload_candidates(data, state, task_id, rows, locations, cache):
             summary[1] += info.st_size
             summary[2] += info.st_blocks * 512
             summary[3] = summary[3] or blocked
+    def outside_units(path):
+        # A referenced directory holding a repository moves as its other
+        # parts; the repository is its own unit below.
+        if not any(path in unit.parents for unit in units):
+            return [path]
+        return [part for child in sorted(path.iterdir()) if child not in units for part in outside_units(child)]
+
     selected = []
-    for path in sorted(targets, key=lambda item: (len(item.parts), str(item))):
-        rel = path.relative_to(root)
+    for target in sorted(targets, key=lambda item: (len(item.parts), str(item))):
+        rel = target.relative_to(root)
         if not rel.parts or rel.parts[0] in (HOLD, "record"):
             continue
-        if any(parent in selected for parent in path.parents):
+        if any(unit == target or unit in target.parents for unit in units):
             continue
-        if path.is_file() and (ordinary_evidence(path, rel, repos) or offload_pointer(path)):
-            continue
-        # Symlinks and multiply linked files may still be in use through an
-        # alias outside this task. Retain them until that ownership is proven.
-        summary = totals.get(path, [0, 0, 0, False])
-        if path.is_symlink() or summary[3]:
-            continue
-        if summary[0]:
-            selected.append(path)
-    result = []
+        for path in outside_units(target):
+            rel = path.relative_to(root)
+            if path in selected or any(parent in selected for parent in path.parents):
+                continue
+            if path.is_file() and (ordinary_evidence(path, rel, repos) or offload_pointer(path)):
+                continue
+            # Symlinks and multiply linked files may still be in use through an
+            # alias outside this task. Retain them until that ownership is proven.
+            summary = totals.get(path, [0, 0, 0, False])
+            if path.is_symlink() or summary[3]:
+                continue
+            if summary[0]:
+                selected.append(path)
+    result, kept = [], []
     for path in selected:
         result.append({"task": task_id, "path": str(path.relative_to(root)), "closed": closed,
                        "size": totals[path][1], "allocated_bytes": totals[path][2],
                        "reason": "report or bead referenced evidence; task closed over seven days"})
-    return result
+    for unit, reason in sorted(units.items()):
+        summary = totals.get(unit, [0, 0, 0, False])
+        if not reason:
+            try:
+                reason = (offload_unit_metadata(unit) or (ACL_KEPT if offload_acl(unit) else None)
+                          or offload_borrows_outside(unit))
+            except (OSError, UnicodeError, subprocess.SubprocessError):
+                reason = "file metadata or access control lists could not be read"
+        if reason:
+            kept.append({"task": task_id, "path": str(unit.relative_to(root)), "reason": reason,
+                         "size": summary[1], "allocated_bytes": summary[2]})
+            continue
+        result.append({"task": task_id, "path": str(unit.relative_to(root)), "closed": closed,
+                       "size": summary[1], "allocated_bytes": summary[2], "repository": True,
+                       "reason": "repository of a task closed over seven days; offloaded whole as one archive"})
+    return result, kept
 
 
 def offload_context(data, state):
@@ -1238,17 +1654,19 @@ def offload_context(data, state):
 
 def offload_plan(data, state, task_id=None):
     data, state, rows, locations, cache = offload_context(data, state)
-    moves, retained = [], []
+    moves, retained, leftovers = [], [], offload_journaled_archives(data)
     ids = [task_id] if task_id is not None else sorted(path.name for path in data.iterdir() if path.is_dir())
     for task in ids:
         try:
             lock = state / f".meta-{task}.lock"
             if lock.exists() or lock.is_symlink():
                 raise ValueError("task meta lock is present")
-            moves.extend(offload_candidates(data, state, task, rows, locations, cache))
+            found, kept = offload_candidates(data, state, task, rows, locations, cache)
+            moves.extend(found)
+            retained.extend(kept)
         except (OSError, ValueError, sqlite3.Error, subprocess.SubprocessError) as error:
             retained.append({"task": task, "reason": str(error)})
-    print(json.dumps({"moves": moves, "retained": retained,
+    print(json.dumps({"moves": moves, "retained": retained, "leftovers": leftovers,
                       "total_bytes": sum(row["size"] for row in moves),
                       "total_allocated_bytes": sum(row["allocated_bytes"] for row in moves),
                       "backup_required": True}))
@@ -1316,6 +1734,9 @@ request = json.load(sys.stdin)
 volume = Path("/Volumes/MINI-DATA")
 if volume.is_symlink() or not volume.is_mount():
     raise ValueError("MINI-DATA is not mounted")
+if request["action"] == "ready":
+    print(json.dumps({"ready": True}))
+    raise SystemExit
 destination = Path(request["destination"])
 relative = destination.relative_to(volume / "firstmate-task-evidence")
 if not relative.parts or any(part in (".", "..") for part in relative.parts):
@@ -1382,20 +1803,36 @@ def offload(data, state, task_id):
     data, state = real_directory(data, resolve_parent=True), real_directory(state, resolve_parent=True)
     command = offload_config(data)  # Refuse before even contacting the remote.
     data, state, rows, locations, cache = offload_context(data, state)
-    offload_closed(data, state, task_id, rows)
     root = real_directory(data / task_id)
     record_path = root / OFFLOAD_RECORD
-    if record_path.parent.is_symlink() or (record_path.parent.exists() and not record_path.parent.is_dir()):
-        raise ValueError("unsafe offload record directory")
-    if record_path.exists() or record_path.is_symlink():
-        if record_path.is_symlink() or record_path.stat().st_size > LIMIT or record_path.stat().st_nlink != 1:
-            raise ValueError("unsafe offload record")
-        record = json.loads(record_path.read_text())
-        if not isinstance(record, dict) or record.get("task") != task_id or record.get("version") != 1 or not isinstance(record.get("entries"), dict):
-            raise ValueError("invalid offload record")
-    else:
-        record = {"version": 1, "task": task_id, "entries": {}}
-    candidates = {item["path"]: item for item in offload_candidates(data, state, task_id, rows, locations, cache)}
+    record = offload_journal(root, task_id)
+
+    def claim():
+        # Journal the copy's name before it exists, so cleanup only ever
+        # removes a file this offload created.
+        name = f"{ARCHIVE}{secrets.token_hex(8)}.tar"
+        record.setdefault("archives", []).append(name)
+        safe_directory(root, Path("record"))
+        offload_write(record_path, record)
+        return root / name
+
+    def release(name):
+        if name not in record.get("archives", []):
+            return
+        leftover = root / name
+        if leftover.is_symlink() or (leftover.exists() and not leftover.is_file()):
+            raise ValueError(f"unsafe archive copy: {leftover}")
+        offload_discard(leftover)
+        record["archives"].remove(name)
+        offload_write(record_path, record)
+
+    # A journaled copy is always redundant, so it goes even when the task has
+    # reopened or lost its closed row; a refusal waits for the next pass.
+    for name in list(record.get("archives", [])):
+        with contextlib.suppress(OSError, ValueError, subprocess.SubprocessError):
+            release(name)
+    offload_closed(data, state, task_id, rows)
+    candidates = {item["path"]: item for item in offload_candidates(data, state, task_id, rows, locations, cache)[0]}
     # A crash after Trash but before pointer publication leaves this journal.
     # Complete the pointer only after both copies are freshly verified again.
     for relative, pointer in record["entries"].items():
@@ -1407,52 +1844,85 @@ def offload(data, state, task_id):
             candidates[relative] = {"recovery": pointer}
     moved = []
     result = {"offloaded": moved}
+    relative = None
     try:
         for relative, candidate in candidates.items():
             source = root / relative
             if source.parent.resolve() != source.parent:
                 raise ValueError("unsafe evidence parent")
             recovery = candidate.get("recovery")
-            if recovery:
-                pointer = recovery
-                destination = pointer["location"].removeprefix("mini-ts:")
-                if (pointer.get("format") != OFFLOAD_POINTER or not pointer["location"].startswith("mini-ts:" + OFFLOAD_ROOT + "/")
-                        or pointer.get("original") != str(source)):
-                    raise ValueError("invalid offload recovery pointer")
-            else:
-                manifest = offload_manifest(source)
-                home = hashlib.sha256(str(data).encode()).hexdigest()[:16]
-                identity = hashlib.sha256(relative.encode()).hexdigest()[:16]
-                destination = f"{OFFLOAD_ROOT}/{home}/{task_id}/{identity}/{manifest['checksum']}/payload"
-                pointer = {"format": OFFLOAD_POINTER, "original": str(source), "location": "mini-ts:" + destination,
-                           **manifest, "checksum_algorithm": "sha256-canonical-tree-v1", "closed": candidate["closed"]}
-                prepared = offload_remote("prepare", destination, manifest)
-                if prepared.get("verified") is not True:
-                    copy_source = str(source) + ("/" if source.is_dir() else "")
-                    subprocess.run(["rsync", "-a", "--", copy_source, "mini-ts:" + destination],
-                                   capture_output=True, text=True, timeout=86400, check=True)
-            expected = {"checksum": pointer["checksum"], "size": pointer["size"]}
-            if offload_remote("verify", destination) != expected:
-                raise ValueError("remote copy checksum or size mismatch; original retained")
-            pointer["backup"] = offload_backup(command, pointer)
-            offload_closed(data, state, task_id, completed_row_index(data))
-            if not recovery:
-                if offload_manifest(source) != expected:
-                    raise ValueError("local evidence changed after copy; original retained")
-                record["entries"][relative] = pointer
-                safe_directory(root, Path("record"))
-                offload_write(record_path, record)
-                guard_command(["trash", "-s", str(source)])
-                if source.exists() or source.is_symlink():
-                    raise ValueError("Trash did not move the original; pointer not published")
-            # Never replace newly created work, including a concurrent broken link.
-            with source.open("x") as stream:
-                json.dump(pointer, stream, sort_keys=True)
-                stream.write("\n")
-                stream.flush()
-                os.fsync(stream.fileno())
-            moved.append({"task": task_id, "path": relative, **expected, "location": pointer["location"]})
-    except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
+            archive = None
+            if candidate.get("repository"):
+                try:
+                    offload_remote("ready", OFFLOAD_ROOT)
+                except (OSError, ValueError, subprocess.SubprocessError) as error:
+                    raise ValueError("mini-ts did not answer or MINI-DATA is not mounted; no archive written") from error
+                # At most one archive copy exists anywhere: a copy whose
+                # removal was refused blocks every new archive until removed.
+                waiting = offload_journaled_archives(data)
+                if waiting:
+                    raise ValueError(f"an earlier archive copy is still on disk in {', '.join(waiting)}; "
+                                     "no new archive until it is removed")
+                before = offload_tree_state(source)
+                archive = claim()
+            try:
+                if archive:
+                    try:
+                        offload_archive(source, archive)
+                    except FileExistsError:
+                        # Never this round's file: unlist it rather than remove it.
+                        record["archives"].remove(archive.name)
+                        offload_write(record_path, record)
+                        raise
+                if recovery:
+                    pointer = recovery
+                    destination = pointer["location"].removeprefix("mini-ts:")
+                    if (pointer.get("format") != OFFLOAD_POINTER or not pointer["location"].startswith("mini-ts:" + OFFLOAD_ROOT + "/")
+                            or pointer.get("original") != str(source)):
+                        raise ValueError("invalid offload recovery pointer")
+                else:
+                    copy = archive or source
+                    manifest = offload_manifest(copy)
+                    home = hashlib.sha256(str(data).encode()).hexdigest()[:16]
+                    identity = hashlib.sha256(relative.encode()).hexdigest()[:16]
+                    destination = f"{OFFLOAD_ROOT}/{home}/{task_id}/{identity}/{manifest['checksum']}/payload"
+                    pointer = {"format": OFFLOAD_POINTER, "original": str(source), "location": "mini-ts:" + destination,
+                               **manifest, "checksum_algorithm": "sha256-canonical-tree-v1", "closed": candidate["closed"]}
+                    if archive:
+                        pointer["archive"] = "tar"
+                    prepared = offload_remote("prepare", destination, manifest)
+                    if prepared.get("verified") is not True:
+                        copy_source = str(copy) + ("/" if copy.is_dir() else "")
+                        subprocess.run(["rsync", "-a", "--", copy_source, "mini-ts:" + destination],
+                                       capture_output=True, text=True, timeout=86400, check=True)
+                expected = {"checksum": pointer["checksum"], "size": pointer["size"]}
+                if offload_remote("verify", destination) != expected:
+                    raise ValueError("remote copy checksum or size mismatch; original retained")
+                pointer["backup"] = offload_backup(command, pointer)
+                offload_closed(data, state, task_id, completed_row_index(data))
+                if not recovery:
+                    if (offload_tree_state(source) != before) if archive else (offload_manifest(source) != expected):
+                        raise ValueError("local evidence changed after copy; original retained")
+                    record["entries"][relative] = pointer
+                    safe_directory(root, Path("record"))
+                    offload_write(record_path, record)
+                    guard_command([TRASH, "-s", str(source)])
+                    if source.exists() or source.is_symlink():
+                        raise ValueError("Trash did not move the original; pointer not published")
+                # Never replace newly created work, including a concurrent broken link.
+                with source.open("x") as stream:
+                    json.dump(pointer, stream, sort_keys=True)
+                    stream.write("\n")
+                    stream.flush()
+                    os.fsync(stream.fileno())
+            finally:
+                # A copy left by a refused discard stays journaled for the next pass.
+                if archive:
+                    with contextlib.suppress(OSError, ValueError, subprocess.SubprocessError):
+                        release(archive.name)
+            moved.append({"task": task_id, "path": relative, **expected, "location": pointer["location"],
+                          **({"archive": "tar"} if pointer.get("archive") else {})})
+    except (OSError, ValueError, KeyError, tarfile.TarError, subprocess.SubprocessError) as error:
         result["failed"] = {"task": task_id, "path": relative, "reason": str(error)}
         raise
     finally:
