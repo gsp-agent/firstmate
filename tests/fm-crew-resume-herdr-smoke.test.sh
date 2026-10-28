@@ -180,9 +180,11 @@ stop_codex() {
   fail "the pane did not return to its shell after the codex stand-in stopped"
 }
 
+# The pane's login shell can take well over five seconds to start on a loaded
+# host, so allow thirty.
 i=0
 until [ -s "$SCRATCH/worktree-shell" ]; do
-  [ "$i" -lt 50 ] || fail "the nested worktree shell did not start"
+  [ "$i" -lt 300 ] || fail "the nested worktree shell did not start"
   sleep 0.1
   i=$((i + 1))
 done
@@ -262,7 +264,14 @@ if [ -n "$EXIT_BINDING" ]; then
 fi
 assert_not_contains "$OUT" "still holds Codex session" "the relaunch onto claude warned that the retired Codex binding survived"
 [ ! -e "$HOME_DIR/state/hresume.codex-resume" ] || fail "the relaunch onto claude left the Codex resume record behind"
-[ -s "$SCRATCH/claude-started" ] || fail "the replacement pane did not launch the stand-in claude"
+# The spawn can return before the replacement pane's shell has run the
+# launch line.
+i=0
+until [ -s "$SCRATCH/claude-started" ]; do
+  [ "$i" -lt 60 ] || fail "the replacement pane did not launch the stand-in claude"
+  sleep 0.5
+  i=$((i + 1))
+done
 i=0
 until [ "$(fm_backend_herdr_pane_agent_session_ref "$SESSION" "$PANE_ID")" = "claude"$'\t'"fm-crew-resume-claude-1" ]; do
   [ "$i" -lt 60 ] || fail "claude's own session report never bound the pane, which holds '$(fm_backend_herdr_pane_agent_session_ref "$SESSION" "$PANE_ID")'"
