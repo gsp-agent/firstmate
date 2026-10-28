@@ -104,7 +104,7 @@ fm_nm_run_updated_epoch() {  # <worktree> <run-id>
   case "$id" in ''|*[!A-Za-z0-9_-]*) return 0 ;; esac
   db=$(fm_nm_state_db "$1")
   [ -f "$db" ] && [ ! -L "$db" ] || return 0
-  epoch=$(fm_nm_bounded "$1" 2 python3 - "$db" "$id" 2>/dev/null <<'PY'
+  epoch=$(fm_nm_bounded "$1" 2 python3 -I - "$db" "$id" 2>/dev/null <<'PY'
 import sqlite3
 import sys
 from pathlib import Path

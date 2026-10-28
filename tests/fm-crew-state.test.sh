@@ -1529,6 +1529,25 @@ EOF
   assert_contains "$out" "state: paused" "a [key=default] resolved line retracted a keyless pause: $out"
 
   printf '%s\n' \
+    'paused [key=car] [at=1793148350]: waiting on the PC export' \
+    'needs-decision [key=tex] [at=1793148360]: which texture set?' \
+    'resolved [key=tex] [at=1793148400]: answered: 4k' \
+    > "$d/state/feat-newer.status"
+  out=$(run_crew_state "$d" feat-newer)
+  assert_not_contains "$out" "state: paused" "a pause a later closed decision ended came back: $out"
+  assert_contains "$out" "state: done" "with no remaining newer state line the passed run answers: $out"
+  assert_contains "$out" "source: run-step" "with no remaining newer state line the run-step answers: $out"
+
+  printf '%s\n' \
+    'paused [key=car] [at=1793148350]: waiting on the PC export' \
+    'paused [key=tex] [at=1793148360]: waiting on textures' \
+    'resolved [key=tex] [at=1793148400]: answered: textures landed' \
+    > "$d/state/feat-newer.status"
+  out=$(run_crew_state "$d" feat-newer)
+  assert_not_contains "$out" "state: paused" "a pause a later retracted pause ended came back: $out"
+  assert_contains "$out" "source: run-step" "with no remaining newer state line the run-step answers: $out"
+
+  printf '%s\n' \
     'working [at=1793123903]: PR https://github.com/o/r/pull/178 merged; Alpha build continues' \
     > "$d/state/feat-newer.status"
   out=$(run_crew_state "$d" feat-newer)

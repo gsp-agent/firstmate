@@ -498,7 +498,10 @@ _fm_status_declared_wait_scan() {  # <resolve-verb> <legacy-captain-re>
 # a resolved line is not a state, so the read walks back past it; a
 # needs-decision or blocked line that a later resolved line closed, and a pause
 # it retracted under status_declared_wait_line's phase-key rule, are passed
-# too, so skipping the resolved line never revives what it ended. Bounded like
+# too, so skipping the resolved line never revives what it ended. Either of
+# those passed lines ends every earlier pause, as any later event other than
+# resolved does for status_declared_wait_line, so skipping it never revives a
+# pause either. Bounded like
 # last_status_line: a tail window with no such event widens the read to the
 # whole file. bin/fm-crew-state.sh weighs this line against a finished run and
 # bin/fm-inactive-reconcile.sh keeps a pane open while it says working.
@@ -516,7 +519,7 @@ status_newest_state_line() {  # <status-file>
 # Returns 1 when none is reached, so a caller reading a bounded window knows to
 # widen it.
 _fm_status_state_scan() {  # <legacy-captain-re>
-  local legacy_re=$1 resolve paused line verb key closed=$'\n' retracted=$'\n' i=0
+  local legacy_re=$1 resolve paused line verb key closed=$'\n' retracted=$'\n' pause_ended='' i=0
   local -a lines=()
   resolve=${FM_CLASSIFY_RESOLVE_VERB:-$FM_CLASSIFY_RESOLVE_VERB_DEFAULT}
   paused=${FM_CLASSIFY_PAUSED_VERB:-$FM_CLASSIFY_PAUSED_VERB_DEFAULT}
@@ -540,12 +543,13 @@ _fm_status_state_scan() {  # <legacy-captain-re>
         ;;
       needs-decision|blocked)
         if _fm_decision_key "$line" default key; then
-          case "$closed" in *$'\n'"$key"$'\n'*) continue ;; esac
+          case "$closed" in *$'\n'"$key"$'\n'*) pause_ended=1; continue ;; esac
         fi
         ;;
       "$paused")
+        [ -z "$pause_ended" ] || continue
         _fm_decision_key "$line" "$_FM_CLASSIFY_KEYLESS_PHASE" key || key=
-        case "$retracted" in *$'\n'"$key"$'\n'*) continue ;; esac
+        case "$retracted" in *$'\n'"$key"$'\n'*) pause_ended=1; continue ;; esac
         ;;
     esac
     printf '%s\n' "$line"
