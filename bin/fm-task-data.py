@@ -8,7 +8,6 @@ Usage: fm-task-data.py prepare DATA STATE ID [PR]
        fm-task-data.py pending DATA
        fm-task-data.py plan DATA STATE ID
        fm-task-data.py offload-plan DATA STATE [ID]
-       fm-task-data.py offload-leftovers DATA STATE
        bash fm-task-data-lib.sh offload DATA STATE ID
        fm-task-data.py mark DATA ID cut-off|too-large
 Prepare, retire, stage, expire and mark need the caller to hold STATE/.meta-ID.lock, the
@@ -172,10 +171,13 @@ independent-backup rule below, and its pointer adds archive "tar".
 Before writing an archive, offload checks that ssh mini-ts answers and
 MINI-DATA is mounted; if not, it writes nothing and the task waits for the next
 pass. One archive exists at a time, a temporary file in the task folder removed
-through a dcg-checked rm -f right after its move or failure. Each offload pass
-first runs offload-leftovers, which removes every leftover copy in any task
-folder whose meta lock is free the same way, moves or not; a refusal waits for
-the next pass.
+through a dcg-checked rm -f right after its move or failure. Its name goes into
+record/data-offload.json's archives list before it is written, and only a file
+that list names is ever removed: offload removes the task's listed leftovers
+first, and offload-plan lists tasks holding any so each offload pass reaches
+them, moves or not; a refusal waits for the next pass.
+Extended attributes, macOS resource forks included, ride in the archive's
+SCHILY.xattr headers.
 A linked worktree of a repository in another task or outside DATA (its index,
 HEAD, reflog and refs live in that repository, outside any archive), a
 repository whose .git is a symlink, a repository with linked worktrees outside
@@ -220,7 +222,8 @@ record/data-offload.json journals verified moves before Trash, so a retry after
 interruption can reverify both copies and finish a missing pointer. Existing
 pointers are no-ops. Recovery copies remain in Trash until its normal expiry;
 restore an original by first moving its pointer aside, never overwriting work;
-a repository archive restores with tar -xf in the pointer's parent directory.
+a repository archive restores with tar --xattrs -xpf in the pointer's parent
+directory, which also restores its extended attributes.
 If a later candidate fails, stdout still reports completed moves and total bytes,
 plus the failed task/path/reason; the command retains its nonzero exit status.
 """
@@ -235,6 +238,7 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 import shlex
 import shutil
 import signal
@@ -1260,46 +1264,78 @@ def offload_discard(path):
         guard_command(["rm", "-f", "--", str(path)])
 
 
-def offload_leftovers(data, state):
-    # A leftover copy is always redundant: its unit is either verified, in
-    # Trash and behind a pointer, or still in place. A refusal waits for the
-    # next pass; a task whose meta lock is held may be archiving right now.
-    data, state = real_directory(data, resolve_parent=True), real_directory(state, resolve_parent=True)
-    rc = 0
-    for leftover in sorted(data.glob(f"*/{ARCHIVE}*.tar")):
-        lock = state / f".meta-{leftover.parent.name}.lock"
-        if (not TASK_ID.fullmatch(leftover.parent.name) or leftover.parent.is_symlink()
-                or lock.exists() or lock.is_symlink()):
-            continue
-        try:
-            offload_discard(leftover)
-        except (OSError, ValueError, subprocess.SubprocessError) as error:
-            print(f"warning: leftover archive copy {leftover} stays for the next pass: {error}", file=sys.stderr)
-            rc = 1
-    return rc
+def offload_xattrs(path):
+    """Return every extended attribute of path, without following a symlink."""
+    if hasattr(os, "listxattr"):
+        return {os.fsencode(name): os.getxattr(path, name, follow_symlinks=False)
+                for name in os.listxattr(path, follow_symlinks=False)}
+    if sys.platform != "darwin":
+        return {}
+    import ctypes
+    libc = ctypes.CDLL(None, use_errno=True)
+    libc.listxattr.restype = libc.getxattr.restype = ctypes.c_ssize_t
+    libc.listxattr.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_size_t, ctypes.c_int]
+    libc.getxattr.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_size_t,
+                              ctypes.c_uint32, ctypes.c_int]
+    nofollow, target = 1, os.fsencode(path)
+
+    def read(fetch):
+        size = fetch(None, 0)
+        if size < 0:
+            raise OSError(ctypes.get_errno(), "extended attribute read failed", str(path))
+        buffer = ctypes.create_string_buffer(size)
+        if fetch(buffer, size) != size:
+            raise ValueError(f"extended attributes changed while reading: {path}")
+        return buffer.raw
+
+    names = [name for name in read(lambda out, size: libc.listxattr(target, out, size, nofollow)).split(b"\0")
+             if name]
+    return {name: read(lambda out, size, name=name: libc.getxattr(target, name, out, size, 0, nofollow))
+            for name in names}
 
 
-def offload_archive(root, source):
+def offload_archive(source, archive):
     # A repository travels as one tar file: the remote and independent
     # manifests accept a single file, and tar keeps .git, symlinks and hard
-    # links exactly.
+    # links exactly. Extended attributes, macOS resource forks included, ride
+    # in SCHILY.xattr headers that `tar --xattrs -x` restores.
     for directory, names, leaves in os.walk(source, followlinks=False):
         for name in names + leaves:
             mode = os.lstat(os.path.join(directory, name)).st_mode
             if not (stat.S_ISDIR(mode) or stat.S_ISREG(mode) or stat.S_ISLNK(mode)):
                 raise ValueError("special file in repository")
-    descriptor, name = tempfile.mkstemp(prefix=ARCHIVE, suffix=".tar", dir=root)
-    archive = Path(name)
-    try:
-        with os.fdopen(descriptor, "wb") as stream:
-            with tarfile.open(fileobj=stream, mode="w", format=tarfile.PAX_FORMAT) as tar:
-                tar.add(source, arcname=source.name)
-            stream.flush()
-            os.fsync(stream.fileno())
-    except BaseException:
-        offload_discard(archive)
-        raise
-    return archive
+
+    def carry(info):
+        for name, value in offload_xattrs(source.parent / info.name).items():
+            info.pax_headers["SCHILY.xattr." + name.decode("utf-8", "surrogateescape")] = (
+                value.decode("utf-8", "surrogateescape"))
+        return info
+
+    descriptor = os.open(archive, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(descriptor, "wb") as stream:
+        with tarfile.open(fileobj=stream, mode="w", format=tarfile.PAX_FORMAT) as tar:
+            tar.add(source, arcname=source.name, filter=carry)
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
+def offload_journal(root, task_id):
+    """Read a task's offload journal, or a new one when it has none."""
+    path = root / OFFLOAD_RECORD
+    if path.parent.is_symlink() or (path.parent.exists() and not path.parent.is_dir()):
+        raise ValueError("unsafe offload record directory")
+    if not (path.exists() or path.is_symlink()):
+        return {"version": 1, "task": task_id, "entries": {}}
+    if path.is_symlink() or path.stat().st_size > LIMIT or path.stat().st_nlink != 1:
+        raise ValueError("unsafe offload record")
+    record = json.loads(path.read_text())
+    archives = record.get("archives", []) if isinstance(record, dict) else None
+    if (not isinstance(record, dict) or record.get("task") != task_id or record.get("version") != 1
+            or not isinstance(record.get("entries"), dict) or not isinstance(archives, list)
+            or any(not isinstance(name, str) or not re.fullmatch(re.escape(ARCHIVE) + "[0-9a-f]{16}[.]tar", name)
+                   for name in archives)):
+        raise ValueError("invalid offload record")
+    return record
 
 
 def offload_pointer(path):
@@ -1426,9 +1462,12 @@ def offload_context(data, state):
 
 def offload_plan(data, state, task_id=None):
     data, state, rows, locations, cache = offload_context(data, state)
-    moves, retained = [], []
+    moves, retained, leftovers = [], [], []
     ids = [task_id] if task_id is not None else sorted(path.name for path in data.iterdir() if path.is_dir())
     for task in ids:
+        with contextlib.suppress(OSError, ValueError):
+            if TASK_ID.fullmatch(task) and offload_journal(data / task, task).get("archives"):
+                leftovers.append(task)
         try:
             lock = state / f".meta-{task}.lock"
             if lock.exists() or lock.is_symlink():
@@ -1438,7 +1477,7 @@ def offload_plan(data, state, task_id=None):
             retained.extend(kept)
         except (OSError, ValueError, sqlite3.Error, subprocess.SubprocessError) as error:
             retained.append({"task": task, "reason": str(error)})
-    print(json.dumps({"moves": moves, "retained": retained,
+    print(json.dumps({"moves": moves, "retained": retained, "leftovers": leftovers,
                       "total_bytes": sum(row["size"] for row in moves),
                       "total_allocated_bytes": sum(row["allocated_bytes"] for row in moves),
                       "backup_required": True}))
@@ -1578,16 +1617,26 @@ def offload(data, state, task_id):
     offload_closed(data, state, task_id, rows)
     root = real_directory(data / task_id)
     record_path = root / OFFLOAD_RECORD
-    if record_path.parent.is_symlink() or (record_path.parent.exists() and not record_path.parent.is_dir()):
-        raise ValueError("unsafe offload record directory")
-    if record_path.exists() or record_path.is_symlink():
-        if record_path.is_symlink() or record_path.stat().st_size > LIMIT or record_path.stat().st_nlink != 1:
-            raise ValueError("unsafe offload record")
-        record = json.loads(record_path.read_text())
-        if not isinstance(record, dict) or record.get("task") != task_id or record.get("version") != 1 or not isinstance(record.get("entries"), dict):
-            raise ValueError("invalid offload record")
-    else:
-        record = {"version": 1, "task": task_id, "entries": {}}
+    record = offload_journal(root, task_id)
+
+    def claim():
+        # Journal the copy's name before it exists, so cleanup only ever
+        # removes a file this offload created.
+        name = f"{ARCHIVE}{secrets.token_hex(8)}.tar"
+        record.setdefault("archives", []).append(name)
+        safe_directory(root, Path("record"))
+        offload_write(record_path, record)
+        return root / name
+
+    def release(name):
+        if name not in record.get("archives", []):
+            return
+        leftover = root / name
+        if leftover.is_symlink() or (leftover.exists() and not leftover.is_file()):
+            raise ValueError(f"unsafe archive copy: {leftover}")
+        offload_discard(leftover)
+        record["archives"].remove(name)
+        offload_write(record_path, record)
     candidates = {item["path"]: item for item in offload_candidates(data, state, task_id, rows, locations, cache)[0]}
     # A crash after Trash but before pointer publication leaves this journal.
     # Complete the pointer only after both copies are freshly verified again.
@@ -1602,9 +1651,10 @@ def offload(data, state, task_id):
     result = {"offloaded": moved}
     relative = None
     try:
-        # An interrupted round can leave its own archive copy beside the evidence.
-        for leftover in sorted(root.glob(ARCHIVE + "*.tar")):
-            offload_discard(leftover)
+        # An interrupted or refused round can leave its own journaled copy.
+        for name in list(record.get("archives", [])):
+            with contextlib.suppress(OSError, ValueError, subprocess.SubprocessError):
+                release(name)
         for relative, candidate in candidates.items():
             source = root / relative
             if source.parent.resolve() != source.parent:
@@ -1617,8 +1667,16 @@ def offload(data, state, task_id):
                 except (OSError, ValueError, subprocess.SubprocessError) as error:
                     raise ValueError("mini-ts did not answer or MINI-DATA is not mounted; no archive written") from error
                 before = offload_tree_state(source)
-                archive = offload_archive(root, source)
+                archive = claim()
             try:
+                if archive:
+                    try:
+                        offload_archive(source, archive)
+                    except FileExistsError:
+                        # Never this round's file: unlist it rather than remove it.
+                        record["archives"].remove(archive.name)
+                        offload_write(record_path, record)
+                        raise
                 if recovery:
                     pointer = recovery
                     destination = pointer["location"].removeprefix("mini-ts:")
@@ -1661,10 +1719,10 @@ def offload(data, state, task_id):
                     stream.flush()
                     os.fsync(stream.fileno())
             finally:
-                # A copy left by a refused discard is retried as a leftover next round.
+                # A copy left by a refused discard stays journaled for the next pass.
                 if archive:
                     with contextlib.suppress(OSError, ValueError, subprocess.SubprocessError):
-                        offload_discard(archive)
+                        release(archive.name)
             moved.append({"task": task_id, "path": relative, **expected, "location": pointer["location"],
                           **({"archive": "tar"} if pointer.get("archive") else {})})
     except (OSError, ValueError, KeyError, tarfile.TarError, subprocess.SubprocessError) as error:
@@ -1956,13 +2014,11 @@ if __name__ == "__main__":
         sys.exit(0)
     try:
         arities = {"prepare": {5, 6}, "retire": {5, 6}, "stage": {7}, "expire": {5}, "plan": {5}, "pending": {3}, "mark": {5},
-                   "offload-plan": {4, 5}, "offload": {5}, "offload-leftovers": {4}}
+                   "offload-plan": {4, 5}, "offload": {5}}
         if len(sys.argv) < 2 or len(sys.argv) not in arities.get(sys.argv[1], ()):
             raise ValueError(__doc__)
         if sys.argv[1] == "offload-plan":
             offload_plan(*sys.argv[2:])
-        elif sys.argv[1] == "offload-leftovers":
-            sys.exit(offload_leftovers(*sys.argv[2:]))
         elif sys.argv[1] == "offload":
             offload(*sys.argv[2:])
         elif sys.argv[1] == "pending":

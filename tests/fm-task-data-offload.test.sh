@@ -469,21 +469,37 @@ def check_sweep_offloads(configured):
         assert (build / "evidence.bin").read_bytes() == b"original-evidence" * 256
         assert not (home / "calls").exists(), "an unconfigured sweep contacted the remote"
 
-def check_pass_removes_leftover_archives():
+def check_pass_removes_only_journaled_archives():
     home = fixture("sweep-leftover")
-    (home / "data/task-one/report.md").write_text("Completed.\n")
-    leftover = home / "data/task-one/.firstmate-offload-abc123.tar"
-    leftover.write_bytes(b"redundant archive copy")
-    other = home / "data/task-two"
-    other.mkdir()
-    (other / ".firstmate-offload-def456.tar").write_bytes(b"redundant archive copy")
-    (other / "keep.bin").write_bytes(b"not an archive copy")
+    task = home / "data/task-one"
+    (task / "report.md").write_text("Completed.\n")
+    owned = ".firstmate-offload-0123456789abcdef.tar"
+    (task / owned).write_bytes(b"redundant archive copy")
+    (task / ".firstmate-offload-backup.tar").write_bytes(b"a file the task made itself")
+    (task / "record").mkdir()
+    (task / "record/data-offload.json").write_text(json.dumps(
+        {"version": 1, "task": "task-one", "entries": {}, "archives": [owned]}))
     assert run(home, "offload-plan")["moves"] == []
     run(home, "sweep", raw=True, task=())
-    assert not leftover.exists() and not (other / ".firstmate-offload-def456.tar").exists(), \
-        "a leftover archive copy in a task with no moves stayed"
-    assert (other / "keep.bin").read_bytes() == b"not an archive copy"
-    assert (home / "data/task-one/build/evidence.bin").is_file()
+    assert not (task / owned).exists(), "a journaled archive copy in a task with no moves stayed"
+    assert (task / ".firstmate-offload-backup.tar").read_bytes() == b"a file the task made itself", \
+        "a file the offload journal does not name was removed"
+    assert json.loads((task / "record/data-offload.json").read_text())["archives"] == []
+
+def check_archive_keeps_extended_attributes():
+    home, clone = repo_fixture("repo-xattr")
+    subprocess.run(["/usr/bin/xattr", "-w", "com.apple.ResourceFork", "unique-resource-bytes", str(clone / "work.txt")],
+                   check=True)
+    run(home, "offload")
+    pointer = json.loads(clone.read_text())
+    payload = home / "remote" / pointer["location"].removeprefix("mini-ts:").lstrip("/")
+    (home / "restored").mkdir()
+    subprocess.run(["/usr/bin/tar", "--xattrs", "-xpf", str(payload), "-C", str(home / "restored")],
+                   check=True, capture_output=True)
+    fork = subprocess.run(["/usr/bin/xattr", "-p", "com.apple.ResourceFork", str(home / "restored/clone/work.txt")],
+                          capture_output=True, text=True)
+    assert fork.returncode == 0 and fork.stdout.strip() == "unique-resource-bytes", \
+        "the archive dropped the file's resource fork: " + fork.stderr.strip()
 
 # Collect the independent review regressions so a broken directory copy cannot
 # hide the single-file, retry, or partial-report result on the reviewed head.
@@ -507,9 +523,10 @@ regressions.extend([("verified existing payload is reused", check_verified_reuse
                     ("offload never runs a trash from PATH or feeds it stdin", check_trash_never_empties),
                     ("a sweep ends with an offload pass", lambda: check_sweep_offloads(True)),
                     ("a sweep in a home without a verifier offloads nothing", lambda: check_sweep_offloads(False)),
-                    ("an offload pass removes leftover archive copies in tasks with no moves", check_pass_removes_leftover_archives)])
+                    ("an offload pass removes only archive copies its journal names", check_pass_removes_only_journaled_archives)])
 if sys.platform == "darwin":
-    regressions.extend([("real /usr/bin/rsync directory placement", lambda: check_placement("directory", True)),
+    regressions.extend([("a repository archive keeps resource forks and other extended attributes",
+                         check_archive_keeps_extended_attributes),("real /usr/bin/rsync directory placement", lambda: check_placement("directory", True)),
                         ("real /usr/bin/rsync single-file placement", lambda: check_placement("file", True))])
 failures = []
 for name, check in regressions:
