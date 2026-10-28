@@ -417,13 +417,14 @@ test_handling_successor_closes_on_a_row_newer_than_its_start() {
   fm_test_track_pid "$child"
   now=0
   while [ "$now" -lt 40 ]; do
-    [ "$(cat "$state/.watch.lock/pid" 2>/dev/null || true)" = "$child" ] && break
+    [ "$(cat "$state/.watch.lock/pid" 2>/dev/null || true)" = "$child" ] \
+      && [ -f "$state/.last-watcher-beat" ] && break
     sleep 0.1
     now=$((now + 1))
   done
   [ "$(cat "$state/.watch.lock/pid" 2>/dev/null || true)" = "$child" ] \
-    || { kill -TERM "$child" 2>/dev/null || true; fail "handling successor did not take the watcher lock"; }
-  sleep 1.5
+    && [ -f "$state/.last-watcher-beat" ] \
+    || { kill -TERM "$child" 2>/dev/null || true; fail "handling successor did not reach its first poll"; }
   kill -0 "$child" 2>/dev/null \
     || { fail "the row queued before start closed the successor: $(cat "$out")"; }
   ! grep -F "$old" "$out" >/dev/null \
@@ -473,12 +474,14 @@ test_handling_successor_ignores_a_reappended_start_row() {
   fm_test_track_pid "$child"
   now=0
   while [ "$now" -lt 40 ]; do
-    [ "$(cat "$state/.watch.lock/pid" 2>/dev/null || true)" = "$child" ] && break
+    [ "$(cat "$state/.watch.lock/pid" 2>/dev/null || true)" = "$child" ] \
+      && [ -f "$state/.last-watcher-beat" ] && break
     sleep 0.1
     now=$((now + 1))
   done
   [ "$(cat "$state/.watch.lock/pid" 2>/dev/null || true)" = "$child" ] \
-    || { kill -TERM "$child" 2>/dev/null || true; fail "handling successor did not take the watcher lock"; }
+    && [ -f "$state/.last-watcher-beat" ] \
+    || { kill -TERM "$child" 2>/dev/null || true; fail "handling successor did not reach its first poll"; }
   append_wake "$state" check "inbox:n1" "$old" \
     || { kill -TERM "$child" 2>/dev/null || true; fail "could not re-append the start row"; }
   grep -c "$(printf '\tcheck\tinbox:n1\t')" "$state/.wake-queue" | grep -qx 2 \
