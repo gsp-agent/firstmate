@@ -501,6 +501,29 @@ def check_archive_keeps_extended_attributes():
     assert fork.returncode == 0 and fork.stdout.strip() == "unique-resource-bytes", \
         "the archive dropped the file's resource fork: " + fork.stderr.strip()
 
+def check_unreadable_worktree_record_kept():
+    home, clone = repo_fixture("repo-empty-record")
+    git("-C", clone, "worktree", "add", "-q", "-b", "side", home / "user/wt")
+    (clone / ".git/worktrees/wt/gitdir").write_text("")
+    before = snapshot(clone)
+    plan = run(home, "offload-plan")
+    assert plan["moves"] == [], plan
+    assert [(item.get("path"), item["reason"]) for item in plan["retained"]] == \
+        [("clone", "linked worktree record is unreadable")], plan
+    assert run(home, "offload")["offloaded"] == []
+    assert snapshot(clone) == before
+
+def check_acl_repository_kept():
+    home, clone = repo_fixture("repo-acl")
+    subprocess.run(["/bin/chmod", "+a", "everyone deny write", str(clone / "work.txt")], check=True)
+    plan = run(home, "offload-plan")
+    assert plan["moves"] == [], plan
+    assert [(item.get("path"), item["reason"]) for item in plan["retained"]] == \
+        [("clone", "holds access control lists the archive cannot carry")], plan
+    assert run(home, "offload")["offloaded"] == []
+    acl = subprocess.run(["/bin/ls", "-le", str(clone / "work.txt")], capture_output=True, text=True, check=True).stdout
+    assert "everyone deny write" in acl, acl
+
 # Collect the independent review regressions so a broken directory copy cannot
 # hide the single-file, retry, or partial-report result on the reviewed head.
 regressions = [("fake directory placement", lambda: check_placement("directory")),
@@ -523,10 +546,12 @@ regressions.extend([("verified existing payload is reused", check_verified_reuse
                     ("offload never runs a trash from PATH or feeds it stdin", check_trash_never_empties),
                     ("a sweep ends with an offload pass", lambda: check_sweep_offloads(True)),
                     ("a sweep in a home without a verifier offloads nothing", lambda: check_sweep_offloads(False)),
-                    ("an offload pass removes only archive copies its journal names", check_pass_removes_only_journaled_archives)])
+                    ("an offload pass removes only archive copies its journal names", check_pass_removes_only_journaled_archives),
+                    ("a repository whose worktree record is empty stays", check_unreadable_worktree_record_kept)])
 if sys.platform == "darwin":
     regressions.extend([("a repository archive keeps resource forks and other extended attributes",
-                         check_archive_keeps_extended_attributes),("real /usr/bin/rsync directory placement", lambda: check_placement("directory", True)),
+                         check_archive_keeps_extended_attributes),
+                        ("a repository holding an access control list stays", check_acl_repository_kept),("real /usr/bin/rsync directory placement", lambda: check_placement("directory", True)),
                         ("real /usr/bin/rsync single-file placement", lambda: check_placement("file", True))])
 failures = []
 for name, check in regressions:

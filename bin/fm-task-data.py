@@ -177,11 +177,13 @@ that list names is ever removed: offload removes the task's listed leftovers
 first, and offload-plan lists tasks holding any so each offload pass reaches
 them, moves or not; a refusal waits for the next pass.
 Extended attributes, macOS resource forks included, ride in the archive's
-SCHILY.xattr headers.
+SCHILY.xattr headers. macOS access control lists do not, so a unit holding any
+stays in place.
 A linked worktree of a repository in another task or outside DATA (its index,
 HEAD, reflog and refs live in that repository, outside any archive), a
 repository whose .git is a symlink, a repository with linked worktrees outside
-the task or sharing no folder below it, an unreadable worktree record, a
+the task or sharing no folder below it, an unreadable worktree record (one
+that does not name a .git file, empty included), a
 submodule checkout outside its superproject's unit, and any unit holding one of
 them at any depth stay in place, named with reasons and sizes in offload-plan's
 retained list.
@@ -1234,7 +1236,12 @@ def offload_unit_links(repository, root, data):
             return links, "linked worktree of a repository outside data/"
         admin = (dotgit if dotgit.is_dir() else repository) / "worktrees"
         for record in sorted(admin.glob("*/gitdir")) if admin.is_dir() and not admin.is_symlink() else ():
-            tree = (record.parent / record.read_text().strip()).parent.resolve()
+            # git writes the worktree's .git file path; anything else, empty
+            # included, could hide a live checkout.
+            named = record.read_text().strip()
+            if Path(named).name != ".git":
+                return links, "linked worktree record is unreadable"
+            tree = (record.parent / named).parent.resolve()
             if not (tree.exists() or tree.is_symlink()) or tree == repository or repository in tree.parents:
                 continue
             if root not in tree.parents:
@@ -1246,6 +1253,16 @@ def offload_unit_links(repository, root, data):
 
 
 ARCHIVE = ".firstmate-offload-"
+ACL_KEPT = "holds access control lists the archive cannot carry"
+
+
+def offload_acl(path):
+    """Return whether anything under path has a macOS extended ACL, which tar here drops."""
+    if sys.platform != "darwin":
+        return False
+    found = subprocess.run(["/usr/bin/find", str(path), "-acl", "-print", "-quit"], stdin=subprocess.DEVNULL,
+                           capture_output=True, text=True, timeout=600, check=True)
+    return bool(found.stdout.strip())
 
 
 def offload_tree_state(path):
@@ -1304,6 +1321,8 @@ def offload_archive(source, archive):
             mode = os.lstat(os.path.join(directory, name)).st_mode
             if not (stat.S_ISDIR(mode) or stat.S_ISREG(mode) or stat.S_ISLNK(mode)):
                 raise ValueError("special file in repository")
+    if offload_acl(source):
+        raise ValueError(ACL_KEPT)
 
     def carry(info):
         for name, value in offload_xattrs(source.parent / info.name).items():
@@ -1443,6 +1462,11 @@ def offload_candidates(data, state, task_id, rows, locations, cache):
                        "reason": "report or bead referenced evidence; task closed over seven days"})
     for unit, reason in sorted(units.items()):
         summary = totals.get(unit, [0, 0, 0, False])
+        if not reason:
+            try:
+                reason = ACL_KEPT if offload_acl(unit) else None
+            except (OSError, subprocess.SubprocessError):
+                reason = "access control lists could not be read"
         if reason:
             kept.append({"task": task_id, "path": str(unit.relative_to(root)), "reason": reason,
                          "size": summary[1], "allocated_bytes": summary[2]})
