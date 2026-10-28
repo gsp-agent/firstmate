@@ -1,0 +1,5 @@
+copy: sh-successor-without-session-stays  case: FM_ONE_CASE=test_main_only_pass_through_leaves_the_successor_watcher_running  start utc: 2026-10-28T00:43:41Z  load: { 23.86 41.60 50.14 }
+not ok - successor: the watcher exited after the pass-through (pid 80038)
+case rc: 1  wall: 23 s
+sleep-600 holders before: 2  after: 3
+fake sessions still looping on session.stays under this root: 0

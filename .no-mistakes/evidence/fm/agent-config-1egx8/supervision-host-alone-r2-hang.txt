@@ -1,0 +1,28 @@
+hang diagnosis, captured 2026-10-28T02:08:53Z (run started 2026-10-28T01:19:15Z)
+stuck case: test_claude_stop_hook_runs_the_host_without_the_file_and_off_opts_out (first half, home hook-default-on; second home hook-opted-out never created)
+home created: 2026-10-27T20:31:54-0500  session.stop written: 2026-10-27T20:32:15-0500
+--- state/.supervision-host.log (host ledger; epoch secs)
+1793151116	start	gen=host-11292-1793151115	primary=claude
+1793151135	handled	turn=host-11292-1793151115.1	posture=attended	rc=0	reports=1	error=0 cost=0.25 conversation_cost=0.25 input=5 cache_read=100 cache_write=10 output=20 turns=3	signal: <suite-root>/hook-default-on/state/demo.status
+1793151139	start	gen=host-27470-1793151139	primary=claude
+--- state/.supervision-host (current host and arm records)
+host	27470	Tue Oct 27 20:32:19 2026     bash <suite-root>/hook-default-on/bin/fm-supervision-host.sh park
+arm	28281	Tue Oct 27 20:32:19 2026     bash <suite-root>/hook-default-on/bin/fm-watch-arm.sh
+--- claude-pids: 10732  watch lock pid: 28644
+--- live process chain (pid ppid pgid elapsed comm)
+10732 71671 71635 37:00 <suite-root>/fakebin/fakebin/claude
+11064 10732 71635 36:59 bash
+27470 11064 71635 36:35 bash
+28281 27470 71635 36:35 bash
+28644 28281 71635 36:35 bash
+--- suite main shell 71671 children (fake sessions waited on by stop_home_processes):
+10732 37:02 <suite-root>/fakebin/fakebin/claude
+14908 40:18 <suite-root>/fakebin/fakebin/claude
+60598 39:40 <suite-root>/fakebin/fakebin/claude
+82034 37:31 <suite-root>/fakebin/fakebin/claude
+91841 37:22 <suite-root>/fakebin/fakebin/claude
+--- newest homes by creation time:
+20:31:14-0500 attended-turns-main-only/
+20:31:24-0500 hook-main-only/
+20:31:34-0500 hook-quiet-record/
+20:31:54-0500 hook-default-on/

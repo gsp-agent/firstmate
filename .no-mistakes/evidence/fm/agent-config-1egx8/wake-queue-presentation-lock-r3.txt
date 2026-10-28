@@ -1,0 +1,7 @@
+case: FM_TEST_ONLY=test_live_presentation_holder_is_deadlined_without_weakening_ack  head: 00d426fb  start utc: 2026-10-28T03:15:06Z  load: { 506.23 509.41 487.47 }
+ok - presentation lock waits are bounded and retriable without weakening acknowledgement atomicity
+FM_TEST_END 2026-10-28T03:17:14Z tests/fm-wake-queue.test.sh exit=0 duration_ms=85858 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=127475
+runner rc: 0  wall: 129 s  end utc: 2026-10-28T03:17:15Z  load: { 481.19 499.60 486.71 }
+sleep-600 lock holders left under the run root: 0
+run root entries left: 0

@@ -1,0 +1,8 @@
+copy: case1-paired-head-00d426fb  case: FM_ONE_CASE=test_cover_handover_serializes_retirement_and_replaces_the_rejected_arm  head: 00d426fb  start utc: 2026-10-28T03:28:15Z  load: { 488.19 499.43 497.52 }
+edit: the transfer wait widened from 400 to 400 polls of 0.1 s, and its elapsed time printed
+per-script timeout: 1200 s
+not ok - host handover: the owner did not reach transfer
+FM_TEST_END 2026-10-28T03:32:27Z tests/fm-supervision-host.test.sh exit=1 duration_ms=198405 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=1 skipped_gate=0 duration_ms=251376
+runner rc: 1  wall: 253 s  end utc: 2026-10-28T03:32:28Z  load: { 528.89 517.02 505.59 }
+live processes left under the copy or run root: 3

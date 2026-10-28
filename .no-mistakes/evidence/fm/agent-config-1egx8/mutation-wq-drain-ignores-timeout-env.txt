@@ -1,0 +1,5 @@
+copy: wq-drain-ignores-timeout-env  case: FM_TEST_ONLY=test_live_presentation_holder_is_deadlined_without_weakening_ack  start utc: 2026-10-28T00:43:41Z  load: { 23.86 41.60 50.14 }
+not ok - queue deadline did not emit exactly one holder advisory
+case rc: 1  wall: 15 s
+sleep-600 holders before: 2  after: 4
+fake sessions still looping on session.stays under this root: 0

@@ -1,0 +1,28 @@
+Test phase, head bb377192 (branch fm/agent-config-1egx8), 2026-10-28 UTC.
+
+Alone runs through bin/fm-test-run.sh (each with a 10 s sampler: load, swap, memory free %, suite processes):
+- tests/fm-supervision-host.test.sh: runner rc 1 after 450 s. Case 1 passed; case 2,
+  test_covering_attachments_handoff_and_continue_through_both_owners, failed
+  "host startup: the covering successor did not report attachment" after its 120 s wait,
+  with load1 38-71 (pre-run 74). The suite did NOT reach its last case.
+  Swap 2494.94 MB before and after; ~/.claude.json hash unchanged; CLAUDE_CONFIG_DIR store hash
+  moved (this agent's own live session writes it) with 0 fixture keys; no fm-watch-arm/fm-watch/
+  fm-teardown/fm-home-summary/fm-fleet-snapshot survivors; no fixture dirs left.
+- tests/fm-wake-queue.test.sh: runner rc 0 after 795 s, 71 ok, 0 not ok, including
+  "presentation lock waits are bounded and retriable ...". load1 42 pre-run, peak 126.5 (+84);
+  swap unchanged; ~/.claude.json unchanged; config store 0 fixture keys; no survivors.
+
+Reruns of the failed covering case (disposable HEAD copy, single-case dispatch):
+- covering case alone: ok, 160 s (4 variants, ~40 s each, load ~40).
+- lane-a case 1 then the covering case, as in the full run: both ok, 418 s.
+=> the 120 s attachment timeout is intermittent (1 of 3 runs).
+
+Mutations of the wake-queue presentation-lock case (disposable HEAD copies, FM_TEST_ONLY):
+- drain stalled 15 s before its lock wait: new case ok (69 s).
+- same stall against the base commit's wall-clock case: "queue lock delayed the drain for 19s".
+- drain ignoring FM_STATUS_PRESENTATION_LOCK_TIMEOUT (fixed 10): "queue deadline did not emit exactly one holder advisory".
+- queue-lock wait made unbounded, holder released after 15 s: "the drain waited for the queue lock holder to exit".
+Mutation of the supervision-host successor case:
+- session.stays removed from test_main_only_pass_through_leaves_the_successor_watcher_running:
+  "successor: the watcher exited after the pass-through" (the PR 136 class the branch fixes).
+No test-spawned "sleep 600" holder or session.stays fake-session loop survived any run.

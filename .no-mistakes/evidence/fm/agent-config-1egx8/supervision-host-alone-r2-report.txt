@@ -1,0 +1,19 @@
+suite: tests/fm-supervision-host.test.sh  label: supervision-host-alone-r2  head: bb377192
+pre-run utc: 2026-10-28T01:19:15Z  load: { 36.74 41.98 45.44 }  swap: total = 4096.00M  used = 2494.94M  free = 1601.06M  (encrypted)
+pre-run stores:
+/Users/dalecarman/.claude.json sha256=750f18697633fdbf fixture_keys=0
+/Users/dalecarman/.claude-accounts/george/.claude.json sha256=982b5d0a9a181a17 fixture_keys=0
+pre-run helpers matching this worktree/fixture root:
+none
+runner rc: 143  wall: 3045 s
+post-run utc: 2026-10-28T02:10:01Z  load: { 498.98 362.05 207.13 }  swap: total = 4096.00M  used = 2494.94M  free = 1601.06M  (encrypted)
+post-run stores:
+/Users/dalecarman/.claude.json sha256=750f18697633fdbf fixture_keys=0
+/Users/dalecarman/.claude-accounts/george/.claude.json sha256=b026c0a53829266c fixture_keys=0
+post-run helpers matching this worktree/fixture root (survivors):
+none
+fixture dirs left under the run root: 3
+sampler: peak load1 545.57, swap used first 2494.94 MB, peak 2494.94 MB, min mem free 67%
+FM_TEST_END 2026-10-28T02:09:59Z tests/fm-supervision-host.test.sh exit=137 duration_ms=3032926 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=1 skipped_gate=0 duration_ms=3044038
+ok lines: 40  not ok lines: 0

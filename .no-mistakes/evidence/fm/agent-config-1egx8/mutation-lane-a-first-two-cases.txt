@@ -1,0 +1,6 @@
+copy: lane-a-first-two-cases  case: FM_ONE_CASE=test_cover_handover_serializes_retirement_and_replaces_the_rejected_arm test_covering_attachments_handoff_and_continue_through_both_owners  start utc: 2026-10-28T00:45:37Z  load: { 26.86 36.28 46.90 }
+ok - host+hook: retirement rejects a racing handover and both owners leave one replacement consumer
+ok - host+hook: startup and stand-down attachments hand over coverage and replace the closed peer without consuming wakes
+case rc: 0  wall: 418 s
+sleep-600 holders before: 2  after: 2
+fake sessions still looping on session.stays under this root: 0

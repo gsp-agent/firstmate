@@ -1,0 +1,18 @@
+Test phase round 4, head 00d426fb (branch fm/agent-config-1egx8), 2026-10-28 UTC.
+At phase start (03:50Z) the laptop's 1-minute load was 425-445 (16 CPUs, about 1,950 processes,
+nearly all fleet sessions, browsers and WindowServer outside this suite).
+
+1. Full alone run of tests/fm-supervision-host.test.sh through bin/fm-test-run.sh, launched 03:54:16Z
+   at load 307, with the runner's own --per-script-timeout-secs 2860 so it would end inside this phase's budget
+   (supervision-host-alone-r4-report.txt, -samples.tsv, -run.log).
+   - The harness demanded this phase's result 1 minute into the run, before case 1 finished. This agent TERMed the
+     runner it had started (pid it launched) at 03:55:50Z so no test process outlived the phase; runner rc 143, wall 94 s,
+     0 cases reported. The run did NOT reach its last case; the merge hold is still unmet.
+   - Within that minute: peak load1 328 (below pre-run 1-minute peak), swap flat at 2478.94 MB, min memory free 68%,
+     ~/.claude.json and the CLAUDE_CONFIG_DIR store hashes unchanged with 0 fixture keys, no helper survivors,
+     0 processes left carrying the run root's tag.
+   - Not removed (dcg blocks rm -rf): the run root named in .supervision-host-alone-r4-root (one inert fixture dir) and
+     the driver dir nm-r4-driver.* under $TMPDIR.
+
+At ~5x slowdown under load ~430 (round 3's case 1 took 232 s against ~40 s at load 40), the full 88-case run needs
+well over 2 hours; at load ~40 it takes about 30 minutes, inside one test phase's budget.

@@ -1,0 +1,4 @@
+head 00d426fb start utc 03:45:23 load { 408.25 461.90 487.75 }
+ok - host+hook: retirement rejects a racing handover and both owners leave one replacement consumer
+case wall: 232 s
+rc 0 end utc 03:49:18 load { 457.30 450.70 475.66 }

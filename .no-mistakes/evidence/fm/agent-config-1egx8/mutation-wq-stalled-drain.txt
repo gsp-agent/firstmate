@@ -1,0 +1,5 @@
+copy: wq-stalled-drain  case: FM_TEST_ONLY=test_live_presentation_holder_is_deadlined_without_weakening_ack  start utc: 2026-10-28T00:43:41Z  load: { 23.86 41.60 50.14 }
+ok - presentation lock waits are bounded and retriable without weakening acknowledgement atomicity
+case rc: 0  wall: 69 s
+sleep-600 holders before: 2  after: 2
+fake sessions still looping on session.stays under this root: 0

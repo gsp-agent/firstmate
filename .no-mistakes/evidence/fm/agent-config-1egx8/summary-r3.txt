@@ -1,0 +1,45 @@
+Test phase round 3, head 00d426fb (branch fm/agent-config-1egx8), 2026-10-28 UTC.
+The laptop's 1-minute load was 490-555 throughout (16 CPUs), from outside these runs:
+the suite's own process tree peaked at 15 processes.
+
+1. Full alone run of tests/fm-supervision-host.test.sh through bin/fm-test-run.sh
+   (supervision-host-alone-r3-report.txt, -samples.tsv, -run.log)
+   - Pre-run load 543.82. The runner exited rc 1 after 227 s on the suite's own assertion: case 1,
+     test_cover_handover_serializes_retirement_and_replaces_the_rejected_arm, "host handover: the owner
+     did not reach transfer". 0 cases passed, so the run did NOT reach its last case and the merge hold is not met.
+   - Peak load1 540.80 (at or below pre-run), swap 2478.94 MB before, during and after, minimum memory free 66%.
+     ~/.claude.json sha256 unchanged. The CLAUDE_CONFIG_DIR store hash moved (this agent's own live session writes it)
+     with 0 fixture keys. No fm-watch-arm/fm-watch/fm-teardown/fm-home-summary/fm-fleet-snapshot survivors,
+     and 0 fixture dirs left. No Killed: 9 and no timeout.
+
+2. Is case 1 a branch regression or load-only? Single-case runs in disposable copies, all at load ~490-550:
+   - head, unchanged (case1-handover-unchanged.txt): same failure, 242 s.
+   - head, transfer wait widened from 40 s to 300 s and timed (case1-handover-widened.txt): the owner
+     reached transfer after 153 s (host) and 49 s (hook), and the case passed. This is starvation, not a hang.
+   - base 6e58c8a8, unchanged (case1-handover-base-6e58c8a8.txt): passed, 393 s.
+   - paired, started together with identical timing instrumentation and the 40 s bound
+     (case1-paired-head-00d426fb.txt, case1-paired-base-6e58c8a8.txt): BOTH failed the same way.
+   The branch does not touch this case. stop_home_processes, the only round-3 change, runs after this point.
+   Both earlier alone runs passed it at load ~40. So it is a fixed 40 s wall-clock wait that fails only at
+   load ~500, on base and head alike.
+
+3. Leaked processes after a failed case-1 run (case1-paired-head-survivors.txt): 1 of 4 failing runs
+   (head paired) left the Stop hook (its own process group, orphaned to pid 1), the host, and
+   bin/fm-wake-grant.sh running. The suite had already deleted the fixture home, and fm-wake-grant's
+   fm_lock_acquire_wait (no deadline) retried a lock under the deleted state/ every 0.1 s. They ran 6+ min
+   until this agent sent them TERM. The other three failing runs, including base, left none.
+
+4. Round-3 fix (stop the Stop hook before its host), failing-first with the round-2 race held open:
+   the copy's Stop hook sleeps 4 s before re-running a host that a signal ended.
+   - fixed (mutation-hook-retry-held-fixed.txt): test_claude_stop_hook_runs_the_host_without_the_file_and_off_opts_out
+     ok, whole case 205 s, 0 processes left.
+   - stop_home_processes' hook TERM reverted (mutation-hook-retry-held-reverted.txt): the case never
+     returned and the runner terminated it at its 420 s bound (exit 124), 0 processes left after.
+
+5. fm-wake-queue presentation-lock case on head (wake-queue-presentation-lock-r3.txt):
+   FM_TEST_ONLY=test_live_presentation_holder_is_deadlined_without_weakening_ack ok at load ~490,
+   127 s, with no lock holders and no run-root entries left. The wake-queue file and drain are unchanged since bb377192,
+   whose round-1 mutations (mutation-wq-*.txt) still apply.
+
+Not removed (dcg blocks rm -rf): 17 disposable copies or run roots under $TMPDIR named nm-r3-* and
+nm-supervision-host-alone-r3.*, with no live processes. The worktree is clean.

@@ -1,0 +1,9 @@
+survivors after the failed single-case run case1-paired-head-00d426fb (runner exited 03:32:28Z), captured 2026-10-28T03:35:38Z
+pid ppid pgid elapsed comm, plus the script each process is reading (lsof fd 255)
+55549 66275 60714 03:16 bash  script=bin/fm-wake-grant.sh  stdout=/dev/null
+60714     1 60714 06:19 bash  script=bin/fm-claude-stop-autoarm.sh  stdout=<run-root>/fm-supervision-host.4CVBhK/hook-handover-retirement-host/hook.out
+66275 60714 60714 06:14 bash  script=bin/fm-supervision-host.sh  stdout=<run-root>/fm-supervision-host.4CVBhK/hook-handover-retirement-host/state/.claude-autoarm-output.24S4ji
+fixture home exists: no
+mechanism: the hook (own process group, as hook.own-group sets) runs the host; the host's cleanup runs bin/fm-wake-grant.sh, whose fm_lock_acquire_wait (bin/fm-wake-lib.sh:1396) retries mkdir of a lock under state/ every 0.1 s with no deadline, and state/ was removed by the suite's fm_test_cleanup, so it never acquires; the hook waits on the host. Neither is a child of the runner's process group, so the runner's group kill does not reach them.
+other failing case-1 runs: alone-r3 (head), case1-handover-unchanged (head) and case1-paired-base-6e58c8a8 (base) left 0 live processes under their roots.
+stopped: TERM sent to 55549 66275 60714 at 2026-10-28T03:36:38Z; 0 live under the run root afterwards.
