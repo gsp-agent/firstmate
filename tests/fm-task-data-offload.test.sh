@@ -643,6 +643,21 @@ def check_reopened_task_leftover_removed():
     assert not (task / owned).exists(), "a reopened task kept its journaled archive copy"
     assert json.loads((task / "record/data-offload.json").read_text())["archives"] == []
 
+def check_separated_git_dir_kept():
+    home = fixture("repo-separate-git-dir")
+    task = home / "data/task-one"
+    (task / "report.md").write_text("Completed.\n")
+    git("init", "-q", "--separate-git-dir", task / "repo.git", home / "user/work")
+    git("init", "-q", "--bare", "-b", "main", task / "plain.git")
+    before = snapshot(task / "repo.git")
+    plan = run(home, "offload-plan")
+    assert [move["path"] for move in plan["moves"]] == ["plain.git"], plan
+    assert [(item.get("path"), item["reason"]) for item in plan["retained"]] == \
+        [("repo.git", "git directory of a checkout outside the unit")], plan
+    assert [item["path"] for item in run(home, "offload")["offloaded"]] == ["plain.git"]
+    assert snapshot(task / "repo.git") == before
+    git("-C", home / "user/work", "status", "--short")
+
 def check_outside_links_carried():
     home, clone = repo_fixture("repo-outside-links")
     (home / "user/shared.bin").write_bytes(b"shared by a hard link")
@@ -684,7 +699,8 @@ regressions.extend([("verified existing payload is reused", check_verified_reuse
                     ("special and sparse files keep the unit", check_uncarried_metadata_kept),
                     ("hard links and symlinks reaching outside the unit are archived exactly", check_outside_links_carried),
                     ("a by-hand offload waits for the offload another run holds", check_offloads_take_one_lock),
-                    ("a reopened task's journaled archive copy is still removed", check_reopened_task_leftover_removed)])
+                    ("a reopened task's journaled archive copy is still removed", check_reopened_task_leftover_removed),
+                    ("a separated git directory stays while a bare one is archived", check_separated_git_dir_kept)])
 if sys.platform == "darwin":
     regressions.extend([("a repository archive keeps resource forks and other extended attributes",
                          check_archive_keeps_extended_attributes),

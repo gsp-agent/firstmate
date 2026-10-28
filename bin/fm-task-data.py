@@ -193,7 +193,8 @@ HEAD, reflog and refs live in that repository, outside any archive), a
 repository whose .git is a symlink, a repository with linked worktrees outside
 the task or sharing no folder below it, or any worktree or submodule record
 that does not resolve cleanly both ways (missing, empty, unreadable, stale or
-inconsistent), a
+inconsistent), a git directory that is neither bare nor names a checkout
+inside its unit (core.worktree; a separated git directory names none), a
 submodule checkout outside its superproject's unit, and any unit holding one of
 them at any depth stay in place, named with reasons and sizes in offload-plan's
 retained list.
@@ -1224,6 +1225,7 @@ def offload_inventory(root, data):
 
 
 UNCLEAN = "linked worktree record is unreadable"
+OUTSIDE_CHECKOUT = "git directory of a checkout outside the unit"
 
 
 def offload_unit_links(repository, root, data):
@@ -1275,6 +1277,29 @@ def offload_unit_links(repository, root, data):
             return [], "linked worktree of a repository outside data/"
         gitdir = dotgit if dotgit.is_dir() else repository
         links = []
+
+        def setting(config, key):
+            found = subprocess.run(["git", "config", "--file", str(config), "--get", key],
+                                   stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=60)
+            if found.returncode == 1:
+                return None
+            if found.returncode != 0 or not found.stdout.strip():
+                raise ValueError(f"unreadable {key}: {config}")
+            return found.stdout.strip()
+
+        # The git directory's own config names its checkout: core.worktree
+        # must resolve inside the unit, and a git directory with no .git
+        # above it is self-contained only when it says it is bare. A
+        # separated git directory backs a checkout no record here names.
+        worktree = setting(gitdir / "config", "core.worktree")
+        if worktree is not None:
+            checkout = named(gitdir, worktree)
+            if checkout != repository.resolve() and repository.resolve() not in checkout.parents:
+                if root not in checkout.parents:
+                    return [], OUTSIDE_CHECKOUT
+                links.append(checkout)
+        elif gitdir == repository and setting(gitdir / "config", "core.bare") != "true":
+            return [], OUTSIDE_CHECKOUT
         admin = gitdir / "worktrees"
         if admin.is_symlink() or (admin.exists() and not admin.is_dir()):
             return [], UNCLEAN
