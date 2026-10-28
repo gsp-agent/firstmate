@@ -134,9 +134,9 @@
 #      bin/fm-nm-run-lib.sh) and the line's verb maps to a current state. The
 #      run stays authoritative when it came from the coarse runs-ledger
 #      fallback, the line has no stamp, the stamp is not newer, the run clock
-#      cannot be read, or the line is not a state. A newer done line does not
-#      replace a run that already reads done, so the unpushed-head gate cannot
-#      reopen it.
+#      cannot be read, or the line is not a state. A newer done or failed line
+#      does not replace a run already reading that same state; keeping a done
+#      run's answer prevents the unpushed-head gate from reopening it.
 #   3. Reconcile the status log through fm-classify-lib.sh's status_current_line:
 #      open decisions survive unrelated events and continuation prose cannot
 #      hide a declaration. Ship/scout terminal declarations supersede stale log
