@@ -167,24 +167,18 @@ Each outermost repository outside record/ is one unit, referenced or not. A
 repository and its linked worktrees in the same task are one unit: the smallest
 folder below the task holding them all, with any other repository inside it.
 Every unit is offloaded whole as one tar archive under the copy, checksum and
-independent-backup rule below, and its pointer adds archive "tar". A linked
-worktree whose repository is outside DATA is its own unit; that repository and
-its worktree record are never touched, and git marks the record prunable. Git
-later prunes that record, so such a worktree is archived only when read-only
-git commands show its admin folder there holds nothing else: its index matches
-its HEAD, its HEAD and HEAD reflog reach only commits a branch or tag of that
-repository reaches, it has no worktree refs or submodule repositories, and the
-folder holds no unfinished operation or other file. Otherwise it stays.
+independent-backup rule below, and its pointer adds archive "tar".
 Before writing an archive, offload checks that ssh mini-ts answers and
 MINI-DATA is mounted; if not, it writes nothing and the task waits for the next
 pass. One archive exists at a time, a temporary file in the task folder removed
 through a dcg-checked rm -f right after its move or failure; the next round
 removes a leftover first.
-A linked worktree of a repository in another task, a repository with linked
-worktrees outside the task or sharing no folder below it, an unreadable
-worktree record, a submodule checkout outside its superproject's unit, and any
-unit holding one of them at any depth stay in place, named with reasons and
-sizes in offload-plan's retained list.
+A linked worktree of a repository in another task or outside DATA (its index,
+HEAD, reflog and refs live in that repository, outside any archive), a
+repository with linked worktrees outside the task or sharing no folder below it,
+an unreadable worktree record, a submodule checkout outside its superproject's
+unit, and any unit holding one of them at any depth stay in place, named with
+reasons and sizes in offload-plan's retained list.
 
 Live offload must run through the shell wrapper, which holds the spawn meta lock.
 It requires private config/task-data-offload.json, mode without group/other writes,
@@ -222,9 +216,7 @@ record/data-offload.json journals verified moves before Trash, so a retry after
 interruption can reverify both copies and finish a missing pointer. Existing
 pointers are no-ops. Recovery copies remain in Trash until its normal expiry;
 restore an original by first moving its pointer aside, never overwriting work;
-a repository archive restores with tar -xf in the pointer's parent directory,
-and an archived worktree of a repository outside DATA restores its files, its
-commits being on that repository's branches and tags and nothing staged.
+a repository archive restores with tar -xf in the pointer's parent directory.
 If a later candidate fails, stdout still reports completed moves and total bytes,
 plus the failed task/path/reason; the command retains its nonzero exit status.
 """
@@ -1231,8 +1223,7 @@ def offload_unit_links(repository, root, data):
                 return links, "submodule checkout; offloaded only as part of its superproject"
             if common == data or data in common.parents:
                 return links, "linked worktree of a repository in another task"
-            # Its repository is outside the task data: offloaded whole as files.
-            return links, offload_worktree_kept(repository, gitdir)
+            return links, "linked worktree of a repository outside data/"
         admin = (dotgit if dotgit.is_dir() else repository) / "worktrees"
         for record in sorted(admin.glob("*/gitdir")) if admin.is_dir() and not admin.is_symlink() else ():
             tree = (record.parent / record.read_text().strip()).parent.resolve()
@@ -1244,40 +1235,6 @@ def offload_unit_links(repository, root, data):
     except (OSError, UnicodeError):
         return links, "linked worktree record is unreadable"
     return links, None
-
-
-WORKTREE_ADMIN = {"HEAD", "ORIG_HEAD", "FETCH_HEAD", "COMMIT_EDITMSG", "index", "commondir", "gitdir", "locked",
-                  "config.worktree", "logs", "refs", "modules"}
-
-
-def offload_worktree_kept(tree, gitdir):
-    """Name what only an outside repository's admin folder for this worktree holds, if anything."""
-    modules = gitdir / "modules"
-    if modules.is_symlink() or modules.exists() and (not modules.is_dir() or any(modules.iterdir())):
-        return "its admin folder in its repository outside DATA holds submodule repositories"
-    if any(entry.name not in WORKTREE_ADMIN for entry in gitdir.iterdir()):
-        return "its admin folder in its repository outside DATA holds an unfinished operation or other files"
-    env = {name: value for name, value in os.environ.items() if not name.startswith("GIT_")}
-    location = ["git", "--no-optional-locks", "--git-dir", str(tree / ".git"), "--work-tree", str(tree)]
-
-    def git(*args, stdin=None):
-        return subprocess.run([*location, *args], env=env, input=stdin, capture_output=True, text=True,
-                              timeout=600, check=True).stdout.split()
-
-    try:
-        if git("for-each-ref", "--format=%(refname)", "refs/worktree", "refs/bisect", "refs/rewritten"):
-            return "it has worktree refs in its repository outside DATA"
-        if subprocess.run([*location, "diff", "--cached", "--quiet"], env=env, capture_output=True,
-                          timeout=600).returncode:
-            return "its index in its repository outside DATA holds staged changes or could not be read"
-        tips = git("log", "-g", "--format=%H", "HEAD")
-        only = git("rev-list", "--stdin", "--not", "--branches", "--tags",
-                   stdin="".join(tip + "\n" for tip in ["HEAD", *tips]))
-    except (OSError, subprocess.SubprocessError):
-        return "its commits in its repository outside DATA could not be read"
-    if only:
-        return "its HEAD or reflog reaches commits no branch or tag of its repository outside DATA has"
-    return None
 
 
 ARCHIVE = ".firstmate-offload-"

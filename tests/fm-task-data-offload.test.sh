@@ -381,7 +381,7 @@ def check_lanes_join_their_repository():
     assert restored(home, json.loads((task / "set").read_text()), "set") == before
     assert snapshot(home / "Trash/set") == before
 
-def check_outside_parent_worktree_archived():
+def check_outside_parent_worktree_kept():
     home = fixture("repo-outside-parent")
     (home / "data/task-one/report.md").write_text("Completed.\n")
     main = home / "user/main"
@@ -392,44 +392,8 @@ def check_outside_parent_worktree_archived():
     (worktree / "notes.txt").write_text("worktree notes\n")
     before, parent = snapshot(worktree), snapshot(main)
     plan = run(home, "offload-plan")
-    assert [(move["path"], move.get("repository")) for move in plan["moves"]] == [("wt", True)], plan
-    result = run(home, "offload")
-    assert [(item["path"], item.get("archive")) for item in result["offloaded"]] == [("wt", "tar")], result
-    assert restored(home, json.loads(worktree.read_text()), "wt") == before
-    assert snapshot(main) == parent, "offload edited the parent repository"
-    assert "prunable" in git("-C", main, "worktree", "list", "--porcelain").split()
-
-def check_outside_parent_detached_worktree_kept():
-    home = fixture("repo-outside-parent-detached")
-    (home / "data/task-one/report.md").write_text("Completed.\n")
-    main = home / "user/main"
-    git("init", "-q", "-b", "main", main)
-    commit(main, "work.txt", "parent work\n")
-    worktree = home / "data/task-one/wt"
-    git("-C", main, "worktree", "add", "-q", "--detach", worktree)
-    commit(worktree, "detached.txt", "a commit only this worktree's HEAD reaches\n")
-    before, parent = snapshot(worktree), snapshot(main)
-    plan = run(home, "offload-plan")
     assert plan["moves"] == [] and [(item.get("path"), item["reason"]) for item in plan["retained"]] == [
-        ("wt", "its HEAD or reflog reaches commits no branch or tag of its repository outside DATA has")], plan
-    assert run(home, "offload")["offloaded"] == []
-    assert snapshot(worktree) == before and snapshot(main) == parent and not (home / "calls").exists()
-
-def check_outside_parent_staged_worktree_kept():
-    home = fixture("repo-outside-parent-staged")
-    (home / "data/task-one/report.md").write_text("Completed.\n")
-    main = home / "user/main"
-    git("init", "-q", "-b", "main", main)
-    commit(main, "work.txt", "parent work\n")
-    worktree = home / "data/task-one/wt"
-    git("-C", main, "worktree", "add", "-q", "-b", "side", worktree)
-    (worktree / "work.txt").write_text("staged version only the index holds\n")
-    git("-C", worktree, "add", "work.txt")
-    (worktree / "work.txt").write_text("later working version\n")
-    before, parent = snapshot(worktree), snapshot(main)
-    plan = run(home, "offload-plan")
-    assert plan["moves"] == [] and [(item.get("path"), item["reason"]) for item in plan["retained"]] == [
-        ("wt", "its index in its repository outside DATA holds staged changes or could not be read")], plan
+        ("wt", "linked worktree of a repository outside data/")], plan
     assert run(home, "offload")["offloaded"] == []
     assert snapshot(worktree) == before and snapshot(main) == parent and not (home / "calls").exists()
 
@@ -443,7 +407,7 @@ def check_nested_outside_worktree_kept():
     before, parent = snapshot(clone), snapshot(main)
     plan = run(home, "offload-plan")
     assert plan["moves"] == [] and [(item.get("path"), item["reason"]) for item in plan["retained"]] == [
-        ("clone", "its HEAD or reflog reaches commits no branch or tag of its repository outside DATA has")], plan
+        ("clone", "linked worktree of a repository outside data/")], plan
     assert run(home, "offload")["offloaded"] == []
     assert snapshot(clone) == before and snapshot(main) == parent and not (home / "calls").exists()
 
@@ -518,11 +482,7 @@ regressions.extend([("verified existing payload is reused", check_verified_reuse
                     ("a refused repository offload keeps the repository and no archive copy", check_refused_repository_kept),
                     ("an unreachable mini writes no archive and the next pass offloads", check_unreachable_mini_writes_no_archive),
                     ("a repository and its lanes in the task are offloaded whole as one folder", check_lanes_join_their_repository),
-                    ("a worktree of a repository outside DATA is offloaded whole as files", check_outside_parent_worktree_archived),
-                    ("a worktree of a repository outside DATA on a commit no branch has stays",
-                     check_outside_parent_detached_worktree_kept),
-                    ("a worktree of a repository outside DATA with a staged change stays",
-                     check_outside_parent_staged_worktree_kept),
+                    ("a worktree of a repository outside DATA stays untouched", check_outside_parent_worktree_kept),
                     ("a clone holding a detached worktree of a repository outside DATA stays",
                      check_nested_outside_worktree_kept),
                     ("a clone with a checked-out submodule is offloaded whole with it", check_submodule_rides_superproject),
