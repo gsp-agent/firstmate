@@ -541,6 +541,9 @@
 #                  every other harness)
 #     __TURNEND__  absolute path to state/<task-id>.turn-ended (for harnesses whose
 #                  turn-end signal rides the launch command, e.g. codex -c notify=[...])
+#     __CODEXCREWARGS__ the Codex crew arguments after the model and effort flags,
+#                  bin/fm-crew-resume-lib.sh's fm_crew_codex_args with the
+#                  turn-end path, each word followed by a space
 #     __PIEXT__    absolute path to state/<task-id>.pi-ext.ts (pi busy-state extension,
 #                  written by this script; outside the worktree to avoid pi's trust gate;
 #                  a secondmate loads it beside its two primary extensions)
@@ -3115,7 +3118,7 @@ launch_template() {
     if [ "$kind" = secondmate ]; then
       printf '%s' 'codex __MODELFLAG____EFFORTFLAG__--dangerously-bypass-approvals-and-sandbox "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
     else
-      printf '%s' 'codex __MODELFLAG____EFFORTFLAG__--dangerously-bypass-approvals-and-sandbox --disable hooks -c "notify=[\"bash\",\"-c\",\"touch __TURNEND__\"]" "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
+      printf '%s' 'codex __MODELFLAG____EFFORTFLAG____CODEXCREWARGS__"$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
     fi
     ;;
   opencode) printf '%s' 'OPENCODE_CONFIG_CONTENT='\''{"permission":{"*":"allow"}__EFFORTFLAG__}'\'' opencode __MODELFLAG__--prompt "$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
@@ -6974,6 +6977,13 @@ if [ "$HARNESS" = rovo ]; then
 fi
 LAUNCH=${LAUNCH//__BRIEF__/$sq_brief}
 LAUNCH=${LAUNCH//__TURNEND__/$sq_turnend}
+case "$LAUNCH" in
+*__CODEXCREWARGS__*)
+  fm_crew_codex_args "$sq_turnend"
+  codex_crew_words=$(fm_crew_shell_words "${FM_CREW_CODEX_ARGS[@]}")
+  LAUNCH=${LAUNCH//__CODEXCREWARGS__/"$codex_crew_words"}
+  ;;
+esac
 LAUNCH=${LAUNCH//__PIEXT__/$sq_piext}
 LAUNCH=${LAUNCH//__PITURNEND__/$sq_piturnend}
 LAUNCH=${LAUNCH//__PIWATCH__/$sq_piwatch}
@@ -7435,10 +7445,11 @@ fi
 
 # Herdr restore resume. A Codex crew launches with hooks disabled, so Herdr
 # never learns its session. Report the session Codex wrote for this worktree,
-# then record the CODEX_HOME and the crew launch flags (launch_template's
-# Codex crew line) that a bare `codex resume <id>` cannot carry
-# (bin/fm-crew-resume-lib.sh). A Grok crew's session reaches Herdr through its
-# hook, and its summary.json already records the worker grok_home.
+# then record the CODEX_HOME and the crew arguments the launch line was built
+# from, which a bare `codex resume <id>` cannot carry
+# (bin/fm-crew-resume-lib.sh). A raw launch command was not built from them,
+# so it gets no record. A Grok crew's session reaches Herdr through its hook,
+# and its summary.json already records the worker grok_home.
 if [ "$BACKEND" = herdr ] && [ "$HARNESS" = codex ] && [ "$KIND" != secondmate ]; then
   crew_i=0
   crew_session_id=
@@ -7451,9 +7462,11 @@ if [ "$BACKEND" = herdr ] && [ "$HARNESS" = codex ] && [ "$KIND" != secondmate ]
   if [ -n "$crew_session_id" ]; then
     fm_crew_report_codex_session "$HERDR_SES" "$HERDR_PANE_ID" "$crew_session_id" ||
       echo "warning: Herdr pane $HERDR_PANE_ID did not take Codex session $crew_session_id for $ID; a Herdr restore will not resume this crew" >&2
-    fm_crew_codex_resume_record_write "$STATE/$ID.codex-resume" "$crew_session_id" "$CODEX_STORE_DIR" \
-      --dangerously-bypass-approvals-and-sandbox --disable hooks -c "notify=[\"bash\",\"-c\",\"touch $sq_turnend\"]" ||
-      echo "warning: could not record the Codex resume home and flags for $ID session $crew_session_id" >&2
+    if [ -n "${FM_CREW_CODEX_ARGS+set}" ]; then
+      fm_crew_codex_resume_record_write "$STATE/$ID.codex-resume" "$crew_session_id" "$CODEX_STORE_DIR" \
+        "${FM_CREW_CODEX_ARGS[@]}" ||
+        echo "warning: could not record the Codex resume home and flags for $ID session $crew_session_id" >&2
+    fi
   else
     echo "warning: no Codex session for $ID was found under $CODEX_STORE_DIR; a Herdr restore will not resume this crew" >&2
   fi

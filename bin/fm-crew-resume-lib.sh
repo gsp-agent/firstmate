@@ -11,13 +11,32 @@
 # A restore then types `codex resume <id>` and the restore gate paces it.
 #
 # That bare resume carries neither the crew's CODEX_HOME nor its launch flags.
-# state/<task>.meta already holds the task's model, effort, harness, kind and
-# worktree; fm_crew_codex_resume_record_write keeps the rest in
+# fm_crew_codex_args is the one list of Codex crew launch arguments after the
+# model and effort flags: bin/fm-spawn.sh renders it into the launch line with
+# fm_crew_shell_words and records the same list. state/<task>.meta already
+# holds the task's model, effort, harness, kind and worktree;
+# fm_crew_codex_resume_record_write keeps the rest in
 # state/<task>.codex-resume, found from a session id by its session_id= line:
 #   session_id=<id>
 #   codex_home=<absolute CODEX_HOME>
 #   arg=<one launch argument per line, in order>
 # Teardown removes it with the task's other state files.
+
+# launch_template in bin/fm-spawn.sh says why a crew carries each of these.
+fm_crew_codex_args() { # <shell-quoted turn-end path>
+  # shellcheck disable=SC2034 # Output global, read by the sourcing caller.
+  FM_CREW_CODEX_ARGS=(--dangerously-bypass-approvals-and-sandbox --disable hooks -c "notify=[\"bash\",\"-c\",\"touch $1\"]")
+}
+
+fm_crew_shell_words() { # <arg>...: each argument as a shell word and a space
+  local w
+  for w in "$@"; do
+    case $w in
+    '' | *[!A-Za-z0-9_./:=-]*) printf "'%s' " "$(printf '%s' "$w" | sed "s/'/'\\\\''/g")" ;;
+    *) printf '%s ' "$w" ;;
+    esac
+  done
+}
 
 fm_crew_codex_session_id() { # <codex-home> <worktree> <since-epoch>
   python3 -I - "$1" "$2" "$3" <<'PY'
