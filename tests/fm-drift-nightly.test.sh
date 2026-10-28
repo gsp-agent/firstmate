@@ -423,24 +423,36 @@ test_proven_patch_built_on_unproven_change_is_drift_not_a_check_error() {
     printf 'unproven first line\n'
     for ((i = 2; i <= 20; i++)); do printf 'line %s\n' "$i"; done
   } > "$repo/notes.txt"
-  git -C "$repo" add notes.txt
-  fixture_commit "$repo" "unproven first line"
+  printf 'unproven extra\n' > "$repo/extra.txt"
+  git -C "$repo" add notes.txt extra.txt
+  fixture_commit "$repo" "unproven first line and extra file"
   {
     printf 'proven first line\n'
     for ((i = 2; i <= 20; i++)); do printf 'line %s\n' "$i"; done
   } > "$repo/notes.txt"
+  printf 'proven extra\n' > "$repo/extra.txt"
   printf 'proven side\n' > "$repo/side.txt"
-  git -C "$repo" add notes.txt side.txt
+  git -C "$repo" add notes.txt extra.txt side.txt
   fixture_commit "$repo" "proven first line (#7)"
   kept=$(git -C "$repo" rev-parse HEAD)
   printf 'proven\n' > "$repo/kept.txt"
   git -C "$repo" add kept.txt
   fixture_commit "$repo" "independent proven file (#8)"
   later=$(git -C "$repo" rev-parse HEAD)
-  printf 'pr: 7\npr: 8\n' > "$repo/proof.txt"
+  for ((i = 1; i <= 20; i++)); do printf 'line %s\n' "$i"; done > "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "cut the stacked first line"
+  {
+    for ((i = 1; i < 20; i++)); do printf 'line %s\n' "$i"; done
+    printf 'proven last line\n'
+  } > "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "proven last line (#9)"
+  printf 'pr: 7\npr: 8\npr: 9\n' > "$repo/proof.txt"
   run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
   expect_code 1 "$CHECK_RC" "a proven patch that only applies on unproven work exits 1, not 2: $CHECK_ERR"
-  assert_contains "$CHECK_OUT" 'path-drift: notes.txt' "the stacked proven patch is reported as drift"
+  assert_contains "$CHECK_OUT" 'path-drift: extra.txt' "a proven edit to a file only unproven work created is drift"
+  assert_contains "$CHECK_OUT" 'path-ok: notes.txt' "a conflicted path keeps its accepted content, so a later proven patch replays on it and the cut matches"
   assert_contains "$CHECK_OUT" 'path-ok: side.txt' "the conflicting patch still proves the path it merges cleanly"
   assert_contains "$CHECK_OUT" 'path-ok: kept.txt' "a later independent proven patch is still accepted"
   assert_contains "$CHECK_OUT" "keep: $kept proven first line (#7)" "the stacked commit keeps its entry class and is named by the error line"
