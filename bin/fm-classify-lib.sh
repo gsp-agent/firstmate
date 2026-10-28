@@ -501,10 +501,10 @@ _fm_status_declared_wait_scan() {  # <resolve-verb> <legacy-captain-re>
 # too, so skipping the resolved line never revives what it ended. Either of
 # those passed lines ends every earlier pause, as any later event other than
 # resolved does for status_declared_wait_line, so skipping it never revives a
-# pause either. Bounded like
-# last_status_line: a tail window with no such event widens the read to the
-# whole file. bin/fm-crew-state.sh weighs this line against a finished run and
-# bin/fm-inactive-reconcile.sh keeps a pane open while it says working.
+# pause either. Bounded like last_status_line: a tail window with no such event
+# widens the read to the whole file. bin/fm-crew-state.sh weighs this line
+# against a done or failed run and bin/fm-inactive-reconcile.sh keeps a pane
+# open while it says working.
 status_newest_state_line() {  # <status-file>
   local f=$1 legacy_re
   [ -f "$f" ] && [ -r "$f" ] || return 0
@@ -585,9 +585,9 @@ status_paused_until() {  # <status-line> -> epoch on stdout
 # never infer emission time from file mtime, a wake, or observation time. Relays
 # preserve source tags and leave legacy source events unstamped. Time describes
 # event history and must never decide decision closure. It decides current
-# state in one place only: bin/fm-crew-state.sh reports a finished run's task
-# from status_newest_state_line when that line is stamped after the run record
-# (that reader's header, step 2).
+# state in one place only: bin/fm-crew-state.sh reports a done or failed
+# run's task from status_newest_state_line when that line is stamped after the
+# run record (that reader's header, step 2).
 # This parser owns that grammar; every reader below is a thin adapter over it,
 # so no second spelling of "well-formed" can drift against this one.
 # Internals carry a reserved prefix: bash locals are dynamically scoped, so a
