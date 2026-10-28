@@ -157,8 +157,8 @@ A closed backlog row and saved cleanup sources can identify relevant beads;
 their path mentions, and those in briefs, logs or other incidental files, do not
 authorize offload.
 A current unchecked row overrides archived completion. Missing/ambiguous dates,
-live metadata, pending closes and repository work in the scratch recovery hold
-keep the whole task.
+live metadata, pending closes, a task folder that is itself a repository and
+repository work in the scratch recovery hold keep the whole task.
 Date-only completion waits through seven complete local calendar days.
 Small text and root brief/report files stay. Referenced directories or larger
 files may move, but symlink and hardlink evidence stays pending alias ownership.
@@ -175,10 +175,11 @@ through a dcg-checked rm -f right after its move or failure; the next round
 removes a leftover first.
 A linked worktree of a repository in another task or outside DATA (its index,
 HEAD, reflog and refs live in that repository, outside any archive), a
-repository with linked worktrees outside the task or sharing no folder below it,
-an unreadable worktree record, a submodule checkout outside its superproject's
-unit, and any unit holding one of them at any depth stay in place, named with
-reasons and sizes in offload-plan's retained list.
+repository whose .git is a symlink, a repository with linked worktrees outside
+the task or sharing no folder below it, an unreadable worktree record, a
+submodule checkout outside its superproject's unit, and any unit holding one of
+them at any depth stay in place, named with reasons and sizes in offload-plan's
+retained list.
 
 Live offload must run through the shell wrapper, which holds the spawn meta lock.
 It requires private config/task-data-offload.json, mode without group/other writes,
