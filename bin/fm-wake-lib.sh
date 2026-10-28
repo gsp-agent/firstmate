@@ -1980,12 +1980,14 @@ fm_treehouse_slot_owner_release() {  # <worktree> <task-id>
 # fm_relaunch_live_clone <meta> <home>: print this home's clone of the task's
 # project (<projects>/<name>, the root a fresh spawn takes) and return 0 when
 # task record <meta> is a herdr ship whose recorded project is another clone
-# with the same origin; return 1 otherwise. Origins compare by
-# fm_role_remote_identity (bin/fm-role-lib.sh), so an https and an ssh URL of
-# one repository match. Herdr only: the relaunch's fresh endpoint is the one
-# relaunch already creates for a proven-gone herdr pane.
+# that resolves to the same Treehouse project lock (fm_treehouse_project_lock_path:
+# the same origin, spelled the same way); return 1 otherwise. The one lock a
+# relaunch holds through launch then governs both clones' pools, so the old
+# copy cannot change hands while it is read; a clone whose origin is spelled
+# differently relaunches where it is recorded. Herdr only: the relaunch's fresh
+# endpoint is the one relaunch already creates for a proven-gone herdr pane.
 fm_relaunch_live_clone() {  # <meta> <home>
-  local meta=$1 home=$2 kind proj live live_real proj_real old_origin live_origin
+  local meta=$1 home=$2 kind proj live live_real proj_real old_lock live_lock
   kind=$(fm_meta_get "$meta" kind)
   [ "${kind:-ship}" = ship ] || return 1
   [ "$(fm_backend_of_meta "$meta")" = herdr ] || return 1
@@ -1995,9 +1997,10 @@ fm_relaunch_live_clone() {  # <meta> <home>
   live_real=$(CDPATH='' cd -- "$live" 2>/dev/null && pwd -P) || return 1
   proj_real=$(CDPATH='' cd -- "$proj" 2>/dev/null && pwd -P) || return 1
   [ "$live_real" != "$proj_real" ] || return 1
-  old_origin=$(fm_role_remote_identity "$(git -C "$proj_real" remote get-url origin 2>/dev/null || true)" "$proj_real")
-  live_origin=$(fm_role_remote_identity "$(git -C "$live_real" remote get-url origin 2>/dev/null || true)" "$live_real")
-  [ -n "$old_origin" ] && [ "$old_origin" = "$live_origin" ] || return 1
+  git -C "$proj_real" remote get-url origin >/dev/null 2>&1 || return 1
+  old_lock=$(fm_treehouse_project_lock_path "$proj_real") || return 1
+  live_lock=$(fm_treehouse_project_lock_path "$live_real") || return 1
+  [ "$old_lock" = "$live_lock" ] || return 1
   printf '%s\n' "$live_real"
 }
 

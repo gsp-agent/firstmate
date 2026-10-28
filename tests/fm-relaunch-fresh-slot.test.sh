@@ -486,16 +486,19 @@ test_relaunch_leaves_other_origins_alone() {
   pass "a relaunch leaves a ship whose home clone has another origin where it is"
 }
 
-# One repository spelled two ways is one origin.
-test_relaunch_matches_origins_by_identity() {
+# One repository spelled two ways resolves to two Treehouse project locks, so
+# the lock this relaunch holds would not govern the old copy's pool: the ship
+# relaunches where it is recorded, as before, and no live slot is touched.
+test_relaunch_leaves_an_origin_spelled_differently_where_it_is() {
   local dir id=ident-a1 out rc=0
   make_case ident "$id"
   dir=$CASE_DIR
   git -C "$dir/old/proj" remote set-url origin "file://$dir/origin.git"
   out=$(run_spawn_relaunch "$dir" "$id") || rc=$?
   expect_code 0 "$rc" "ident: the relaunch failed: $out"
-  assert_equals "$dir/livepool/1/proj" "$(meta_field "$dir" "$id" worktree)" "ident: two spellings of one origin read as two"
-  pass "a relaunch reads two spellings of one repository as one origin"
+  assert_equals "$OLDWT" "$(meta_field "$dir" "$id" worktree)" "ident: a clone under another project lock was moved"
+  [ -e "$dir/livepool/1/.fm-slot-owner" ] && fail "ident: a live slot was claimed under a lock that does not govern the old copy"
+  pass "a relaunch leaves a ship whose clone spells its origin differently where it is"
 }
 
 test_relaunch_starts_an_old_clone_ship_in_a_fresh_live_slot
@@ -510,5 +513,5 @@ test_relaunch_refuses_a_live_branch_outside_the_copys_history
 test_relaunch_moves_an_older_live_branch_forward
 test_relaunch_deferred_before_the_record_returns_the_slot
 test_relaunch_leaves_other_origins_alone
-test_relaunch_matches_origins_by_identity
+test_relaunch_leaves_an_origin_spelled_differently_where_it_is
 test_control_relaunches_an_old_clone_ship_into_a_fresh_slot
