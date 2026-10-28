@@ -5017,17 +5017,20 @@ if [ "$RELAUNCH" -eq 1 ]; then
     WT_TARGET=$T
     SES=${T%%:*}
   else
-    # The recorded endpoint is authoritatively gone, so there is nothing to
-    # adopt: create ONE fresh endpoint for the same task, opened directly in the
-    # recorded worktree. The record published below writes window= (and herdr's
-    # ids) from these values, which is the whole rebind - the task id, brief,
-    # worktree, armed poll and status log are untouched.
+    # The recorded endpoint is authoritatively gone, or was a stopped Herdr
+    # pane still bound to a retired Codex session that the block above just
+    # closed, so there is nothing to adopt: create ONE fresh endpoint for the
+    # same task, opened directly in the recorded worktree. The record published
+    # below writes window= (and herdr's ids) from these values, which is the
+    # whole rebind - the task id, brief, worktree, armed poll and status log are
+    # untouched.
     #
     # Herdr is the ONLY backend that reaches here: the gate above rebinds only
     # on a PROVEN-gone endpoint, and absence is provable only on herdr, whose
     # every read is scoped to the session the record names
-    # (fm_control_endpoint_absence_verdict owns that argument). tmux and every
-    # secondmate were already refused, so there is no dispatch left to make.
+    # (fm_control_endpoint_absence_verdict owns that argument); the Codex close
+    # above runs only on herdr. tmux and every secondmate were already refused,
+    # so there is no dispatch left to make.
     #
     # This deliberately uses the FLAT container shape rather than Herdr's
     # presentation projection: projection is a presentation-only layout that is

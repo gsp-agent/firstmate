@@ -738,6 +738,7 @@ The generic Herdr agent-liveness probe reuses that pane classifier, then applies
 Neither the stopped-server exception nor the stale-registration verdict widens husk detection or any close authority.
 Those paths still refuse an unreadable pane.
 A `stale-agent` pane is reused by recovery, never closed as a husk, because the shell it holds may be a nested worktree shell.
+A relaunch onto another harness instead replaces a stopped pane still bound to a retired Codex session ([Codex crew sessions](#codex-crew-sessions)).
 
 Native registration still identifies Pi by name where tmux would see a generic interpreter.
 The process-level proof only decides whether that registration is backed by a running process.
@@ -764,6 +765,20 @@ A relaunch that changes harness AWAY from Pi is not repaired by this and keeps t
 The session file may not exist any more: Pi creates it at exactly that path, so the identity survives either way.
 The read grants no send, close, or lifecycle authority of its own - it is a read of Herdr's record.
 The portable halves are pinned by `tests/fm-backend-herdr.test.sh` (the read, against a canned CLI) and `tests/fm-control.test.sh` (the per-adapter rule), and `tests/fm-control-herdr-smoke.test.sh` exercises the relaunch path against the real binary; the versioned live measurement, including the reproduction and the resume that lifts it, is [`verification/runtime-backends.md`](verification/runtime-backends.md) "Pane status authority across a relaunch".
+
+### Codex crew sessions
+
+A Codex crewmate or scout launches with Codex's hooks disabled, so Herdr never learns its session from Codex's own hook.
+Once Herdr registers the pane's live Codex agent, `bin/fm-spawn.sh` reports the session Codex wrote for that worktree as a `herdr:codex` session start and reads the pane's binding back; only the read-back counts, and a miss warns rather than refusing the spawn.
+A bare `codex resume <id>` carries neither the crew's `CODEX_HOME` nor its launch flags, so the spawn also records them in `state/<id>.codex-resume`.
+`bin/fm-crew-resume-lib.sh` owns the session discovery, the report, and that record's format.
+A raw launch command was not built from those flags and gets no record.
+
+A relaunch onto Codex reports its new session with a `startup` session-start source, which replaces the binding an earlier incarnation left.
+In the crew shape the Codex binding outlives Codex's exit, and it would keep any other harness's reports out exactly as a stale Pi binding does.
+So a relaunch onto another harness closes the stopped pane still bound to Codex and creates one fresh endpoint in the same worktree, as a [reclaim](agent-control.md#reclaiming-a-task-whose-endpoint-is-gone) does, and the new harness's own session report binds that pane.
+It refuses when the old pane is not a plain shell or its close is not confirmed, and warns when the pane still reads a Codex binding after launch.
+`tests/fm-crew-resume.test.sh` pins the portable halves, and `tests/fm-crew-resume-herdr-smoke.test.sh` exercises both relaunches against the real binary.
 
 ## Push events and polling fallback
 
@@ -873,6 +888,7 @@ tests/fm-backend-herdr-agent-exit-shell-e2e.test.sh
 tests/fm-herdr-pi-stale-registration-live-e2e.test.sh
 tests/fm-backend-herdr-eventwait-smoke.test.sh
 tests/fm-control-herdr-smoke.test.sh
+tests/fm-crew-resume-herdr-smoke.test.sh
 tests/fm-herdr-session-cleanup.test.sh
 tests/fm-herdr-session-cleanup-e2e.test.sh
 tests/fm-herdr-attached-viewer-live-e2e.test.sh

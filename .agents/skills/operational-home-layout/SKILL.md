@@ -76,6 +76,7 @@ state/               runtime records and signals; gitignored
   <id>.devin-config.json  firstmate-owned per-task Devin config (mode 600 snapshot of the user config plus the busy-state and turn-end hooks) passed through --config so no user or project config is edited; bin/fm-devin-config.sh owns it; removed by teardown
   <id>.muse-session  muse busy-source binding (sessions root plus task worktree) written by fm-spawn; removed by teardown
   <id>.cursor-session  cursor busy-source binding (projects root, task worktree, prior conversations) written by fm-spawn; removed by teardown
+  <id>.codex-resume  Codex crew resume record (session id, CODEX_HOME, launch arguments) written by fm-spawn on Herdr; bin/fm-crew-resume-lib.sh owns its format; removed by relaunch retirement and teardown
   <id>.git-hooks/    per-task git hooksPath that strips AI commit trailers at the commit object unless config/keep-ai-trailers is present; written by fm-spawn, removed by teardown (bin/fm-git-strip-ai-trailers.sh)
   <id>.reconcile-nudged  epoch second of the last inventory-reconcile nudge sent to this secondmate; bin/fm-secondmate-reconcile.sh owns its per-home cooldown window
   <id>.backlog-close  interrupted task-retirement recovery record; bin/fm-backlog-transition-lib.sh owns its format, replay, and removal
