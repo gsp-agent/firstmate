@@ -2697,7 +2697,7 @@ SH
 # mutation lock keeps its blocking all-or-nothing acknowledgement contract.
 test_live_presentation_holder_is_deadlined_without_weakening_ack() {
   local dir state status queue_out queue_err first_out first_err second_out second_err replay_out replay_err
-  local queue_holder presentation_holder ack_holder i start elapsed rc advisory_count
+  local queue_holder presentation_holder ack_holder i rc advisory_count
   dir=$(make_case presentation-lock-deadline)
   state="$dir/state"
   status="$state/task.status"
@@ -2718,7 +2718,7 @@ test_live_presentation_holder_is_deadlined_without_weakening_ack() {
     . "$1"
     fm_lock_acquire_wait "$2"
     printf "ready\n" > "$3"
-    exec sleep 30
+    exec sleep 600
   ' _ "$ROOT/bin/fm-wake-lib.sh" "$state/.wake-queue.lock" "$dir/queue.ready" &
   queue_holder=$!
   i=0
@@ -2729,15 +2729,17 @@ test_live_presentation_holder_is_deadlined_without_weakening_ack() {
   [ -s "$dir/queue.ready" ] \
     || { kill "$queue_holder" 2>/dev/null || true; fail "queue holder never acquired its lock"; }
 
-  start=$(date +%s)
+  # The drain names the deadline it gave up after, and prints it only when its
+  # bounded wait timed out, so that line proves the 1 s timeout held. Wall time
+  # cannot: a machine starved of process starts slowed this drain's own work
+  # from 2 s to 452 s. A drain that ignored its timeout would return only once
+  # the holder let go, so a holder still alive when it returns is the backstop.
   FM_STATE_OVERRIDE="$state" FM_STATUS_PRESENTATION_LOCK_TIMEOUT=1 \
     "$DRAIN" > "$queue_out" 2> "$queue_err" \
     || { kill "$queue_holder" 2>/dev/null || true; fail "bounded queue presentation drain failed"; }
-  elapsed=$(( $(date +%s) - start ))
-  [ "$elapsed" -le 4 ] \
-    || { kill "$queue_holder" 2>/dev/null || true; fail "queue lock delayed the drain for ${elapsed}s"; }
+  kill -0 "$queue_holder" 2>/dev/null || fail "the drain waited for the queue lock holder to exit"
   advisory_count=$(grep -Fc \
-    "WAKE DRAIN SKIPPED: queue lock remains held by live pid $queue_holder" \
+    "WAKE DRAIN SKIPPED: queue lock remains held by live pid $queue_holder after 1s;" \
     "$queue_out" || true)
   [ "$advisory_count" -eq 1 ] \
     || { kill "$queue_holder" 2>/dev/null || true; fail "queue deadline did not emit exactly one holder advisory"; }
@@ -2758,7 +2760,7 @@ test_live_presentation_holder_is_deadlined_without_weakening_ack() {
     . "$1"
     fm_lock_acquire_wait "$2"
     printf "ready\n" > "$3"
-    exec sleep 30
+    exec sleep 600
   ' _ "$ROOT/bin/fm-wake-lib.sh" "$state/.status-presentation-lock" "$dir/presentation.ready" &
   presentation_holder=$!
   i=0
@@ -2769,15 +2771,12 @@ test_live_presentation_holder_is_deadlined_without_weakening_ack() {
   [ -s "$dir/presentation.ready" ] \
     || { kill "$presentation_holder" 2>/dev/null || true; fail "presentation holder never acquired its lock"; }
 
-  start=$(date +%s)
   FM_STATE_OVERRIDE="$state" FM_STATUS_PRESENTATION_LOCK_TIMEOUT=1 \
     "$DRAIN" > "$first_out" 2> "$first_err" \
     || { kill "$presentation_holder" 2>/dev/null || true; fail "bounded presentation drain failed"; }
-  elapsed=$(( $(date +%s) - start ))
-  [ "$elapsed" -le 4 ] \
-    || { kill "$presentation_holder" 2>/dev/null || true; fail "presentation lock delayed the drain for ${elapsed}s"; }
+  kill -0 "$presentation_holder" 2>/dev/null || fail "the drain waited for the presentation lock holder to exit"
   advisory_count=$(grep -Fc \
-    "STATUS PRESENTATION SKIPPED: lock remains held by live pid $presentation_holder" \
+    "STATUS PRESENTATION SKIPPED: lock remains held by live pid $presentation_holder after 1s;" \
     "$first_out" || true)
   [ "$advisory_count" -eq 1 ] \
     || { kill "$presentation_holder" 2>/dev/null || true; fail "presentation deadline did not emit exactly one holder advisory"; }

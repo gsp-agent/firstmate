@@ -174,13 +174,20 @@ HOMES_FILE="$TMP_ROOT/homes"
 # (test_home_teardown_leaves_no_arm_or_watcher_running). A successor a host
 # left for main is in no host record: the home-scoped stop that follows claims
 # that covering arm and stops it and the home's watcher, each by its recorded
-# identity.
+# identity. The Claude Stop hook runs again a host that a signal ended, so the
+# hook running this host is stopped first, as Claude ends a session's hooks: it
+# then exits once its host is gone, and the session can see session.stop.
 stop_home_processes() {  # <home>
-  local home=$1 pid arms='' cover watcher arm_bin i=0
+  local home=$1 pid arms='' cover watcher arm_bin hook i=0
   cover=$(cut -f1 "$home/state/.watch-cover" 2>/dev/null || true)
   if [ -f "$home/state/.supervision-host" ]; then
     arms=$(awk -F '\t' '$1 == "arm" { print $2 }' "$home/state/.supervision-host")
     pid=$(awk -F '\t' '$1 == "host" { print $2; exit }' "$home/state/.supervision-host")
+    hook=
+    [ -z "$pid" ] || hook=$(parent_of "$pid")
+    if [ -n "$hook" ] && ps -o command= -p "$hook" 2>/dev/null | grep -q 'fm-claude-stop-autoarm\.sh'; then
+      kill -TERM "$hook" 2>/dev/null || true
+    fi
     [ -z "$pid" ] || kill -TERM "$pid" 2>/dev/null || true
     while [ "$i" -lt 50 ] && [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; do
       sleep 0.1
@@ -265,6 +272,11 @@ ln -s "$ROOT/bin" "$MIRROR_ROOT/bin"
 # Run the host under the fake harness that holds the home's session lock.
 # Every hook payload in $home/mirror-seed.* is first written to the dialog
 # mirror by that same session, as its prompt and Stop hooks would.
+# The session ends with its host unless $home/session.stays exists; then it
+# lives on until $home/session.stop or stop_home_processes, as a real one
+# outlives its Stop hook. An arm left for main stops once its session is gone,
+# so every case that checks that successor after the host exits writes
+# session.stays and stops its home when done.
 start_host() {  # <home> [park options...]
   local home=$1
   shift
@@ -279,6 +291,9 @@ start_host() {  # <home> [park options...]
       done
       "$0" park "$@" > "$FM_HOME/host.out" 2>&1
       printf "%s\n" "$?" > "$FM_HOME/host.rc"
+      while [ -e "$FM_HOME/session.stays" ] && [ ! -e "$FM_HOME/session.stop" ]; do
+        sleep 0.2
+      done
     ' "$HOST" "$@" 2>> "$home/claude.err" &
 }
 
@@ -546,7 +561,9 @@ test_covering_attachments_handoff_and_continue_through_both_owners() {
       turn_end "$home"
       wait_until 200 watcher_live "$home" || fail "$mode $attach_path: the first watcher did not start"
       append_status "$home" 'first notification for main' needs-decision
-      wait_until 400 test -s "$home/attachment-ready.out" \
+      # The hook, arm, watcher and covering successor all run before this
+      # file appears, which took over 40 s at load 120.
+      wait_until 1200 test -s "$home/attachment-ready.out" \
         || fail "$mode $attach_path: the covering successor did not report attachment"
       [ ! -e "$home/attachment-unregistered" ] \
         || fail "$mode $attach_path: attached covering readiness preceded coverage registration"
@@ -1285,6 +1302,7 @@ test_attended_routine_wake_is_handled_on_the_engine_and_stays_off_main() {
 test_attended_captain_outcome_reaches_main_through_branch_outcomes() {
   local home drained
   home=$(make_home attended-captain attended)
+  : > "$home/session.stays"
   echo captain > "$home/stub-mode"
   start_host "$home"
   wait_until 150 watcher_live "$home" || fail "captain: the host never started a watcher cycle"
@@ -1389,6 +1407,7 @@ test_attended_main_only_close_passes_straight_to_main() {
 test_attended_note_queued_while_the_successor_starts_reaches_main() {
   local home real_mktemp
   home=$(make_home attended-successor-start-note attended)
+  : > "$home/session.stays"
   real_mktemp=$(command -v mktemp)
   cat > "$home/fakebin/mktemp" <<SH
 #!/usr/bin/env bash
@@ -1491,6 +1510,7 @@ test_off_written_while_parked_passes_the_next_attended_close_to_main() {
 test_main_only_pass_through_leaves_the_successor_watcher_running() {
   local home pid
   home=$(make_home main-only-successor attended)
+  : > "$home/session.stays"
   start_host "$home"
   wait_until 150 watcher_live "$home" || fail "successor: the host never started a watcher cycle"
   append_status "$home" 'which export format?' needs-decision
@@ -1506,6 +1526,8 @@ test_main_only_pass_through_leaves_the_successor_watcher_running() {
   sleep 2
   kill -0 "$pid" 2>/dev/null || fail "successor: the watcher exited after the pass-through (pid $pid)"
   [ "$(cat "$home/state/.watch.lock/pid" 2>/dev/null)" = "$pid" ] || fail "successor: the watcher lock moved after the pass-through"
+  : > "$home/session.stop"
+  stop_home_processes "$home"
   pass "host: a main-only pass-through leaves the successor watcher running and the close undelivered for main"
 }
 
@@ -1546,10 +1568,11 @@ test_attended_close_with_unidentified_main_session_passes_to_main() {
 # Change the task immediately before the second offer computation, rather
 # than racing the successor startup. The first offer accepts the close; the
 # turn-boundary offer must see the new main-owned decision.
+# $home/queue-at-turn keeps the queue as the turn found it, before the decision.
 turn_main_only_at_second_offer() {  # <home> [quiet]
   local real_node turn
   real_node=$(command -v node)
-  turn='printf '"'"'needs-decision [at=%s]: which export format?\n'"'"' "$(date +%s)" >> "$FM_HOME/state/demo.status"'
+  turn='cp "$FM_HOME/state/.wake-queue" "$FM_HOME/queue-at-turn"; printf '"'"'needs-decision [at=%s]: which export format?\n'"'"' "$(date +%s)" >> "$FM_HOME/state/demo.status"'
   # Quiet: the offer alone turns main-only, with no status line for the
   # successor watcher to close on.
   [ "${2:-}" != quiet ] || turn='echo eligible=0; exit 0'
@@ -1573,6 +1596,7 @@ test_attended_close_that_turns_main_only_before_its_turn_passes_to_main() {
   local home
   home=$(make_home attended-turns-main-only attended)
   turn_main_only_at_second_offer "$home"
+  : > "$home/session.stays"
   start_host "$home"
   wait_until 150 watcher_live "$home" || fail "turns-main-only: the host never started a watcher cycle"
   append_status "$home" 'step one'
@@ -1583,14 +1607,22 @@ test_attended_close_that_turns_main_only_before_its_turn_passes_to_main() {
   assert_no_re '^supervision-host' "$home/host.out" "the close must reach main exactly as the arm printed it"
   [ "$(engine_calls "$home")" -eq 0 ] || fail "turns-main-only: the engine ran on a stale offer"
   assert_grep 'demo.status' "$home/state/.wake-queue" "the wake must stay queued for main"
+  # Pi reads the rows this close carried beside the status log that now holds
+  # the decision. A live watcher may already have queued that decision line as
+  # its own needs-decision row, which Pi's per-row rule rightly keeps on main.
   local pi_offer
+  mkdir -p "$home/pi-state"
+  cp "$home/state/demo.meta" "$home/state/demo.status" "$home/pi-state/"
+  cp "$home/queue-at-turn" "$home/pi-state/.wake-queue" || fail "fixture: the turn kept no queue snapshot"
   pi_offer=$(node --input-type=module -e '
     const dispatch = await import(process.argv[1]);
     console.log(dispatch.branchOfferForWake(process.argv[2], process.argv[3], false).eligible);
-  ' "$ROOT/.pi/extensions/lib/fm-branch-dispatch.ts" "$home/state" "signal: $home/state/demo.status")
+  ' "$ROOT/.pi/extensions/lib/fm-branch-dispatch.ts" "$home/pi-state" "signal: $home/state/demo.status")
   [ "$pi_offer" = true ] || fail "the host-only transition veto changed Pi's existing offer rule"
   assert_re '	pass-through	attended	main-only	signal:' "$home/state/.supervision-host.log" "the ledger must record why the close went to main"
   watcher_live "$home" || fail "the pass-through left no successor watcher"
+  : > "$home/session.stop"
+  stop_home_processes "$home"
   pass "host: an attended close whose task turns main-only before its turn still reaches main unchanged"
 }
 
@@ -2226,6 +2258,7 @@ test_unrecorded_successor_is_stopped_rather_than_left_for_main() {
 test_close_accepted_away_that_turns_attended_passes_to_main() {
   local home real_mktemp
   home=$(make_home away-then-attended away)
+  : > "$home/session.stays"
   printf '{"hook_event_name":"UserPromptSubmit","prompt_id":"p0","prompt":"watch the fleet for me"}' > "$home/mirror-seed.0"
   real_mktemp=$(command -v mktemp)
   # Starting the successor arm is the first step after the loop's away check;
@@ -2253,6 +2286,7 @@ SH
   assert_re '	pass-through	attended	main-only	signal:' "$home/state/.supervision-host.log" "the ledger must record why the close went to main"
   assert_no_re '	no-op	' "$home/state/.supervision-host.log" "the close must not be treated as handled"
   watcher_live "$home" || fail "the pass-through left no successor watcher"
+  stop_home_processes "$home"
   pass "host: a decision close accepted away whose turn starts attended still reaches main unchanged"
 }
 
@@ -2625,6 +2659,7 @@ test_away_wake_is_handled_on_the_engine_and_never_reaches_main() {
 test_away_turn_without_a_report_hands_the_wake_to_main() {
   local home token
   home=$(make_home away-noreport away)
+  : > "$home/session.stays"
   echo noreport > "$home/stub-mode"
   start_host "$home"
   wait_until 150 watcher_live "$home" || fail "noreport: the host never started a watcher cycle"
@@ -2648,6 +2683,7 @@ test_away_turn_without_a_report_hands_the_wake_to_main() {
 test_return_during_an_engine_turn_hands_its_outcomes_to_main() {
   local home
   home=$(make_home away-return away)
+  : > "$home/session.stays"
   echo return > "$home/stub-mode"
   start_host "$home"
   wait_until 150 watcher_live "$home" || fail "return: the host never started a watcher cycle"
@@ -2798,6 +2834,7 @@ test_next_host_clears_a_turn_its_killed_predecessor_left() {
 test_report_without_acknowledgement_hands_the_wake_to_main() {
   local home
   home=$(make_home away-noack away)
+  : > "$home/session.stays"
   echo noack > "$home/stub-mode"
   start_host "$home"
   wait_until 150 watcher_live "$home" || fail "noack: the host never started a watcher cycle"
@@ -3022,6 +3059,7 @@ SH
 test_park_boundary_ends_the_park_before_the_hook_timeout() {
   local home token
   home=$(make_home boundary attended)
+  : > "$home/session.stays"
   # The wall-clock bound must sit past the exit check: only the injected clock
   # can reach the boundary in time, so a host ignoring it fails instead of
   # passing on real elapsed seconds.
@@ -3053,6 +3091,7 @@ test_park_boundary_holds_under_back_to_back_closes() {
   # report work after release, so the product never kills the held turn.
   local home park=300 turn=19 grace=1
   home=$(make_home boundary-busy away)
+  : > "$home/session.stays"
   echo held > "$home/stub-mode"
   mkfifo "$home/stub-release"
   echo 0 > "$home/park-clock"
@@ -3094,6 +3133,7 @@ test_park_boundary_holds_under_back_to_back_closes() {
 test_park_boundary_rechecked_just_before_the_engine_turn() {
   local home real_node pid park=120 turn=3 grace=1
   home=$(make_home boundary-late away)
+  : > "$home/session.stays"
   real_node=$(command -v node)
   mkfifo "$home/render-release"
   echo 0 > "$home/park-clock"
