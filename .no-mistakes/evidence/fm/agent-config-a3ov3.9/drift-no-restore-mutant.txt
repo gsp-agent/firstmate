@@ -1,0 +1,28 @@
+
+CLI report (exit 1):
+behind: 0
+ahead: 5
+path-ok: extra.txt
+path-ok: kept.txt
+path-ok: side.txt
+path-drift: notes.txt
+keep: a69f433dcc0e665024e7d65cfb42ac5bac7e2232 proven last line (#9)
+unproven: a6a789efaf5c5fe3cbb52973c18af5b47f03f689 cut the stacked first line
+keep: 2e55067425e053a9c9cf8de8ac4df7ba6e4849f2 independent proven file (#8)
+keep: 0fa49752a32d82293215b6d4968091428d70478f proven first line (#7)
+unproven: d5330461e57821d9c84309339db90c7856b89485 unproven first line and extra file
+error: proof patch conflicts for PR 7: 0fa49752a32d82293215b6d4968091428d70478f
+not ok - a proven edit to a file only unproven work created is drift (missing: 'path-drift: extra.txt')
+--- output ---
+behind: 0
+ahead: 5
+path-ok: extra.txt
+path-ok: kept.txt
+path-ok: side.txt
+path-drift: notes.txt
+keep: a69f433dcc0e665024e7d65cfb42ac5bac7e2232 proven last line (#9)
+unproven: a6a789efaf5c5fe3cbb52973c18af5b47f03f689 cut the stacked first line
+keep: 2e55067425e053a9c9cf8de8ac4df7ba6e4849f2 independent proven file (#8)
+keep: 0fa49752a32d82293215b6d4968091428d70478f proven first line (#7)
+unproven: d5330461e57821d9c84309339db90c7856b89485 unproven first line and extra file
+error: proof patch conflicts for PR 7: 0fa49752a32d82293215b6d4968091428d70478f

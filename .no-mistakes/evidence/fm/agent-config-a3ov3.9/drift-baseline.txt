@@ -1,0 +1,4 @@
+
+CLI report (exit 2):
+error: proof patch conflicts without unproven changes: 9e20216acf086c613acd108a4738289eb204434c
+not ok - a proven patch that only applies on unproven work exits 1, not 2: error: proof patch conflicts without unproven changes: 9e20216acf086c613acd108a4738289eb204434c: expected exit 1, got 2

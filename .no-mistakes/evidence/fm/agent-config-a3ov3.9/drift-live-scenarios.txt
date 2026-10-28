@@ -1,0 +1,58 @@
+
+CLI report (exit 1):
+behind: 0
+ahead: 5
+path-ok: kept.txt
+path-ok: notes.txt
+path-ok: side.txt
+path-drift: extra.txt
+keep: 84194cce5a04f105b1114f3b2fe40beefa7bc85f proven last line (#9)
+unproven: 2827314744104626af0b3efa4284d847008a7044 cut the stacked first line
+keep: e75090d9c5431d85708d5905c64f05a28457af02 independent proven file (#8)
+keep: aca19816b7b985bf13f461fb9e28d4fd0824037b proven first line (#7)
+unproven: 5f4f23feaa00ff925efe180408e20979a1f7bfd6 unproven first line and extra file
+error: proof patch conflicts for PR 7: aca19816b7b985bf13f461fb9e28d4fd0824037b
+ok - a proven patch built on unproven work is drift with a named error, not a check failure
+
+CLI report (exit 0):
+behind: 0
+ahead: 1
+path-ok: notes.txt
+keep: db7ac71287a124eed34a0dd9c749b806beec00af add notes (#7)
+ok - a proof PR makes that path ok and the check exits 0
+
+CLI report (exit 0):
+behind: 0
+ahead: 1
+path-ok: notes.txt
+pending: d627b2babe302722f27d89951ac4f365db62b34f bead-7 add notes (#7)
+
+CLI report (exit 2):
+error: pending-pr line is not '<number> <bead>': pending-pr: 7
+ok - a pending commit is accepted, printed with its bead on every run, and must name its bead
+
+CLI report (exit 1):
+behind: 0
+ahead: 2
+path-drift: notes.txt
+keep: e6f643a97add9278d213a660f2c046cf37f80b61 proven last line (#7)
+unproven: c5dfb0da67824d7861448182ad111938b90b0659 unproven first line
+ok - proof approves a patch rather than the commit's entire file snapshot
+
+CLI report (exit 1):
+behind: 0
+ahead: 2
+path-drift: notes.txt
+unproven: 530ff8b5f0c07bf9d598c85a60b5113f15d66566 remove proven notes
+keep: b4471463685c85dd97298a5358e5d8ddae81869c proven notes (#7)
+ok - missing accepted patches are reported as drift
+Squash commit -- not updating HEAD
+
+CLI report (exit 1):
+behind: 0
+ahead: 1
+path-drift: drift-proof.txt
+path-drift: notes.txt
+unproven: 6daf3249224fba6d4158356c0ea33d5b6bec4913 add notes (#7)
+error: missing manifest entry for PR 7
+ok - a forgotten manifest line is path-drift and unproven
