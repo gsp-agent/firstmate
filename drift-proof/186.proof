@@ -1,0 +1,2 @@
+# Failing-first test test_nightly_logs_every_run_and_sends_no_note in tests/fm-drift-nightly.test.sh: fails on the base, which sends an inbox note on a red run, and passes after this change.
+pr: 186
