@@ -25,11 +25,11 @@
 # carried commits are never replayed on their own and inherit the carrying
 # PR's class. A path is path-ok only when its fork content and mode match
 # the resulting tree.
-# A proven patch that conflicts when replayed on the accepted tree - because
-# it was built on unproven work in the same hunks - proves only its clean
-# hunks.
-# Its conflicted paths keep their accepted content and are path-drift, and
-# one error line names its PR and commit.
+# An accepted patch that conflicts when replayed on the accepted tree -
+# because it was built on unproven work in the same hunks - proves only the
+# paths it merges cleanly.
+# Each conflicted path keeps its whole accepted content, clean hunks
+# included, and is path-drift, and one error line names its PR and commit.
 # Later proven patches still replay, so one stacked proof cannot stop the
 # whole report.
 # Missing accepted changes and extra changes are path-drift. Rename detection
