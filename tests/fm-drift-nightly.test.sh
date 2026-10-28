@@ -411,6 +411,56 @@ test_proven_commit_does_not_accept_earlier_unproven_content() {
   pass "proof approves a patch rather than the commit's entire file snapshot"
 }
 
+test_proven_patch_built_on_unproven_change_is_drift_not_a_check_error() {
+  local repo i kept later
+  repo=$(fm_test_tmproot drift-stacked-proof)
+  fm_git_init_commit "$repo"
+  for ((i = 1; i <= 20; i++)); do printf 'line %s\n' "$i"; done > "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "upstream notes"
+  git -C "$repo" branch upstream
+  {
+    printf 'unproven first line\n'
+    for ((i = 2; i <= 20; i++)); do printf 'line %s\n' "$i"; done
+  } > "$repo/notes.txt"
+  printf 'unproven extra\n' > "$repo/extra.txt"
+  git -C "$repo" add notes.txt extra.txt
+  fixture_commit "$repo" "unproven first line and extra file"
+  {
+    printf 'proven first line\n'
+    for ((i = 2; i <= 20; i++)); do printf 'line %s\n' "$i"; done
+  } > "$repo/notes.txt"
+  printf 'proven extra\n' > "$repo/extra.txt"
+  printf 'proven side\n' > "$repo/side.txt"
+  git -C "$repo" add notes.txt extra.txt side.txt
+  fixture_commit "$repo" "proven first line (#7)"
+  kept=$(git -C "$repo" rev-parse HEAD)
+  printf 'proven\n' > "$repo/kept.txt"
+  git -C "$repo" add kept.txt
+  fixture_commit "$repo" "independent proven file (#8)"
+  later=$(git -C "$repo" rev-parse HEAD)
+  for ((i = 1; i <= 20; i++)); do printf 'line %s\n' "$i"; done > "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "cut the stacked first line"
+  {
+    for ((i = 1; i < 20; i++)); do printf 'line %s\n' "$i"; done
+    printf 'proven last line\n'
+  } > "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "proven last line (#9)"
+  printf 'pr: 7\npr: 8\npr: 9\n' > "$repo/proof.txt"
+  run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
+  expect_code 1 "$CHECK_RC" "a proven patch that only applies on unproven work exits 1, not 2: $CHECK_ERR"
+  assert_contains "$CHECK_OUT" 'path-drift: extra.txt' "a proven edit to a file only unproven work created is drift"
+  assert_contains "$CHECK_OUT" 'path-ok: notes.txt' "a conflicted path keeps its accepted content, so a later proven patch replays on it and the cut matches"
+  assert_contains "$CHECK_OUT" 'path-ok: side.txt' "the conflicting patch still proves the path it merges cleanly"
+  assert_contains "$CHECK_OUT" 'path-ok: kept.txt' "a later independent proven patch is still accepted"
+  assert_contains "$CHECK_OUT" "keep: $kept proven first line (#7)" "the stacked commit keeps its entry class and is named by the error line"
+  assert_contains "$CHECK_OUT" "keep: $later independent proven file (#8)" "the later independent commit is still reported as keep"
+  assert_contains "$CHECK_OUT" "error: proof patch conflicts for PR 7: $kept" "the conflicting proof is named with its PR and commit"
+  pass "a proven patch built on unproven work is drift with a named error, not a check failure"
+}
+
 test_cut_unproven_changes_do_not_fail_after_restoration() {
   local repo
   repo=$(fm_test_tmproot drift-cut)
@@ -1039,6 +1089,7 @@ test_moving_ref_keeps_one_snapshot upstream refs/heads/upstream
 test_snapshot_includes_fetched_upstream
 test_proven_patches_are_replayed_in_ancestry_order
 test_proven_commit_does_not_accept_earlier_unproven_content
+test_proven_patch_built_on_unproven_change_is_drift_not_a_check_error
 test_cut_unproven_changes_do_not_fail_after_restoration
 test_proven_change_can_also_cut_unproven_changes
 test_missing_proven_patch_is_drift
