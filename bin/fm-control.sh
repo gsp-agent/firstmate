@@ -227,6 +227,8 @@ DATA="${FM_DATA_OVERRIDE:-$FM_HOME/data}"
 . "$SCRIPT_DIR/fm-pr-lib.sh"
 # shellcheck source=bin/fm-wake-lib.sh
 . "$SCRIPT_DIR/fm-wake-lib.sh"
+# shellcheck source=bin/fm-project-capacity-lib.sh
+. "$SCRIPT_DIR/fm-project-capacity-lib.sh"
 # shellcheck source=bin/fm-worker-account-lib.sh
 . "$SCRIPT_DIR/fm-worker-account-lib.sh"
 # shellcheck source=bin/fm-exclude-tools-lib.sh
@@ -1617,7 +1619,7 @@ resolve_relaunch_profile() {
 # refuses outright when any of it cannot be established.
 CHECKPOINT_LINES=()
 safe_checkpoint() {
-  local wt_real wt_top wt_top_real head head_ref head_ref_status status_output dirty children marker child_meta
+  local wt_real wt_top wt_top_real head head_ref head_ref_status status_output dirty children marker child_meta fresh_refusal
   CHECKPOINT_LINES=()
   [ -n "$WT" ] || die "task $ID has no recorded worktree; refusing to relaunch without a recorded local copy to preserve"
   [ -d "$WT" ] || die "task $ID's recorded worktree $WT is missing; refusing to relaunch and lose track of its work"
@@ -1654,6 +1656,18 @@ safe_checkpoint() {
     dirty=no
   fi
   CHECKPOINT_LINES+=("worktree_head=$head" "worktree_dirty=$dirty")
+  # An old-clone ship relaunches into a fresh slot of this home's clone
+  # (bin/fm-wake-lib.sh's fm_relaunch_live_clone), which carries its commits
+  # but never uncommitted work, so the same checks bin/fm-spawn.sh runs refuse
+  # here, before the agent is stopped.
+  if [ "$KIND" = ship ] && RELAUNCH_LIVE_CLONE=$(fm_relaunch_live_clone "$META" "$FM_HOME"); then
+    RELAUNCH_BRANCH=$(fm_meta_get "$META" branch)
+    [ -n "$RELAUNCH_BRANCH" ] || RELAUNCH_BRANCH="fm/$ID"
+    if fresh_refusal=$(fm_relaunch_fresh_slot_refusal "$WT" "$(fm_meta_get "$META" project)" "$RELAUNCH_BRANCH" "$RELAUNCH_LIVE_CLONE"); then
+      die "task $ID lives in $(fm_meta_get "$META" project), not this home's clone $RELAUNCH_LIVE_CLONE, so its relaunch starts in a fresh slot there, and it cannot: $fresh_refusal. Its agent was not stopped"
+    fi
+    CHECKPOINT_LINES+=("fresh_slot=$RELAUNCH_LIVE_CLONE")
+  fi
   if [ "$KIND" = secondmate ]; then
     # A secondmate's own crewmates outlive its relaunch: they run in their own
     # endpoints, and the relaunched secondmate reconciles them from its home's
@@ -1760,6 +1774,20 @@ do_relaunch() {
       exit 75
     fi
   fi
+  # A fresh-slot relaunch needs a free tree in this home's clone, read as a
+  # fresh spawn's pool admission reads it, before the agent is stopped.
+  if [ -n "${RELAUNCH_LIVE_CLONE:-}" ]; then
+    fm_project_capacity_pool "$RELAUNCH_LIVE_CLONE"
+    if [ "$FM_PROJECT_CAPACITY_POOL_KNOWN" = 1 ] && [ "$FM_PROJECT_CAPACITY_POOL_FREE" -le 0 ]; then
+      echo "deferred: task $ID starts in a fresh slot of $RELAUNCH_LIVE_CLONE, whose worktree pool is full (max_trees $FM_PROJECT_CAPACITY_POOL_MAX, held: ${FM_PROJECT_CAPACITY_POOL_HELD:-none listed}); task $ID was not relaunched and its agent, instructions, and task record are unchanged - relaunch it again once a tree is returned" >&2
+      exit 75
+    fi
+    if [ -n "${FM_PROJECT_CAPACITY_POOL_EXPOSED:-}" ] &&
+      [ -z "$(fm_treehouse_free_own_slot "$RELAUNCH_LIVE_CLONE" "$(fm_meta_get "$META" base_branch)" || true)" ]; then
+      echo "deferred: task $ID starts in a fresh slot of $RELAUNCH_LIVE_CLONE, whose worktree pool holds a tree another task still claims with nothing running in it and no free tree that can be entered by name; task $ID was not relaunched and its agent, instructions, and task record are unchanged - relaunch it again once that task is torn down" >&2
+      exit 75
+    fi
+  fi
   journal_write stopping "${CHECKPOINT_LINES[@]}" "$note_line"
   exit_result=$(do_exit)
   journal_write exited "${CHECKPOINT_LINES[@]}" "$note_line" "exit_result=$exit_result"
@@ -1789,6 +1817,8 @@ do_relaunch() {
     if fm_backend_validate_task_endpoint "$META" "$ID" >/dev/null \
        && [ -n "$FM_BACKEND_VALIDATED_TARGET" ]; then
       T=$FM_BACKEND_VALIDATED_TARGET
+      # A fresh-slot relaunch republished the record on its new slot.
+      WT=$(fm_meta_get "$META" worktree)
     else
       die "the replacement agent for $ID was launched, but task $ID's republished record no longer passes endpoint validation (the refusal above names the row), so this transaction cannot say which endpoint to confirm it on; reconcile $META before any further control action"
     fi

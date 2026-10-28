@@ -1598,6 +1598,15 @@ SPAWN_SKIP_LEASES=
 SPAWN_TARGET_LEASE=
 SPAWN_TARGET_CLAIMED=0
 RELAUNCH_REPLACEMENT_PENDING=0
+# A relaunch of an old-clone ship starts in a fresh slot of this home's clone
+# (fm_relaunch_live_clone): RELAUNCH_FRESH=1, with the old copy, its HEAD and
+# its endpoint kept here; the endpoint is closed once the replacement record
+# names the new slot (spawn_relaunch_close_old_endpoint).
+RELAUNCH_FRESH=0
+RELAUNCH_OLD_WT=
+RELAUNCH_OLD_HEAD=
+RELAUNCH_OLD_TARGET=
+RELAUNCH_OLD_STATE=
 RELAUNCH_REPLACEMENT_BUSY_GEN=
 RELAUNCH_REPLACEMENT_HARNESS=
 RELAUNCH_REPLACEMENT_STATE=
@@ -1662,12 +1671,23 @@ spawn_hold_launched_item() {  # <exit-status>
 # True when this fresh ship has its own branch checked out and has not sent
 # the launch. The header owns when that checkout is returned.
 spawn_slot_checked_out_ship_branch() {
-  [ "${RELAUNCH:-0}" -eq 0 ] || return 1
+  [ "${RELAUNCH:-0}" -eq 0 ] || [ "${RELAUNCH_FRESH:-0}" = 1 ] || return 1
   [ "${SPAWN_LAUNCH_SENT:-0}" = 0 ] || return 1
   [ "${KIND:-}" = ship ] || return 1
   [ -n "${BRANCH:-}" ] || return 1
   [ -n "${WT:-}" ] || return 1
   [ "$(git -C "$WT" branch --show-current 2>/dev/null || true)" = "$BRANCH" ]
+}
+
+# True when no task record names this spawn's slot: there is no record, or
+# this is a fresh-slot relaunch whose record still names the old copy because
+# the replacement record is not published yet.
+spawn_slot_unrecorded() {
+  if [ ! -e "$STATE/$ID.meta" ] && [ ! -L "$STATE/$ID.meta" ]; then
+    return 0
+  fi
+  [ "${RELAUNCH_FRESH:-0}" = 1 ] && [ -n "$RELAUNCH_OLD_WT" ] || return 1
+  [ "$(fm_meta_get "$STATE/$ID.meta" worktree)" = "$RELAUNCH_OLD_WT" ]
 }
 
 # Prints one reason and returns 0 when the checked-out slot must stay.
@@ -1686,6 +1706,14 @@ spawn_slot_return_blocked_reason() {
   if ! origin_refs=$(git -C "$WT" for-each-ref --format='%(refname)' refs/remotes/origin 2>/dev/null); then
     printf '%s\n' "its commits could not be compared with origin"
     return 0
+  fi
+  # A fresh-slot relaunch's slot holds only the old copy's HEAD, and that copy
+  # is untouched until the replacement record names the slot, so returning the
+  # slot loses nothing.
+  if [ "${RELAUNCH_FRESH:-0}" = 1 ] && [ -n "$RELAUNCH_OLD_HEAD" ] &&
+    [ "$(git -C "$RELAUNCH_OLD_WT" rev-parse --verify -q HEAD 2>/dev/null || true)" = "$RELAUNCH_OLD_HEAD" ] &&
+    [ "$(git -C "$WT" rev-parse --verify -q HEAD 2>/dev/null || true)" = "$RELAUNCH_OLD_HEAD" ]; then
+    return 1
   fi
   if [ -n "$origin_refs" ]; then
     if ! unpushed=$(git -C "$WT" rev-list --max-count=1 HEAD --not --remotes=origin 2>/dev/null); then
@@ -1736,7 +1764,7 @@ spawn_return_checked_out_ship_slot() {
     spawn_refuse_unreturned_slot "the Treehouse project lock could not be retaken"
     return 1
   fi
-  if [ -e "$STATE/$ID.meta" ] || [ -L "$STATE/$ID.meta" ]; then
+  if ! spawn_slot_unrecorded; then
     spawn_refuse_unreturned_slot "its task record is still present"
     return 1
   fi
@@ -1959,7 +1987,7 @@ spawn_abort_cleanup() {
   # leaves the claim for the next spawn's atomic replacement. The release
   # never removes another task's claim.
   if [ "$SPAWN_SLOT_CLAIMED" = 1 ] && [ -n "${WT:-}" ] &&
-    [ ! -e "$STATE/$ID.meta" ] && [ ! -L "$STATE/$ID.meta" ] &&
+    spawn_slot_unrecorded &&
     fm_treehouse_pool_slot "$PROJ_ABS" "$WT"; then
     if spawn_slot_checked_out_ship_branch; then
       if ! spawn_return_checked_out_ship_slot; then
@@ -2758,6 +2786,26 @@ if [ "$RELAUNCH" -eq 1 ]; then
       echo "error: task $ID has no recorded project; refusing to relaunch" >&2
       exit 1
     }
+    # An old-clone ship starts in a fresh slot of this home's clone, taken,
+    # claimed and given a new pane by the ordinary spawn path below; its
+    # branch comes along at the old copy's HEAD (spawn_relaunch_carry_branch),
+    # and the old endpoint is closed once the replacement record names the new
+    # slot; the old copy stays for its clone's retirement. bin/fm-control.sh ran these same checks before it stopped the
+    # agent; they run again here, under the task's record lock.
+    if [ "$KIND" = ship ] && RELAUNCH_LIVE=$(fm_relaunch_live_clone "$RELAUNCH_META" "$FM_HOME"); then
+      if RELAUNCH_FRESH_REFUSAL=$(fm_relaunch_fresh_slot_refusal "$RELAUNCH_WT" "$PROJ" "$BRANCH" "$RELAUNCH_LIVE"); then
+        echo "error: task $ID lives in $PROJ, not this home's clone $RELAUNCH_LIVE, and cannot start in a fresh slot there: $RELAUNCH_FRESH_REFUSAL; nothing was relaunched" >&2
+        exit 1
+      fi
+      RELAUNCH_FRESH=1
+      RELAUNCH_OLD_WT=$RELAUNCH_WT
+      RELAUNCH_OLD_HEAD=$(git -C "$RELAUNCH_WT" rev-parse --verify -q 'HEAD^{commit}')
+      RELAUNCH_OLD_TARGET=$RELAUNCH_TARGET
+      RELAUNCH_OLD_STATE=$RELAUNCH_STATE
+      RELAUNCH_WT=
+      RELAUNCH_REBIND=1
+      PROJ=$RELAUNCH_LIVE
+    fi
   fi
   if [ "$BACKEND" = herdr ]; then
     # fm-spawn uses HERDR_PANE_ID for the TASK's pane, while the herdr adapter
@@ -4148,9 +4196,9 @@ if [ "$KIND" != secondmate ] &&
   if [ "$RELAUNCH" -eq 1 ]; then
     # The early refusal is advisory until allocation is excluded. Keep this
     # lock through launch delivery so a pre-claim slot cannot change hands.
-    fm_treehouse_slot_owner_state "$RELAUNCH_WT" "$ID"
+    fm_treehouse_slot_owner_state "${RELAUNCH_OLD_WT:-$RELAUNCH_WT}" "$ID"
     if [ "$FM_TREEHOUSE_SLOT_OWNER" = other ]; then
-      echo "error: task $ID's recorded worktree '$RELAUNCH_WT' is claimed by task $FM_TREEHOUSE_SLOT_OWNER_ID; refusing to relaunch into a reassigned slot" >&2
+      echo "error: task $ID's recorded worktree '${RELAUNCH_OLD_WT:-$RELAUNCH_WT}' is claimed by task $FM_TREEHOUSE_SLOT_OWNER_ID; refusing to relaunch into a reassigned slot" >&2
       exit 1
     fi
   fi
@@ -4246,7 +4294,7 @@ fi
 # moment between that read and the allocator's own choice is Treehouse's; it
 # cannot be closed from here without a way to lease a tree by name.
 SPAWN_POOL_EXPOSED=
-if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
+if { [ "$RELAUNCH" -eq 0 ] || [ "$RELAUNCH_FRESH" = 1 ]; } && [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   fm_project_capacity_pool "$PROJ_ABS"
   if [ "$FM_PROJECT_CAPACITY_POOL_KNOWN" = 1 ] && [ "$FM_PROJECT_CAPACITY_POOL_FREE" -le 0 ]; then
     echo "deferred: project $(basename "$PROJ_ABS")'s worktree pool is full: max_trees $FM_PROJECT_CAPACITY_POOL_MAX in $PROJ_ABS/treehouse.toml and every tree is held (${FM_PROJECT_CAPACITY_POOL_HELD:-none listed}); task $ID was not launched and its backlog item stays queued - dispatch it again once a tree is returned" >&2
@@ -4731,6 +4779,66 @@ prepare_ship_branch() { # <worktree> <branch>
   fi
 }
 
+# A fresh-slot relaunch (fm_relaunch_live_clone) puts the task's branch in its
+# new slot <slot> at the old copy's HEAD: from origin when origin's branch
+# already holds that commit, otherwise fetched from the old copy itself, so
+# unpushed commits come along and nothing is published. A branch this clone
+# already has is only moved forward. Submodules land on the commits the branch
+# records, and the slot must then read exactly clean.
+spawn_relaunch_carry_branch() { # <slot>
+  local slot=$1 start="" got status
+  if git -C "$slot" fetch -q --no-tags --no-recurse-submodules origin \
+    "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH" </dev/null >/dev/null 2>&1 &&
+    git -C "$slot" merge-base --is-ancestor "$RELAUNCH_OLD_HEAD" "refs/remotes/origin/$BRANCH" 2>/dev/null; then
+    start=$(git -C "$slot" rev-parse --verify -q "refs/remotes/origin/$BRANCH^{commit}" 2>/dev/null || true)
+  elif git -C "$slot" fetch -q --no-tags --no-recurse-submodules "$RELAUNCH_OLD_WT" \
+    "refs/heads/$BRANCH" </dev/null >/dev/null 2>&1; then
+    start=$(git -C "$slot" rev-parse --verify -q 'FETCH_HEAD^{commit}' 2>/dev/null || true)
+  fi
+  if [ -z "$start" ] || ! git -C "$slot" merge-base --is-ancestor "$RELAUNCH_OLD_HEAD" "$start" 2>/dev/null; then
+    echo "error: task $ID's branch $BRANCH at ${RELAUNCH_OLD_HEAD:0:12} could not be brought into its new slot $slot from origin or from its old copy $RELAUNCH_OLD_WT; refusing to launch" >&2
+    return 1
+  fi
+  if got=$(git -C "$slot" rev-parse --verify -q "refs/heads/$BRANCH^{commit}" 2>/dev/null) &&
+    ! git -C "$slot" merge-base --is-ancestor "$got" "$start" 2>/dev/null; then
+    echo "error: this home's clone already has a branch $BRANCH at ${got:0:12}, which ${start:0:12} does not contain; refusing to move it" >&2
+    return 1
+  fi
+  if ! git -C "$slot" checkout -q -B "$BRANCH" "$start" -- </dev/null >/dev/null 2>&1; then
+    echo "error: could not check out ship branch '$BRANCH' at ${start:0:12} in '$slot'; refusing to launch" >&2
+    return 1
+  fi
+  if [ -f "$slot/.gitmodules" ] &&
+    ! fm_run_timed 300 env GIT_TERMINAL_PROMPT=0 git -C "$slot" submodule update --init --recursive -q </dev/null >/dev/null 2>&1; then
+    echo "error: task $ID's submodules could not be put on the commits $BRANCH records in '$slot' (a submodule commit may be unpushed); refusing to launch" >&2
+    return 1
+  fi
+  status=$(git -C "$slot" -c core.quotePath=false status --porcelain --untracked-files=all --ignore-submodules=none 2>/dev/null) ||
+    status="unreadable status"
+  if [ -n "$status" ]; then
+    echo "error: '$slot' is not clean after checking out $BRANCH ($(printf '%s\n' "$status" | head -3 | tr '\n' ';')); refusing to launch" >&2
+    return 1
+  fi
+  if [ "$(git -C "$slot" branch --show-current 2>/dev/null)" != "$BRANCH" ]; then
+    echo "error: '$slot' is not on ship branch '$BRANCH' after preparing it; refusing to launch" >&2
+    return 1
+  fi
+  echo "relaunch: task $ID starts in a fresh slot $slot of this home's clone, on $BRANCH at ${start:0:12}; its old copy was $RELAUNCH_OLD_WT" >&2
+}
+
+# Once the replacement record names the new slot, a fresh-slot relaunch closes
+# the old endpoint, which the relaunch gate proved agent-free. The old copy and
+# its claim stay as they are: returning a copy is teardown's, and this one goes
+# when its clone retires.
+spawn_relaunch_close_old_endpoint() {
+  [ "$RELAUNCH_FRESH" = 1 ] && [ "$RELAUNCH_OLD_STATE" = dead ] || return 0
+  if fm_backend_kill "$BACKEND" "$RELAUNCH_OLD_TARGET" "" "$W" >/dev/null 2>&1; then
+    echo "relaunch: closed task $ID's old endpoint $RELAUNCH_OLD_TARGET; its old copy $RELAUNCH_OLD_WT stays for its clone's retirement" >&2
+  else
+    echo "warning: task $ID now lives in $WT, but its old endpoint $RELAUNCH_OLD_TARGET could not be closed; close it by hand" >&2
+  fi
+}
+
 # Write the per-task Cursor plugin that carries bin/fm-cursor-crew-guard.mjs as a
 # preToolUse hook for this crew session alone: it pins every shell call that
 # names no directory to <worktree> and refuses git symbolic-ref and update-ref.
@@ -4950,7 +5058,9 @@ if [ "$RELAUNCH" -eq 1 ]; then
     HERDR_SEEDED_DEFAULT_TAB_ID=${HERDR_CONTAINER_RAW#*$'\t'}
     HERDR_SES=${CONTAINER%%:*}
     HERDR_WORKSPACE_ID=${CONTAINER#*:}
-    HERDR_TASK_IDS=$(fm_backend_herdr_create_task "$CONTAINER" "$W" "$WT" "$HERDR_SEEDED_DEFAULT_TAB_ID") || exit 1
+    # A fresh-slot relaunch (RELAUNCH_FRESH) has no worktree yet: its pane
+    # opens in the project, and the slot is entered below as a fresh spawn's is.
+    HERDR_TASK_IDS=$(fm_backend_herdr_create_task "$CONTAINER" "$W" "${WT:-$PROJ_ABS}" "$HERDR_SEEDED_DEFAULT_TAB_ID") || exit 1
     read -r HERDR_TAB_ID HERDR_PANE_ID <<EOF
 $HERDR_TASK_IDS
 EOF
@@ -5685,7 +5795,7 @@ sys.stdout.write(pane[matches[-1].end():].partition("\n")[2] if matches else pan
 
 if [ "$RELAUNCH" -eq 1 ] && [ "$BACKEND" = orca ]; then
   [ "$KIND" = secondmate ] || validate_spawn_worktree "relaunch" "$T"
-elif [ "$RELAUNCH" -eq 1 ]; then
+elif [ "$RELAUNCH" -eq 1 ] && [ "$RELAUNCH_FRESH" != 1 ]; then
   # No worktree is acquired: the recorded one is reused as-is. What must be
   # proven instead is that the adopted endpoint's shell is actually sitting in
   # that worktree, so the replacement agent starts where the work is rather
@@ -5958,10 +6068,12 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   # them on every failure path instead.
   spawn_release_skip_leases
 fi
-if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ]; then
+if { [ "$RELAUNCH" -eq 0 ] || [ "$RELAUNCH_FRESH" = 1 ]; } && [ "$KIND" != secondmate ]; then
   freshen_spawn_worktree_base "$WT" "$BASE_BRANCH" || exit 1
 fi
-if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" = ship ] && [ -n "${BRANCH:-}" ]; then
+if [ "$RELAUNCH_FRESH" = 1 ]; then
+  spawn_relaunch_carry_branch "$WT" || exit 1
+elif [ "$RELAUNCH" -eq 0 ] && [ "$KIND" = ship ] && [ -n "${BRANCH:-}" ]; then
   prepare_ship_branch "$WT" "$BRANCH" || exit 1
 fi
 
@@ -6085,7 +6197,9 @@ if [ "$RELAUNCH" -eq 1 ]; then
   # files and turn-end token registry entries behind, and even a same-harness
   # relaunch would orphan the retired busy generation's token
   # (bin/fm-control-lib.sh owns where those artifacts live).
-  clear_relaunch_harness_wiring "$RELAUNCH_PRIOR_HARNESS" "$WT" "$STATE_REAL" "$ID" "$KIND" || {
+  # The previous incarnation's worktree wiring is in its own copy, which for a
+  # fresh-slot relaunch is the old one.
+  clear_relaunch_harness_wiring "$RELAUNCH_PRIOR_HARNESS" "${RELAUNCH_OLD_WT:-$WT}" "$STATE_REAL" "$ID" "$KIND" || {
     echo "error: could not retire $RELAUNCH_PRIOR_HARNESS wiring for task $ID; refusing to arm the replacement" >&2
     exit 1
   }
@@ -7231,6 +7345,7 @@ if [ "$RELAUNCH" -eq 1 ]; then
   RELAUNCH_REPLACEMENT_PENDING=0
   SPAWN_META_PUBLISH_STARTED=0
   SPAWN_META_TMP=
+  spawn_relaunch_close_old_endpoint
 fi
 SPAWN_LAUNCH_SENT=1
 spawn_send_literal "$T" ". $(shell_quote "$LAUNCH_FILE")"

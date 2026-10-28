@@ -408,7 +408,7 @@ family_for_basename() {
     fm-spawn-compact-adviser-disable.test.sh|\
     fm-spawn-compact-adviser-disable-remote.test.sh|\
     fm-spawn-worker-git-identity.test.sh|\
-    fm-project-capacity.test.sh|fm-dispatch-ready.test.sh|\
+    fm-project-capacity.test.sh|fm-dispatch-ready.test.sh|fm-relaunch-fresh-slot.test.sh|\
     fm-teardown-endpoint-safety.test.sh)
       printf '%s\n' backend-dispatch
       ;;
