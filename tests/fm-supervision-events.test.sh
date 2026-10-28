@@ -165,14 +165,14 @@ pass "event_wait_or_sleep: consecutive event-path failures disable the fast-path
 # --- state_wait_or_sleep: the state wait replaces the plain POLL sleep -------
 # Opted back in per case with a stubbed python3: `-I <script> <secs> ...`, so
 # $3 is the wait's seconds and 0 is the one-time capability probe. The stub
-# answers the probe as a clean timeout (1, capable) and each real wait as a
-# watched change (0), so the cycle must wait through python3 with no fm_sleep.
+# answers the probe as a clean timeout (0, capable) and each real wait as a
+# watched change (10), so the cycle must wait through python3 with no fm_sleep.
 
 reset_state
 fm_write_meta "$STATE_DIR/tk6.meta" "window=fmses:fm-tk6" "kind=ship"
 : > "$TMP/pywaits"
 # shellcheck disable=SC2329 # Runtime override called by the isolated watcher.
-python3() { printf '%s\n' "$3" >> "$TMP/pywaits"; [ "$3" = 0 ] && return 1; return 0; }
+python3() { printf '%s\n' "$3" >> "$TMP/pywaits"; [ "$3" = 0 ] && return 0; return 10; }
 FM_TEST_NO_STATE_WAIT=
 event_wait_or_sleep
 event_wait_or_sleep
@@ -205,7 +205,7 @@ reset_state
 : > "$TMP/pywaits"
 export STATE_WAIT_FAIL_MAX=2
 # shellcheck disable=SC2329 # Runtime override called by the isolated watcher.
-python3() { printf '%s\n' "$3" >> "$TMP/pywaits"; [ "$3" = 0 ] && return 1; return 2; }
+python3() { printf '%s\n' "$3" >> "$TMP/pywaits"; [ "$3" = 0 ] && return 0; return 2; }
 FM_TEST_NO_STATE_WAIT=
 event_wait_or_sleep   # probe ok, wait fails (fails=1), sleeps POLL
 event_wait_or_sleep   # wait fails (fails=2 -> disable), sleeps POLL

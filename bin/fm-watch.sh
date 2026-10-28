@@ -2702,7 +2702,9 @@ state_wait_or_sleep() {
     if command -v python3 >/dev/null 2>&1; then
       python3 -I "$SCRIPT_DIR/fm-watch-statewait.py" 0 "$STATE" </dev/null >/dev/null 2>&1
       rc=$?
-      case "$rc" in 0|1) _state_wait_cap=1 ;; esac
+      # Only 0 (clean timeout) and 10 (woke) prove the waiter itself ran;
+      # 1 is a Python interpreter that never ran it, so it stays incapable.
+      case "$rc" in 0|10) _state_wait_cap=1 ;; esac
     fi
   fi
   if [ "$_state_wait_cap" != 1 ]; then
@@ -2713,7 +2715,7 @@ state_wait_or_sleep() {
     "$FM_HOME/data/backlog.md" </dev/null >/dev/null 2>&1
   rc=$?
   case "$rc" in
-    0|1) _state_wait_fails=0 ;;
+    0|10) _state_wait_fails=0 ;;
     *)
       _state_wait_fails=$((_state_wait_fails + 1))
       [ "$_state_wait_fails" -ge "$STATE_WAIT_FAIL_MAX" ] && _state_wait_cap=0

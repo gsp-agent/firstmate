@@ -24,13 +24,18 @@ Usage: fm-watch-statewait.py <timeout_seconds> <state_dir> [<file> ...]
 A timeout of 0 sets the watches up and returns at once: the caller's
 capability probe.
 
-Exit status:
-  0  a watched change was observed (including one between the baseline
-     sample and the watches opening, and any failure after setup, which
-     wakes the caller to re-scan rather than waiting blind).
-  1  the timeout elapsed with no watched change - a clean bounded wait.
-  2  this wait is unavailable: bad arguments, no kqueue on this platform,
-     an unusable state directory, or a watch that could not be opened.
+Exit status (mirrors bin/backends/herdr-eventwait.py: the clean full wait
+owns 0, so a Python interpreter that never ran this program - import
+failure, broken shim, any unhandled traceback exits 1 - can never be
+mistaken for it):
+  0   the timeout elapsed with no watched change - a clean bounded wait.
+  10  a watched change was observed (including one between the baseline
+      sample and the watches opening, and any failure after setup, which
+      wakes the caller to re-scan rather than waiting blind).
+  2   this wait is unavailable: bad arguments, no kqueue on this platform,
+      an unusable state directory, or a watch that could not be opened.
+Any other status means the waiter never ran; the caller counts it a
+failure and falls back to its plain sleep.
 Prints nothing; the caller owns the watcher's stdout.
 """
 import glob
@@ -55,8 +60,8 @@ def _snapshot(state_dir, extras):
     """Map every watched file to its signature; missing files are absent."""
     snap = {}
     paths = sorted(
-        glob.glob(os.path.join(state_dir, "*.status"))
-        + glob.glob(os.path.join(state_dir, "*.meta"))
+        glob.glob(os.path.join(glob.escape(state_dir), "*.status"))
+        + glob.glob(os.path.join(glob.escape(state_dir), "*.meta"))
     )
     queue = os.path.join(state_dir, ".wake-queue")
     paths += [queue] + list(extras)
@@ -134,23 +139,23 @@ def main(argv):
         # A change between the baseline and the watches queues no event, so
         # re-sample once here and report it instead of waiting it out.
         if _snapshot(state_dir, extras) != baseline:
-            return 0
+            return 10
         deadline = time.monotonic() + timeout
         while True:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                return 1
+                return 0
             events = kq.control(None, 16, remaining)
             if not events:
-                return 1
-            if _snapshot(state_dir, extras) != baseline:
                 return 0
+            if _snapshot(state_dir, extras) != baseline:
+                return 10
             # Noise outside the watched classes: keep waiting on the same
             # baseline until the deadline.
     except (OSError, ValueError):
         # Setup already proved out; a mid-wait failure wakes the caller to
         # re-scan (its poll is the backstop), never a silent blind wait.
-        return 0
+        return 10
     finally:
         for fd in fds:
             try:

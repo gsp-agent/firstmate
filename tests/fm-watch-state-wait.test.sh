@@ -20,7 +20,7 @@ printf 'working: step 1\n' > "$STATE_DIR/task1.status"
 python3 -I "$WAITER" 0 "$STATE_DIR" >/dev/null 2>&1
 probe_rc=$?
 case "$probe_rc" in
-  0|1) ;;
+  0|10) ;;
   *) echo "skip: kqueue state wait unavailable on this host (probe rc=$probe_rc)"; exit 0 ;;
 esac
 
@@ -87,7 +87,7 @@ waiter_exited_within() {  # <polls>
 
 python3 -I "$WAITER" 1 "$STATE_DIR"
 rc=$?
-[ "$rc" -eq 1 ] || fail "a quiet wait must end as a clean timeout (rc 1), got $rc"
+[ "$rc" -eq 0 ] || fail "a quiet wait must end as a clean timeout (rc 0), got $rc"
 pass "state wait: a quiet state directory waits the whole timeout"
 
 python3 -I "$WAITER" 1 "$TMP/no-such-state" >/dev/null 2>&1
@@ -104,7 +104,7 @@ start_waiter 30
 sleep 0.3
 printf 'working: step 2\n' >> "$STATE_DIR/task1.status"
 waiter_exited_within 20 || fail "a status append did not wake the wait within 2s of a 30s timeout"
-[ "$WAITER_RC" -eq 0 ] || fail "a status append must wake as a change (rc 0), got $WAITER_RC"
+[ "$WAITER_RC" -eq 10 ] || fail "a status append must wake as a change (rc 10), got $WAITER_RC"
 pass "state wait: a status append wakes the wait sub-second"
 
 # --- a new status file and a rename replacement wake it too -----------------
@@ -113,13 +113,13 @@ start_waiter 30
 sleep 0.3
 printf 'working: new task\n' > "$STATE_DIR/task2.status"
 waiter_exited_within 20 || fail "a new status file did not wake the wait within 2s of a 30s timeout"
-[ "$WAITER_RC" -eq 0 ] || fail "a new status file must wake as a change (rc 0), got $WAITER_RC"
+[ "$WAITER_RC" -eq 10 ] || fail "a new status file must wake as a change (rc 10), got $WAITER_RC"
 start_waiter 30
 sleep 0.3
 printf 'working: replaced\n' > "$TMP/replacement"
 mv "$TMP/replacement" "$STATE_DIR/task1.status"
 waiter_exited_within 20 || fail "a rename replacement did not wake the wait within 2s of a 30s timeout"
-[ "$WAITER_RC" -eq 0 ] || fail "a rename replacement must wake as a change (rc 0), got $WAITER_RC"
+[ "$WAITER_RC" -eq 10 ] || fail "a rename replacement must wake as a change (rc 10), got $WAITER_RC"
 pass "state wait: a created or replaced status file wakes the wait"
 
 # --- unwatched state noise does not wake it ----------------------------------
@@ -132,7 +132,7 @@ touch "$STATE_DIR/.last-watcher-beat"
 wait "$WAITER_PID"
 rc=$?
 WAITER_PID=
-[ "$rc" -eq 1 ] || fail "unwatched state noise must not wake the wait (expected clean timeout rc 1), got $rc"
+[ "$rc" -eq 0 ] || fail "unwatched state noise must not wake the wait (expected clean timeout rc 0), got $rc"
 pass "state wait: unwatched state noise waits the whole timeout"
 
 # --- the backlog and hold-domain writes wake it -------------------------------
@@ -142,13 +142,13 @@ start_waiter 30 "$TMP/backlog.md"
 sleep 0.3
 printf -- '- a queued row\n' >> "$TMP/backlog.md"
 waiter_exited_within 20 || fail "a backlog write did not wake the wait within 2s of a 30s timeout"
-[ "$WAITER_RC" -eq 0 ] || fail "a backlog write must wake as a change (rc 0), got $WAITER_RC"
+[ "$WAITER_RC" -eq 10 ] || fail "a backlog write must wake as a change (rc 10), got $WAITER_RC"
 mkdir -p "$STATE_DIR/hold-domain/pending"
 start_waiter 30
 sleep 0.3
 printf 'hold body\n' > "$STATE_DIR/hold-domain/pending/h1.body"
 waiter_exited_within 20 || fail "a hold-domain write did not wake the wait within 2s of a 30s timeout"
-[ "$WAITER_RC" -eq 0 ] || fail "a hold-domain write must wake as a change (rc 0), got $WAITER_RC"
+[ "$WAITER_RC" -eq 10 ] || fail "a hold-domain write must wake as a change (rc 10), got $WAITER_RC"
 pass "state wait: backlog and hold-domain writes wake the wait"
 
 # --- a real watcher surfaces an append out of its 60s backstop wait ----------
@@ -203,5 +203,35 @@ WATCHER_PID=
 grep -q '^signal:' "$TMP/watch.out" \
   || fail "the woken cycle must surface the appended status as a signal: $(head -c 400 "$TMP/watch.out")"
 pass "state wait: a status append wakes a real watcher out of its 60s backstop wait and surfaces as a signal"
+
+# Regression (chip review of 93d5a173): exit 1 is a Python interpreter that
+# never ran the waiter (import failure, broken shim). It must read as a
+# failure that falls back to fm_sleep, never as a completed wait: with a
+# python3 that always exits 1, the capability probe itself must refuse, so
+# state_wait_or_sleep pays the plain sleep every call.
+FAKEBIN="$TMP/fakebin"
+mkdir -p "$FAKEBIN"
+cat > "$FAKEBIN/python3" <<'SH'
+#!/bin/sh
+echo "ModuleNotFoundError: No module named 'resource'" >&2
+exit 1
+SH
+chmod +x "$FAKEBIN/python3"
+SLEEPS="$TMP/fake-sleeps"
+: > "$SLEEPS"
+( PATH="$FAKEBIN:$PATH" STATE="$STATE_DIR" FM_HOME="$TMP" SCRIPT_DIR="$ROOT/bin" \
+    SLEEPS="$SLEEPS" bash -c '
+    . "$1" || exit 1
+    fm_sleep() { echo "$1" >> "$SLEEPS"; }
+    _state_wait_cap="" _state_wait_fails=0
+    state_wait_or_sleep 7
+    state_wait_or_sleep 7
+    echo "cap=$_state_wait_cap" >> "$SLEEPS"
+  ' _ "$ROOT/bin/fm-watch.sh" ) >"$TMP/fake.out" 2>&1 \
+  || fail "state wait: broken-python drive died: $(head -c 400 "$TMP/fake.out")"
+[ "$(grep -c '^7$' "$SLEEPS")" -eq 2 ] \
+  || fail "state wait: a python3 exiting 1 must fall back to fm_sleep every call (sleeps: $(tr '\n' ' ' < "$SLEEPS"))"
+grep -q '^cap=0$' "$SLEEPS" || fail "state wait: probe rc 1 must leave the wait incapable (cap=0)"
+pass "state wait: a python3 exiting 1 reads as never-ran and falls back to fm_sleep"
 
 echo "# fm-watch-state-wait.test.sh: all assertions passed"
