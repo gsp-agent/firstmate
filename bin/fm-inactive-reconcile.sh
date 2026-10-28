@@ -55,7 +55,9 @@
 # captain-held. In a secondmate home a child whose ledger already ends in a
 # terminal done or failed line belongs to the ledger-first delivery path above,
 # but remains eligible for pane closure. Terminal outcomes use fm-crew-state.sh
-# as the sole current-state source; context-limit pauses use the shared
+# as the sole current-state source. That reader yields a finished run to a
+# newer status line, so this scan does not close a worker who kept going.
+# Context-limit pauses use the shared
 # status_is_context_paused predicate in bin/fm-classify-lib.sh directly.
 # Only a done or failed state is suspicious enough to create a durable terminal
 # outcome record or wake the supervisor.
@@ -646,6 +648,8 @@ reconcile_direct_child_locked() { # <id> <meta> <secondmate-id-or-empty> <timeou
     child_terminal_ledger_line "$status" >/dev/null && ledger_rc=0 || ledger_rc=$?
     [ "$ledger_rc" -ne 2 ] || return 0
   fi
+  # Done and failed are fm-crew-state.sh's answer. That reader already yielded
+  # a finished run to a newer status line, so this is not a worker still working.
   case "$state_line" in
     'state: done '*) state='done' ;;
     'state: failed '*) state='failed' ;;

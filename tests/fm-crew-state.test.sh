@@ -403,6 +403,21 @@ seed_retired_pr_receipt() {  # <state> <id> <url>
     || fail "could not publish retirement receipt"
 }
 
+# The run row's updated_at is the outcome clock a terminal run is trusted
+# against. The table is only the columns that clock reads.
+seed_run_updated_epoch() {  # <nm-home> <run-id> <epoch>
+  mkdir -p "$1"
+  python3 - "$1/state.sqlite" "$2" "$3" <<'PY' || fail "could not seed the run clock"
+import sqlite3
+import sys
+database, run_id, epoch = sys.argv[1:]
+connection = sqlite3.connect(database)
+connection.execute("CREATE TABLE runs (id TEXT PRIMARY KEY, updated_at INTEGER NOT NULL)")
+connection.execute("INSERT INTO runs (id, updated_at) VALUES (?, ?)", (run_id, int(epoch)))
+connection.commit()
+PY
+}
+
 # --- run-object fixtures (TOON, as `no-mistakes axi status` emits) -----------
 
 run_running() {  # <branch>
@@ -1421,6 +1436,75 @@ test_top_level_fixing_done_log_stays_working() {
   assert_contains "$out" "validating (fixing)" "top-level fixing keeps fixing detail"
   assert_not_contains "$out" "state: done" "top-level fixing must not read as stale checks-green done"
   pass "top-level fixing is not overridden by a stale done log"
+}
+
+# heru-geu-1027: a passed run whose PR merged, then a newer working line in
+# the same incarnation. The run record's updated_at is 1793124079. The
+# continuation line is the 1793148334 Alpha rebuild. An earlier working line
+# from before that clock, an unstamped working line, and a newest done line
+# stay on the passed run.
+test_newer_working_line_outranks_merged_run() {
+  reset_fakes
+  local d url out saved_nm
+  saved_nm=$NM_HOME
+  d=$(new_case newer-working)
+  url=https://github.com/o/r/pull/178
+  make_repo_on_branch "$d/wt" fm/heru-geu-1027-wipe6
+  make_fakebin "$d" >/dev/null
+  fm_write_meta "$d/state/feat-newer.meta" "window=fm:fm-feat-newer" \
+    "worktree=$d/wt" "kind=ship" "pr=$url"
+  seed_run_updated_epoch "$d/nm" 01M5Z0TXN5172BSC901X18AA1C 1793124079
+  NM_HOME=$d/nm
+  FM_FAKE_AXI_STATUS=$(cat <<EOF
+run:
+  id: "01M5Z0TXN5172BSC901X18AA1C"
+  branch: fm/heru-geu-1027-wipe6
+  status: completed
+  head: "${FM_FAKE_RUN_HEAD}"
+  pr: "$url"
+  findings: none
+outcome: passed
+EOF
+)
+  printf '%s\n' \
+    'working [at=1793123903]: PR https://github.com/o/r/pull/178 merged; Alpha build continues' \
+    'working [at=1793148334]: #179 (heru-65n-r4'"'"'s car) landed as main 4bf0313; rebuilding with its car export swapped in PC-side' \
+    > "$d/state/feat-newer.status"
+  out=$(run_crew_state "$d" feat-newer)
+  assert_contains "$out" "state: working" "a working line newer than the merged run is the current state: $out"
+  assert_contains "$out" "source: status-log" "the newer working line answers from the status log: $out"
+  assert_contains "$out" "rebuilding with its car export" "the newer working line supplies the detail: $out"
+  assert_not_contains "$out" "state: done" "a newer working line must not stay done from the merged run: $out"
+
+  printf '%s\n' \
+    'working [at=1793123903]: PR https://github.com/o/r/pull/178 merged; Alpha build continues' \
+    > "$d/state/feat-newer.status"
+  out=$(run_crew_state "$d" feat-newer)
+  assert_contains "$out" "state: done" "a working line older than the run clock stays done: $out"
+  assert_contains "$out" "source: run-step" "an older working line keeps the run-step source: $out"
+  assert_contains "$out" "run passed: PR merged" "the passed run still reports the merged PR: $out"
+
+  printf '%s\n' 'working: still on the merged run' > "$d/state/feat-newer.status"
+  out=$(run_crew_state "$d" feat-newer)
+  assert_contains "$out" "state: done" "an unstamped working line does not outrank the merged run: $out"
+  assert_contains "$out" "source: run-step" "an unstamped working line keeps the run-step source: $out"
+
+  printf '%s\n' \
+    'working [at=1793123903]: PR merged; Alpha build continues' \
+    'done [at=1793149000]: finished after the rebuild' \
+    > "$d/state/feat-newer.status"
+  out=$(run_crew_state "$d" feat-newer)
+  assert_contains "$out" "state: done" "a newest done line stays done: $out"
+  assert_contains "$out" "source: run-step" "a newer done line does not reopen the passed run through the status gate: $out"
+
+  NM_HOME=$saved_nm
+  printf '%s\n' \
+    'working [at=1793148334]: rebuilding with its car export swapped in PC-side' \
+    > "$d/state/feat-newer.status"
+  out=$(run_crew_state "$d" feat-newer)
+  assert_contains "$out" "state: done" "a missing run clock leaves the passed run authoritative: $out"
+  assert_contains "$out" "source: run-step" "a missing run clock keeps the run-step source: $out"
+  pass "a working line newer than a merged run outranks that run"
 }
 
 # (d) terminal run-step is authoritative
@@ -5676,6 +5760,7 @@ test_ci_fixing_after_green_stays_working
 test_top_level_fixing_ci_running_after_green_stays_working
 test_top_level_fixing_done_log_stays_working
 test_terminal_passed
+test_newer_working_line_outranks_merged_run
 test_terminal_passed_with_override
 test_terminal_passed_with_skips
 test_terminal_passed_uses_matching_retirement_receipt_without_forge

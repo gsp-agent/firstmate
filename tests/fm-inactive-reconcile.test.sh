@@ -1812,6 +1812,118 @@ SH
   pass "reconciliation state reads set no-forge mode"
 }
 
+# heru-geu-1027's sequence, driven through the real current-state reader:
+# the run passed and its PR merged (updated_at 1793124079), then the same
+# incarnation appended working [at=1793148334] and went idle past the
+# threshold. The sweep log is the herdr command log plus the scan output.
+seed_merged_run_clock() {  # <epoch>
+  mkdir -p "$WORLD/nm"
+  python3 - "$WORLD/nm/state.sqlite" "$1" <<'PY' || fail "could not seed the merged run clock"
+import sqlite3
+import sys
+database, epoch = sys.argv[1:]
+connection = sqlite3.connect(database)
+connection.execute("CREATE TABLE runs (id TEXT PRIMARY KEY, updated_at INTEGER NOT NULL)")
+connection.execute(
+    "INSERT INTO runs (id, updated_at) VALUES ('01M5Z0TXN5172BSC901X18AA1C', ?)",
+    (int(epoch),),
+)
+connection.commit()
+PY
+}
+
+install_merged_run_cli() {  # <head>
+  cat > "$WORLD/nm-status.toon" <<EOF
+run:
+  id: "01M5Z0TXN5172BSC901X18AA1C"
+  branch: fm/heru-geu-1027-wipe6
+  status: completed
+  head: "$1"
+  pr: "https://github.com/o/r/pull/178"
+  findings: none
+outcome: passed
+EOF
+  cat > "$WORLD/fakebin/no-mistakes" <<EOF
+#!/usr/bin/env bash
+case "\${1:-} \${2:-}" in
+  "axi "|"axi status")
+    cat "$WORLD/nm-status.toon"
+    ;;
+esac
+exit 0
+EOF
+  chmod +x "$WORLD/fakebin/no-mistakes"
+}
+
+prepare_merged_herdr_child() {  # <status>
+  local proj head
+  write_herdr_child "$MAIN" child "$1"
+  proj=$MAIN/projects/child
+  git -C "$proj" checkout -q -B fm/heru-geu-1027-wipe6
+  head=$(git -C "$proj" rev-parse HEAD)
+  install_merged_run_cli "$head"
+  seed_merged_run_clock 1793124079
+  age "$MAIN/state/child.status" "$MAIN/state/child.turn-ended" "$MAIN/state/child.meta"
+}
+
+read_merged_child_state() {
+  PATH="$WORLD/fakebin:$PATH" FM_HOME="$MAIN" FM_STATE_OVERRIDE="$MAIN/state" \
+    FM_HERDR_WORLD="$WORLD" FM_CREW_STATE_NO_FORGE=1 NM_HOME="$WORLD/nm" \
+    "$ROOT/bin/fm-crew-state.sh" child
+}
+
+scan_merged_child() {
+  PATH="$WORLD/fakebin:$PATH" FM_ROOT_OVERRIDE="$WORLD/root" FM_HOME="$MAIN" \
+    FM_STATE_OVERRIDE="$MAIN/state" FM_DATA_OVERRIDE="$MAIN/data" FM_CONFIG_OVERRIDE="$MAIN/config" \
+    FM_INACTIVE_RECONCILE_SECS=60 FM_INACTIVE_CREW_STATE_BIN="$ROOT/bin/fm-crew-state.sh" \
+    FM_TMUX_LOG="$WORLD/tmux.log" FM_FORGE_LOG="$WORLD/forge.log" FM_HERDR_WORLD="$WORLD" \
+    NM_HOME="$WORLD/nm" \
+    "$RECON" scan --startup
+}
+
+test_newer_working_line_survives_inactive_sweep() {
+  local out scan_log
+  make_world newer-working-sweep
+  prepare_merged_herdr_child "$(printf '%s\n' \
+    'working [at=1793123903]: PR https://github.com/o/r/pull/178 merged; Alpha build continues' \
+    'working [at=1793148334]: #179 landed as main 4bf0313; rebuilding with its car export swapped in PC-side')"
+  out=$(read_merged_child_state)
+  assert_not_contains "$out" "state: done" "crew-state still answered done after the newer working line: $out"
+  assert_contains "$out" "state: working" "crew-state did not answer working for the newer line: $out"
+  scan_log=$WORLD/scan.log
+  scan_merged_child > "$scan_log" 2>&1
+  [ "$(herdr_close_count)" = 0 ] || fail "the sweep closed a pane whose newest status says working: $(cat "$WORLD/herdr.log")"
+  [ "$(outcome_count "$MAIN" pending)" = 0 ] || fail "the sweep recorded a terminal outcome for a newer working line"
+  [ "$(outcome_count "$MAIN" presented)" = 0 ] || fail "the sweep presented a terminal outcome for a newer working line"
+  ! grep -q 'pane close ' "$WORLD/herdr.log" "$scan_log" \
+    || fail "the sweep log recorded a pane close after the newer working line"
+
+  make_world older-working-sweep
+  prepare_merged_herdr_child 'working [at=1793123903]: PR https://github.com/o/r/pull/178 merged; Alpha build continues'
+  out=$(read_merged_child_state)
+  assert_contains "$out" "state: done" "a merged run with no newer working line did not read done: $out"
+  scan_merged_child > "$WORLD/scan.log" 2>&1
+  [ "$(herdr_close_count)" = 1 ] || fail "a merged run with no newer working line was not closed: $out"
+  [ "$(outcome_count "$MAIN" pending)" = 1 ] || fail "a merged run with no newer working line recorded no outcome"
+
+  make_world unstamped-working-sweep
+  prepare_merged_herdr_child 'working: still on the merged run'
+  scan_merged_child > "$WORLD/scan.log" 2>&1
+  [ "$(herdr_close_count)" = 1 ] || fail "an unstamped working line kept a merged run open: $(read_merged_child_state)"
+  [ "$(outcome_count "$MAIN" pending)" = 1 ] || fail "an unstamped working line recorded no outcome"
+
+  # A plain done: on a no-mistakes ship is the pipeline handoff and stays
+  # open. The finished line is the CI-ready report the close path accepts.
+  make_world newest-done-sweep
+  prepare_merged_herdr_child "$(printf '%s\n' \
+    'working [at=1793123903]: PR merged; Alpha build continues' \
+    'done [at=1793149000]: PR https://example.test/owner/repo/pull/1 checks green')"
+  scan_merged_child > "$WORLD/scan.log" 2>&1
+  [ "$(herdr_close_count)" = 1 ] || fail "a newest done line was not closed: $(read_merged_child_state)"
+  [ "$(outcome_count "$MAIN" pending)" = 1 ] || fail "a newest done line recorded no outcome"
+  pass "a newer working line survives the inactive sweep and a finished task still closes"
+}
+
 test_main_direct_terminal_presentation_receipt
 test_branch_ack_retires_inactive_outcome_receipt
 test_unpushed_ci_ready_done_is_not_published
@@ -1858,6 +1970,7 @@ test_notice_recovery_does_not_duplicate_wake
 test_missing_parent_binding_names_itself
 test_reconciliation_never_calls_forge
 test_reconciliation_sets_no_forge_mode_for_state_read
+test_newer_working_line_survives_inactive_sweep
 test_context_paused_herdr_pane_closes_without_outcome
 test_event_paused_herdr_pane_stays_open
 test_pause_during_state_read_supersedes_terminal_closure
