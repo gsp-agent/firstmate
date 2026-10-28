@@ -171,9 +171,10 @@ with nothing copied, and a pointer naming its remotes and HEAD replaces it.
 Proof needs the unit to hold its git directory, every work tree of it and
 nothing else, with nothing at the git directory's top level but git's own
 layout and work trees; each work tree has a clean status with no untracked or
-ignored file and no nested repository; no Git LFS objects; and every commit
-any ref, reflog or worktree HEAD reaches is reachable from a tip a network or forge
-remote advertises now (git ls-remote, no fetch). Only an https://, ssh:// or
+ignored file, no assume-unchanged entry, no present skip-worktree file and no
+nested repository; no Git LFS objects; and every commit any ref, reflog or
+worktree HEAD reaches is reachable from a tip a network or forge remote
+advertises now (git ls-remote, no fetch). Only an https://, ssh:// or
 user@host: URL, as configured rather than as an insteadOf rewrite, is such a
 remote; a local path or file:// remote, such as the no-mistakes gate, never is.
 Offload-plan never runs the proof.
@@ -1316,9 +1317,13 @@ def offload_repository_proof(unit):
         elif leaves or offload_repository_marker(path, names, leaves):
             raise ValueError("holds files or repositories outside its work trees and git directory")
     for tree in trees:
-        if git(["--git-dir", str(tree / ".git"), "--work-tree", str(tree)],
-               "status", "--porcelain=v1", "-z", "--ignored=matching", "--untracked-files=all"):
+        location = ["--git-dir", str(tree / ".git"), "--work-tree", str(tree)]
+        if git(location, "status", "--porcelain=v1", "-z", "--ignored=matching", "--untracked-files=all"):
             raise ValueError("has uncommitted, untracked or ignored files")
+        for entry in git(location, "ls-files", "-v", "-z", "--full-name").split("\0"):
+            tag, _, name = entry.partition(" ")
+            if tag.islower() or tag == "S" and os.path.lexists(tree / name):
+                raise ValueError("has assume-unchanged or present skip-worktree files status cannot check")
     lfs = common / "lfs/objects"
     if lfs.is_dir() and any(lfs.iterdir()):
         raise ValueError("holds Git LFS objects no server is proven to have")

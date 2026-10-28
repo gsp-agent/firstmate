@@ -348,6 +348,9 @@ def unproven_fixture(variant, name=""):
     elif variant == "stash":
         (clone / "work.txt").write_text("stashed edit\n")
         git("-C", clone, "stash", "-q")
+    elif variant in ("skip-worktree", "assume-unchanged"):
+        git("-C", clone, "update-index", "--" + variant, "work.txt")
+        (clone / "work.txt").write_text("edit status cannot see\n")
     elif variant == "unreadable":
         (clone / ".git/HEAD").write_text("unverified work\n")
     return home, clone
@@ -536,7 +539,8 @@ for kind in ("directory", "file"):
 regressions.extend([("verified existing payload is reused", check_verified_reuse),
                     ("partial round reports completed moves", check_partial_report),
                     ("a repository proven on its remote is removed with a pointer", check_proven_removed)])
-for variant in ("unpushed", "dirty", "untracked", "ignored", "stash", "remote-inside", "gate-only", "unreadable"):
+for variant in ("unpushed", "dirty", "untracked", "ignored", "stash", "skip-worktree", "assume-unchanged",
+                "remote-inside", "gate-only", "unreadable"):
     regressions.append(("a repository with " + variant + " work is offloaded whole and restores exactly",
                         lambda variant=variant: check_unproven_archived(variant)))
 regressions.extend([("a refused repository offload keeps the repository and no archive copy", check_refused_repository_kept),
