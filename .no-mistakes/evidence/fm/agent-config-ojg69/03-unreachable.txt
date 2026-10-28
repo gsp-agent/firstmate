@@ -1,0 +1,21 @@
+=== scenario: unreachable  (code: firstmate worktree at HEAD 26adac8a)
+
+$ bash bin/fm-task-data-lib.sh offload DATA STATE task-old   (by hand)
+  exit 1
+  stdout: {"offloaded": [], "failed": {"task": "task-old", "path": "clone", "reason": "mini-ts did not answer or MINI-DATA is not mounted; no archive written"}, "total_bytes": 0}
+  stderr: warning: task data retained for recovery: mini-ts did not answer or MINI-DATA is not mounted; no archive written
+PASS: [unreachable] by-hand offload refuses
+
+$ bash bin/fm-task-data-lib.sh sweep DATA STATE   (the pass teardown's sweep runs)
+  exit 0
+  call {"action": "ready", "archives_present": [], "host": "mini-ts", "mode": "unreachable", "tool": "ssh"}
+  call {"action": "ready", "archives_present": [], "host": "mini-ts", "mode": "unreachable", "tool": "ssh"}
+PASS: [unreachable] no archive was ever written: only readiness checks ran, each with no archive present
+PASS: [unreachable] the task is retained exactly as it was, nothing in Trash, no leftover
+PASS: [unreachable] the meta and offload locks are released
+
+$ bash bin/fm-task-data-lib.sh sweep DATA STATE   (next pass, mini back)
+  exit 0
+  pointer: {"archive": "tar", "backup": "lab-backup:<scratch>/independent-backup/a368eaba2b10e1490dfe899396802cf8ecb2f9a4b2fc332ef8300171f7eb305b", "checksum": "a368eaba2b10e1490dfe899396802cf8ecb2f9a4b2fc332ef8300171f7eb305b", "checksum_algorithm": "sha256-canonical-tree-v1", "closed": "2026-10-17", "format": "firstmate-task-evidence-v1", "location": "mini-ts:/Volumes/MINI-DATA/firstmate-task-evidence/cd03083be4395f29/task-old/b5d61dc89a35d2c9/a368eaba2b10e1490dfe899396802cf8ecb2f9a4b2fc332ef8300171f7eb305b/payload", "original": "<scratch>/labs/fm-lab.mini-unreachable.5lXEnd/data/task-old/clone", "size": 133120}
+PASS: [unreachable] the next pass offloads the clone as an archive once mini-ts is back
+=== unreachable: ALL PASS

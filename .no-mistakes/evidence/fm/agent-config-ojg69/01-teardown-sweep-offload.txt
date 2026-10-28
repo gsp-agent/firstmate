@@ -1,0 +1,213 @@
+=== scenario: teardown  (code: firstmate worktree at HEAD 26adac8a)
+lab home: fm-lab.teardown.gzuGdC (marked by bin/fm-lab-home.sh create)
+
+$ cat data/backlog.md
+# Backlog
+
+## In flight
+- [ ] task-x1 - lab teardown task (kind: ship) (since 2026-10-27)
+
+## Queued
+- [ ] task-open - lab open task (kind: ship) (since 2026-10-27)
+## Done
+
+- [x] task-old - lab fixture task (repo: example) (closed 2026-10-17)
+- [x] task-recent - lab fixture task (repo: example) (closed 2026-10-24)
+
+$ find data/task-old (before)
+  dir  agent-config-work
+  file agent-config-work/.git (165 B)
+  file agent-config-work/config.txt (12 B)
+  file agent-config-work/notes.txt (15 B)
+  dir  build
+  file build/evidence.bin (106496 B)
+  dir  clone
+  dir  clone/.git
+  file clone/unpushed.txt (38 B)
+  file clone/untracked.txt (15 B)
+  file clone/work.txt (17 B)
+  file report.md (27 B)
+  dir  set
+  dir  set/lanes
+  dir  set/lanes/own
+  file set/lanes/own/.git (163 B)
+  file set/lanes/own/heru.txt (17 B)
+  file set/lanes/own/lane.txt (34 B)
+  dir  set/laptop
+  dir  set/laptop/heru
+  dir  set/laptop/heru/.git
+  file set/laptop/heru/heru.txt (17 B)
+
+$ bash bin/fm-task-data-lib.sh offload-plan DATA STATE   (read-only)
+{
+ "moves": [
+  {
+   "task": "task-old",
+   "path": "build",
+   "closed": "2026-10-17",
+   "size": 106496,
+   "allocated_bytes": 106496,
+   "reason": "report or bead referenced evidence; task closed over seven days"
+  },
+  {
+   "task": "task-old",
+   "path": "clone",
+   "closed": "2026-10-17",
+   "size": 29569,
+   "allocated_bytes": 155648,
+   "repository": true,
+   "reason": "repository of a task closed over seven days; offloaded whole as one archive"
+  },
+  {
+   "task": "task-old",
+   "path": "set",
+   "closed": "2026-10-17",
+   "size": 29768,
+   "allocated_bytes": 180224,
+   "repository": true,
+   "reason": "repository of a task closed over seven days; offloaded whole as one archive"
+  }
+ ],
+ "retained": [
+  {
+   "task": "task-old",
+   "path": "agent-config-work",
+   "reason": "linked worktree of a repository outside data/",
+   "size": 192,
+   "allocated_bytes": 12288
+  },
+  {
+   "task": "task-open",
+   "reason": "task still has an open or in-progress backlog row"
+  },
+  {
+   "task": "task-recent",
+   "reason": "task has not been closed for seven complete days"
+  }
+ ],
+ "total_bytes": 165833,
+ "total_allocated_bytes": 442368,
+ "backup_required": true
+}
+PASS: offload-plan names task-old's evidence and both repository units, nothing else
+PASS: offload-plan keeps the worktree of a repository outside data/ under a named reason
+PASS: offload-plan wrote nothing and contacted nothing
+
+$ FM_HOME=<lab> bin/fm-teardown.sh task-x1
+  exit 0
+  stdout:
+    teardown task-x1 complete (window firstmate:fm-task-x1, worktree <scratch>/labs/fm-lab.teardown.gzuGdC/projects/task-x1-wt)
+    Backlog: task-x1 is closed in <scratch>/labs/fm-lab.teardown.gzuGdC/data/backlog.md. What its freed place can start is the Dispatch line below.
+    Dispatch: project declares no place limit; no ready backlog row names it, so nothing starts and its places were not counted.
+    Dispatch: 1 more ready row(s) name other projects: task-open ("-"). For each project, run bin/fm-dispatch-ready.sh <project-dir> for its places and start its rows the same way.
+  stderr:
+    fm-gate-refuse: gate agent lifecycle permitted only against lab home <scratch>/labs/fm-lab.teardown.gzuGdC
+PASS: real teardown of task-x1 completes
+
+(the detached sweep's offload pass finished 28.6s after teardown returned: True)
+PASS: the detached sweep teardown started ends with an offload pass that finishes
+$ tail data/backlog.md
+## Done
+- [x] task-x1 - lab teardown task (kind: ship) (done 2026-10-27)
+  local main
+
+- [x] task-old - lab fixture task (repo: example) (closed 2026-10-17)
+- [x] task-recent - lab fixture task (repo: example) (closed 2026-10-24)
+
+$ find data/task-old (after)
+  dir  agent-config-work
+  file agent-config-work/.git (165 B)
+  file agent-config-work/config.txt (12 B)
+  file agent-config-work/notes.txt (15 B)
+  file build (720 B)
+  file clone (738 B)
+  dir  record
+  file record/data-offload.json (2270 B)
+  file report.md (27 B)
+  file set (736 B)
+
+$ cat data/task-old/build
+{
+ "backup": "lab-backup:<scratch>/independent-backup/21446124e15dcfc4b2a7511c7038f77bc6f98b3bc60ee95f0c5e5b8d53889dd8",
+ "checksum": "21446124e15dcfc4b2a7511c7038f77bc6f98b3bc60ee95f0c5e5b8d53889dd8",
+ "checksum_algorithm": "sha256-canonical-tree-v1",
+ "closed": "2026-10-17",
+ "format": "firstmate-task-evidence-v1",
+ "location": "mini-ts:/Volumes/MINI-DATA/firstmate-task-evidence/d56b497e874991b6/task-old/44575cf5b28512d7/21446124e15dcfc4b2a7511c7038f77bc6f98b3bc60ee95f0c5e5b8d53889dd8/payload",
+ "original": "<scratch>/labs/fm-lab.teardown.gzuGdC/data/task-old/build",
+ "size": 106496
+}
+
+$ cat data/task-old/clone
+{
+ "archive": "tar",
+ "backup": "lab-backup:<scratch>/independent-backup/0ccb733fb9222b4afb4472a5f8254ac1bbc6d0ef21097a7d4ec64c895de254b8",
+ "checksum": "0ccb733fb9222b4afb4472a5f8254ac1bbc6d0ef21097a7d4ec64c895de254b8",
+ "checksum_algorithm": "sha256-canonical-tree-v1",
+ "closed": "2026-10-17",
+ "format": "firstmate-task-evidence-v1",
+ "location": "mini-ts:/Volumes/MINI-DATA/firstmate-task-evidence/d56b497e874991b6/task-old/b5d61dc89a35d2c9/0ccb733fb9222b4afb4472a5f8254ac1bbc6d0ef21097a7d4ec64c895de254b8/payload",
+ "original": "<scratch>/labs/fm-lab.teardown.gzuGdC/data/task-old/clone",
+ "size": 133120
+}
+
+$ cat data/task-old/set
+{
+ "archive": "tar",
+ "backup": "lab-backup:<scratch>/independent-backup/f3dbf4319deef38b54659b293418dea1b87eb79f30c0276d4b9e207fbb4fa824",
+ "checksum": "f3dbf4319deef38b54659b293418dea1b87eb79f30c0276d4b9e207fbb4fa824",
+ "checksum_algorithm": "sha256-canonical-tree-v1",
+ "closed": "2026-10-17",
+ "format": "firstmate-task-evidence-v1",
+ "location": "mini-ts:/Volumes/MINI-DATA/firstmate-task-evidence/d56b497e874991b6/task-old/6ee0eb490ff83210/f3dbf4319deef38b54659b293418dea1b87eb79f30c0276d4b9e207fbb4fa824/payload",
+ "original": "<scratch>/labs/fm-lab.teardown.gzuGdC/data/task-old/set",
+ "size": 153600
+}
+PASS: build, clone and set are each replaced by a pointer at the exact original path
+PASS: the repository pointers name a tar archive; the evidence pointer does not
+PASS: each payload is on the (stand-in) MINI-DATA volume and an independent backup copy exists
+PASS: report.md stays in the task folder
+PASS: record/data-offload.json journals all three moves
+PASS: originals went to Trash, byte-exact
+PASS: the outside-parent worktree and its parent repository are untouched
+PASS: task-recent (closed 3 days) and task-open are untouched
+PASS: no local archive copy is left in any task folder
+
+calls the offload pass made (ssh = mini-ts stand-in, archives_present = local archive files at that moment):
+  call {"action": "prepare", "archives_present": [], "host": "mini-ts", "mode": "up", "tool": "ssh"}
+  call {"archives_present": [], "source": "data/task-old/build", "target": "mini-ts:/Volumes/MINI-DATA/firstmate-task-evidence/d56b497e874991b6/task-old/44575cf5b28512d7/21446124e15dcfc4b2a7511c7038f77bc6f98b3bc60ee95f0c5e5b8d53889dd8/payload", "tool": "rsync"}
+  call {"action": "verify", "archives_present": [], "host": "mini-ts", "mode": "up", "tool": "ssh"}
+  call {"archive": null, "archives_present": [], "mode": "ok", "original": "data/task-old/build", "tool": "verifier"}
+  call {"argv": ["trash", "-s"], "path": "data/task-old/build", "stdin": "", "tool": "trash"}
+  call {"action": "ready", "archives_present": [], "host": "mini-ts", "mode": "up", "tool": "ssh"}
+  call {"action": "prepare", "archives_present": ["data/task-old/.firstmate-offload-ilmpby76.tar"], "host": "mini-ts", "mode": "up", "tool": "ssh"}
+  call {"archives_present": ["data/task-old/.firstmate-offload-ilmpby76.tar"], "source": "data/task-old/.firstmate-offload-ilmpby76.tar", "target": "mini-ts:/Volumes/MINI-DATA/firstmate-task-evidence/d56b497e874991b6/task-old/b5d61dc89a35d2c9/0ccb733fb9222b4afb4472a5f8254ac1bbc6d0ef21097a7d4ec64c895de254b8/payload", "tool": "rsync"}
+  call {"action": "verify", "archives_present": ["data/task-old/.firstmate-offload-ilmpby76.tar"], "host": "mini-ts", "mode": "up", "tool": "ssh"}
+  call {"archive": "tar", "archives_present": ["data/task-old/.firstmate-offload-ilmpby76.tar"], "mode": "ok", "original": "data/task-old/clone", "tool": "verifier"}
+  call {"argv": ["trash", "-s"], "path": "data/task-old/clone", "stdin": "", "tool": "trash"}
+  call {"action": "ready", "archives_present": [], "host": "mini-ts", "mode": "up", "tool": "ssh"}
+  call {"action": "prepare", "archives_present": ["data/task-old/.firstmate-offload-seji7pmb.tar"], "host": "mini-ts", "mode": "up", "tool": "ssh"}
+  call {"archives_present": ["data/task-old/.firstmate-offload-seji7pmb.tar"], "source": "data/task-old/.firstmate-offload-seji7pmb.tar", "target": "mini-ts:/Volumes/MINI-DATA/firstmate-task-evidence/d56b497e874991b6/task-old/6ee0eb490ff83210/f3dbf4319deef38b54659b293418dea1b87eb79f30c0276d4b9e207fbb4fa824/payload", "tool": "rsync"}
+  call {"action": "verify", "archives_present": ["data/task-old/.firstmate-offload-seji7pmb.tar"], "host": "mini-ts", "mode": "up", "tool": "ssh"}
+  call {"archive": "tar", "archives_present": ["data/task-old/.firstmate-offload-seji7pmb.tar"], "mode": "ok", "original": "data/task-old/set", "tool": "verifier"}
+  call {"argv": ["trash", "-s"], "path": "data/task-old/set", "stdin": "", "tool": "trash"}
+PASS: a readiness check of mini-ts ran before each repository archive, with no archive on disk yet
+PASS: at most one archive existed at any moment
+PASS: Trash ran with -s and an empty stdin; no trash from PATH ran
+PASS: clone restores byte-exact from its MINI-DATA archive with tar -xf
+
+$ git -C clone fsck --full; git status --short --branch; git log -1 local-only
+  fsck exit 0
+  ## local-only
+   M work.txt
+  ?? untracked.txt
+  commit that exists only in this clone
+PASS: restored clone passes git fsck and keeps its unpushed commit, uncommitted edit and untracked file
+PASS: set (repository + lane) restores byte-exact
+
+$ git -C set/laptop/heru worktree list; git -C set/lanes/own log -1
+  <lab>/data/task-old/set/laptop/heru 33b802f [main]
+  <lab>/data/task-old/set/lanes/own   387d6fd [lane]
+  lane commit that exists only here
+PASS: restored lane is still a working linked worktree with its lane-only commit
+=== teardown: ALL PASS

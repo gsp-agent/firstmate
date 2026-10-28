@@ -1,0 +1,15 @@
+=== scenario: interrupted  (code: firstmate worktree at HEAD 26adac8a)
+$ bash bin/fm-task-data-lib.sh offload DATA STATE task-old   (verifier hangs; TERM sent to the group)
+  verifier reached: True; meta lock held mid-offload: True; leftover archive mid-offload: ['data/task-old/.firstmate-offload-9t4ohugn.tar']
+  exit -15
+  stderr: 'Terminated: 15             python3 "$(dirname "${BASH_SOURCE[0]}")/fm-task-data.py" offload "$1" "$2" "$3"'
+PASS: TERM stops the offload
+PASS: the task meta lock is released after TERM
+PASS: the repository is untouched after the interrupted round
+  leftover archive after TERM: ['data/task-old/.firstmate-offload-9t4ohugn.tar']
+
+$ bash bin/fm-task-data-lib.sh offload DATA STATE task-old   (next round)
+  exit 0
+  stdout: {"offloaded": [{"task": "task-old", "path": "clone", "checksum": "91b9d87a12782d10b18005241cb5a9f4650807bf8e79b97e5d9ca6c2d4356b1c", "size": 133120, "location": "mini-ts:/Volumes/MINI-DATA/firstmate-task-evidence/03293f9d1ad6e97d/task-old/b5d61dc89a35d2c9/91b9d87a12782d10b18005241cb5a9f4650807bf8e79b97e5d9ca6c2d4356b1c/payload", "archive": "tar"}], "total_bytes": 133120}
+PASS: the next offload of that task runs, removes the leftover and offloads the clone
+=== interrupted: ALL PASS

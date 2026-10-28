@@ -1,0 +1,4 @@
+mounted (is_mount=True): answered {'ready': True}
+unreachable (real /usr/bin/ssh to a closed port): ssh exit 255; last stderr line: ssh: connect to host 127.0.0.1 port 9: Connection refused
+volume detached (is_mount=False): ssh exit 1; last stderr line: ValueError: MINI-DATA is not mounted
+re-attached (is_mount=True): answered {'ready': True}

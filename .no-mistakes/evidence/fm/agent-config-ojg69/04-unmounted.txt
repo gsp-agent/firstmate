@@ -1,0 +1,23 @@
+=== scenario: unmounted  (code: firstmate worktree at HEAD 26adac8a)
+MINI-DATA stand-in detached; is_mount=False
+
+$ bash bin/fm-task-data-lib.sh offload DATA STATE task-old   (by hand)
+  exit 1
+  stdout: {"offloaded": [], "failed": {"task": "task-old", "path": "clone", "reason": "mini-ts did not answer or MINI-DATA is not mounted; no archive written"}, "total_bytes": 0}
+  stderr: warning: task data retained for recovery: mini-ts did not answer or MINI-DATA is not mounted; no archive written
+PASS: [unmounted] by-hand offload refuses
+
+$ bash bin/fm-task-data-lib.sh sweep DATA STATE   (the pass teardown's sweep runs)
+  exit 0
+  call {"action": "ready", "archives_present": [], "host": "mini-ts", "mode": "up", "tool": "ssh"}
+  call {"action": "ready", "archives_present": [], "host": "mini-ts", "mode": "up", "tool": "ssh"}
+PASS: [unmounted] no archive was ever written: only readiness checks ran, each with no archive present
+PASS: [unmounted] the task is retained exactly as it was, nothing in Trash, no leftover
+PASS: [unmounted] the meta and offload locks are released
+MINI-DATA stand-in re-attached; is_mount=True
+
+$ bash bin/fm-task-data-lib.sh sweep DATA STATE   (next pass, mini back)
+  exit 0
+  pointer: {"archive": "tar", "backup": "lab-backup:<scratch>/independent-backup/8fb484158ee4957ae22ae7d744085630817238586a2999b9ca9892c42a526af3", "checksum": "8fb484158ee4957ae22ae7d744085630817238586a2999b9ca9892c42a526af3", "checksum_algorithm": "sha256-canonical-tree-v1", "closed": "2026-10-17", "format": "firstmate-task-evidence-v1", "location": "mini-ts:/Volumes/MINI-DATA/firstmate-task-evidence/10ef23bb3439aba5/task-old/b5d61dc89a35d2c9/8fb484158ee4957ae22ae7d744085630817238586a2999b9ca9892c42a526af3/payload", "original": "<scratch>/labs/fm-lab.mini-unmounted.V2JyZP/data/task-old/clone", "size": 133120}
+PASS: [unmounted] the next pass offloads the clone as an archive once mini-ts is back
+=== unmounted: ALL PASS

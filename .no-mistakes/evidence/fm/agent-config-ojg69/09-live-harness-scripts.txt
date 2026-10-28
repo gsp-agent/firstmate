@@ -1,0 +1,720 @@
+===== scripts/driver.py
+#!/usr/bin/env python3
+"""Drive the task-data offload change live in disposable lab homes.
+
+Usage: driver.py CODE SCR SCENARIO
+Each scenario mints its own marked lab home (bin/fm-lab-home.sh create), runs
+the real product commands, and prints a transcript plus PASS/FAIL lines.
+"""
+from datetime import date, timedelta
+import json
+import os
+from pathlib import Path
+import shutil
+import signal
+import subprocess
+import sys
+import tarfile
+import time
+
+CODE, SCR = Path(sys.argv[1]), Path(sys.argv[2])
+SCENARIO = sys.argv[3]
+LIB = CODE / "bin/fm-task-data-lib.sh"
+failures = []
+
+
+def say(text=""):
+    print(text, flush=True)
+
+
+def check(name, condition, detail=""):
+    say(("PASS: " if condition else "FAIL: ") + name + ("" if condition else f"  [{detail}]"))
+    if not condition:
+        failures.append(name)
+
+
+def mint(name):
+    home = Path(subprocess.run(["mktemp", "-d", str(SCR / "labs" / f"fm-lab.{name}.XXXXXX")],
+                               check=True, capture_output=True, text=True).stdout.strip())
+    subprocess.run(["bash", str(CODE / "bin/fm-lab-home.sh"), "create", str(home)], check=True, capture_output=True)
+    (home / "user").mkdir()
+    (home / "user/.gitconfig").write_text(
+        "[user]\n\tname = Lab\n\temail = lab@example.invalid\n[maintenance]\n\tauto = false\n[gc]\n\tauto = 0\n"
+        "[init]\n\tdefaultBranch = main\n[protocol \"file\"]\n\tallow = always\n")
+    return home
+
+
+def env(home, *, trash=True, prefix=()):
+    e = {k: v for k, v in os.environ.items()
+         if not k.startswith(("GIT_", "FM_", "TASKS_AXI_", "BEADS_", "BR_"))}
+    e.update(HOME=str(home / "user"), FM_HOME=str(home), FM_LIVE_SCR=str(SCR), FM_LIVE_REAL_HOME=os.environ["HOME"],
+             FM_LIVE_LOG=str(SCR / "logs" / (home.name + ".jsonl")), FM_LIVE_HELPER=str(CODE / "bin/fm-task-data.py"),
+             PATH=os.pathsep.join([*map(str, prefix), str(SCR / "dcg-home"), str(SCR / "fakebin"), str(SCR / "shim-bin"),
+                                   os.environ["PATH"]]))
+    if trash:
+        e["FM_TASK_DATA_TRASH"] = str(SCR / "safe/trash")
+    return e
+
+
+def sh(home, *args, cwd=None, check_rc=True, **kw):
+    result = subprocess.run([str(a) for a in args], env=env(home, **kw), cwd=cwd or home,
+                            capture_output=True, text=True, stdin=subprocess.DEVNULL)
+    if check_rc and result.returncode:
+        raise RuntimeError(f"{args} -> {result.returncode}\n{result.stdout}\n{result.stderr}")
+    return result
+
+
+def git(home, *args):
+    return sh(home, "git", *args).stdout.strip()
+
+
+def calls(home):
+    log = SCR / "logs" / (home.name + ".jsonl")
+    return [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
+
+
+def snapshot(path):
+    entries = {}
+    for item in sorted(path.rglob("*")):
+        rel = str(item.relative_to(path))
+        if item.is_symlink():
+            entries[rel] = ("link", os.readlink(item))
+        elif item.is_dir():
+            entries[rel] = ("dir", item.stat().st_mode & 0o7777)
+        else:
+            entries[rel] = ("file", item.stat().st_mode & 0o7777, item.read_bytes())
+    return entries
+
+
+def tree_listing(path, limit=60):
+    rows = []
+    for item in sorted(path.rglob("*")):
+        rel = item.relative_to(path)
+        if ".git" in rel.parts[:-1] or any(p == ".git" for p in rel.parts[:-1]):
+            continue
+        kind = "link" if item.is_symlink() else "dir " if item.is_dir() else "file"
+        rows.append(f"  {kind} {rel}" + ("" if item.is_dir() else f" ({item.lstat().st_size} B)"))
+    return "\n".join(rows[:limit]) + ("\n  ..." if len(rows) > limit else "")
+
+
+def configure(home):
+    config = home / "config/task-data-offload.json"
+    config.write_text(json.dumps({"backup_verifier": [str(SCR / "verifier/backup")]}) + "\n")
+    config.chmod(0o600)
+
+
+def backlog(home, rows):
+    (home / "data/backlog.md").write_text("# Backlog\n\n## In flight\n\n## Queued\n\n## Done\n\n" + "".join(rows))
+
+
+def done_row(task, days):
+    return f"- [x] {task} - lab fixture task (repo: example) (closed {(date.today() - timedelta(days=days)).isoformat()})\n"
+
+
+def commit(home, tree, name, text):
+    (tree / name).write_text(text)
+    git(home, "-C", tree, "add", name)
+    git(home, "-C", tree, "commit", "-q", "-m", text.strip())
+
+
+def clone_fixture(home, task, *, evidence=True):
+    """A clone whose only remote is a no-mistakes-style local bare gate, plus
+    unpushed, uncommitted and untracked work that exists nowhere else."""
+    t = home / "data" / task
+    t.mkdir(parents=True, exist_ok=True)
+    if evidence:
+        (t / "build").mkdir()
+        (t / "build/evidence.bin").write_bytes(b"referenced build evidence\n" * 4096)
+        (t / "report.md").write_text("Evidence: [build](build/).\n")
+    else:
+        (t / "report.md").write_text("Completed.\n")
+    gate = home / f"user/.no-mistakes/repos/{task}-0123abcd.git"
+    git(home, "init", "-q", "--bare", gate)
+    clone = t / "clone"
+    git(home, "init", "-q", clone)
+    commit(home, clone, "work.txt", "pushed work\n")
+    git(home, "-C", clone, "remote", "add", "no-mistakes", gate)
+    git(home, "-C", clone, "push", "-q", "no-mistakes", "main")
+    git(home, "-C", clone, "switch", "-q", "-c", "local-only")
+    commit(home, clone, "unpushed.txt", "commit that exists only in this clone\n")
+    (clone / "work.txt").write_text("uncommitted edit\n")
+    (clone / "untracked.txt").write_text("untracked file\n")
+    return clone
+
+
+def lanes_fixture(home, task):
+    t = home / "data" / task
+    heru, lane = t / "set/laptop/heru", t / "set/lanes/own"
+    git(home, "init", "-q", heru)
+    commit(home, heru, "heru.txt", "fixture set work\n")
+    git(home, "-C", heru, "worktree", "add", "-q", "-b", "lane", lane)
+    commit(home, lane, "lane.txt", "lane commit that exists only here\n")
+    return t / "set"
+
+
+def outside_parent_fixture(home, task):
+    parent = home / "user/agent-config"
+    git(home, "init", "-q", parent)
+    commit(home, parent, "config.txt", "parent work\n")
+    worktree = home / "data" / task / "agent-config-work"
+    git(home, "-C", parent, "worktree", "add", "-q", "-b", "side", worktree)
+    (worktree / "notes.txt").write_text("worktree notes\n")
+    return parent, worktree
+
+
+def lib(home, *args, **kw):
+    return sh(home, "bash", LIB, *args, check_rc=False, **kw)
+
+
+def pointer(path):
+    try:
+        value = json.loads(path.read_text())
+    except (OSError, ValueError, IsADirectoryError):
+        return None
+    return value if isinstance(value, dict) and value.get("format") == "firstmate-task-evidence-v1" else None
+
+
+def payload(p):
+    return Path(str(SCR / "MINI-DATA") + p["location"].removeprefix("mini-ts:/Volumes/MINI-DATA"))
+
+
+def leftovers(home):
+    return sorted(str(p.relative_to(home)) for p in (home / "data").glob("*/.firstmate-offload-*"))
+
+
+def restore(home, task, name):
+    """Restore an archived repository the way --help says: move the pointer
+    aside, then tar -xf the payload in the pointer's parent directory."""
+    t = home / "data" / task
+    p = pointer(t / name)
+    (t / name).rename(t / (name + ".offload-pointer"))
+    local = home / "user" / (name + ".restored.tar")
+    shutil.copy2(payload(p), local)
+    sh(home, "tar", "-xf", local, cwd=t)
+    return t / name
+
+
+def wait_for(predicate, timeout):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if predicate():
+            return True
+        time.sleep(0.25)
+    return predicate()
+
+
+def summarize_calls(home):
+    for c in calls(home):
+        say("  call " + json.dumps(c, sort_keys=True))
+
+
+def max_archives(home):
+    return max((len(c.get("archives_present", [])) for c in calls(home)), default=0)
+
+
+# ---------------------------------------------------------------- scenarios
+
+def teardown_sweep():
+    """A real teardown of task-x1 starts the detached sweep; its offload pass
+    offloads task-old (closed 10 days) and leaves recent and open tasks."""
+    home = mint("teardown")
+    configure(home)
+    say(f"lab home: {home.name} (marked by bin/fm-lab-home.sh create)")
+    # task-x1: a local-only ship task whose work is on a fork remote (teardown allows it).
+    origin, fork = home / "user/origin.git", home / "user/fork.git"
+    project, wt = home / "projects/project", home / "projects/task-x1-wt"
+    git(home, "init", "-q", "--bare", origin)
+    seed = home / "user/seed"
+    git(home, "clone", "-q", origin, seed)
+    git(home, "-C", seed, "commit", "-q", "--allow-empty", "-m", "origin baseline")
+    git(home, "-C", seed, "push", "-q", "origin", "main")
+    shutil.rmtree(seed)
+    git(home, "clone", "-q", origin, project)
+    git(home, "-C", project, "remote", "set-head", "origin", "main")
+    git(home, "-C", project, "worktree", "add", "-q", "-b", "fm/task-x1", wt, "main")
+    git(home, "-C", wt, "commit", "-q", "--allow-empty", "-m", "fix the thing")
+    git(home, "init", "-q", "--bare", fork)
+    git(home, "-C", project, "remote", "add", "fork", fork)
+    git(home, "-C", wt, "push", "-q", "fork", "fm/task-x1")
+    git(home, "-C", project, "fetch", "-q", "fork")
+    (home / "state/task-x1.meta").write_text("\n".join([
+        "window=firstmate:fm-task-x1", "endpoint_task_id=task-x1", f"worktree={wt}", f"project={project}",
+        "kind=ship", "mode=local-only", "spawn_gen=lab-task-x1"]) + "\n")
+    (home / "state/.last-watcher-beat").touch()
+    # Backlog: task-x1 in flight through the real tasks-axi, plus closed and open rows.
+    backlog(home, [])
+    bl = home / "data/backlog.md"
+    sh(home, "tasks-axi", "add", "task-x1", "lab teardown task", "--kind", "ship", "--file", bl)
+    sh(home, "tasks-axi", "start", "task-x1", "--file", bl)
+    sh(home, "tasks-axi", "add", "task-open", "lab open task", "--kind", "ship", "--file", bl)
+    with bl.open("a") as stream:
+        stream.write(done_row("task-old", 10) + done_row("task-recent", 3))
+    # task-old: referenced evidence, a clone, a repository with a lane, a worktree of an outside repo.
+    clone = clone_fixture(home, "task-old")
+    unit = lanes_fixture(home, "task-old")
+    parent, outside = outside_parent_fixture(home, "task-old")
+    recent = clone_fixture(home, "task-recent").parent
+    opened = clone_fixture(home, "task-open").parent
+    before = {"clone": snapshot(clone), "set": snapshot(unit), "outside": snapshot(outside), "parent": snapshot(parent),
+              "recent": snapshot(recent), "open": snapshot(opened), "build": snapshot(home / "data/task-old/build")}
+    say("\n$ cat data/backlog.md\n" + bl.read_text())
+    say("$ find data/task-old (before)\n" + tree_listing(home / "data/task-old"))
+
+    plan = lib(home, "offload-plan", home / "data", home / "state")
+    say("\n$ bash bin/fm-task-data-lib.sh offload-plan DATA STATE   (read-only)\n" + json.dumps(json.loads(plan.stdout), indent=1))
+    parsed = json.loads(plan.stdout)
+    moves = sorted((m["task"], m["path"], bool(m.get("repository"))) for m in parsed["moves"])
+    check("offload-plan names task-old's evidence and both repository units, nothing else",
+          moves == [("task-old", "build", False), ("task-old", "clone", True), ("task-old", "set", True)], moves)
+    kept = {(r["task"], r.get("path")): r["reason"] for r in parsed["retained"]}
+    check("offload-plan keeps the worktree of a repository outside data/ under a named reason",
+          kept.get(("task-old", "agent-config-work")) == "linked worktree of a repository outside data/", kept)
+    check("offload-plan wrote nothing and contacted nothing", calls(home) == [] and snapshot(clone) == before["clone"])
+
+    say("\n$ FM_HOME=<lab> bin/fm-teardown.sh task-x1")
+    result = sh(home, CODE / "bin/fm-teardown.sh", "task-x1", check_rc=False)
+    say(f"  exit {result.returncode}\n  stdout:\n" + "\n".join("    " + l for l in result.stdout.splitlines()))
+    say("  stderr:\n" + "\n".join("    " + l for l in result.stderr.splitlines()[-25:]))
+    check("real teardown of task-x1 completes", result.returncode == 0 and "teardown task-x1 complete" in result.stdout,
+          result.returncode)
+    t0 = time.monotonic()
+    done = wait_for(lambda: pointer(home / "data/task-old/set") is not None
+                    and not (home / "state/.task-data-sweep.lock").exists()
+                    and not (home / "state/.task-data-offload.lock").exists(), 240)
+    say(f"\n(the detached sweep's offload pass finished {time.monotonic() - t0:.1f}s after teardown returned: {done})")
+    check("the detached sweep teardown started ends with an offload pass that finishes", done)
+    say("$ tail data/backlog.md\n" + "".join(bl.read_text().splitlines(True)[-6:]))
+
+    t = home / "data/task-old"
+    say("$ find data/task-old (after)\n" + tree_listing(t))
+    pointers = {name: pointer(t / name) for name in ("build", "clone", "set")}
+    for name, p in pointers.items():
+        say(f"\n$ cat data/task-old/{name}\n" + json.dumps(p, indent=1, sort_keys=True))
+    check("build, clone and set are each replaced by a pointer at the exact original path",
+          all(pointers.values()), {k: bool(v) for k, v in pointers.items()})
+    check("the repository pointers name a tar archive; the evidence pointer does not",
+          pointers["clone"] and pointers["clone"].get("archive") == "tar" and pointers["set"].get("archive") == "tar"
+          and "archive" not in pointers["build"])
+    check("each payload is on the (stand-in) MINI-DATA volume and an independent backup copy exists",
+          all(payload(p).exists() for p in pointers.values())
+          and all(Path(p["backup"].removeprefix("lab-backup:")).exists() for p in pointers.values()))
+    check("report.md stays in the task folder", (t / "report.md").read_text() == "Evidence: [build](build/).\n")
+    record = json.loads((t / "record/data-offload.json").read_text())
+    check("record/data-offload.json journals all three moves", sorted(record["entries"]) == ["build", "clone", "set"])
+    trash = home / "Trash"
+    check("originals went to Trash, byte-exact",
+          snapshot(trash / "clone") == before["clone"] and snapshot(trash / "set") == before["set"]
+          and snapshot(trash / "build") == before["build"])
+    check("the outside-parent worktree and its parent repository are untouched",
+          snapshot(outside) == before["outside"] and snapshot(parent) == before["parent"])
+    check("task-recent (closed 3 days) and task-open are untouched",
+          snapshot(recent) == before["recent"] and snapshot(opened) == before["open"])
+    check("no local archive copy is left in any task folder", leftovers(home) == [], leftovers(home))
+    log = calls(home)
+    say("\ncalls the offload pass made (ssh = mini-ts stand-in, archives_present = local archive files at that moment):")
+    summarize_calls(home)
+    readies = [c for c in log if c["tool"] == "ssh" and c["action"] == "ready"]
+    check("a readiness check of mini-ts ran before each repository archive, with no archive on disk yet",
+          len(readies) == 2 and all(c["archives_present"] == [] for c in readies), readies)
+    check("at most one archive existed at any moment", max_archives(home) <= 1, max_archives(home))
+    trashes = [c for c in log if c["tool"] == "trash"]
+    check("Trash ran with -s and an empty stdin; no trash from PATH ran",
+          len(trashes) == 3 and all(c["argv"][1:] == ["-s"] and c["stdin"] == "" for c in trashes)
+          and not any(c["tool"] == "PATH-trash" for c in log))
+
+    # Restore both archives the documented way and prove nothing unique was lost.
+    restored = restore(home, "task-old", "clone")
+    check("clone restores byte-exact from its MINI-DATA archive with tar -xf", snapshot(restored) == before["clone"])
+    fsck = sh(home, "git", "-C", restored, "fsck", "--full", check_rc=False)
+    status = git(home, "-C", restored, "status", "--short", "--branch")
+    unpushed = git(home, "-C", restored, "log", "-1", "--format=%s", "local-only")
+    say("\n$ git -C clone fsck --full; git status --short --branch; git log -1 local-only\n"
+        f"  fsck exit {fsck.returncode}\n" + "\n".join("  " + l for l in status.splitlines()) + f"\n  {unpushed}")
+    check("restored clone passes git fsck and keeps its unpushed commit, uncommitted edit and untracked file",
+          fsck.returncode == 0 and unpushed == "commit that exists only in this clone"
+          and " M work.txt" in status and "?? untracked.txt" in status, status)
+    restored = restore(home, "task-old", "set")
+    check("set (repository + lane) restores byte-exact", snapshot(restored) == before["set"])
+    worktrees = git(home, "-C", restored / "laptop/heru", "worktree", "list")
+    lane = git(home, "-C", restored / "lanes/own", "log", "-1", "--format=%s")
+    say("\n$ git -C set/laptop/heru worktree list; git -C set/lanes/own log -1\n"
+        + "\n".join("  " + l.replace(str(home), "<lab>") for l in worktrees.splitlines()) + f"\n  {lane}")
+    check("restored lane is still a working linked worktree with its lane-only commit",
+          str(restored / "lanes/own") in worktrees and lane == "lane commit that exists only here")
+
+
+def unconfigured_sweep():
+    home = mint("unconfigured")
+    say(f"lab home: {home.name} (no config/task-data-offload.json)")
+    backlog(home, [done_row("task-old", 10)])
+    clone = clone_fixture(home, "task-old")
+    before = snapshot(home / "data/task-old")
+    say("\n$ bash bin/fm-task-data-lib.sh sweep DATA STATE")
+    result = lib(home, "sweep", home / "data", home / "state")
+    say(f"  exit {result.returncode}\n  stdout: {result.stdout.strip()!r}\n  stderr: {result.stderr.strip()!r}")
+    check("the sweep succeeds", result.returncode == 0)
+    check("nothing in the closed task changed", snapshot(home / "data/task-old") == before)
+    check("no remote, verifier or Trash call was made", calls(home) == [], calls(home))
+    check("no offload lock or archive was left", not (home / "state/.task-data-offload.lock").exists()
+          and leftovers(home) == [])
+
+
+def mini_down(kind):
+    """kind: 'unreachable' (real ssh refused) or 'unmounted' (the volume is detached)."""
+    home = mint("mini-" + kind)
+    configure(home)
+    backlog(home, [done_row("task-old", 10)])
+    clone = clone_fixture(home, "task-old", evidence=False)
+    before = snapshot(home / "data/task-old")
+    mount = SCR / "MINI-DATA"
+    if kind == "unreachable":
+        (SCR / "mini-mode").write_text("unreachable\n")
+    else:
+        subprocess.run(["hdiutil", "detach", "-quiet", str(mount)], check=True)
+        say(f"MINI-DATA stand-in detached; is_mount={mount.is_mount()}")
+    try:
+        say("\n$ bash bin/fm-task-data-lib.sh offload DATA STATE task-old   (by hand)")
+        result = lib(home, "offload", home / "data", home / "state", "task-old")
+        say(f"  exit {result.returncode}\n  stdout: {result.stdout.strip()}\n  stderr: {result.stderr.strip()}")
+        check(f"[{kind}] by-hand offload refuses", result.returncode != 0
+              and "mini-ts did not answer or MINI-DATA is not mounted; no archive written" in result.stdout)
+        say("\n$ bash bin/fm-task-data-lib.sh sweep DATA STATE   (the pass teardown's sweep runs)")
+        sweep = lib(home, "sweep", home / "data", home / "state")
+        say(f"  exit {sweep.returncode}")
+        summarize_calls(home)
+        log = calls(home)
+        check(f"[{kind}] no archive was ever written: only readiness checks ran, each with no archive present",
+              log and all(c["tool"] == "ssh" and c["action"] == "ready" and c["archives_present"] == [] for c in log), log)
+        check(f"[{kind}] the task is retained exactly as it was, nothing in Trash, no leftover",
+              snapshot(home / "data/task-old") == before and not (home / "Trash").exists() and leftovers(home) == [])
+        check(f"[{kind}] the meta and offload locks are released",
+              not (home / "state/.meta-task-old.lock").exists() and not (home / "state/.task-data-offload.lock").exists())
+    finally:
+        if kind == "unreachable":
+            (SCR / "mini-mode").write_text("up\n")
+        else:
+            subprocess.run(["hdiutil", "attach", "-quiet", "-nobrowse", "-noautoopen", "-owners", "on",
+                            "-mountpoint", str(mount), str(SCR / "mini.sparseimage")], check=True)
+            say(f"MINI-DATA stand-in re-attached; is_mount={mount.is_mount()}")
+    say("\n$ bash bin/fm-task-data-lib.sh sweep DATA STATE   (next pass, mini back)")
+    sweep = lib(home, "sweep", home / "data", home / "state")
+    p = pointer(home / "data/task-old/clone")
+    say(f"  exit {sweep.returncode}\n  pointer: {json.dumps(p, sort_keys=True)}")
+    check(f"[{kind}] the next pass offloads the clone as an archive once mini-ts is back",
+          sweep.returncode == 0 and p is not None and p.get("archive") == "tar" and leftovers(home) == [])
+
+
+def interrupted():
+    home = mint("interrupted")
+    configure(home)
+    backlog(home, [done_row("task-old", 10)])
+    clone = clone_fixture(home, "task-old", evidence=False)
+    before = snapshot(clone)
+    (SCR / "verifier-mode").write_text("hang\n")
+    (SCR / "backup-started").unlink(missing_ok=True)
+    say("$ bash bin/fm-task-data-lib.sh offload DATA STATE task-old   (verifier hangs; TERM sent to the group)")
+    process = subprocess.Popen(["bash", str(LIB), "offload", str(home / "data"), str(home / "state"), "task-old"],
+                               env=env(home), cwd=home, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try:
+        reached = wait_for(lambda: (SCR / "backup-started").exists() or process.poll() is not None, 120)
+        lock = home / "state/.meta-task-old.lock"
+        held = lock.exists()
+        say(f"  verifier reached: {reached}; meta lock held mid-offload: {held}; leftover archive mid-offload: {leftovers(home)}")
+        os.killpg(process.pid, signal.SIGTERM)
+        out, err = process.communicate(timeout=60)
+    finally:
+        if process.poll() is None:
+            os.killpg(process.pid, signal.SIGKILL)
+            process.wait()
+        (SCR / "verifier-mode").write_text("ok\n")
+    say(f"  exit {process.returncode}\n  stderr: {err.strip()!r}")
+    check("TERM stops the offload", process.returncode != 0 and reached and held)
+    check("the task meta lock is released after TERM", not lock.exists() and not lock.is_symlink())
+    check("the repository is untouched after the interrupted round", snapshot(clone) == before
+          and not (home / "Trash").exists())
+    say(f"  leftover archive after TERM: {leftovers(home)}")
+    say("\n$ bash bin/fm-task-data-lib.sh offload DATA STATE task-old   (next round)")
+    result = lib(home, "offload", home / "data", home / "state", "task-old")
+    say(f"  exit {result.returncode}\n  stdout: {result.stdout.strip()}")
+    check("the next offload of that task runs, removes the leftover and offloads the clone",
+          result.returncode == 0 and pointer(clone) and pointer(clone).get("archive") == "tar" and leftovers(home) == [])
+
+
+def refused():
+    home = mint("refused")
+    configure(home)
+    backlog(home, [done_row("task-old", 10)])
+    clone = clone_fixture(home, "task-old", evidence=False)
+    before = snapshot(clone)
+    (SCR / "verifier-mode").write_text("refuse\n")
+    try:
+        say("$ bash bin/fm-task-data-lib.sh offload DATA STATE task-old   (verifier refuses)")
+        result = lib(home, "offload", home / "data", home / "state", "task-old")
+        say(f"  exit {result.returncode}\n  stdout: {result.stdout.strip()}")
+    finally:
+        (SCR / "verifier-mode").write_text("ok\n")
+    summarize_calls(home)
+    check("a refused backup keeps the repository byte-exact, nothing in Trash, no archive left",
+          result.returncode != 0 and snapshot(clone) == before and not (home / "Trash").exists() and leftovers(home) == [])
+    result = lib(home, "offload", home / "data", home / "state", "task-old")
+    check("the next offload, with the verifier accepting, offloads it", result.returncode == 0 and pointer(clone))
+
+
+def production_trash():
+    """FM_TASK_DATA_TRASH unset: the guard is asked for /usr/bin/trash by
+    absolute path. A dcg wrapper logs and denies only that command, so the
+    operator's real Trash is never touched."""
+    home = mint("prod-trash")
+    configure(home)
+    backlog(home, [done_row("task-old", 10)])
+    t = home / "data/task-old"
+    (t / "build").mkdir(parents=True)
+    (t / "build/evidence.bin").write_bytes(b"evidence\n" * 1000)
+    (t / "report.md").write_text("Evidence: [build](build/).\n")
+    wrap = home / "user/dcg-wrap"
+    wrap.mkdir()
+    real = str(SCR / "dcg-home/dcg")
+    (wrap / "dcg").write_text(f'''#!/usr/bin/env python3
+import json, os, subprocess, sys
+payload = sys.stdin.read()
+command = json.loads(payload)["tool_input"]["command"]
+with open(os.environ["FM_LIVE_LOG"], "a") as stream:
+    stream.write(json.dumps({{"tool": "dcg-asked", "command": command.replace(os.environ["FM_HOME"], "<lab>")}}) + "\\n")
+if command.startswith("/usr/bin/trash "):
+    print(json.dumps({{"hookSpecificOutput": {{"permissionDecision": "deny"}}}}))
+    sys.exit(0)
+sys.exit(subprocess.run([{real!r}], input=payload, text=True).returncode)
+''')
+    (wrap / "dcg").chmod(0o755)
+    before = snapshot(t / "build")
+    result = lib(home, "offload", home / "data", home / "state", "task-old", trash=False, prefix=(wrap,))
+    say(f"$ bash bin/fm-task-data-lib.sh offload ...   (FM_TASK_DATA_TRASH unset)\n  exit {result.returncode}\n  stdout: {result.stdout.strip()}")
+    summarize_calls(home)
+    asked = [c["command"] for c in calls(home) if c["tool"] == "dcg-asked"]
+    check("the guard is asked for macOS's /usr/bin/trash -s by absolute path",
+          any(a.startswith("/usr/bin/trash -s ") for a in asked), asked)
+    check("the trash found earlier on PATH never ran", not any(c["tool"] == "PATH-trash" for c in calls(home)))
+    check("with Trash denied, the evidence stays byte-exact", snapshot(t / "build") == before and result.returncode != 0)
+
+
+SCENARIOS = {"teardown": teardown_sweep, "unconfigured": unconfigured_sweep,
+             "unreachable": lambda: mini_down("unreachable"), "unmounted": lambda: mini_down("unmounted"),
+             "interrupted": interrupted, "refused": refused, "prod-trash": production_trash}
+say(f"=== scenario: {SCENARIO}  (code: firstmate worktree at HEAD {subprocess.run(['git', '-C', str(CODE), 'rev-parse', '--short', 'HEAD'], capture_output=True, text=True).stdout.strip()})")
+try:
+    SCENARIOS[SCENARIO]()
+except Exception as error:  # report, do not hide
+    import traceback
+    traceback.print_exc(file=sys.stdout)
+    failures.append(f"exception: {error}")
+say(f"=== {SCENARIO}: {'ALL PASS' if not failures else 'FAILURES: ' + '; '.join(failures)}")
+sys.exit(1 if failures else 0)
+
+===== scripts/ready_probe.py
+#!/usr/bin/env python3
+"""Call the product's own offload_remote("ready") in each mini state and show
+what answered: mounted, real ssh refused, and volume detached."""
+import os
+from pathlib import Path
+import runpy
+import subprocess
+import sys
+
+code, scr = Path(sys.argv[1]), Path(sys.argv[2])
+os.environ.update(FM_LIVE_SCR=str(scr), FM_LIVE_LOG=str(scr / "logs/ready-probe.jsonl"), FM_HOME=str(scr / "labs"),
+                  PATH=os.pathsep.join([str(scr / "shim-bin"), os.environ["PATH"]]))
+helper = runpy.run_path(str(code / "bin/fm-task-data.py"))
+mount = scr / "MINI-DATA"
+
+
+def probe(label):
+    try:
+        print(f"{label}: answered {helper['offload_remote']('ready', helper['OFFLOAD_ROOT'])}")
+    except subprocess.CalledProcessError as error:
+        last = (error.stderr or "").strip().splitlines()[-1:] or ["(no stderr)"]
+        print(f"{label}: ssh exit {error.returncode}; last stderr line: {last[0]}")
+
+
+(scr / "mini-mode").write_text("up\n")
+probe(f"mounted (is_mount={mount.is_mount()})")
+(scr / "mini-mode").write_text("unreachable\n")
+probe("unreachable (real /usr/bin/ssh to a closed port)")
+(scr / "mini-mode").write_text("up\n")
+subprocess.run(["hdiutil", "detach", "-quiet", str(mount)], check=True)
+try:
+    probe(f"volume detached (is_mount={mount.is_mount()})")
+finally:
+    subprocess.run(["hdiutil", "attach", "-quiet", "-nobrowse", "-noautoopen", "-owners", "on",
+                    "-mountpoint", str(mount), str(scr / "mini.sparseimage")], check=True)
+probe(f"re-attached (is_mount={mount.is_mount()})")
+
+===== shim-bin/ssh
+#!/usr/bin/env python3
+# Local stand-in for `ssh mini-ts`: runs the exact remote command offload sends,
+# with /Volumes/MINI-DATA redirected to a disposable mounted disk image.
+# FM_LIVE_SCR/mini-mode = "unreachable" makes a real ssh fail to connect.
+import glob, json, os, shlex, subprocess, sys
+
+scr = os.environ["FM_LIVE_SCR"]
+mount = os.path.join(scr, "MINI-DATA")
+home = os.environ.get("FM_HOME", "")
+log = os.environ["FM_LIVE_LOG"]
+args = sys.argv[1:]
+i = 0
+while i < len(args) and args[i].startswith("-"):
+    i += 2 if args[i] in ("-o", "-p", "-F", "-i", "-l") else 1
+host, rest = args[i], args[i + 1:]
+stdin = sys.stdin.read()
+try:
+    action = json.loads(stdin).get("action")
+except ValueError:
+    action = "?"
+archives = sorted(os.path.relpath(p, home) for p in glob.glob(os.path.join(home, "data/*/.firstmate-offload-*")))
+mode = open(os.path.join(scr, "mini-mode")).read().strip() if os.path.exists(os.path.join(scr, "mini-mode")) else "up"
+with open(log, "a") as stream:
+    stream.write(json.dumps({"tool": "ssh", "host": host, "action": action, "mode": mode, "archives_present": archives}) + "\n")
+if host != "mini-ts":
+    sys.exit(255)
+if mode == "unreachable":
+    # A real ssh to a closed local port: connection refused, exit 255.
+    result = subprocess.run(["/usr/bin/ssh", "-F", "/dev/null", "-o", "BatchMode=yes", "-o", "ConnectTimeout=3",
+                             "-p", "9", "127.0.0.1", "true"], stdin=subprocess.DEVNULL)
+    sys.exit(result.returncode)
+command = [part.replace("/Volumes/MINI-DATA", mount) for part in shlex.split(" ".join(rest))]
+result = subprocess.run(command, input=stdin.replace("/Volumes/MINI-DATA", mount), capture_output=True, text=True)
+sys.stdout.write(result.stdout.replace(mount, "/Volumes/MINI-DATA"))
+sys.stderr.write(result.stderr.replace(mount, "/Volumes/MINI-DATA"))
+sys.exit(result.returncode)
+
+===== shim-bin/rsync
+#!/usr/bin/env python3
+# Local stand-in for `rsync ... mini-ts:<dest>`: the real rsync copies into the
+# disposable mounted image that stands in for /Volumes/MINI-DATA.
+import glob, json, os, shutil, sys
+
+scr = os.environ["FM_LIVE_SCR"]
+mount = os.path.join(scr, "MINI-DATA")
+home = os.environ.get("FM_HOME", "")
+args = sys.argv[1:]
+source, target = args[-2], args[-1]
+mode = open(os.path.join(scr, "mini-mode")).read().strip() if os.path.exists(os.path.join(scr, "mini-mode")) else "up"
+archives = sorted(os.path.relpath(p, home) for p in glob.glob(os.path.join(home, "data/*/.firstmate-offload-*")))
+with open(os.environ["FM_LIVE_LOG"], "a") as stream:
+    stream.write(json.dumps({"tool": "rsync", "source": os.path.relpath(source, home), "target": target,
+                             "archives_present": archives}) + "\n")
+if mode == "unreachable" or not target.startswith("mini-ts:/Volumes/MINI-DATA/"):
+    sys.exit(255)
+local = mount + target.removeprefix("mini-ts:/Volumes/MINI-DATA")
+here = os.path.dirname(os.path.abspath(__file__))
+path = os.pathsep.join(p for p in os.environ["PATH"].split(os.pathsep) if os.path.abspath(p) != here)
+real = shutil.which("rsync", path=path)
+os.execv(real, [real, *args[:-1], local])
+
+===== shim-bin/trash
+#!/usr/bin/env python3
+# A `trash` earlier on PATH, standing in for Homebrew's (whose -s securely
+# empties the Trash). Offload must never run it.
+import json, os, sys
+with open(os.environ["FM_LIVE_LOG"], "a") as stream:
+    stream.write(json.dumps({"tool": "PATH-trash", "argv": sys.argv[1:]}) + "\n")
+sys.exit(1)
+
+===== safe/trash
+#!/usr/bin/env python3
+# Stand-in for macOS /usr/bin/trash -s: moves the target into the lab home's
+# own Trash folder instead of the operator's ~/.Trash.
+import json, os, sys
+from pathlib import Path
+
+home = Path(os.environ["FM_HOME"])
+source = Path(sys.argv[-1])
+with open(os.environ["FM_LIVE_LOG"], "a") as stream:
+    stream.write(json.dumps({"tool": "trash", "argv": [Path(sys.argv[0]).name, *sys.argv[1:-1]],
+                             "path": os.path.relpath(source, home), "stdin": sys.stdin.read()}) + "\n")
+trash = home / "Trash"
+trash.mkdir(exist_ok=True)
+target, n = trash / source.name, 1
+while target.exists() or target.is_symlink():
+    n += 1
+    target = trash / f"{source.name} {n}"
+source.rename(target)
+
+===== verifier/backup
+#!/usr/bin/env python3
+# Disposable independent-backup verifier: copies the MINI-DATA payload to a
+# second disposable folder and reports its canonical manifest.
+# FM_LIVE_SCR/verifier-mode: "refuse" exits 7; "hang" marks backup-started and sleeps.
+import glob, json, os, runpy, shutil, sys, time
+from pathlib import Path
+
+scr = Path(os.environ["FM_LIVE_SCR"])
+home = os.environ.get("FM_HOME", "")
+pointer = json.load(sys.stdin)
+mode = (scr / "verifier-mode").read_text().strip() if (scr / "verifier-mode").exists() else "ok"
+archives = sorted(os.path.relpath(p, home) for p in glob.glob(os.path.join(home, "data/*/.firstmate-offload-*")))
+with open(os.environ["FM_LIVE_LOG"], "a") as stream:
+    stream.write(json.dumps({"tool": "verifier", "original": os.path.relpath(pointer["original"], home),
+                             "archive": pointer.get("archive"), "mode": mode, "archives_present": archives}) + "\n")
+if mode == "refuse":
+    sys.exit(7)
+if mode == "hang":
+    (scr / "backup-started").write_text("started\n")
+    time.sleep(600)
+source = Path(str(scr / "MINI-DATA") + pointer["location"].removeprefix("mini-ts:/Volumes/MINI-DATA"))
+target = scr / "independent-backup" / pointer["checksum"]
+if not target.exists():
+    target.parent.mkdir(exist_ok=True)
+    if source.is_dir():
+        shutil.copytree(source, target, symlinks=True, copy_function=shutil.copy2)
+    else:
+        shutil.copy2(source, target)
+manifest = runpy.run_path(os.environ["FM_LIVE_HELPER"])["offload_manifest"](target)
+manifest.update(independent=True, location="lab-backup:" + str(target))
+print(json.dumps(manifest))
+
+===== dcg-home/dcg
+#!/usr/bin/env bash
+# Real dcg, judged under the operator's own dcg configuration (read-only); the
+# product under test keeps its isolated lab HOME.
+HOME="$FM_LIVE_REAL_HOME" exec "/Users/dalecarman/.local/bin/dcg" "$@"
+
+===== fakebin/ps
+#!/usr/bin/env bash
+# The account-wide orphan scan sees only processes under the lab home.
+if [ "$#" -eq 4 ] && [ "$1" = -u ] && [ "$3" = -o ] && [ "$4" = pid=,command= ]; then
+  /bin/ps "$@" | awk -v root="$FM_HOME/" 'index($0, root) > 0'
+else
+  exec /bin/ps "$@"
+fi
+
+===== fakebin/tmux
+#!/usr/bin/env bash
+# Never reach the operator's tmux server from the lab.
+exit 0
+
+===== fakebin/treehouse
+#!/usr/bin/env bash
+# `treehouse return --force <wt>`: succeed silently (keeps the real pool untouched).
+exit 0
+
+===== fakebin/no-mistakes
+#!/usr/bin/env bash
+# No active pipeline run for the lab task; never reach the real daemon.
+exit 0
+
+===== fakebin/gh
+#!/usr/bin/env bash
+case "${1:-} ${2:-}" in
+  "pr view") echo "error: pull request not found" >&2 ; exit 1 ;;
+esac
+exit 0
+
+===== fakebin/gh-axi
+#!/usr/bin/env bash
+case "${1:-} ${2:-}" in
+  "pr list") printf '%s\n' "count: 0 (showing first 0)" "pull_requests[]: []" ; exit 0 ;;
+  "pr view") echo "error: pull request not found" >&2 ; exit 1 ;;
+esac
+exit 0
+

@@ -1,0 +1,12 @@
+=== scenario: unconfigured  (code: firstmate worktree at HEAD 26adac8a)
+lab home: fm-lab.unconfigured.unYsNM (no config/task-data-offload.json)
+
+$ bash bin/fm-task-data-lib.sh sweep DATA STATE
+  exit 0
+  stdout: ''
+  stderr: ''
+PASS: the sweep succeeds
+PASS: nothing in the closed task changed
+PASS: no remote, verifier or Trash call was made
+PASS: no offload lock or archive was left
+=== unconfigured: ALL PASS

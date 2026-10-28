@@ -1,0 +1,12 @@
+=== scenario: refused  (code: firstmate worktree at HEAD 26adac8a)
+$ bash bin/fm-task-data-lib.sh offload DATA STATE task-old   (verifier refuses)
+  exit 1
+  stdout: {"offloaded": [], "failed": {"task": "task-old", "path": "clone", "reason": "Command '['<scratch>/verifier/backup']' returned non-zero exit status 7."}, "total_bytes": 0}
+  call {"action": "ready", "archives_present": [], "host": "mini-ts", "mode": "up", "tool": "ssh"}
+  call {"action": "prepare", "archives_present": ["data/task-old/.firstmate-offload-52qtgonc.tar"], "host": "mini-ts", "mode": "up", "tool": "ssh"}
+  call {"archives_present": ["data/task-old/.firstmate-offload-52qtgonc.tar"], "source": "data/task-old/.firstmate-offload-52qtgonc.tar", "target": "mini-ts:/Volumes/MINI-DATA/firstmate-task-evidence/0252b60a37a3e01c/task-old/b5d61dc89a35d2c9/d64d551335f3a696ae53bfa11d84c4d0b43fb813e948aa1b6bd737accbe11aa3/payload", "tool": "rsync"}
+  call {"action": "verify", "archives_present": ["data/task-old/.firstmate-offload-52qtgonc.tar"], "host": "mini-ts", "mode": "up", "tool": "ssh"}
+  call {"archive": "tar", "archives_present": ["data/task-old/.firstmate-offload-52qtgonc.tar"], "mode": "refuse", "original": "data/task-old/clone", "tool": "verifier"}
+PASS: a refused backup keeps the repository byte-exact, nothing in Trash, no archive left
+PASS: the next offload, with the verifier accepting, offloads it
+=== refused: ALL PASS

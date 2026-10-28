@@ -1,0 +1,13 @@
+=== scenario: prod-trash  (code: firstmate worktree at HEAD 26adac8a)
+$ bash bin/fm-task-data-lib.sh offload ...   (FM_TASK_DATA_TRASH unset)
+  exit 1
+  stdout: {"offloaded": [], "failed": {"task": "task-old", "path": "build", "reason": "dcg refused cleanup: {\"hookSpecificOutput\": {\"permissionDecision\": \"deny\"}}"}, "total_bytes": 0}
+  call {"action": "prepare", "archives_present": [], "host": "mini-ts", "mode": "up", "tool": "ssh"}
+  call {"archives_present": [], "source": "data/task-old/build", "target": "mini-ts:/Volumes/MINI-DATA/firstmate-task-evidence/7cd2b8ccebdfa556/task-old/44575cf5b28512d7/24aa7fd91f34e82a4f4b0050dcfe8c51c4e658affd1f6a27dc6fd53cde9dc042/payload", "tool": "rsync"}
+  call {"action": "verify", "archives_present": [], "host": "mini-ts", "mode": "up", "tool": "ssh"}
+  call {"archive": null, "archives_present": [], "mode": "ok", "original": "data/task-old/build", "tool": "verifier"}
+  call {"command": "/usr/bin/trash -s <lab>/data/task-old/build", "tool": "dcg-asked"}
+PASS: the guard is asked for macOS's /usr/bin/trash -s by absolute path
+PASS: the trash found earlier on PATH never ran
+PASS: with Trash denied, the evidence stays byte-exact
+=== prod-trash: ALL PASS

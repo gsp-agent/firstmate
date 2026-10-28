@@ -1,0 +1,27 @@
+Degraded path observed in a lab home whose HOME made dcg load its default config (200 ms evaluation budget).
+dcg denied 'rm -f -- <task>/.firstmate-offload-*.tar' with rule core.limits:evaluation-timeout; offload suppressed the refusal (by design) and kept going.
+
+Calls the offload pass made (archives_present = local archive files in task folders at that moment):
+{"tool": "ssh", "host": "mini-ts", "action": "prepare", "mode": "up", "archives_present": []}
+{"tool": "rsync", "source": "data/task-old/build", "target": "mini-ts:/Volumes/MINI-DATA/firstmate-task-evidence/528b7025ce472c15/task-old/44575cf5b28512d7/21446124e15dcfc4b2a7511c7038f77bc6f98b3bc60ee95f0c5e5b8d53889dd8/payload", "archives_present": []}
+{"tool": "ssh", "host": "mini-ts", "action": "verify", "mode": "up", "archives_present": []}
+{"tool": "verifier", "original": "data/task-old/build", "archive": null, "mode": "ok", "archives_present": []}
+{"tool": "trash", "argv": ["trash", "-s"], "path": "data/task-old/build", "stdin": ""}
+{"tool": "ssh", "host": "mini-ts", "action": "ready", "mode": "up", "archives_present": []}
+{"tool": "ssh", "host": "mini-ts", "action": "prepare", "mode": "up", "archives_present": ["data/task-old/.firstmate-offload-no_ubhq9.tar"]}
+{"tool": "rsync", "source": "data/task-old/.firstmate-offload-no_ubhq9.tar", "target": "mini-ts:/Volumes/MINI-DATA/firstmate-task-evidence/528b7025ce472c15/task-old/b5d61dc89a35d2c9/0e8bf37861a2fb06b9d7374a305c397a4f21e8765580660a6c9c142af02eb967/payload", "archives_present": ["data/task-old/.firstmate-offload-no_ubhq9.tar"]}
+{"tool": "ssh", "host": "mini-ts", "action": "verify", "mode": "up", "archives_present": ["data/task-old/.firstmate-offload-no_ubhq9.tar"]}
+{"tool": "verifier", "original": "data/task-old/clone", "archive": "tar", "mode": "ok", "archives_present": ["data/task-old/.firstmate-offload-no_ubhq9.tar"]}
+{"tool": "trash", "argv": ["trash", "-s"], "path": "data/task-old/clone", "stdin": ""}
+{"tool": "ssh", "host": "mini-ts", "action": "ready", "mode": "up", "archives_present": ["data/task-old/.firstmate-offload-no_ubhq9.tar"]}
+{"tool": "ssh", "host": "mini-ts", "action": "prepare", "mode": "up", "archives_present": ["data/task-old/.firstmate-offload-no_ubhq9.tar", "data/task-old/.firstmate-offload-nv601g_v.tar"]}
+{"tool": "rsync", "source": "data/task-old/.firstmate-offload-nv601g_v.tar", "target": "mini-ts:/Volumes/MINI-DATA/firstmate-task-evidence/528b7025ce472c15/task-old/6ee0eb490ff83210/e8372351eb1606e3afb314750520cca76eced00d4ef185c4970ae792e7a5b04a/payload", "archives_present": ["data/task-old/.firstmate-offload-no_ubhq9.tar", "data/task-old/.firstmate-offload-nv601g_v.tar"]}
+{"tool": "ssh", "host": "mini-ts", "action": "verify", "mode": "up", "archives_present": ["data/task-old/.firstmate-offload-no_ubhq9.tar", "data/task-old/.firstmate-offload-nv601g_v.tar"]}
+{"tool": "verifier", "original": "data/task-old/set", "archive": "tar", "mode": "ok", "archives_present": ["data/task-old/.firstmate-offload-no_ubhq9.tar", "data/task-old/.firstmate-offload-nv601g_v.tar"]}
+{"tool": "trash", "argv": ["trash", "-s"], "path": "data/task-old/set", "stdin": ""}
+
+Leftover archive copies in the task folder after the pass (bytes, path):
+  133120  <lab>/data/task-old/.firstmate-offload-no_ubhq9.tar
+  153600  <lab>/data/task-old/.firstmate-offload-nv601g_v.tar
+
+Same command judged by real dcg with the operator's own HOME/config: allowed (empty output, exit 0).
