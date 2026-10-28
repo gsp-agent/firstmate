@@ -774,21 +774,24 @@ SH
 
 # A child that dies mid-prose cannot hide an outcome its run already proves: an
 # unterminated continuation line states no terminal event, so the inactive
-# fallback still reports the attributed failure upward.
+# fallback still reports the attributed failure upward. Its newest state line
+# still says working, so its pane stays open.
 test_secondmate_unterminated_prose_reports_run_outcome() {
   make_world unterminated-prose; bind_secondmate local
-  write_child "$MATE" child 'note: compiling'
+  write_herdr_child "$MATE" child 'working: compiling'
   printf 'Still going' >> "$MATE/state/child.status"
-  age "$MATE/state/child.status"
+  age "$MATE/state/child.status" "$MATE/state/child.turn-ended"
   FM_FAKE_CREW_STATE='failed' run_reconcile "$MATE" --startup
   sed -E 's/ \[at=[0-9]+\]//' "$MAIN/state/mate.status" \
     | grep -Fq "failed [key=inactive-outcome-mate-child-failed]: inactive terminal child=child" \
     || fail "an unterminated prose line withheld a proven failure: $(cat "$MAIN/state/mate.status" 2>/dev/null)"
   [ "$(outcome_count "$MATE" reported)" = 1 ] || fail "the fallback report did not retain its receipt"
+  [ "$(herdr_close_count)" = 0 ] || fail "a failed outcome behind a working line closed its pane"
   age "$MATE/state/child.status"
   FM_FAKE_CREW_STATE='failed' run_reconcile "$MATE" --startup
   [ "$(wc -l < "$MAIN/state/mate.status" | tr -d ' ')" = 1 ] \
     || fail "the proven failure was reported twice"
+  [ "$(herdr_close_count)" = 0 ] || fail "a later scan closed the pane behind a working line"
   pass "an unterminated continuation line does not withhold a proven child outcome"
 }
 
@@ -798,20 +801,23 @@ test_secondmate_unterminated_prose_reports_run_outcome() {
 # child's last status line.
 test_inactive_receipt_ignores_later_status_prose() {
   make_world prose-after-outcome; bind_secondmate local
-  write_child "$MATE" child 'note: quiet since'
+  write_herdr_child "$MATE" child 'working: quiet since'
+  age "$MATE/state/child.status" "$MATE/state/child.turn-ended"
   FM_FAKE_CREW_STATE='failed' run_reconcile "$MATE" --startup
   [ "$(grep -c 'inactive-outcome-mate-child-failed' "$MAIN/state/mate.status")" = 1 ] \
     || fail "inactive fallback did not publish exactly once"
-  printf 'note: tidying up after the run\n' >> "$MATE/state/child.status"
+  [ "$(herdr_close_count)" = 0 ] || fail "a failed outcome behind a working line closed its pane"
+  printf 'working: tidying up after the run\n' >> "$MATE/state/child.status"
   age "$MATE/state/child.status"
   FM_FAKE_CREW_STATE='failed' run_reconcile "$MATE" --startup
-  printf 'note: still tidying\n' >> "$MATE/state/child.status"
+  printf 'working: still tidying\n' >> "$MATE/state/child.status"
   age "$MATE/state/child.status"
   FM_FAKE_CREW_STATE='failed' run_reconcile "$MATE" --startup
   [ "$(wc -l < "$MAIN/state/mate.status" | tr -d ' ')" = 1 ] \
     || fail "changed status prose minted a duplicate parent event: $(cat "$MAIN/state/mate.status")"
   [ "$(outcome_count "$MATE" reported)" = 1 ] \
     || fail "changed status prose created a second terminal receipt"
+  [ "$(herdr_close_count)" = 0 ] || fail "later scans closed the pane behind a working line"
   pass "later status prose does not change the inactive terminal receipt identity"
 }
 
@@ -1193,10 +1199,10 @@ test_remote_parent_reply_is_idempotent() {
 # when its terminal state and status text match the retired worker exactly.
 test_reused_task_id_reports_each_incarnation() {
   make_world reused-id; bind_secondmate remote
-  write_child "$MATE" child 'note: quiet since' spawn-one
+  write_child "$MATE" child 'working: quiet since' spawn-one
   FM_FAKE_CREW_STATE='failed' run_reconcile "$MATE" --startup
   rm -f "$MATE/state/child.meta" "$MATE/state/child.status" "$MATE/state/child.turn-ended"
-  write_child "$MATE" child 'note: quiet since' spawn-two
+  write_child "$MATE" child 'working: quiet since' spawn-two
   FM_FAKE_CREW_STATE='failed' run_reconcile "$MATE" --startup
   [ "$(outcome_count "$MATE" reported)" = 2 ] \
     || fail "reused task id collided with the retired incarnation receipt"
@@ -1768,7 +1774,7 @@ test_notice_recovery_does_not_duplicate_wake() {
   local record err seq generation
   make_world notice-recovery; bind_secondmate remote
   printf 'schema=fm-secondmate-parent.v1\nroute=invalid\n' > "$MATE/.fm-secondmate-parent"
-  write_child "$MATE" child 'note: quiet since'
+  write_child "$MATE" child 'working: quiet since'
   FM_FAKE_CREW_STATE='failed' run_reconcile "$MATE" --startup
   [ "$(wake_count "$MATE" 'inactive-reconcile:')" = 1 ] || fail "parent-report failure did not queue one notice"
 

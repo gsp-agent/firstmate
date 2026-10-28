@@ -1503,6 +1503,32 @@ EOF
   assert_not_contains "$out" "state: parked" "a resolved decision must not read parked: $out"
 
   printf '%s\n' \
+    'working [at=1793148334]: rebuilding with its car export swapped in PC-side' \
+    'needs-decision [key=car] [at=1793148350]: which car export?' \
+    "paused [key=car] [at=1793148360]: waiting on Dale's answer" \
+    'resolved [key=car] [at=1793148400]: answered: use the PC export' \
+    > "$d/state/feat-newer.status"
+  out=$(run_crew_state "$d" feat-newer)
+  assert_contains "$out" "state: working" "a pause its resolved line retracted came back as the newest state: $out"
+  assert_not_contains "$out" "state: paused" "a retracted pause must not read paused: $out"
+
+  printf '%s\n' \
+    'working [at=1793148334]: rebuilding with its car export swapped in PC-side' \
+    'paused [at=1793148360]: waiting on the PC export' \
+    'resolved [at=1793148400]: answered: export landed' \
+    > "$d/state/feat-newer.status"
+  out=$(run_crew_state "$d" feat-newer)
+  assert_contains "$out" "state: working" "a keyless resolved line did not retract a keyless pause: $out"
+
+  printf '%s\n' \
+    'working [at=1793148334]: rebuilding with its car export swapped in PC-side' \
+    'paused [at=1793148360]: waiting on the PC export' \
+    'resolved [key=default] [at=1793148400]: answered: another decision' \
+    > "$d/state/feat-newer.status"
+  out=$(run_crew_state "$d" feat-newer)
+  assert_contains "$out" "state: paused" "a [key=default] resolved line retracted a keyless pause: $out"
+
+  printf '%s\n' \
     'working [at=1793123903]: PR https://github.com/o/r/pull/178 merged; Alpha build continues' \
     > "$d/state/feat-newer.status"
   out=$(run_crew_state "$d" feat-newer)

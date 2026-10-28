@@ -496,8 +496,9 @@ _fm_status_declared_wait_scan() {  # <resolve-verb> <legacy-captain-re>
 
 # The newest status event that states the task's state, or nothing. A note or
 # a resolved line is not a state, so the read walks back past it; a
-# needs-decision or blocked line that a later resolved line closed is passed
-# too, so skipping the resolved line never revives its opener. Bounded like
+# needs-decision or blocked line that a later resolved line closed, and a pause
+# it retracted under status_declared_wait_line's phase-key rule, are passed
+# too, so skipping the resolved line never revives what it ended. Bounded like
 # last_status_line: a tail window with no such event widens the read to the
 # whole file. bin/fm-crew-state.sh weighs this line against a finished run and
 # bin/fm-inactive-reconcile.sh keeps a pane open while it says working.
@@ -515,9 +516,10 @@ status_newest_state_line() {  # <status-file>
 # Returns 1 when none is reached, so a caller reading a bounded window knows to
 # widen it.
 _fm_status_state_scan() {  # <legacy-captain-re>
-  local legacy_re=$1 resolve line verb key closed=$'\n' i=0
+  local legacy_re=$1 resolve paused line verb key closed=$'\n' retracted=$'\n' i=0
   local -a lines=()
   resolve=${FM_CLASSIFY_RESOLVE_VERB:-$FM_CLASSIFY_RESOLVE_VERB_DEFAULT}
+  paused=${FM_CLASSIFY_PAUSED_VERB:-$FM_CLASSIFY_PAUSED_VERB_DEFAULT}
   while IFS= read -r line || [ -n "$line" ]; do
     lines[i]=$line
     i=$((i + 1))
@@ -532,12 +534,18 @@ _fm_status_state_scan() {  # <legacy-captain-re>
       note) continue ;;
       "$resolve")
         _fm_decision_key "$line" default key && closed="$closed$key"$'\n'
+        _fm_decision_key "$line" "$_FM_CLASSIFY_KEYLESS_PHASE" key || key=
+        retracted="$retracted$key"$'\n'
         continue
         ;;
       needs-decision|blocked)
         if _fm_decision_key "$line" default key; then
           case "$closed" in *$'\n'"$key"$'\n'*) continue ;; esac
         fi
+        ;;
+      "$paused")
+        _fm_decision_key "$line" "$_FM_CLASSIFY_KEYLESS_PHASE" key || key=
+        case "$retracted" in *$'\n'"$key"$'\n'*) continue ;; esac
         ;;
     esac
     printf '%s\n' "$line"
