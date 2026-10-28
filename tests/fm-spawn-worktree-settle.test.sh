@@ -816,7 +816,7 @@ test_mixed_pool_makes_new_own_slot_when_none_free() {
     "meta did not record the newly made own-clone slot"
   assert_grep 'get --lease' "$th_log" \
     "spawn did not lease through the allocator to make an own-clone slot"
-  assert_grep "return $pool/1/repo" "$th_log" \
+  assert_grep "return --if-lease-holder fm-spawn-$id $pool/1/repo" "$th_log" \
     "spawn did not release the foreign slot it leased while steering"
   assert_grep 'treehouse enter' "$pane_log" \
     "spawn did not enter the newly made own-clone slot by name"
@@ -894,14 +894,12 @@ slot_lease_holder() {
 # the reuse test, so it becomes this spawn's target: entered by name, its
 # claim rewritten to this task, and its lease this task's own for teardown to
 # return - never a lease left on a slot whose claim names another task.
-# With real Treehouse the squash-merged 10-27 gsp-f7zel shape is adopted the
-# same way and freed at teardown, or never leased: `get --lease` hands such a
-# slot out only once its work is in the fetched origin/main, resetting it
-# there, and otherwise makes a new slot. The lease still leaks only for a
-# slot Treehouse hands out that the reuse test refuses - by code read, a
-# --base-branch that origin's default branch is not an ancestor of, or a
-# rewritten main; that remainder is follow-up
-# fm-pool-squash-merged-claimed-lease.
+# With real Treehouse a squash-merged claimed slot is adopted the same way
+# and freed at teardown, or never leased: `get --lease` hands such a slot
+# out only once its work is in the fetched origin/main, resetting it there,
+# and otherwise makes a new slot. A clean claimed slot the reuse test still
+# refuses - under a divergent --base-branch, or after a rewritten main -
+# keeps no steering lease either (see the clean claimed-slot case below).
 test_allocator_claimed_own_slot_becomes_target() {
   local rec id out status pool slot pane_log th_log holder
   id=settle-pool-claimed-target-z18
@@ -1054,6 +1052,46 @@ test_allocator_claimed_slot_is_never_returned() {
   assert_equals 'preserve uncommitted work' "$(cat "$slot/sentinel" 2>/dev/null)" "spawn reset the claimed slot"
   assert_grep 'task=some-other-task' "$pool/2/.fm-slot-owner" "spawn replaced another task's claim"
   pass "a $outcome spawn never enters or returns a claimed slot the reuse test refuses"
+}
+
+# A claimed slot that is clean but whose HEAD the reuse test refuses -
+# here a commit the fetched target does not contain, as under a divergent
+# --base-branch or a rewritten main - keeps no steering lease: the spawn
+# hands it back under its own lease holder, leaves the other task's claim
+# and commit in place, and falls back to the plain `treehouse get`.
+test_allocator_claimed_clean_slot_lease_is_released() {
+  local outcome=$1 rec id out status pool slot pane_log th_log holder
+  id="settle-pool-claimed-clean-$outcome"
+  rec=$(make_claimed_lease_case "$id" "$id")
+  read_settle_record "$rec"
+  pool="$CASE_DIR/pool"
+  slot="$pool/2/repo"
+  pane_log="$CASE_DIR/pane.log"
+  th_log="$CASE_DIR/treehouse.log"
+  printf 'claimed work\n' > "$slot/claimed.txt"
+  git -C "$slot" add claimed.txt
+  git -C "$slot" commit --quiet -m 'claimed slot work'
+  if [ "$outcome" = abort ]; then
+    WT_DIR="$pool/1/repo"
+  fi
+
+  out=$(FM_FAKE_PANE_LOG="$pane_log" FM_TREEHOUSE_LOG="$th_log" \
+    FM_TREEHOUSE_CLAIMED_SLOT="$slot" run_settle_spawn "$id")
+  status=$?
+  if [ "$outcome" = abort ]; then
+    expect_code 1 "$status" "spawn should refuse the foreign-clone fallback"$'\n'"$out"
+  else
+    expect_code 0 "$status" "spawn should still succeed through treehouse get"$'\n'"$out"
+    assert_grep "worktree=$WT_DIR" "$HOME_DIR/state/$id.meta" "spawn lost its own worktree"
+  fi
+  holder=$(slot_lease_holder "$pool" "$slot")
+  assert_equals '' "$holder" \
+    "spawn left its steering lease ($holder) on a claimed slot the reuse test refuses"
+  assert_grep 'task=some-other-task' "$pool/2/.fm-slot-owner" "spawn replaced another task's claim"
+  assert_equals 'claimed slot work' "$(git -C "$slot" log -1 --format=%s 2>/dev/null)" "spawn reset the claimed slot's commit away"
+  assert_no_grep 'treehouse enter' "$pane_log" \
+    "spawn entered a claimed slot the reuse test refuses"
+  pass "a $outcome spawn releases its steering lease on a clean claimed slot the reuse test refuses"
 }
 
 # A free own-clone slot with residue is not entered: Treehouse's allocator
@@ -1215,6 +1253,8 @@ test_allocator_claimed_target_abort_releases_lease
 test_allocator_claimed_target_refusal_keeps_slot_across_spellings
 test_allocator_claimed_slot_is_never_returned success
 test_allocator_claimed_slot_is_never_returned abort
+test_allocator_claimed_clean_slot_lease_is_released success
+test_allocator_claimed_clean_slot_lease_is_released abort
 test_dirty_own_slot_is_not_entered
 test_unmerged_own_slot_is_not_entered
 test_pool_full_treehouse_get_refuses_at_once
