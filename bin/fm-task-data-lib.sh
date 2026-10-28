@@ -230,7 +230,8 @@ fm_task_data_offload_pass() { # <data> <state>
   while IFS= read -r task; do
     [ -n "$task" ] || continue
     fm_task_data_offload_task "$data" "$state" "$task" || rc=1
-  done < <(printf '%s\n' "$plan" | jq -r '[.moves[].task] + .leftovers | unique | .[]')
+  # Tasks holding a leftover archive copy go first: any copy blocks new archives.
+  done < <(printf '%s\n' "$plan" | jq -r '.leftovers + [.moves[].task] | reduce .[] as $t ([]; if index([$t]) then . else . + [$t] end) | .[]')
   fm_lock_release "$lock"
   return "$rc"
 }

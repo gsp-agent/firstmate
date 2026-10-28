@@ -177,13 +177,14 @@ that list names is ever removed: offload removes the task's listed leftovers
 first, and offload-plan lists tasks holding any so each offload pass reaches
 them, moves or not; a refusal waits for the next pass.
 Extended attributes, macOS resource forks included, ride in the archive's
-SCHILY.xattr headers. macOS access control lists do not, so a unit holding any
-stays in place.
+SCHILY.xattr headers. macOS access control lists and file flags (other than
+transparent compression) do not, so a unit holding any stays in place. While
+any task's journal still lists a copy, no new archive is written anywhere.
 A linked worktree of a repository in another task or outside DATA (its index,
 HEAD, reflog and refs live in that repository, outside any archive), a
 repository whose .git is a symlink, a repository with linked worktrees outside
-the task or sharing no folder below it, an unreadable worktree record (one
-that does not name a .git file, empty included), a
+the task or sharing no folder below it, an unreadable worktree record (a
+missing gitdir, or one that does not name a .git file, empty included), a
 submodule checkout outside its superproject's unit, and any unit holding one of
 them at any depth stay in place, named with reasons and sizes in offload-plan's
 retained list.
@@ -1235,10 +1236,13 @@ def offload_unit_links(repository, root, data):
                 return links, "linked worktree of a repository in another task"
             return links, "linked worktree of a repository outside data/"
         admin = (dotgit if dotgit.is_dir() else repository) / "worktrees"
-        for record in sorted(admin.glob("*/gitdir")) if admin.is_dir() and not admin.is_symlink() else ():
-            # git writes the worktree's .git file path; anything else, empty
-            # included, could hide a live checkout.
-            named = record.read_text().strip()
+        for entry in sorted(admin.iterdir()) if admin.is_dir() and not admin.is_symlink() else ():
+            if entry.is_symlink() or not entry.is_dir():
+                continue
+            # git writes the worktree's .git file path; a missing, empty or
+            # other record could hide a live checkout.
+            record = entry / "gitdir"
+            named = record.read_text().strip() if record.is_file() and not record.is_symlink() else ""
             if Path(named).name != ".git":
                 return links, "linked worktree record is unreadable"
             tree = (record.parent / named).parent.resolve()
@@ -1254,6 +1258,29 @@ def offload_unit_links(repository, root, data):
 
 ARCHIVE = ".firstmate-offload-"
 ACL_KEPT = "holds access control lists the archive cannot carry"
+FLAGS_KEPT = "holds file flags the archive cannot carry"
+# Transparent compression changes no data, so it is the one flag a restore may drop.
+FLAGS_CARRIED = getattr(stat, "UF_COMPRESSED", 0)
+
+
+def offload_flagged(path):
+    """Return whether anything under path, path included, has a file flag tar here drops."""
+    for directory, names, leaves in os.walk(path, followlinks=False):
+        for name in (".", *names, *leaves):
+            if getattr(os.lstat(os.path.join(directory, name)), "st_flags", 0) & ~FLAGS_CARRIED:
+                return True
+    return False
+
+
+def offload_journaled_archives(data):
+    """Name the tasks whose offload journal lists an archive copy still on disk or unremoved."""
+    tasks = []
+    for journal in sorted(data.glob(f"*/{OFFLOAD_RECORD}")):
+        task = journal.parent.parent.name
+        with contextlib.suppress(OSError, ValueError):
+            if TASK_ID.fullmatch(task) and offload_journal(journal.parent.parent, task).get("archives"):
+                tasks.append(task)
+    return tasks
 
 
 def offload_acl(path):
@@ -1321,6 +1348,8 @@ def offload_archive(source, archive):
             mode = os.lstat(os.path.join(directory, name)).st_mode
             if not (stat.S_ISDIR(mode) or stat.S_ISREG(mode) or stat.S_ISLNK(mode)):
                 raise ValueError("special file in repository")
+    if offload_flagged(source):
+        raise ValueError(FLAGS_KEPT)
     if offload_acl(source):
         raise ValueError(ACL_KEPT)
 
@@ -1464,9 +1493,9 @@ def offload_candidates(data, state, task_id, rows, locations, cache):
         summary = totals.get(unit, [0, 0, 0, False])
         if not reason:
             try:
-                reason = ACL_KEPT if offload_acl(unit) else None
+                reason = FLAGS_KEPT if offload_flagged(unit) else ACL_KEPT if offload_acl(unit) else None
             except (OSError, subprocess.SubprocessError):
-                reason = "access control lists could not be read"
+                reason = "file flags or access control lists could not be read"
         if reason:
             kept.append({"task": task_id, "path": str(unit.relative_to(root)), "reason": reason,
                          "size": summary[1], "allocated_bytes": summary[2]})
@@ -1486,12 +1515,9 @@ def offload_context(data, state):
 
 def offload_plan(data, state, task_id=None):
     data, state, rows, locations, cache = offload_context(data, state)
-    moves, retained, leftovers = [], [], []
+    moves, retained, leftovers = [], [], offload_journaled_archives(data)
     ids = [task_id] if task_id is not None else sorted(path.name for path in data.iterdir() if path.is_dir())
     for task in ids:
-        with contextlib.suppress(OSError, ValueError):
-            if TASK_ID.fullmatch(task) and offload_journal(data / task, task).get("archives"):
-                leftovers.append(task)
         try:
             lock = state / f".meta-{task}.lock"
             if lock.exists() or lock.is_symlink():
@@ -1690,6 +1716,12 @@ def offload(data, state, task_id):
                     offload_remote("ready", OFFLOAD_ROOT)
                 except (OSError, ValueError, subprocess.SubprocessError) as error:
                     raise ValueError("mini-ts did not answer or MINI-DATA is not mounted; no archive written") from error
+                # At most one archive copy exists anywhere: a copy whose
+                # removal was refused blocks every new archive until removed.
+                waiting = offload_journaled_archives(data)
+                if waiting:
+                    raise ValueError(f"an earlier archive copy is still on disk in {', '.join(waiting)}; "
+                                     "no new archive until it is removed")
                 before = offload_tree_state(source)
                 archive = claim()
             try:

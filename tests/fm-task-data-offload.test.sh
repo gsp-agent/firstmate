@@ -24,6 +24,7 @@ import os
 from pathlib import Path
 import signal
 import sqlite3
+import stat
 import subprocess
 import sys
 import tarfile
@@ -136,8 +137,8 @@ elif tool == "trash":
     if mode == "trash-interrupted":
         sys.exit(6)
 elif tool == "dcg":
-    json.load(sys.stdin)
-    if mode == "dcg-deny":
+    request = json.load(sys.stdin)
+    if mode == "dcg-deny" or (mode == "dcg-deny-rm" and request["tool_input"]["command"].startswith("rm ")):
         print(json.dumps({"hookSpecificOutput":{"permissionDecision":"deny"}}))
 else:
     sys.exit(88)
@@ -524,6 +525,46 @@ def check_acl_repository_kept():
     acl = subprocess.run(["/bin/ls", "-le", str(clone / "work.txt")], capture_output=True, text=True, check=True).stdout
     assert "everyone deny write" in acl, acl
 
+def check_missing_worktree_record_kept():
+    home, clone = repo_fixture("repo-missing-record")
+    git("-C", clone, "worktree", "add", "-q", "-b", "side", home / "user/wt")
+    (clone / ".git/worktrees/wt/gitdir").unlink()
+    before = snapshot(clone)
+    plan = run(home, "offload-plan")
+    assert plan["moves"] == [], plan
+    assert [(item.get("path"), item["reason"]) for item in plan["retained"]] == \
+        [("clone", "linked worktree record is unreadable")], plan
+    assert run(home, "offload")["offloaded"] == []
+    assert snapshot(clone) == before
+
+def check_refused_cleanup_blocks_new_archive():
+    home, clone = repo_fixture("repo-refused-cleanup")
+    task = home / "data/task-one"
+    owned = ".firstmate-offload-0123456789abcdef.tar"
+    (task / owned).write_bytes(b"redundant archive copy")
+    (task / "record").mkdir()
+    (task / "record/data-offload.json").write_text(json.dumps(
+        {"version": 1, "task": "task-one", "entries": {}, "archives": [owned]}))
+    before = snapshot(clone)
+    run(home, "offload", fault="dcg-deny-rm", ok=False)
+    assert sorted(path.name for path in task.glob(".firstmate-offload-*")) == [owned], \
+        "a new archive copy was written while an earlier one stayed on disk"
+    assert json.loads((task / "record/data-offload.json").read_text())["archives"] == [owned]
+    assert snapshot(clone) == before
+
+def check_flagged_repository_kept():
+    home, clone = repo_fixture("repo-flags")
+    subprocess.run(["/usr/bin/chflags", "uchg", str(clone / "work.txt")], check=True)
+    try:
+        plan = run(home, "offload-plan")
+        assert plan["moves"] == [], plan
+        assert [(item.get("path"), item["reason"]) for item in plan["retained"]] == \
+            [("clone", "holds file flags the archive cannot carry")], plan
+        assert run(home, "offload")["offloaded"] == []
+        assert os.lstat(clone / "work.txt").st_flags & stat.UF_IMMUTABLE
+    finally:
+        subprocess.run(["/usr/bin/chflags", "nouchg", str(clone / "work.txt")], check=True)
+
 # Collect the independent review regressions so a broken directory copy cannot
 # hide the single-file, retry, or partial-report result on the reviewed head.
 regressions = [("fake directory placement", lambda: check_placement("directory")),
@@ -547,11 +588,14 @@ regressions.extend([("verified existing payload is reused", check_verified_reuse
                     ("a sweep ends with an offload pass", lambda: check_sweep_offloads(True)),
                     ("a sweep in a home without a verifier offloads nothing", lambda: check_sweep_offloads(False)),
                     ("an offload pass removes only archive copies its journal names", check_pass_removes_only_journaled_archives),
-                    ("a repository whose worktree record is empty stays", check_unreadable_worktree_record_kept)])
+                    ("a repository whose worktree record is empty stays", check_unreadable_worktree_record_kept),
+                    ("a repository whose worktree record is missing stays", check_missing_worktree_record_kept),
+                    ("no new archive while an earlier copy is still on disk", check_refused_cleanup_blocks_new_archive)])
 if sys.platform == "darwin":
     regressions.extend([("a repository archive keeps resource forks and other extended attributes",
                          check_archive_keeps_extended_attributes),
-                        ("a repository holding an access control list stays", check_acl_repository_kept),("real /usr/bin/rsync directory placement", lambda: check_placement("directory", True)),
+                        ("a repository holding an access control list stays", check_acl_repository_kept),
+                        ("a repository holding file flags stays", check_flagged_repository_kept),("real /usr/bin/rsync directory placement", lambda: check_placement("directory", True)),
                         ("real /usr/bin/rsync single-file placement", lambda: check_placement("file", True))])
 failures = []
 for name, check in regressions:
