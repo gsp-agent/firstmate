@@ -24,19 +24,24 @@
 #
 # Ready rows are `bin/fm-tasks-axi.sh ready` (unblocked, unheld, queued), in
 # backlog order, less `captain` rows, which are decisions held for a person
-# rather than work a spawn takes. Free starts are the smaller of the free places
-# and the free trees in the project's worktree pool (fm_project_capacity_pool),
-# the two limits bin/fm-spawn.sh admits by. A row names this project when its repo is the project's
+# rather than work a spawn takes. Free starts are the smaller of the free places,
+# the free machine places when a machine total is declared
+# (config/machine-capacity, same library), and the free trees in the project's
+# worktree pool (fm_project_capacity_pool), the limits bin/fm-spawn.sh admits
+# by. A row names this project when its repo is the project's
 # registered name (its directory's basename). A row whose repo is `firstmate`
 # names it only when the project shares this code root's lineage
 # (fm_role_self_repo), whatever the project's directory is called.
 #
 # Cost: the count is fm-spawn's own admission count and costs what one
 # admission costs, nearly all of it one bounded crew-state read per record that
-# still names the project. It is taken only when ready rows name the project, so
+# still names the project (per record in every local home while a machine
+# total is declared, since the total counts them all). It is taken only when
+# ready rows name the project, so
 # a release with nothing to start costs only the declaration and backlog reads.
 #
-# --if-capped prints nothing for a project that declares no place limit, for a
+# --if-capped prints nothing for a project that declares no place limit while
+# no machine total is declared, for a
 # caller whose event frees a place only under a declared limit.
 #
 # Always exits 0 after a valid request, since callers print it beside work that
@@ -150,6 +155,9 @@ short_list() {
 CAP=
 FREE=
 HOLDERS=
+TOTAL=
+TFREE=
+THOLDERS=
 COUNT_ERROR=
 if ! { . "$SCRIPT_DIR/fm-wake-lib.sh" && . "$SCRIPT_DIR/fm-secondmate-registry-lib.sh" &&
   . "$SCRIPT_DIR/fm-backend.sh" && . "$SCRIPT_DIR/fm-project-capacity-lib.sh"; } >/dev/null 2>&1; then
@@ -158,10 +166,13 @@ elif ! CAP_CONFIG=$(fm_project_capacity_config_dir "$FM_HOME" "$CONFIG" 2>/dev/n
   COUNT_ERROR="the root home that declares project capacity cannot be resolved"
 elif ! fm_project_capacity_lookup "$CAP_CONFIG" "$NAME"; then
   COUNT_ERROR=$FM_PROJECT_CAPACITY_ERROR
+elif ! fm_project_capacity_total_lookup "$CAP_CONFIG"; then
+  COUNT_ERROR=$FM_PROJECT_CAPACITY_ERROR
 else
   CAP=$FM_PROJECT_CAPACITY
+  TOTAL=$FM_PROJECT_CAPACITY_TOTAL
 fi
-[ "$IF_CAPPED" = 0 ] || [ -n "$CAP" ] || [ -n "$COUNT_ERROR" ] || exit 0
+[ "$IF_CAPPED" = 0 ] || [ -n "$CAP" ] || [ -n "$TOTAL" ] || [ -n "$COUNT_ERROR" ] || exit 0
 
 # --- ready rows ---------------------------------------------------------------
 MINE=
@@ -211,15 +222,24 @@ fi
 # one bounded crew-state read per record still naming the project. It runs
 # only when ready rows name this project (or the backlog could not be read),
 # because a place with nothing to start needs no count.
-if [ -z "$COUNT_ERROR" ] && [ -n "$CAP" ] && [ "$CAP" != 0 ] && { [ -n "$MINE" ] || [ -n "$READY_ERROR" ]; }; then
+if [ -z "$COUNT_ERROR" ] \
+  && { { [ -n "$CAP" ] && [ "$CAP" != 0 ]; } || { [ -n "$TOTAL" ] && [ "$TOTAL" != 0 ]; }; } \
+  && { [ -n "$MINE" ] || [ -n "$READY_ERROR" ]; }; then
   if ! LOCK=$(fm_treehouse_project_lock_path "$PROJ" 2>/dev/null); then
     COUNT_ERROR="no project lock path for $PROJ"
   elif ! fm_project_capacity_occupants "$LOCK" "$PROJ" "$STATE" ''; then
     COUNT_ERROR=$FM_PROJECT_CAPACITY_ERROR
   else
-    FREE=$((CAP - FM_PROJECT_CAPACITY_OCCUPANTS))
-    [ "$FREE" -ge 0 ] || FREE=0
-    HOLDERS=$FM_PROJECT_CAPACITY_OCCUPANT_IDS
+    if [ -n "$CAP" ]; then
+      FREE=$((CAP - FM_PROJECT_CAPACITY_OCCUPANTS))
+      [ "$FREE" -ge 0 ] || FREE=0
+      HOLDERS=$FM_PROJECT_CAPACITY_OCCUPANT_IDS
+    fi
+    if [ -n "$TOTAL" ]; then
+      TFREE=$((TOTAL - FM_PROJECT_CAPACITY_TOTAL_OCCUPANTS))
+      [ "$TFREE" -ge 0 ] || TFREE=0
+      THOLDERS=$FM_PROJECT_CAPACITY_TOTAL_OCCUPANT_IDS
+    fi
   fi
 fi
 
@@ -244,6 +264,16 @@ else
   places="$NAME has $FREE of $CAP places free by bin/fm-spawn.sh's own count"
   [ -z "$HOLDERS" ] || places="$places (holding: $(short_list "$HOLDERS" 6))"
 fi
+if [ -n "$TOTAL" ]; then
+  if [ "$TOTAL" = 0 ]; then
+    places="$places, and this machine declares 0 worker places in all"
+  elif [ -n "$TFREE" ]; then
+    places="$places, and this machine has $TFREE of $TOTAL worker places free across every project"
+    [ "$TFREE" -gt 0 ] || [ -z "$THOLDERS" ] || places="$places (holding: $(short_list "$THOLDERS" 6))"
+  else
+    places="$places, and this machine declares $TOTAL worker places in all"
+  fi
+fi
 if [ "$POOL_KNOWN" = 1 ]; then
   places="$places, and $FM_PROJECT_CAPACITY_POOL_FREE of $FM_PROJECT_CAPACITY_POOL_MAX worktree pool trees free"
   [ "$FM_PROJECT_CAPACITY_POOL_FREE" -gt 0 ] || places="$places (held: $(short_list "$FM_PROJECT_CAPACITY_POOL_HELD" 6))"
@@ -258,6 +288,13 @@ if [ -z "$MINE" ]; then
   printf 'Dispatch: %s; no ready backlog row names it, so nothing starts and its places were not counted.\n' "$places"
 elif [ "$CAP" = 0 ]; then
   printf 'Dispatch: %s. Ready for it, held back by that declaration: %s.\n' "$places" "$(short_list "$MINE" "$DISPATCH_LIST_MAX")"
+elif [ "$TOTAL" = 0 ]; then
+  printf 'Dispatch: %s. Ready for it, held back by that declaration: %s.\n' "$places" "$(short_list "$MINE" "$DISPATCH_LIST_MAX")"
+elif [ -z "$COUNT_ERROR" ] && [ -n "$TOTAL" ] && [ -n "$TFREE" ] && [ "$TFREE" -le 0 ]; then
+  # bin/fm-spawn.sh defers with 75 on a full machine total whatever the
+  # project's places, pool, or headroom reading say.
+  printf 'Dispatch: %s. Ready for it, in backlog order: %s. Nothing starts until a worker place frees on this machine; the next cleanup, recorded PR or freed place prints this line again.\n' \
+    "$places" "$(short_list "$MINE" "$DISPATCH_LIST_MAX")"
 elif [ "$POOL_KNOWN" = 1 ] && [ "$FM_PROJECT_CAPACITY_POOL_FREE" -le 0 ]; then
   # bin/fm-spawn.sh defers with 75 on a full pool whatever the places say.
   printf 'Dispatch: %s. Ready for it, in backlog order: %s. Nothing starts until a pool tree is returned; the next cleanup in %s prints this line again.\n' \

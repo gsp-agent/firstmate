@@ -1206,6 +1206,14 @@ A malformed or unreadable capacity file refuses every fresh ship or scout spawn 
 Choose the number from the tightest resource every worker needs.
 [`bin/fm-project-capacity-lib.sh`](../bin/fm-project-capacity-lib.sh) owns the capacity file format, what holds a place, the headroom program, the 420-second record, and why concurrent spawns cannot both take the last place or the extra start.
 
+The optional `config/machine-capacity` beside it, in the same root home, declares how many workers this machine admits at once across every project, as one line holding 0 or a positive integer.
+Without it, or with no non-whitespace line in it, there is no machine-wide ceiling and only the per-project counts above apply.
+Every worker holding any project's place, in any local home, also holds one of the machine's places, counted in the same walk under the same rules.
+A fresh spawn launches only while both its project's count and the machine total have a free place, so the total is the outer bound: a headroom extra start past a project's count still needs a free machine place, and a declared total of 0 admits no worker and is not raised by a reading.
+When every machine place is held, the spawn defers with exit 75 and one `deferred:` line naming the total and its holders, exactly like a full project count, and the `Dispatch:` line reports the machine's free places beside the project's.
+A malformed machine-capacity file refuses every fresh ship or scout spawn until it is fixed, exactly like a malformed project-capacity file.
+The same library header owns the file format and the one race the total cannot close: two homes starting different projects in the same moment can overshoot it by the spawns racing in that moment, and every later spawn counts the published records and defers.
+
 ## Live-session check
 
 A live session - a tester, a client, or the captain at a headset, present or waiting at a set time - is run by the project's own agent, never by Firstmate.

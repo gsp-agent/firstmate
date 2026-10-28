@@ -284,7 +284,12 @@
 #   during the reading admits the spawn within the cap without consuming the
 #   extra-start window, even if the reading reported no room. Absent that
 #   reading's configuration, no lock is released for it. An
-#   unreadable declaration refuses with exit 1.
+#   unreadable declaration refuses with exit 1. The machine total beside it
+#   (config/machine-capacity, same library) is counted in the same occupants
+#   walk under the same lock and defers a spawn that finds every machine
+#   place held with the same one `deferred:` line and exit 75, after project
+#   admission, so an extra start past the project's count still needs a free
+#   machine place; an unreadable total refuses the same way.
 #   A batch reports such a pair as `batch: DEFERRED` and exits 75 when nothing
 #   else failed. A relaunch and a --secondmate spawn are never counted against
 #   capacity.
@@ -4184,6 +4189,19 @@ else
   WT=""
   BRIEF="$DATA/$ID/brief.md"
 fi
+# Defer with exit 75 when the declared machine total
+# (config/machine-capacity; bin/fm-project-capacity-lib.sh owns it) has no
+# free place in the count fm_project_capacity_occupants just took. Called
+# after project admission below, so a headroom extra start past the
+# project's count still needs a machine place. Prints nothing and returns
+# while a place is free or no total is declared.
+spawn_machine_total_defer() {
+  [ -n "$SPAWN_MACHINE_CAPACITY" ] || return 0
+  [ "$FM_PROJECT_CAPACITY_TOTAL_OCCUPANTS" -lt "$SPAWN_MACHINE_CAPACITY" ] && return 0
+  echo "deferred: this machine admits $SPAWN_MACHINE_CAPACITY worker(s) at once across every project ($FM_PROJECT_CAPACITY_TOTAL_FILE) and $FM_PROJECT_CAPACITY_TOTAL_OCCUPANTS already hold a place ($FM_PROJECT_CAPACITY_TOTAL_OCCUPANT_IDS); task $ID was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR, stops working or is cleaned up" >&2
+  exit "$SPAWN_DEFER_EXIT"
+}
+
 # Project capacity admission (bin/fm-project-capacity-lib.sh owns the
 # declaration, what holds a place, the optional headroom command, and why this
 # is race-safe). A fresh worker for a project whose declared capacity is
@@ -4193,6 +4211,7 @@ fi
 # worker that already holds a place, and a secondmate is not a worker.
 SPAWN_PROJECT_CAPACITY=
 SPAWN_PROJECT_CAPACITY_ANY=
+SPAWN_MACHINE_CAPACITY=
 if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ]; then
   SPAWN_CAPACITY_CONFIG=$(fm_project_capacity_config_dir "$FM_HOME" "$CONFIG") || {
     echo "error: could not resolve the root Firstmate home that declares project capacity for $PROJ_ABS" >&2
@@ -4202,11 +4221,16 @@ if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ]; then
     echo "error: spawn refused: the project capacity declaration is unreadable ($FM_PROJECT_CAPACITY_ERROR); fix it so the captain's worker limits are known (docs/configuration.md \"Project capacity\")" >&2
     exit 1
   fi
+  if ! fm_project_capacity_total_lookup "$SPAWN_CAPACITY_CONFIG"; then
+    echo "error: spawn refused: the machine capacity declaration is unreadable ($FM_PROJECT_CAPACITY_ERROR); fix it so the captain's worker limits are known (docs/configuration.md \"Project capacity\")" >&2
+    exit 1
+  fi
   SPAWN_PROJECT_CAPACITY=$FM_PROJECT_CAPACITY
   SPAWN_PROJECT_CAPACITY_ANY=$FM_PROJECT_CAPACITY_ANY
+  SPAWN_MACHINE_CAPACITY=$FM_PROJECT_CAPACITY_TOTAL
 fi
 if [ "$KIND" != secondmate ] &&
-  { [ "$RELAUNCH" -eq 1 ] || [ "$BACKEND" != orca ] || [ -n "$SPAWN_PROJECT_CAPACITY_ANY" ]; }; then
+  { [ "$RELAUNCH" -eq 1 ] || [ "$BACKEND" != orca ] || [ -n "$SPAWN_PROJECT_CAPACITY_ANY" ] || [ -n "$SPAWN_MACHINE_CAPACITY" ]; }; then
   SPAWN_TREEHOUSE_PROJECT_LOCK=$(fm_treehouse_project_lock_path "$PROJ_ABS") || {
     echo "error: could not resolve the shared Treehouse project lock for $PROJ_ABS" >&2
     exit 1
@@ -4230,11 +4254,13 @@ if [ "$KIND" != secondmate ] &&
     fi
   fi
 fi
-if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
+if [ -n "$SPAWN_PROJECT_CAPACITY" ] || [ -n "$SPAWN_MACHINE_CAPACITY" ]; then
   if ! fm_project_capacity_occupants "$SPAWN_TREEHOUSE_PROJECT_LOCK" "$PROJ_ABS" "$STATE" "$ID"; then
-    echo "error: spawn refused: project $(basename "$PROJ_ABS") declares a capacity of $SPAWN_PROJECT_CAPACITY, but this machine's task records cannot all be read to count it ($FM_PROJECT_CAPACITY_ERROR)" >&2
+    echo "error: spawn refused: the capacity declarations for project $(basename "$PROJ_ABS") on this machine cannot be counted because this machine's task records cannot all be read ($FM_PROJECT_CAPACITY_ERROR)" >&2
     exit 1
   fi
+fi
+if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
   if [ "$FM_PROJECT_CAPACITY_OCCUPANTS" -ge "$SPAWN_PROJECT_CAPACITY" ]; then
     # A declared count of 0 is the operator brake. The reading cannot raise it.
     if [ "$SPAWN_PROJECT_CAPACITY" = 0 ]; then
@@ -4258,7 +4284,7 @@ if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
           else
             SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=1
             if ! fm_project_capacity_occupants "$SPAWN_TREEHOUSE_PROJECT_LOCK" "$PROJ_ABS" "$STATE" "$ID"; then
-              echo "error: spawn refused: project $(basename "$PROJ_ABS") declares a capacity of $SPAWN_PROJECT_CAPACITY, but this machine's task records cannot all be read to count it ($FM_PROJECT_CAPACITY_ERROR)" >&2
+              echo "error: spawn refused: the capacity declarations for project $(basename "$PROJ_ABS") on this machine cannot be counted because this machine's task records cannot all be read ($FM_PROJECT_CAPACITY_ERROR)" >&2
               exit 1
             fi
             if [ "$FM_PROJECT_CAPACITY_OCCUPANTS" -lt "$SPAWN_PROJECT_CAPACITY" ]; then
@@ -4305,6 +4331,10 @@ if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
     fi
   fi
 fi
+# The machine total is the outer bound: a spawn admitted by its project's
+# count, including a headroom extra start, still defers here when every
+# machine place is held.
+spawn_machine_total_defer
 # Pool-tree admission: a fresh Treehouse-backed worker also needs a free tree
 # in the project's worktree pool (fm_project_capacity_pool owns the count). A
 # pool whose declared trees are all held defers here, under the same project
