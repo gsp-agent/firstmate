@@ -1,0 +1,2 @@
+# Failing-first measurement, paired on a settled one-task home under a real watcher at FM_POLL=60 (pinned as "a status append wakes a real watcher out of its 60s backstop wait and surfaces as a signal" in tests/fm-watch-state-wait.test.sh): the base is still waiting at a 12s observation cap on its way to the 60s backstop, and this change surfaces the signal and exits 0 in 0.66s.
+pr: 189

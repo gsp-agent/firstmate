@@ -27,6 +27,10 @@ export FM_ROOT_OVERRIDE="$ROOT"
 
 # Overrides: capture wake reasons and neutralize real waits (POLL is 15s). The
 # watcher's plain POLL wait is fm_sleep (bin/fm-wake-lib.sh), so both are stood in.
+# The kqueue state wait is seamed off for the same reason (FM_TEST_NO_STATE_WAIT,
+# bin/fm-watch.sh); the state-wait cases at the end opt back in with a stubbed
+# python3 so no case ever really blocks.
+export FM_TEST_NO_STATE_WAIT=1
 WAKE_LOG="$TMP/wakes"
 SLEEP_LOG="$TMP/sleeps"
 wake() { printf '%s\n' "$1" >> "$WAKE_LOG"; return 0; }
@@ -36,12 +40,15 @@ fm_sleep() { printf 'SLEEP\n' >> "$SLEEP_LOG"; }
 reset_state() {
   rm -f "$STATE_DIR"/*.meta "$STATE_DIR"/*.status "$STATE_DIR"/.wake-queue \
     "$STATE_DIR"/.wake-queue.seq "$STATE_DIR"/.watch-triage.log \
-    "$STATE_DIR"/.herdr-escalated-* "$TMP"/panes "$TMP"/wtcalls "$TMP"/wtcalled 2>/dev/null || true
+    "$STATE_DIR"/.herdr-escalated-* "$TMP"/panes "$TMP"/wtcalls "$TMP"/wtcalled \
+    "$TMP"/pywaits 2>/dev/null || true
   : > "$WAKE_LOG"
   : > "$SLEEP_LOG"
   _event_cap_key=""
   _event_cap_ok=0
   _event_cap_fails=0
+  _state_wait_cap=""
+  _state_wait_fails=0
 }
 
 mkrec() {  # <pane_id> <status>
@@ -154,5 +161,61 @@ event_wait_or_sleep   # disabled: sleeps without calling wait_transition
 WTN=$(wc -l < "$TMP/wtcalls" | tr -d '[:space:]')
 [ "$WTN" = 2 ] || fail "after EVENT_CAP_FAIL_MAX connect failures the event path must be disabled for the process (expected 2 wait_transition calls, got $WTN)"
 pass "event_wait_or_sleep: consecutive event-path failures disable the fast-path and revert to pure polling (fail-closed)"
+
+# --- state_wait_or_sleep: the state wait replaces the plain POLL sleep -------
+# Opted back in per case with a stubbed python3: `-I <script> <secs> ...`, so
+# $3 is the wait's seconds and 0 is the one-time capability probe. The stub
+# answers the probe as a clean timeout (0, capable) and each real wait as a
+# watched change (10), so the cycle must wait through python3 with no fm_sleep.
+
+reset_state
+fm_write_meta "$STATE_DIR/tk6.meta" "window=fmses:fm-tk6" "kind=ship"
+: > "$TMP/pywaits"
+# shellcheck disable=SC2329 # Runtime override called by the isolated watcher.
+python3() { printf '%s\n' "$3" >> "$TMP/pywaits"; [ "$3" = 0 ] && return 0; return 10; }
+FM_TEST_NO_STATE_WAIT=
+event_wait_or_sleep
+event_wait_or_sleep
+FM_TEST_NO_STATE_WAIT=1
+[ ! -s "$SLEEP_LOG" ] || fail "a capable state wait must not fall back to fm_sleep"
+PYN=$(wc -l < "$TMP/pywaits" | tr -d '[:space:]')
+[ "$PYN" = 3 ] || fail "the state wait must probe once, then wait once per cycle (expected 3 python3 calls, got $PYN)"
+grep -qx "$POLL" "$TMP/pywaits" || fail "the state wait must be bounded by POLL ($POLL): $(cat "$TMP/pywaits")"
+pass "state_wait_or_sleep: a capable state wait probes once and bounds each wait by POLL"
+
+# --- state_wait_or_sleep: an unavailable waiter probes once, then sleeps -----
+
+reset_state
+: > "$TMP/pywaits"
+# shellcheck disable=SC2329 # Runtime override called by the isolated watcher.
+python3() { printf '%s\n' "$3" >> "$TMP/pywaits"; return 2; }
+FM_TEST_NO_STATE_WAIT=
+event_wait_or_sleep
+event_wait_or_sleep
+FM_TEST_NO_STATE_WAIT=1
+PYN=$(wc -l < "$TMP/pywaits" | tr -d '[:space:]')
+[ "$PYN" = 1 ] || fail "an unavailable state wait must be probed once per process, got $PYN python3 calls"
+SLN=$(wc -l < "$SLEEP_LOG" | tr -d '[:space:]')
+[ "$SLN" = 2 ] || fail "an unavailable state wait must wait POLL in fm_sleep every cycle, got $SLN sleeps"
+pass "state_wait_or_sleep: an unavailable waiter is probed once and every cycle waits POLL in fm_sleep"
+
+# --- state_wait_or_sleep: consecutive failures disable the fast path ---------
+
+reset_state
+: > "$TMP/pywaits"
+export STATE_WAIT_FAIL_MAX=2
+# shellcheck disable=SC2329 # Runtime override called by the isolated watcher.
+python3() { printf '%s\n' "$3" >> "$TMP/pywaits"; [ "$3" = 0 ] && return 0; return 2; }
+FM_TEST_NO_STATE_WAIT=
+event_wait_or_sleep   # probe ok, wait fails (fails=1), sleeps POLL
+event_wait_or_sleep   # wait fails (fails=2 -> disable), sleeps POLL
+event_wait_or_sleep   # disabled: sleeps POLL without python3
+FM_TEST_NO_STATE_WAIT=1
+unset -f python3
+PYN=$(wc -l < "$TMP/pywaits" | tr -d '[:space:]')
+[ "$PYN" = 3 ] || fail "after STATE_WAIT_FAIL_MAX failures the state wait must stop calling python3 (expected probe + 2 waits, got $PYN calls)"
+SLN=$(wc -l < "$SLEEP_LOG" | tr -d '[:space:]')
+[ "$SLN" = 3 ] || fail "every failed or disabled state wait must still wait POLL in fm_sleep, got $SLN sleeps"
+pass "state_wait_or_sleep: consecutive failures disable the state fast-path and revert to fm_sleep (fail-closed)"
 
 echo "# fm-supervision-events.test.sh: all assertions passed"
