@@ -169,9 +169,10 @@ folder below the task holding them all, with any other repository inside it.
 A unit whose every commit and file is proven to survive elsewhere goes to Trash
 with nothing copied, and a pointer naming its remotes and HEAD replaces it.
 Proof needs the unit to hold its git directory, every work tree of it and
-nothing else; each work tree has a clean status with no untracked or ignored
-file and no nested repository; no Git LFS objects; and every commit any ref,
-reflog or worktree HEAD reaches is reachable from a tip a network or forge
+nothing else, with nothing at the git directory's top level but git's own
+layout and work trees; each work tree has a clean status with no untracked or
+ignored file and no nested repository; no Git LFS objects; and every commit
+any ref, reflog or worktree HEAD reaches is reachable from a tip a network or forge
 remote advertises now (git ls-remote, no fetch). Only an https://, ssh:// or
 user@host: URL, as configured rather than as an insteadOf rewrite, is such a
 remote; a local path or file:// remote, such as the no-mistakes gate, never is.
@@ -1260,6 +1261,10 @@ def offload_git_env():
 # Only a network or forge remote is elsewhere. A local path or file:// remote,
 # such as the no-mistakes gate, shares this disk.
 NETWORK_REMOTE = re.compile(r"(?:ssh|https)://[^/]|[^/@:\s]+@[^/:\s]+:")
+GIT_LAYOUT = re.compile(r"(?:[A-Z_]*_)?HEAD|[A-Z_]+MSG|BISECT_[A-Z_]+|AUTO_MERGE|MERGE_MODE|MERGE_RR|EDIT_DESCRIPTION"
+                        r"|config|config\.worktree|description|index|packed-refs|shallow|gitk\.cache|objects|refs|logs"
+                        r"|hooks|info|branches|remotes|worktrees|modules|lfs|rr-cache|reftable|sequencer|rebase-merge"
+                        r"|rebase-apply")
 
 
 def offload_repository_proof(unit):
@@ -1296,6 +1301,8 @@ def offload_repository_proof(unit):
 
     if not inside(common) or not all(inside(tree) for tree in trees):
         raise ValueError("its git directory or another of its work trees is outside it")
+    if any(not GIT_LAYOUT.fullmatch(entry.name) and entry not in trees for entry in common.iterdir()):
+        raise ValueError("its git directory holds files outside git's own layout")
     for directory, names, leaves in os.walk(unit, followlinks=False):
         path = Path(directory)
         if path in trees:

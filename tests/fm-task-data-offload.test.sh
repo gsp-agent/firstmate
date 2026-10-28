@@ -426,8 +426,8 @@ def check_lanes_join_their_repository(variant):
         assert restored(home, pointer, "set") == before
     assert snapshot(home / "Trash/set") == before
 
-def check_bare_worktree_inside_archived():
-    home = fixture("repo-bare-worktree")
+def bare_clone(name):
+    home = fixture(name)
     task = home / "data/task-one"
     (task / "report.md").write_text("Completed.\n")
     seed = home / "user/seed"
@@ -439,6 +439,10 @@ def check_bare_worktree_inside_archived():
     git("clone", "-q", "--bare", home / "user/forge.git", repo)
     git("--git-dir", repo, "remote", "set-url", "origin", FORGE)
     forge(home, repo)
+    return home, repo
+
+def check_bare_worktree_inside_archived():
+    home, repo = bare_clone("repo-bare-worktree")
     git("--git-dir", repo, "worktree", "add", "-q", repo / "wt", "main")
     (repo / "wt/work.txt").write_text("uncommitted edit\n")
     (repo / "wt/notes.txt").write_text("untracked work\n")
@@ -446,6 +450,19 @@ def check_bare_worktree_inside_archived():
     result = run(home, "offload")
     assert [(item["path"], item.get("archive")) for item in result["offloaded"]] == [("repo.git", "tar")], result
     assert restored(home, json.loads(repo.read_text()), "repo.git") == before
+
+def check_git_dir_stray_archived(kind):
+    if kind == "bare":
+        home, repo = bare_clone("repo-git-dir-stray-bare")
+        git_dir = repo
+    else:
+        home, repo = repo_fixture("repo-git-dir-stray-work-tree")
+        git_dir = repo / ".git"
+    (git_dir / "notes.md").write_text("notes a tool wrote inside the git directory\n")
+    before = snapshot(repo)
+    result = run(home, "offload")
+    assert [(item["path"], item.get("archive")) for item in result["offloaded"]] == [(repo.name, "tar")], result
+    assert restored(home, json.loads(repo.read_text()), repo.name) == before
 
 def check_outside_parent_worktree_archived():
     home = fixture("repo-outside-parent")
@@ -529,6 +546,10 @@ regressions.extend([("a refused repository offload keeps the repository and no a
                     ("a repository and a lane with untracked work are offloaded whole as one folder",
                      lambda: check_lanes_join_their_repository("untracked")),
                     ("a bare clone with a dirty worktree inside it is offloaded whole", check_bare_worktree_inside_archived),
+                    ("a bare clone with a stray file in its git directory is offloaded whole",
+                     lambda: check_git_dir_stray_archived("bare")),
+                    ("a clone with a stray file in its .git is offloaded whole",
+                     lambda: check_git_dir_stray_archived("work-tree")),
                     ("a worktree of a repository outside DATA is offloaded whole as files", check_outside_parent_worktree_archived),
                     ("a worktree of a repository in another task stays", check_other_task_worktree_kept),
                     ("an offload stopped with TERM releases the task meta lock", check_interrupted_offload_releases_lock),
