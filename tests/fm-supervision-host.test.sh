@@ -174,13 +174,20 @@ HOMES_FILE="$TMP_ROOT/homes"
 # (test_home_teardown_leaves_no_arm_or_watcher_running). A successor a host
 # left for main is in no host record: the home-scoped stop that follows claims
 # that covering arm and stops it and the home's watcher, each by its recorded
-# identity.
+# identity. The Claude Stop hook runs again a host that a signal ended, so the
+# hook running this host is stopped first, as Claude ends a session's hooks: it
+# then exits once its host is gone, and the session can see session.stop.
 stop_home_processes() {  # <home>
-  local home=$1 pid arms='' cover watcher arm_bin i=0
+  local home=$1 pid arms='' cover watcher arm_bin hook i=0
   cover=$(cut -f1 "$home/state/.watch-cover" 2>/dev/null || true)
   if [ -f "$home/state/.supervision-host" ]; then
     arms=$(awk -F '\t' '$1 == "arm" { print $2 }' "$home/state/.supervision-host")
     pid=$(awk -F '\t' '$1 == "host" { print $2; exit }' "$home/state/.supervision-host")
+    hook=
+    [ -z "$pid" ] || hook=$(parent_of "$pid")
+    if [ -n "$hook" ] && ps -o command= -p "$hook" 2>/dev/null | grep -q 'fm-claude-stop-autoarm\.sh'; then
+      kill -TERM "$hook" 2>/dev/null || true
+    fi
     [ -z "$pid" ] || kill -TERM "$pid" 2>/dev/null || true
     while [ "$i" -lt 50 ] && [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; do
       sleep 0.1
