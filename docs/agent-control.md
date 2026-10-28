@@ -103,6 +103,8 @@ A relaunch does take one session reference when the endpoint's own runtime recor
    A ship or scout replacement onto Grok also refuses here on an unreadable [Grok worker skills file](configuration.md#grok-worker-skills-configgrok-worker-skills).
 2. **Safe checkpoint.**
    The recorded worktree must exist and be a worktree root; its head and dirty state are recorded.
+   A ship or scout worktree whose pool-slot owner claim ([`bin/fm-wake-lib.sh`](../bin/fm-wake-lib.sh)) names another task was reassigned to that task, so relaunch refuses here and names the claimant; `bin/fm-spawn.sh --relaunch` repeats that refusal for a direct caller.
+   A secondmate's home is leased to it rather than claimed, so an older claim beside it is stale and does not refuse; the home marker below proves whose it is.
    For a `kind=secondmate` task, the home's identity marker must match and its child records must be readable, so a relaunch can never strand child work behind an unreadable home.
    A secondmate's own crewmates run in their own endpoints and outlive its relaunch; the relaunched secondmate reconciles them from its home's durable records at startup.
 3. **Record the note.**

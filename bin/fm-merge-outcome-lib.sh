@@ -75,14 +75,14 @@ fm_merge_outcome_pm_event_recorded() {  # <status-file> <task-id> <canonical-pr-
 # `alive` worker (fm_backend_agent_state) gets the pending-verification note.
 # Every other verdict gets a blocked line naming the backend, endpoint and
 # verdict. It names bin/fm-control.sh <id> relaunch only for `dead`, or for
-# `missing` on herdr, the verdicts that relaunch can recover; any other line
-# says why relaunch would refuse and what to check. Relaunch takes the
+# `missing` on herdr, provided its slot is not claimed by another task. Any
+# other line says why relaunch would refuse and what to check. Relaunch takes the
 # metadata lock itself and cannot bind an expected generation, so the live PM
 # drives it. The blocked line is the handoff and succeeds, so the outcome
 # commits its marker and the poll retires.
 fm_merge_outcome_pm_handoff() {  # <state> <task-id> <canonical-pr-url> [data-dir]
   local state=$1 id=$2 url=$3 data=${4-} meta lock generation line archive rc=0
-  local backend target owner_state recovery
+  local backend target owner_state recovery worktree
   meta="$state/$id.meta"
   lock=$(fm_meta_lock_path "$meta") || return 1
   fm_lock_acquire_wait "$lock" || return 1
@@ -115,7 +115,13 @@ fm_merge_outcome_pm_handoff() {  # <state> <task-id> <canonical-pr-url> [data-di
       case "$owner_state:$backend" in
         alive:*) recovery= ;;
         dead:*|missing:herdr)
-          recovery="relaunch it with bin/fm-control.sh $id relaunch --note 'Merged $url; activation and live verification remain pending'" ;;
+          worktree=$(fm_meta_get "$meta" worktree)
+          fm_treehouse_slot_owner_state "$worktree" "$id"
+          if [ "$FM_TREEHOUSE_SLOT_OWNER" = other ]; then
+            recovery="relaunch would refuse because its recorded worktree '$worktree' is claimed by task $FM_TREEHOUSE_SLOT_OWNER_ID; reconcile the task's worktree before recovery"
+          else
+            recovery="relaunch it with bin/fm-control.sh $id relaunch --note 'Merged $url; activation and live verification remain pending'"
+          fi ;;
         missing:*)
           recovery="relaunch would refuse because $backend cannot prove that endpoint is gone; find it on the $backend server that owns it and confirm whether its worker still runs" ;;
         unverified:*)

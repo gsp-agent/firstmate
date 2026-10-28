@@ -24,10 +24,11 @@ make_state() {
   printf '%s\n' "$dir"
 }
 
-write_pm_task() {  # <state> <url> [spawn-generation] [backend]
+write_pm_task() {  # <state> <url> [spawn-generation] [backend] [worktree]
   local state=$1 url=$2 generation=${3:-first} backend=${4-}
   {
     printf 'project=example\n'
+    [ -z "${5-}" ] || printf 'worktree=%s\n' "$5"
     [ -z "$backend" ] || printf 'backend=%s\n' "$backend"
     printf 'window=%s/demo\nspawn_gen=%s\npr=%s\n' "$state" "$generation" "$url"
   } > "$state/demo.meta"
@@ -286,6 +287,34 @@ test_merge_after_close_tells_the_pm_instead_of_handing_off_into_nothing() {
   pass "a merge that reaches a closed task tells its live PM, never hands off into nothing, and binds only the archived PR"
 }
 
+test_merge_recovery_respects_slot_claim() {
+  local dir state url owner line verdict backend
+  url=https://github.com/example/repo/pull/80
+  for verdict in dead:tmux missing:herdr; do
+    backend=${verdict#*:}
+    for owner in another-task demo absent; do
+      dir=$(make_state "claim-$owner-$backend")
+      state="$dir/home/state"
+      mkdir -p "$dir/slot/repo"
+      write_pm_task "$state" "$url" first "$backend" "$dir/slot/repo"
+      printf '%s\n' "${verdict%%:*}" > "$state/demo.agent-state"
+      if [ "$owner" != absent ]; then
+        printf 'task=%s\nhome=%s\n' "$owner" "$dir/home" > "$dir/slot/.fm-slot-owner"
+      fi
+      FM_STATE_OVERRIDE="$state" fm_merge_outcome_report "$dir/home" "$state" demo "$url" poll 2>"$dir/err" \
+        || fail "slot claim prevented merge outcome publication: $(cat "$dir/err")"
+      line=$(tail -n 1 "$state/demo.status")
+      if [ "$owner" = another-task ]; then
+        case "$line" in *"bin/fm-control.sh demo relaunch"*) fail "reassigned slot recommended relaunch: $line" ;; esac
+        assert_contains "$line" "claimed by task another-task" "handoff omitted the claimant"
+      else
+        assert_contains "$line" "relaunch it with bin/fm-control.sh demo relaunch --note" "compatible claim lost recovery advice"
+      fi
+    done
+  done
+  pass "merge recovery omits relaunch for reassigned slots and retains it for own or absent claims"
+}
+
 # A worker that is not confirmed alive cannot own activation and live
 # verification. Its live PM gets one blocked line naming the backend, endpoint
 # and verdict; it names the relaunch only where relaunch can recover the
@@ -359,6 +388,7 @@ test_merge_without_live_owner_blocks_the_pm() {
   pass "a worker that is not alive gets one blocked PM handoff that names only a relaunch that can work, commits its marker, and is never re-judged on replay"
 }
 
+test_merge_recovery_respects_slot_claim
 test_merge_without_live_owner_blocks_the_pm
 test_pm_live_proof_reading
 test_merged_outcome_skips_main_queue_for_live_pm

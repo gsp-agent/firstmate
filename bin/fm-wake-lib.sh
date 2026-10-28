@@ -1796,11 +1796,9 @@ fm_treehouse_configured_pool() {  # <project-dir>
 # created it. A worktree of the project's own clone is listed by the
 # project's own `git worktree list`; a slot is free when Treehouse's state
 # records no live owner process and no durable lease for it, and no
-# Firstmate slot-owner claim names a task for it. It must also pass the
-# allocator's reuse test the caller cannot undo by entering it directly:
-# a clean worktree whose HEAD is already in the fetched reset target, so
-# the spawn's base freshen never has to refuse residue or reset away
-# commits. The lowest slot name wins so the choice is stable.
+# Firstmate slot-owner claim names a task for it. It must also pass
+# fm_treehouse_slot_reusable's reuse test, which the caller cannot undo by
+# entering it directly. The lowest slot name wins so the choice is stable.
 # A candidate qualifies only in the pool `treehouse status --json` reports
 # for the project: `git worktree list` names own-clone slots in every pool,
 # while the caller's `treehouse enter <name>` resolves that name only in
@@ -1818,7 +1816,7 @@ fm_treehouse_configured_pool() {  # <project-dir>
 # still refuses a foreign-clone slot.
 fm_treehouse_free_own_slot() {  # <project-dir> [<base-branch>]
   local project=$1 base=${2:-} listed line wt slot pool state owner_pid lease_line marker name best="" best_key=""
-  local target_branch="" target_ref="" target_ready=0 status candidate configured=""
+  local target_ref="" configured=""
   command -v jq >/dev/null 2>&1 || return 0
   configured=$(fm_treehouse_configured_pool "$project") || return 0
   listed=$(git -C "$project" -c core.quotePath=false worktree list --porcelain 2>/dev/null) || return 0
@@ -1848,30 +1846,10 @@ fm_treehouse_free_own_slot() {  # <project-dir> [<base-branch>]
     if [ -e "$marker" ] || [ -L "$marker" ]; then
       continue
     fi
-    if [ "$target_ready" -eq 0 ]; then
-      target_branch=$base
-      if [ -z "$target_branch" ]; then
-        target_branch=$(git -C "$project" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || true)
-        target_branch=${target_branch#origin/}
-      fi
-      if [ -z "$target_branch" ]; then
-        for candidate in main master; do
-          if git -C "$project" show-ref --verify --quiet "refs/heads/$candidate"; then
-            target_branch=$candidate
-            break
-          fi
-        done
-      fi
-      if [ -z "$target_branch" ] ||
-        ! git -C "$wt" fetch --quiet origin "+refs/heads/$target_branch:refs/remotes/origin/$target_branch" </dev/null 2>/dev/null; then
-        return 0
-      fi
-      target_ref="origin/$target_branch"
-      target_ready=1
+    if [ -z "$target_ref" ]; then
+      target_ref=$(fm_treehouse_reset_target "$project" "$wt" "$base") || return 0
     fi
-    status=$(git -C "$wt" -c core.quotePath=false status --porcelain 2>/dev/null) || continue
-    [ -z "$status" ] || continue
-    git -C "$wt" merge-base --is-ancestor HEAD "$target_ref" 2>/dev/null || continue
+    fm_treehouse_slot_reusable "$wt" "$target_ref" || continue
     case "$name" in
       *[!0-9]* | "") name=999999 ;;
     esac
@@ -1883,6 +1861,40 @@ fm_treehouse_free_own_slot() {  # <project-dir> [<base-branch>]
 $listed
 EOF
   [ -z "$best" ] || printf '%s\n' "$best"
+}
+
+# fm_treehouse_reset_target: fetch the branch a reused slot is reset to into
+# <worktree>'s clone and print it as origin/<branch>: <base-branch> when
+# given, else origin's default branch, else a local main or master. Returns
+# 1 when no target can be resolved or fetched.
+fm_treehouse_reset_target() {  # <project-dir> <worktree> [<base-branch>]
+  local project=$1 wt=$2 target_branch=${3:-} candidate
+  if [ -z "$target_branch" ]; then
+    target_branch=$(git -C "$project" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || true)
+    target_branch=${target_branch#origin/}
+  fi
+  if [ -z "$target_branch" ]; then
+    for candidate in main master; do
+      if git -C "$project" show-ref --verify --quiet "refs/heads/$candidate"; then
+        target_branch=$candidate
+        break
+      fi
+    done
+  fi
+  [ -n "$target_branch" ] || return 1
+  git -C "$wt" fetch --quiet origin "+refs/heads/$target_branch:refs/remotes/origin/$target_branch" </dev/null 2>/dev/null || return 1
+  printf 'origin/%s\n' "$target_branch"
+}
+
+# fm_treehouse_slot_reusable: true when <worktree> passes the allocator's
+# reuse test: it is clean and its HEAD is already in <target-ref> (from
+# fm_treehouse_reset_target), so the spawn's base freshen never has to
+# refuse residue or reset away commits.
+fm_treehouse_slot_reusable() {  # <worktree> <target-ref>
+  local wt=$1 target_ref=$2 status
+  status=$(git -C "$wt" -c core.quotePath=false status --porcelain 2>/dev/null) || return 1
+  [ -z "$status" ] || return 1
+  git -C "$wt" merge-base --is-ancestor HEAD "$target_ref" 2>/dev/null
 }
 
 # Claim a pool slot for a task, replacing whatever the previous holder left.

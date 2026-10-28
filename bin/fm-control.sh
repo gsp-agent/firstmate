@@ -94,6 +94,9 @@
 #              The same pre-stop refusal applies to this home's worker tool
 #              exclusions (bin/fm-exclude-tools-lib.sh): a malformed list, or a
 #              replacement runtime that cannot hide the listed tools.
+#              So does a ship or scout worktree whose pool-slot claim names
+#              another task: that slot was reassigned and is not this task's.
+#              A secondmate's leased home is proven by its home marker instead.
 #              A ship or scout relaunch also resolves config/crew-dispatch.json
 #              here, before the old agent stops (docs/configuration.md "Crew
 #              dispatch profiles"). The pair that file adopts is the pair the
@@ -1622,6 +1625,11 @@ safe_checkpoint() {
   CHECKPOINT_LINES=()
   [ -n "$WT" ] || die "task $ID has no recorded worktree; refusing to relaunch without a recorded local copy to preserve"
   [ -d "$WT" ] || die "task $ID's recorded worktree $WT is missing; refusing to relaunch and lose track of its work"
+  if [ "$KIND" != secondmate ]; then
+    fm_treehouse_slot_owner_state "$WT" "$ID"
+    [ "$FM_TREEHOUSE_SLOT_OWNER" != other ] \
+      || die "task $ID's recorded worktree '$WT' is claimed by task $FM_TREEHOUSE_SLOT_OWNER_ID; refusing to relaunch into a reassigned slot"
+  fi
   wt_real=$(cd "$WT" 2>/dev/null && pwd -P) || die "task $ID's recorded worktree $WT cannot be resolved"
   wt_top=$(git -C "$WT" rev-parse --show-toplevel 2>/dev/null) \
     || die "task $ID's recorded worktree $WT is not a git worktree; refusing to relaunch without a checkout whose unlanded work can be accounted for"

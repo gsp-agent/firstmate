@@ -126,6 +126,10 @@
 #   unless the recorded endpoint is positively agent-free on a backend with a
 #   recovery-grade agent-state classifier (tmux or herdr), and clears the
 #   previous harness's per-task wiring before arming the new incarnation.
+#   A ship or scout relaunch also refuses a recorded worktree claimed by another
+#   task; its own claim or a pre-claim slot without a claim keeps the existing
+#   relaunch behavior. The claim is rechecked under the project allocation lock,
+#   held through launch delivery. A secondmate's leased home is proven by its home marker.
 #   Two verdicts are agent-free: a `dead` endpoint is
 #   ADOPTED as-is, while an endpoint PROVEN gone is RE-CREATED in the recorded
 #   worktree and the republished record rebinds the task to it. That proof is
@@ -1592,6 +1596,7 @@ SPAWN_SLOT_CLAIMED=0
 SPAWN_SLOT_REFUSAL=0
 SPAWN_SKIP_LEASES=
 SPAWN_TARGET_LEASE=
+SPAWN_TARGET_CLAIMED=0
 RELAUNCH_REPLACEMENT_PENDING=0
 # A relaunch of an old-clone ship starts in a fresh slot of this home's clone
 # (fm_relaunch_live_clone): RELAUNCH_FRESH=1, with the old copy, its HEAD, its
@@ -1808,11 +1813,18 @@ spawn_return_checked_out_ship_slot() {
 # is never returned; a lease left behind on an owned slot is cleared by
 # that task's own teardown return, which returns by path.
 spawn_lease_return_safe() { # <path>
-  local path=$1 marker slot pool state lease_line owner_pid
+  local path=$1 marker
   marker=$(fm_treehouse_slot_owner_marker "$path" 2>/dev/null || true)
   if [ -n "$marker" ] && { [ -e "$marker" ] || [ -L "$marker" ]; }; then
     return 1
   fi
+  spawn_lease_owner_gone "$path"
+}
+
+# True when Treehouse's state records no live owner process for a leased
+# pool slot; a state it cannot read counts as a live owner.
+spawn_lease_owner_gone() { # <path>
+  local path=$1 slot pool state lease_line owner_pid
   slot=$(CDPATH='' cd -- "$path" 2>/dev/null && pwd -P) || return 1
   pool=$(dirname "$(dirname "$slot")")
   state="$pool/treehouse-state.json"
@@ -1829,17 +1841,25 @@ spawn_lease_return_safe() { # <path>
 }
 
 # Release the foreign pool slots this spawn leased while steering the pool
-# allocator toward an own-clone slot (see the treehouse acquisition below).
-# Each one is returned only when it still proves empty, because another
-# task can have claimed or entered a slot since it was leased; the list
-# is cleared so the exit trap's second call is a no-op.
+# allocator toward an own-clone slot (see the treehouse acquisition below),
+# and the claimed slot steering skipped. Each one is returned only when it
+# still proves empty, because another task can have claimed or entered a
+# slot since it was leased; a slot another task claims is returned only
+# when it is also clean, so the return resets no uncommitted work away
+# (the claimed commit stays on its branch), and a dirty one keeps the
+# lease until that task's own teardown return. The return names this
+# spawn as the lease holder, so a lease that changed hands since the
+# check is never returned. The list is cleared so the exit trap's second
+# call is a no-op.
 spawn_release_skip_leases() {
-  local leased
+  local leased worktree_status
   [ -n "$SPAWN_SKIP_LEASES" ] || return 0
   while IFS= read -r leased; do
     [ -n "$leased" ] || continue
-    if spawn_lease_return_safe "$leased"; then
-      (cd "$PROJ_ABS" 2>/dev/null && treehouse return "$leased" >/dev/null 2>&1 </dev/null) || true
+    if spawn_lease_return_safe "$leased" ||
+      { worktree_status=$(git -C "$leased" -c core.quotePath=false status --porcelain 2>/dev/null) &&
+        [ -z "$worktree_status" ] && spawn_lease_owner_gone "$leased"; }; then
+      (cd "$PROJ_ABS" 2>/dev/null && treehouse return --if-lease-holder "fm-spawn-$ID" "$leased" >/dev/null 2>&1 </dev/null) || true
     fi
   done <<EOF
 $SPAWN_SKIP_LEASES
@@ -1973,6 +1993,9 @@ spawn_abort_cleanup() {
     if spawn_slot_checked_out_ship_branch; then
       if ! spawn_return_checked_out_ship_slot; then
         status=1
+      elif [ -n "$SPAWN_TARGET_LEASE" ] && [ "$WT" -ef "$SPAWN_TARGET_LEASE" ]; then
+        SPAWN_TARGET_LEASE=
+        SPAWN_TARGET_CLAIMED=0
       fi
     else
       SPAWN_SLOT_CLAIMED=0
@@ -1987,7 +2010,20 @@ spawn_abort_cleanup() {
   # launched is handed back under the same proof of emptiness, after the
   # claim above has had its chance to be released; a launched task's slot
   # is its teardown's to return, and a surviving task record's claim keeps
-  # this guard from touching its slot.
+  # this guard from touching its slot. A target chosen from a claimed slot
+  # already carries this task's claim, written when the slot was chosen,
+  # so that claim is released first, but only while the project lock that
+  # wrote it is still held and the settled-slot handling above has not
+  # kept the claim by refusing to return the slot. The release removes
+  # only this task's claim, and the proof of emptiness below still
+  # refuses a slot with a live owner.
+  if [ "$status" -ne 0 ] && [ -n "$SPAWN_TARGET_LEASE" ] &&
+    [ "$SPAWN_LAUNCH_SENT" = 0 ] && [ "$SPAWN_TARGET_CLAIMED" = 1 ] &&
+    [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" = 1 ] &&
+    { [ "$SPAWN_SLOT_CLAIMED" != 1 ] || ! [ "${WT:-}" -ef "$SPAWN_TARGET_LEASE" ]; }; then
+    fm_treehouse_slot_owner_release "$SPAWN_TARGET_LEASE" "$ID" || true
+    SPAWN_TARGET_CLAIMED=0
+  fi
   if [ "$status" -ne 0 ] && [ -n "$SPAWN_TARGET_LEASE" ] &&
     [ "$SPAWN_LAUNCH_SENT" = 0 ] &&
     spawn_lease_return_safe "$SPAWN_TARGET_LEASE"; then
@@ -2741,6 +2777,11 @@ if [ "$RELAUNCH" -eq 1 ]; then
     FIRSTMATE_HOME=$(fm_meta_get "$RELAUNCH_META" home)
     [ -n "$FIRSTMATE_HOME" ] || FIRSTMATE_HOME=$RELAUNCH_WT
   else
+    fm_treehouse_slot_owner_state "$RELAUNCH_WT" "$ID"
+    if [ "$FM_TREEHOUSE_SLOT_OWNER" = other ]; then
+      echo "error: task $ID's recorded worktree '$RELAUNCH_WT' is claimed by task $FM_TREEHOUSE_SLOT_OWNER_ID; refusing to relaunch into a reassigned slot" >&2
+      exit 1
+    fi
     PROJ=$(fm_meta_get "$RELAUNCH_META" project)
     [ -n "$PROJ" ] || {
       echo "error: task $ID has no recorded project; refusing to relaunch" >&2
@@ -4139,8 +4180,8 @@ if [ "$RELAUNCH" -eq 0 ] && [ "$KIND" != secondmate ]; then
   SPAWN_PROJECT_CAPACITY=$FM_PROJECT_CAPACITY
   SPAWN_PROJECT_CAPACITY_ANY=$FM_PROJECT_CAPACITY_ANY
 fi
-if { [ "$RELAUNCH" -eq 0 ] || [ "$RELAUNCH_FRESH" = 1 ]; } && [ "$KIND" != secondmate ] &&
-  { [ "$BACKEND" != orca ] || [ -n "$SPAWN_PROJECT_CAPACITY_ANY" ]; }; then
+if [ "$KIND" != secondmate ] &&
+  { [ "$RELAUNCH" -eq 1 ] || [ "$BACKEND" != orca ] || [ -n "$SPAWN_PROJECT_CAPACITY_ANY" ]; }; then
   SPAWN_TREEHOUSE_PROJECT_LOCK=$(fm_treehouse_project_lock_path "$PROJ_ABS") || {
     echo "error: could not resolve the shared Treehouse project lock for $PROJ_ABS" >&2
     exit 1
@@ -4154,6 +4195,15 @@ if { [ "$RELAUNCH" -eq 0 ] || [ "$RELAUNCH_FRESH" = 1 ]; } && [ "$KIND" != secon
     exit 1
   fi
   SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=1
+  if [ "$RELAUNCH" -eq 1 ]; then
+    # The early refusal is advisory until allocation is excluded. Keep this
+    # lock through launch delivery so a pre-claim slot cannot change hands.
+    fm_treehouse_slot_owner_state "$RELAUNCH_WT" "$ID"
+    if [ "$FM_TREEHOUSE_SLOT_OWNER" = other ]; then
+      echo "error: task $ID's recorded worktree '$RELAUNCH_WT' is claimed by task $FM_TREEHOUSE_SLOT_OWNER_ID; refusing to relaunch into a reassigned slot" >&2
+      exit 1
+    fi
+  fi
 fi
 if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
   if ! fm_project_capacity_occupants "$SPAWN_TREEHOUSE_PROJECT_LOCK" "$PROJ_ABS" "$STATE" "$ID"; then
@@ -5865,10 +5915,20 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
     # leases - or, with no free slot left, creates - a slot of this clone.
     # That slot is the target, entered by name below; the foreign leases are
     # released once the pane settles, and the target's lease is released by
-    # the task's own teardown return like any other slot. A slot another
-    # task has claimed (its worker may be starting) is released at once and
-    # ends the steering: the plain `treehouse get` below, behind the same
-    # candidate screening, owns that case. 64 leases bound the loop.
+    # the task's own teardown return like any other slot. A slot carrying
+    # another task's claim ends the steering. Treehouse handed it out as
+    # free, as the plain `treehouse get` would, so an own-clone one that
+    # passes the reuse test becomes the target. Its claim is written for
+    # this task at once, under the project lock already held, rather than
+    # only after the pane settles. That early claim is what lets an abort
+    # before the pane settles release this task's claim and then hand the
+    # lease back under the usual proof of emptiness, instead of leaving
+    # the lease on a slot whose claim still names the finished task. Any
+    # other claimed slot is skipped and the plain `treehouse get` below,
+    # behind the same candidate screening, owns that case; its lease is
+    # handed back by the guarded skip-lease release when the slot proves
+    # empty and clean, and otherwise stays until the slot is returned.
+    # 64 leases bound the loop.
     SPAWN_LEASE_SEEN=
     SPAWN_LEASE_COUNT=0
     while [ "$SPAWN_LEASE_COUNT" -lt 64 ]; do
@@ -5883,11 +5943,23 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
       SPAWN_LEASE_MARKER=$(fm_treehouse_slot_owner_marker "$SPAWN_LEASED" 2>/dev/null || true)
       if [ -n "$SPAWN_LEASE_MARKER" ] &&
         { [ -e "$SPAWN_LEASE_MARKER" ] || [ -L "$SPAWN_LEASE_MARKER" ]; }; then
-        # Another task's slot: never returned here (`treehouse return`
-        # kills the processes inside it). It joins the skip list, whose
-        # guarded release leaves an owned slot alone.
-        SPAWN_SKIP_LEASES="$SPAWN_SKIP_LEASES$SPAWN_LEASED
+        if [ -f "$SPAWN_LEASE_MARKER" ] && [ ! -L "$SPAWN_LEASE_MARKER" ] &&
+          [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" = 1 ] &&
+          fm_treehouse_pool_slot "$PROJ_ABS" "$SPAWN_LEASED" &&
+          SPAWN_LEASE_RESET=$(fm_treehouse_reset_target "$PROJ_ABS" "$SPAWN_LEASED" "$BASE_BRANCH") &&
+          fm_treehouse_slot_reusable "$SPAWN_LEASED" "$SPAWN_LEASE_RESET" &&
+          fm_treehouse_slot_owner_claim "$SPAWN_LEASED" "$ID" "$FM_HOME"; then
+          SPAWN_ENTER_SLOT=$SPAWN_LEASED
+          SPAWN_TARGET_LEASE=$SPAWN_LEASED
+          SPAWN_TARGET_CLAIMED=1
+        else
+          # Never returned here (`treehouse return` kills the processes
+          # inside it). It joins the skip list, whose guarded release
+          # hands it back only when it proves empty and clean, and
+          # leaves a dirty claimed slot alone.
+          SPAWN_SKIP_LEASES="$SPAWN_SKIP_LEASES$SPAWN_LEASED
 "
+        fi
         break
       fi
       if fm_treehouse_pool_slot "$PROJ_ABS" "$SPAWN_LEASED"; then
@@ -6876,7 +6948,8 @@ spawn_report_preserved_state() {
 # still being delivered, cannot observe or complete a fresh provisional record
 # between its state check and `tasks-axi start`, and a delivery failure cannot
 # follow a committed In-flight transition.
-if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" = 1 ]; then
+# A relaunch retains the allocation lock until exit, after launch delivery.
+if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" = 1 ] && [ "$RELAUNCH" -eq 0 ]; then
   SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=0
   fm_lock_release "$SPAWN_TREEHOUSE_PROJECT_LOCK"
 fi
