@@ -1,0 +1,2 @@
+# Failing-first cases in tests/fm-watch-arm.test.sh (test_arm_exits_when_its_world_is_removed) and tests/fm-supervision-host.test.sh (test_home_teardown_leaves_no_arm_or_watcher_running): both fail on a5fa9d57 and pass here; the watch-arm case also passes on this branch.
+pr: 166

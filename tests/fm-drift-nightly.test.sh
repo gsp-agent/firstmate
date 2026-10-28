@@ -441,7 +441,7 @@ test_proven_patch_built_on_unproven_change_is_drift_not_a_check_error() {
   expect_code 1 "$CHECK_RC" "a proven patch that only applies on unproven work exits 1, not 2: $CHECK_ERR"
   assert_contains "$CHECK_OUT" 'path-drift: notes.txt' "the stacked proven patch is reported as drift"
   assert_contains "$CHECK_OUT" 'path-ok: kept.txt' "a later independent proven patch is still accepted"
-  assert_contains "$CHECK_OUT" "unproven: $kept proven first line (#7)" "the stacked proven commit is not reported as keep"
+  assert_contains "$CHECK_OUT" "keep: $kept proven first line (#7)" "the stacked commit keeps its entry class and is named by the error line"
   assert_contains "$CHECK_OUT" "keep: $later independent proven file (#8)" "the later independent commit is still reported as keep"
   assert_contains "$CHECK_OUT" "error: proof patch conflicts for PR 7: $kept" "the conflicting proof is named with its PR and commit"
   pass "a proven patch built on unproven work is drift with a named error, not a check failure"

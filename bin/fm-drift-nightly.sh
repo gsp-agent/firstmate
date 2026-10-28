@@ -25,6 +25,13 @@
 # carried commits are never replayed on their own and inherit the carrying
 # PR's class. A path is path-ok only when its fork content and mode match
 # the resulting tree.
+# A proven patch that conflicts when replayed on the accepted tree - because
+# it was built on unproven work in the same hunks - proves only its clean
+# hunks.
+# Its conflicted paths keep their accepted content and are path-drift, and
+# one error line names its PR and commit.
+# Later proven patches still replay, so one stacked proof cannot stop the
+# whole report.
 # Missing accepted changes and extra changes are path-drift. Rename detection
 # is disabled so a deletion cannot disappear into a rename onto a proven file.
 # No file is exempt, including the guard and proof files.
@@ -35,7 +42,8 @@
 # "Merge PR #N", "Merge PR N", or a trailing "(#N)" in the commit subject.
 # A first-parent commit with no parseable PR number is never accepted for replay.
 # Exit 0 when no path-drift line is printed and every numbered first-parent
-# PR has a proof entry, 1 on either mismatch, and 2 on usage or git failure.
+# PR has a proof entry, 1 on either mismatch or a conflicting proof patch,
+# and 2 on usage or git failure.
 # Unnumbered first-parent commits whose changes are later cut do not fail
 # the check. behind is reported and does not change the exit code.
 #
@@ -240,13 +248,39 @@ classify_commits() {
 
 replay_proof() {
   EXPECTED_TREE=$(git -C "$REPO" rev-parse "${base}^{tree}") || die "cannot read the merge-base tree"
+  PROOF_CONFLICTS='|'
   classify_commits
-  local sha parent _rest line
+  local sha parent _rest line subject pr merged rc tree_oid path entry
   while read -r line; do
     sha=${line%% *}
     case $KEEP_SHAS in *"|$sha|"*) ;; *) case $PENDING_SHA_BEADS in *"|$sha="*) ;; *) continue ;; esac ;; esac
     parent=$(git -C "$REPO" rev-parse "$sha^") || die "cannot read proof parent: $sha"
-    EXPECTED_TREE=$(git -C "$REPO" merge-tree --write-tree --no-messages --merge-base="$parent" "$EXPECTED_TREE" "$sha") || die "proof patch conflicts without unproven changes: $sha"
+    rc=0
+    merged=$(git -C "$REPO" merge-tree --write-tree --no-messages --merge-base="$parent" "$EXPECTED_TREE" "$sha" 2>/dev/null) || rc=$?
+    if [ "$rc" -eq 0 ]; then
+      EXPECTED_TREE=$merged
+      continue
+    fi
+    [ "$rc" -eq 1 ] || die "git merge-tree failed for $sha"
+    subject=${line#* }
+    pr=$(pr_number "$subject") || die "cannot read the PR number of $sha"
+    PROOF_CONFLICTS="${PROOF_CONFLICTS}${pr}=${sha}|"
+    printf '%s\n' "$merged" > "$CHECK_TMP/merged" || die "cannot write the merged tree"
+    tree_oid=$(head -n 1 "$CHECK_TMP/merged")
+    GIT_INDEX_FILE="$CHECK_TMP/index" git -C "$REPO" read-tree "$tree_oid" || die "cannot read the merged tree for $sha"
+    tail -n +2 "$CHECK_TMP/merged" | cut -f2- > "$CHECK_TMP/conflicted"
+    while IFS= read -r path; do
+      [ -n "$path" ] || continue
+      entry=$(git -C "$REPO" ls-tree "$EXPECTED_TREE" -- "$path") || die "cannot read $path in the accepted tree"
+      if [ -n "$entry" ]; then
+        # shellcheck disable=SC2086
+        set -- $entry
+        GIT_INDEX_FILE="$CHECK_TMP/index" git -C "$REPO" update-index --add --cacheinfo "$1,$3,$path" || die "cannot restore $path in the accepted tree"
+      else
+        GIT_INDEX_FILE="$CHECK_TMP/index" git -C "$REPO" update-index --force-remove -- "$path" || die "cannot remove $path from the accepted tree"
+      fi
+    done < "$CHECK_TMP/conflicted"
+    EXPECTED_TREE=$(GIT_INDEX_FILE="$CHECK_TMP/index" git -C "$REPO" write-tree) || die "cannot write the accepted tree for $sha"
   done < "$CHECK_TMP/fp"
 }
 
@@ -364,12 +398,12 @@ cmd_check() {
   fork=$fork_sha
   upstream=$upstream_sha
   CHECK_TMP=$(mktemp -d "${TMPDIR:-/tmp}/fm-drift.XXXXXX") || die "cannot create a temporary directory"
-  trap 'rm -f -- "$CHECK_TMP/proof" "$CHECK_TMP/entry" "$CHECK_TMP/paths" "$CHECK_TMP/commits" "$CHECK_TMP/fp"; rmdir -- "$CHECK_TMP"' EXIT
+  trap 'rm -f -- "$CHECK_TMP/proof" "$CHECK_TMP/entry" "$CHECK_TMP/paths" "$CHECK_TMP/commits" "$CHECK_TMP/fp" "$CHECK_TMP/merged" "$CHECK_TMP/conflicted" "$CHECK_TMP/index"; rmdir -- "$CHECK_TMP"' EXIT
   if [ -z "$PROOF" ]; then
     collect_tree_proof "$fork"
     PROOF=$CHECK_TMP/proof
   fi
-  local base behind ahead path sha subject parents bead pr drift=0
+  local base behind ahead path sha subject parents bead pr drift=0 conflict
   base=$(git -C "$REPO" merge-base "$fork" "$upstream") || die "no merge-base for $fork and $upstream"
   behind=$(git -C "$REPO" rev-list --count "$fork..$upstream") || die "behind count failed"
   ahead=$(git -C "$REPO" rev-list --count "$upstream..$fork") || die "ahead count failed"
@@ -409,6 +443,10 @@ cmd_check() {
       printf 'error: missing manifest entry for PR %s\n' "$pr"
       drift=1
     fi
+  done
+  for conflict in $(printf '%s' "$PROOF_CONFLICTS" | tr '|' ' '); do
+    printf 'error: proof patch conflicts for PR %s: %s\n' "${conflict%%=*}" "${conflict#*=}"
+    drift=1
   done
   for pr in $(printf '%s' "$KEEP_PRS$PENDING_PRS" | tr '|' ' '); do
     case $SEEN_PRS in *"|$pr|"*) ;; *) printf 'unmatched: %s\n' "$pr" ;; esac
