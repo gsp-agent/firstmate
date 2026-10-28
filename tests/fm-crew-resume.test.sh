@@ -40,16 +40,19 @@ test_codex_session_id_finds_only_the_new_matching_worktree_rollout() {
     > "$day/rollout-2026-10-28T00-00-00-old-id.jsonl"
   printf '%s\n' '{"type":"session_meta","payload":{"id":"other-id","cwd":"'"$other"'"}}' \
     > "$day/rollout-2026-10-28T03-00-00-other-id.jsonl"
-  printf '%s\n' '{"type":"session_meta","payload":{"id":"new-id","cwd":"'"$wt"'"}}' \
+  printf '%s\n' '{"type":"session_meta","payload":{"id":"new-id","session_id":"new-id","cwd":"'"$wt"'"}}' \
     > "$day/rollout-2026-10-28T02-00-00-new-id.jsonl"
+  printf '%s\n' '{"type":"session_meta","payload":{"id":"sub-id","session_id":"new-id","cwd":"'"$wt"'","source":{"subagent":{"thread_spawn":{"parent_thread_id":"new-id"}}}}}' \
+    > "$day/rollout-2026-10-28T04-00-00-sub-id.jsonl"
   touch -t 202610280000 "$day/rollout-2026-10-28T00-00-00-old-id.jsonl"
   touch -t 202610280300 "$day/rollout-2026-10-28T03-00-00-other-id.jsonl"
   touch -t 202610280200 "$day/rollout-2026-10-28T02-00-00-new-id.jsonl"
+  touch -t 202610280400 "$day/rollout-2026-10-28T04-00-00-sub-id.jsonl"
   id=$(fm_crew_codex_session_id "$home" "$wt" "$(date -j -f '%Y%m%d%H%M' 202610280130 +%s 2>/dev/null || date -d '2026-10-28 01:30' +%s)")
   [ "$id" = new-id ] || fail "codex discovery returned '$id', expected new-id"
   id=$(fm_crew_codex_session_id "$TMP_ROOT/no-such-home" "$wt" 0) || fail "codex discovery failed on a missing home"
   [ -z "$id" ] || fail "codex discovery invented '$id' from a missing home"
-  pass "codex session discovery finds only the new matching worktree rollout and is quiet on a missing home"
+  pass "codex session discovery finds only the crew's new worktree session, not a newer subagent thread, and is quiet on a missing home"
 }
 
 test_codex_report_is_verified_by_reading_the_pane_back() {

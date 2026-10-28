@@ -3,7 +3,8 @@
 #
 # Codex crew launch with --disable hooks, so Herdr never learns the Codex
 # session from its hook. fm_crew_codex_session_id finds the session Codex
-# itself wrote for this worktree, and fm_crew_report_codex_session reports it
+# itself wrote for this worktree, never a subagent thread (whose session_id
+# names its parent), and fm_crew_report_codex_session reports it
 # to the pane's Herdr server with the exact report Herdr's Codex hook would
 # have sent, then reads the pane's registration back: Herdr can accept a
 # report with rc=0 and never apply it (bin/backends/herdr.sh's
@@ -55,7 +56,9 @@ for root, _dirs, files in os.walk(os.path.join(home, "sessions")):
                 meta = json.loads(fh.readline())
             payload = meta.get("payload") or {}
             sid = payload.get("id") or payload.get("session_id")
-            if sid and payload.get("cwd") and os.path.realpath(payload["cwd"]) == wt:
+            if not sid or payload.get("session_id", sid) != sid:
+                continue
+            if payload.get("cwd") and os.path.realpath(payload["cwd"]) == wt:
                 cand = (os.path.getmtime(path), sid)
                 if best is None or cand > best:
                     best = cand
