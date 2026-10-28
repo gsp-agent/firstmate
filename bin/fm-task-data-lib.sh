@@ -223,6 +223,7 @@ fm_task_data_offload_pass() { # <data> <state>
   [ -e "$(dirname "$data")/config/task-data-offload.json" ] || return 0
   lock="$state/.task-data-offload.lock"
   fm_lock_try_acquire "$lock" || return 0
+  python3 "$(dirname "${BASH_SOURCE[0]}")/fm-task-data.py" offload-leftovers "$data" "$state" || rc=1
   if ! plan=$(python3 "$(dirname "${BASH_SOURCE[0]}")/fm-task-data.py" offload-plan "$data" "$state"); then
     fm_lock_release "$lock"
     return 1

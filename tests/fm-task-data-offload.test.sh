@@ -469,6 +469,22 @@ def check_sweep_offloads(configured):
         assert (build / "evidence.bin").read_bytes() == b"original-evidence" * 256
         assert not (home / "calls").exists(), "an unconfigured sweep contacted the remote"
 
+def check_pass_removes_leftover_archives():
+    home = fixture("sweep-leftover")
+    (home / "data/task-one/report.md").write_text("Completed.\n")
+    leftover = home / "data/task-one/.firstmate-offload-abc123.tar"
+    leftover.write_bytes(b"redundant archive copy")
+    other = home / "data/task-two"
+    other.mkdir()
+    (other / ".firstmate-offload-def456.tar").write_bytes(b"redundant archive copy")
+    (other / "keep.bin").write_bytes(b"not an archive copy")
+    assert run(home, "offload-plan")["moves"] == []
+    run(home, "sweep", raw=True, task=())
+    assert not leftover.exists() and not (other / ".firstmate-offload-def456.tar").exists(), \
+        "a leftover archive copy in a task with no moves stayed"
+    assert (other / "keep.bin").read_bytes() == b"not an archive copy"
+    assert (home / "data/task-one/build/evidence.bin").is_file()
+
 # Collect the independent review regressions so a broken directory copy cannot
 # hide the single-file, retry, or partial-report result on the reviewed head.
 regressions = [("fake directory placement", lambda: check_placement("directory")),
@@ -490,7 +506,8 @@ regressions.extend([("verified existing payload is reused", check_verified_reuse
                     ("an offload stopped with TERM releases the task meta lock", check_interrupted_offload_releases_lock),
                     ("offload never runs a trash from PATH or feeds it stdin", check_trash_never_empties),
                     ("a sweep ends with an offload pass", lambda: check_sweep_offloads(True)),
-                    ("a sweep in a home without a verifier offloads nothing", lambda: check_sweep_offloads(False))])
+                    ("a sweep in a home without a verifier offloads nothing", lambda: check_sweep_offloads(False)),
+                    ("an offload pass removes leftover archive copies in tasks with no moves", check_pass_removes_leftover_archives)])
 if sys.platform == "darwin":
     regressions.extend([("real /usr/bin/rsync directory placement", lambda: check_placement("directory", True)),
                         ("real /usr/bin/rsync single-file placement", lambda: check_placement("file", True))])

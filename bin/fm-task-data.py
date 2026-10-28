@@ -8,6 +8,7 @@ Usage: fm-task-data.py prepare DATA STATE ID [PR]
        fm-task-data.py pending DATA
        fm-task-data.py plan DATA STATE ID
        fm-task-data.py offload-plan DATA STATE [ID]
+       fm-task-data.py offload-leftovers DATA STATE
        bash fm-task-data-lib.sh offload DATA STATE ID
        fm-task-data.py mark DATA ID cut-off|too-large
 Prepare, retire, stage, expire and mark need the caller to hold STATE/.meta-ID.lock, the
@@ -171,8 +172,10 @@ independent-backup rule below, and its pointer adds archive "tar".
 Before writing an archive, offload checks that ssh mini-ts answers and
 MINI-DATA is mounted; if not, it writes nothing and the task waits for the next
 pass. One archive exists at a time, a temporary file in the task folder removed
-through a dcg-checked rm -f right after its move or failure; the next round
-removes a leftover first.
+through a dcg-checked rm -f right after its move or failure. Each offload pass
+first runs offload-leftovers, which removes every leftover copy in any task
+folder whose meta lock is free the same way, moves or not; a refusal waits for
+the next pass.
 A linked worktree of a repository in another task or outside DATA (its index,
 HEAD, reflog and refs live in that repository, outside any archive), a
 repository whose .git is a symlink, a repository with linked worktrees outside
@@ -1257,6 +1260,25 @@ def offload_discard(path):
         guard_command(["rm", "-f", "--", str(path)])
 
 
+def offload_leftovers(data, state):
+    # A leftover copy is always redundant: its unit is either verified, in
+    # Trash and behind a pointer, or still in place. A refusal waits for the
+    # next pass; a task whose meta lock is held may be archiving right now.
+    data, state = real_directory(data, resolve_parent=True), real_directory(state, resolve_parent=True)
+    rc = 0
+    for leftover in sorted(data.glob(f"*/{ARCHIVE}*.tar")):
+        lock = state / f".meta-{leftover.parent.name}.lock"
+        if (not TASK_ID.fullmatch(leftover.parent.name) or leftover.parent.is_symlink()
+                or lock.exists() or lock.is_symlink()):
+            continue
+        try:
+            offload_discard(leftover)
+        except (OSError, ValueError, subprocess.SubprocessError) as error:
+            print(f"warning: leftover archive copy {leftover} stays for the next pass: {error}", file=sys.stderr)
+            rc = 1
+    return rc
+
+
 def offload_archive(root, source):
     # A repository travels as one tar file: the remote and independent
     # manifests accept a single file, and tar keeps .git, symlinks and hard
@@ -1934,11 +1956,13 @@ if __name__ == "__main__":
         sys.exit(0)
     try:
         arities = {"prepare": {5, 6}, "retire": {5, 6}, "stage": {7}, "expire": {5}, "plan": {5}, "pending": {3}, "mark": {5},
-                   "offload-plan": {4, 5}, "offload": {5}}
+                   "offload-plan": {4, 5}, "offload": {5}, "offload-leftovers": {4}}
         if len(sys.argv) < 2 or len(sys.argv) not in arities.get(sys.argv[1], ()):
             raise ValueError(__doc__)
         if sys.argv[1] == "offload-plan":
             offload_plan(*sys.argv[2:])
+        elif sys.argv[1] == "offload-leftovers":
+            sys.exit(offload_leftovers(*sys.argv[2:]))
         elif sys.argv[1] == "offload":
             offload(*sys.argv[2:])
         elif sys.argv[1] == "pending":
