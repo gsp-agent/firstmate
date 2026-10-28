@@ -170,10 +170,11 @@ Every unit is offloaded whole as one tar archive under the copy, checksum and
 independent-backup rule below, and its pointer adds archive "tar". A linked
 worktree whose repository is outside DATA is its own unit; that repository and
 its worktree record are never touched, and git marks the record prunable. Git
-later prunes that record, so such a worktree stays in place when its HEAD,
-HEAD reflog or worktree refs reach a commit no branch or tag of that repository
-has, when its admin folder there holds submodule repositories, or when read-only
-git commands cannot tell.
+later prunes that record, so such a worktree is archived only when read-only
+git commands show its admin folder there holds nothing else: its index matches
+its HEAD, its HEAD and HEAD reflog reach only commits a branch or tag of that
+repository reaches, it has no worktree refs or submodule repositories, and the
+folder holds no unfinished operation or other file. Otherwise it stays.
 Before writing an archive, offload checks that ssh mini-ts answers and
 MINI-DATA is mounted; if not, it writes nothing and the task waits for the next
 pass. One archive exists at a time, a temporary file in the task folder removed
@@ -223,7 +224,7 @@ pointers are no-ops. Recovery copies remain in Trash until its normal expiry;
 restore an original by first moving its pointer aside, never overwriting work;
 a repository archive restores with tar -xf in the pointer's parent directory,
 and an archived worktree of a repository outside DATA restores its files, its
-commits being on that repository's branches and tags.
+commits being on that repository's branches and tags and nothing staged.
 If a later candidate fails, stdout still reports completed moves and total bytes,
 plus the failed task/path/reason; the command retains its nonzero exit status.
 """
@@ -1245,26 +1246,37 @@ def offload_unit_links(repository, root, data):
     return links, None
 
 
+WORKTREE_ADMIN = {"HEAD", "ORIG_HEAD", "FETCH_HEAD", "COMMIT_EDITMSG", "index", "commondir", "gitdir", "locked",
+                  "config.worktree", "logs", "refs", "modules"}
+
+
 def offload_worktree_kept(tree, gitdir):
     """Name what only an outside repository's admin folder for this worktree holds, if anything."""
     modules = gitdir / "modules"
     if modules.is_symlink() or modules.exists() and (not modules.is_dir() or any(modules.iterdir())):
         return "its admin folder in its repository outside DATA holds submodule repositories"
+    if any(entry.name not in WORKTREE_ADMIN for entry in gitdir.iterdir()):
+        return "its admin folder in its repository outside DATA holds an unfinished operation or other files"
     env = {name: value for name, value in os.environ.items() if not name.startswith("GIT_")}
-    location = ["git", "--no-optional-locks", "--git-dir", str(tree / ".git")]
-    try:
-        tips = subprocess.run([*location, "log", "-g", "--format=%H", "HEAD"], env=env, capture_output=True,
-                              text=True, timeout=600, check=True).stdout.split()
-        tips += subprocess.run([*location, "for-each-ref", "--format=%(objectname)", "refs/worktree", "refs/bisect",
-                                "refs/rewritten"], env=env, capture_output=True, text=True, timeout=600,
-                               check=True).stdout.split()
-        only = subprocess.run([*location, "rev-list", "--stdin", "--not", "--branches", "--tags"], env=env,
-                              input="".join(tip + "\n" for tip in ["HEAD", *tips]), capture_output=True, text=True,
+    location = ["git", "--no-optional-locks", "--git-dir", str(tree / ".git"), "--work-tree", str(tree)]
+
+    def git(*args, stdin=None):
+        return subprocess.run([*location, *args], env=env, input=stdin, capture_output=True, text=True,
                               timeout=600, check=True).stdout.split()
+
+    try:
+        if git("for-each-ref", "--format=%(refname)", "refs/worktree", "refs/bisect", "refs/rewritten"):
+            return "it has worktree refs in its repository outside DATA"
+        if subprocess.run([*location, "diff", "--cached", "--quiet"], env=env, capture_output=True,
+                          timeout=600).returncode:
+            return "its index in its repository outside DATA holds staged changes or could not be read"
+        tips = git("log", "-g", "--format=%H", "HEAD")
+        only = git("rev-list", "--stdin", "--not", "--branches", "--tags",
+                   stdin="".join(tip + "\n" for tip in ["HEAD", *tips]))
     except (OSError, subprocess.SubprocessError):
         return "its commits in its repository outside DATA could not be read"
     if only:
-        return "its HEAD, reflog or worktree refs reach commits no branch or tag of its repository outside DATA has"
+        return "its HEAD or reflog reaches commits no branch or tag of its repository outside DATA has"
     return None
 
 
