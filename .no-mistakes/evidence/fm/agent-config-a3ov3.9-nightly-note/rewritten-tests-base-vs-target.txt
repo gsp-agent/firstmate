@@ -1,0 +1,11 @@
+### bin/ at BASE f4591e6e, tests/ at TARGET f666580f
+test_reverted_numbered_pr_without_manifest_stays_red       exit=1  not ok - the forgotten squash PR sends no note (expected '0', got '1')
+test_nightly_logs_every_run_and_sends_no_note              exit=1  not ok - a red nightly and its rerun send no note (expected '0', got '1')
+test_nightly_check_error_is_logged_without_a_note          exit=1  not ok - a nightly whose check exits 2 sent a note (expected '0', got '1')
+test_nightly_log_keeps_every_red_line                      exit=1  not ok - a nightly with twelve drifted paths sent a note (expected '0', got '1')
+
+### bin/ at TARGET f666580f, tests/ at TARGET f666580f
+test_reverted_numbered_pr_without_manifest_stays_red       exit=0  ok - reverted numbered squash and merge PRs require manifest entries and send no nightly note
+test_nightly_logs_every_run_and_sends_no_note              exit=0  ok - a nightly logs the run time, the check output and its exit code, and sends no note
+test_nightly_check_error_is_logged_without_a_note          exit=0  ok - a nightly whose check exits 2 logs the error and sends no note
+test_nightly_log_keeps_every_red_line                      exit=0  ok - a nightly log keeps every red line and sends no note

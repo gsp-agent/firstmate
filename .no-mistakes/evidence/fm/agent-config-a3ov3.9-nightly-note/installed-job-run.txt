@@ -1,0 +1,54 @@
+=== install --dry-run
+dry-run: install
+label: dev.firstmate.drift-nightly
+hour: 3
+minute: 17
+plist: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-drift-work.kMB6sW/agents/dev.firstmate.drift-nightly.plist
+repo: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-drift-work.kMB6sW/fork
+log: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-drift-work.kMB6sW/joblogs/dev.firstmate.drift-nightly.log
+dry-run exit=0
+files in agent dir after dry-run: 0
+=== install
+installed: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-drift-work.kMB6sW/agents/dev.firstmate.drift-nightly.plist
+install exit=0
+/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-drift-work.kMB6sW/agents/dev.firstmate.drift-nightly.plist: OK
+--- ProgramArguments:
+  /bin/bash
+  /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-drift-work.kMB6sW/target-root/bin/fm-drift-nightly.sh
+  nightly
+  --repo
+  /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-drift-work.kMB6sW/fork
+  --log
+  /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-drift-work.kMB6sW/joblogs/dev.firstmate.drift-nightly.log
+--- EnvironmentVariables key present: False
+--- launchctl calls recorded:
+  bootout gui/501/dev.firstmate.drift-nightly
+  bootstrap gui/501 /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-drift-work.kMB6sW/agents/dev.firstmate.drift-nightly.plist
+=== run the installed job's ProgramArguments exactly (red fork), launchd-style append
+job exit=1
+notes in the home holding the script: 0
+--- job log (/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-drift-work.kMB6sW/joblogs/dev.firstmate.drift-nightly.log):
+run: 2026-10-28T07:29:14-0500
+From /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-drift-work.kMB6sW/upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 1
+path-drift: notes.txt
+unproven: 782e07c2d3f84fe118616dceddff7659f36e3eac add notes
+exit: 1
+=== adversarial: fm-inbox.sh removed from beside the script; red run still logs and exits 1
+exit=1
+run: 2026-10-28T07:29:15-0500
+From /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-drift-work.kMB6sW/upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 1
+path-drift: notes.txt
+unproven: 782e07c2d3f84fe118616dceddff7659f36e3eac add notes
+exit: 1
+=== adversarial: relative --log is still refused
+error: --log must be an absolute path
+exit=2
+=== uninstall (disposable agent dir, recorder launchctl)
+uninstalled: removed
+uninstall exit=0 plist_left=no

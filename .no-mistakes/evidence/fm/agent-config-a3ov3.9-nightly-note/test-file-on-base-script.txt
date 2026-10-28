@@ -1,0 +1,33 @@
+ok - an unproven file is path-drift and the check exits 1
+ok - a proof PR makes that path ok and the check exits 0
+Squash commit -- not updating HEAD
+ok - a squash-merged branch carries its own manifest line and later edits fail
+ok - the default proof is drift-proof.txt in the committed fork tree, never the working tree
+ok - guard files require exact proven patches and later edits fail
+ok - an unproven edit to an already-proven file fails
+ok - an unproven deletion cannot collapse into a rename onto a proven file
+ok - a moving fork ref cannot change the captured check or its report
+ok - a moving upstream ref cannot change the captured check or its report
+ok - the captured upstream includes updates from the completed fetch
+ok - dependent proven patches are accepted regardless of proof-file order
+ok - proof approves a patch rather than the commit's entire file snapshot
+ok - a proven patch built on unproven work is drift with a named error, not a check failure
+ok - cut unproven changes pass once their effective changes are gone
+ok - a proven change can cut unrelated unproven changes in the same commit
+ok - missing accepted patches are reported as drift
+ok - unproven file modes cannot borrow content proof
+ok - a pending commit is accepted, printed with its bead on every run, and must name its bead
+ok - a merge-merged branch carries its own pending line and its carried commits inherit it
+Squash commit -- not updating HEAD
+Squash commit -- not updating HEAD
+Automatic merge went well; stopped before committing as requested
+Squash commit -- not updating HEAD
+ok - two open PRs with their own drift-proof/<N>.proof land without a conflict and both are proven
+awk: can't open file /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-drift-work.kMB6sW/basecheck/drift-proof.txt
+ source line number 1
+ok - this repo's drift-proof.txt takes no entry after PR 167
+Squash commit -- not updating HEAD
+ok - a forgotten manifest line is path-drift and unproven
+ok - a wrong proof PR number authorizes nothing, stays red, and is named unmatched
+Squash commit -- not updating HEAD
+not ok - the forgotten squash PR sends no note (expected '0', got '1')

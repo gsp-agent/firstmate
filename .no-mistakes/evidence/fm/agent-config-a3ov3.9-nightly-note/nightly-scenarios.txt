@@ -1,0 +1,81 @@
+
+=== S1 green nightly (fork == upstream), target, FM_HOME=lab home
+exit=0 notes_in_lab=0
+--- log:
+run: 2026-10-28T07:28:38-0500
+From /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-drift-work.kMB6sW/upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 0
+exit: 0
+
+=== S2 red nightly (unproven path), target, FM_HOME=lab home, run twice (same-day rerun)
+exit run1=1 run2=1 notes_in_lab=0
+--- lab inbox listing:
+(no inbox dir)
+--- log:
+run: 2026-10-28T07:28:39-0500
+From /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-drift-work.kMB6sW/upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 1
+path-drift: notes.txt
+unproven: 782e07c2d3f84fe118616dceddff7659f36e3eac add notes
+exit: 1
+run: 2026-10-28T07:28:40-0500
+From /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-drift-work.kMB6sW/upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 1
+path-drift: notes.txt
+unproven: 782e07c2d3f84fe118616dceddff7659f36e3eac add notes
+exit: 1
+
+=== S3 check error (no kunchenguid remote), target, FM_HOME=lab home
+exit=2 notes_in_lab=0
+--- log:
+run: 2026-10-28T07:28:41-0500
+error: kunchenguid remote is missing
+exit: 2
+
+=== S4 red nightly as launchd runs it (no FM_HOME), target: the home holding the script gets no note
+exit=1 notes_in_script_home=0
+bin 
+--- log:
+run: 2026-10-28T07:28:41-0500
+From /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-drift-work.kMB6sW/upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 1
+path-drift: notes.txt
+unproven: 782e07c2d3f84fe118616dceddff7659f36e3eac add notes
+exit: 1
+
+=== S5 regression baseline: same red fork, BASE script, FM_HOME=fresh lab home
+exit=1 notes_in_base_lab=1
+--- base note body:
+  id=1793190523-93OcUv
+  at=2026-10-28T12:28:43Z
+  source=text
+  announce_marker=1
+  request_id=fm-drift-nightly-2026-10-28
+  --
+  Nightly drift check red on 2026-10-28: exit 1 for /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-drift-work.kMB6sW/fork.
+  path-drift: notes.txt
+  Log: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-drift-work.kMB6sW/s5.log
+--- log:
+run: 2026-10-28T07:28:42-0500
+From /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/nm-drift-work.kMB6sW/upstream
+ * branch            main       -> FETCH_HEAD
+behind: 0
+ahead: 1
+path-drift: notes.txt
+unproven: 782e07c2d3f84fe118616dceddff7659f36e3eac add notes
+exit: 1
+queued 1793190523-93OcUv
+  Nightly drift check red on 2026-10-28: exit 1 for /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/n
+  firstmate will pick this up at its next check.
+fm-inbox: note saved and wake appended, but no wake consumer can receive now; it waits for a captain turn or the consumer revive (fm-zdz2i)
+
+=== S6 regression baseline as launchd runs it (no FM_HOME), BASE script: note lands in the script's home
+exit=1 notes_in_base_script_home=1

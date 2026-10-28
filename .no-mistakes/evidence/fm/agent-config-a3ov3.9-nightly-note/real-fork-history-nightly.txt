@@ -1,0 +1,19 @@
+fork HEAD: f666580f fix(bin): stop the drift nightly sending an inbox note on a red run
+nightly exit=1  notes_in_lab=0
+counts: keep=93 pending=136 unproven=2 merge=0 path-drift=6 error=3
+run: 2026-10-28T07:35:54-0500
+behind: 131
+ahead: 231
+exit: 1
+--- red lines:
+path-drift: bin/fm-backend.sh
+path-drift: bin/fm-drift-nightly.sh
+path-drift: bin/fm-watch.sh
+path-drift: docs/scripts.md
+path-drift: tests/fm-backend-window-index.test.sh
+path-drift: tests/fm-drift-nightly.test.sh
+unproven: f666580f715c09727569c25adcd55b80a47febff fix(bin): stop the drift nightly sending an inbox note on a red run
+unproven: 95fb0ba8f83d4c0f2b5c41b6ba88dc165d039020 fix: look up a window's meta once per watcher poll
+error: proof patch conflicts for PR 137: 446eb1e7f53f7d03dc580227a7488129263dadbf
+error: proof patch conflicts for PR 138: efbe1b61c798d790fe6f2cce77e3e90e8fab1034
+error: proof patch conflicts for PR 139: f96e6fa9d0be3d60c2aefb214674acb54b8425a3

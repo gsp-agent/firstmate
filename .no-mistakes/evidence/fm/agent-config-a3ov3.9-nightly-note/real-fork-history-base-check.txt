@@ -1,0 +1,14 @@
+fork HEAD: f4591e6e fix(bin): report a proof patch stacked on unproven work as drift instead of failing the check (#184)
+check exit=1
+behind: 131
+ahead: 230
+path-drift: bin/fm-backend.sh
+path-drift: bin/fm-watch.sh
+path-drift: tests/fm-backend-window-index.test.sh
+unproven: 95fb0ba8f83d4c0f2b5c41b6ba88dc165d039020 fix: look up a window's meta once per watcher poll
+error: proof patch conflicts for PR 137: 446eb1e7f53f7d03dc580227a7488129263dadbf
+error: proof patch conflicts for PR 138: efbe1b61c798d790fe6f2cce77e3e90e8fab1034
+error: proof patch conflicts for PR 139: f96e6fa9d0be3d60c2aefb214674acb54b8425a3
+95fb0ba8 first-parent of base? 95fb0ba8
+95fb0ba8 is on origin/upstream-lean
+f4591e6e fix(bin): report a proof patch stacked on unproven work as drift instead of failing the check (#184)
