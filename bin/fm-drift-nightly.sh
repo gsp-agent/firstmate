@@ -29,7 +29,9 @@
 # because it was built on unproven work in the same hunks - proves only the
 # paths it merges cleanly.
 # Each conflicted path keeps its whole accepted content, clean hunks
-# included, and is path-drift, and one error line names its PR and commit.
+# included, and one error line names its PR and commit.
+# Its final path status depends on the fork's match with the resulting tree
+# after later accepted patches replay.
 # Later proven patches still replay, so one stacked proof cannot stop the
 # whole report.
 # Missing accepted changes and extra changes are path-drift. Rename detection
