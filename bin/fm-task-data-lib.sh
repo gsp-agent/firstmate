@@ -201,16 +201,19 @@ fm_task_data_sweep() ( # <data> <state>; traps belong only to this sweep
   return 0
 )
 
-# Offload one task under the spawn meta lock; a held lock refuses.
-fm_task_data_offload_task() { # <data> <state> <id>
-  local lock rc=0
+# Offload one task under the spawn meta lock; a held lock refuses. The lock is
+# released however the offload ends, including INT, TERM or HUP.
+fm_task_data_offload_task() ( # <data> <state> <id>; traps belong only to this offload
+  local lock
   fm_task_id_path_safe "$3" || return 1
   lock=$(fm_meta_lock_path "$2/$3.meta") || return 1
   fm_lock_try_acquire "$lock" || { echo "error: task is locked; nothing was offloaded" >&2; return 1; }
-  python3 "$(dirname "${BASH_SOURCE[0]}")/fm-task-data.py" offload "$1" "$2" "$3" || rc=$?
-  fm_lock_release "$lock"
-  return "$rc"
-}
+  trap 'fm_lock_release "$lock"' EXIT
+  trap 'exit 143' TERM
+  trap 'exit 130' INT
+  trap 'exit 129' HUP
+  python3 "$(dirname "${BASH_SOURCE[0]}")/fm-task-data.py" offload "$1" "$2" "$3"
+)
 
 # Offload every task offload-plan names, once each, in a home whose
 # config/task-data-offload.json names a backup verifier; one pass at a time.

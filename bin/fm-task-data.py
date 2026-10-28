@@ -163,20 +163,33 @@ Date-only completion waits through seven complete local calendar days.
 Small text and root brief/report files stay. Referenced directories or larger
 files may move, but symlink and hardlink evidence stays pending alias ownership.
 
-Each outermost repository outside record/ is one unit, referenced or not.
+Each outermost repository outside record/ is one unit, referenced or not. A
+repository and its linked worktrees in the same task are one unit: the smallest
+folder below the task holding them all, with any other repository inside it.
 A unit whose every commit and file is proven to survive elsewhere goes to Trash
 with nothing copied, and a pointer naming its remotes and HEAD replaces it.
-Proof is a clean status with no untracked or ignored file, no nested repository,
-no Git LFS objects, and every commit any ref, reflog or worktree HEAD reaches
-reachable from a tip a remote outside DATA advertises now (git ls-remote, no
-fetch); offload-plan never runs it.
+Proof needs the unit to hold its git directory, every work tree of it and
+nothing else; each work tree has a clean status with no untracked or ignored
+file and no nested repository; no Git LFS objects; and every commit any ref,
+reflog or worktree HEAD reaches is reachable from a tip a network or forge
+remote advertises now (git ls-remote, no fetch). Only an https://, ssh:// or
+user@host: URL, as configured rather than as an insteadOf rewrite, is such a
+remote; a local path or file:// remote, such as the no-mistakes gate, never is.
+Offload-plan never runs the proof.
 Any other unit is offloaded whole as one tar archive under the copy, checksum
 and independent-backup rule below; its pointer adds archive "tar" and why the
-unit was not proven.
-The archive is a temporary file in the task folder, removed through a
-dcg-checked rm -f after the round; the next round removes a leftover first.
-A linked worktree or submodule checkout whose repository lives elsewhere, and a
-repository with linked worktrees outside it, stay in place, named with sizes in
+unit was not proven. So is a linked worktree whose repository is outside DATA;
+that repository and its worktree record are never touched, and git marks the
+record prunable.
+Before writing an archive, offload checks that ssh mini-ts answers and
+MINI-DATA is mounted; if not, it writes nothing and the task waits for the next
+pass. One archive exists at a time, a temporary file in the task folder removed
+through a dcg-checked rm -f right after its move or failure; the next round
+removes a leftover first.
+A linked worktree of a repository in another task, a repository with linked
+worktrees outside the task or sharing no folder below it, an unreadable
+worktree record, a submodule checkout outside its superproject's unit, and any
+unit holding one of them stay in place, named with reasons and sizes in
 offload-plan's retained list.
 
 Live offload must run through the shell wrapper, which holds the spawn meta lock.
@@ -1158,45 +1171,81 @@ def offload_bead_text(bead, locations, cache):
     return text
 
 
-def offload_inventory(root):
-    # Each outermost repository outside record/ is one unit; repository work
-    # in the scratch recovery hold still belongs to expiry and blocks offload.
-    units = {}
+def offload_repository_marker(path, names, leaves):
+    if ".git" in names or ".git" in leaves:
+        return path / ".git"
+    if {"objects", "refs"} <= set(names) and "HEAD" in leaves:
+        return path
+    return None
+
+
+def offload_inventory(root, data):
+    # Units: each outermost repository outside record/, joined with its linked
+    # worktrees in the task into the smallest folder below the task holding
+    # them all. Repository work in the scratch recovery hold still belongs to
+    # expiry and blocks offload.
+    groups = []
     for directory, names, leaves in os.walk(root, followlinks=False):
         path = Path(directory)
         rel = path.relative_to(root)
         if rel.parts[:1] == ("record",):
             names[:] = []
             continue
-        dotgit = path / ".git"
-        if ".git" in names or ".git" in leaves:
-            kind = "work-tree" if dotgit.is_dir() and not dotgit.is_symlink() else "linked"
-        elif {"objects", "refs"} <= set(names) and "HEAD" in leaves:
-            kind = "bare"
-        else:
+        if not offload_repository_marker(path, names, leaves):
             continue
         if not rel.parts:
             raise ValueError("the task folder is itself a repository")
         if rel.parts[0] == HOLD:
             raise ValueError("the scratch recovery hold contains repository work")
-        units[path] = kind
+        links, reason = offload_unit_links(path, root, data)
+        unit = Path(os.path.commonpath([path, *links]))
+        if unit == root:
+            unit, reason = path, reason or "shares no folder below the task with its linked worktrees"
+        groups.append((unit, reason))
         names[:] = []
+    # A unit inside another moves with it, and anything kept keeps the whole.
+    units = {}
+    for unit, reason in sorted(groups, key=lambda item: len(item[0].parts)):
+        outer = next((path for path in units if path == unit or path in unit.parents), None)
+        if outer is None:
+            units[unit] = reason
+        elif units[outer] is None:
+            units[outer] = reason
     return (*inventory(root), units)
 
 
-def offload_unit_kept(unit, kind):
-    """Name why a repository unit can be neither removed nor moved, if it cannot."""
-    if kind == "linked":
-        return "linked worktree or submodule; its repository lives elsewhere"
-    admin = unit / (".git/worktrees" if kind == "work-tree" else "worktrees")
-    for gitdir in admin.glob("*/gitdir") if admin.is_dir() and not admin.is_symlink() else ():
-        try:
-            worktree = Path(gitdir.read_text().strip()).parent
-        except (OSError, UnicodeError):
-            return "linked worktree record is unreadable"
-        if (worktree.exists() or worktree.is_symlink()) and unit != worktree and unit not in worktree.parents:
-            return "has linked worktrees outside it"
-    return None
+def offload_unit_links(repository, root, data):
+    """Return the task paths a repository moves with, and why it must stay, if it must."""
+    dotgit = repository / ".git"
+    links = []
+    try:
+        if dotgit.is_symlink():
+            return links, "its .git is a symlink; its repository lives elsewhere"
+        if dotgit.is_file():
+            text = dotgit.read_text().strip()
+            if not text.startswith("gitdir: "):
+                return links, "linked worktree record is unreadable"
+            gitdir = repository / text.removeprefix("gitdir: ")
+            if not (gitdir / "commondir").is_file():
+                return links, "submodule checkout; offloaded only as part of its superproject"
+            common = (gitdir / (gitdir / "commondir").read_text().strip()).resolve()
+            if root in common.parents:
+                return [common], None
+            if common == data or data in common.parents:
+                return links, "linked worktree of a repository in another task"
+            # Its repository is outside the task data: offloaded whole as files.
+            return links, None
+        admin = (dotgit if dotgit.is_dir() else repository) / "worktrees"
+        for record in sorted(admin.glob("*/gitdir")) if admin.is_dir() and not admin.is_symlink() else ():
+            tree = (record.parent / record.read_text().strip()).parent.resolve()
+            if not (tree.exists() or tree.is_symlink()) or tree == repository or repository in tree.parents:
+                continue
+            if root not in tree.parents:
+                return links, "has linked worktrees outside the task"
+            links.append(tree)
+    except (OSError, UnicodeError):
+        return links, "linked worktree record is unreadable"
+    return links, None
 
 
 def offload_git_env():
@@ -1208,17 +1257,19 @@ def offload_git_env():
     return env
 
 
-def offload_repository_proof(unit, data):
+# Only a network or forge remote is elsewhere. A local path or file:// remote,
+# such as the no-mistakes gate, shares this disk.
+NETWORK_REMOTE = re.compile(r"(?:ssh|https)://[^/]|[^/@:\s]+@[^/:\s]+:")
+
+
+def offload_repository_proof(unit):
     """Return the remotes and HEAD that hold every commit and file of a repository unit.
 
     Raise ValueError naming what is not proven to survive elsewhere.
     """
     env = offload_git_env()
-    dotgit = unit / ".git"
-    bare = not (dotgit.exists() or dotgit.is_symlink())
-    location = ["--git-dir", str(unit)] if bare else ["--git-dir", str(dotgit), "--work-tree", str(unit)]
 
-    def git(*args, stdin=None, timeout=600):
+    def git(location, *args, stdin=None, timeout=600):
         # --no-optional-locks keeps status from rewriting the index the
         # archive fingerprint compares.
         try:
@@ -1227,44 +1278,71 @@ def offload_repository_proof(unit, data):
         except (OSError, subprocess.SubprocessError) as error:
             raise ValueError(f"git {args[0]} failed: {type(error).__name__}") from error
 
-    git("rev-parse", "--absolute-git-dir")
-    if not bare:
-        for directory, names, leaves in os.walk(unit, followlinks=False):
-            if Path(directory) == unit:
-                names[:] = [name for name in names if name != ".git"]
-            elif ".git" in names or ".git" in leaves or {"objects", "refs"} <= set(names) and "HEAD" in leaves:
+    marker = next((found for directory, names, leaves in os.walk(unit, followlinks=False)
+                   if (found := offload_repository_marker(Path(directory), names, leaves))), None)
+    if marker is None:
+        raise ValueError("holds no repository")
+    common = Path(git(["--git-dir", str(marker)], "rev-parse", "--path-format=absolute", "--git-common-dir").strip())
+    repository = ["--git-dir", str(common)]
+    trees = []
+    for entry in git(repository, "worktree", "list", "--porcelain", "-z").split("\0\0"):
+        fields = entry.split("\0")
+        tree = Path(fields[0].removeprefix("worktree "))
+        if fields[0].startswith("worktree ") and "bare" not in fields and (tree.exists() or tree.is_symlink()):
+            trees.append(tree)
+
+    def inside(path):
+        return path == unit or unit in path.parents
+
+    if not inside(common) or not all(inside(tree) for tree in trees):
+        raise ValueError("its git directory or another of its work trees is outside it")
+    for directory, names, leaves in os.walk(unit, followlinks=False):
+        path = Path(directory)
+        if path in trees:
+            names[:] = [name for name in names if name != ".git"]
+        elif any(tree in path.parents for tree in trees):
+            if offload_repository_marker(path, names, leaves):
                 raise ValueError("holds nested repositories")
-        if git("status", "--porcelain=v1", "-z", "--ignored=matching", "--untracked-files=all"):
+        elif path == common or common in path.parents:
+            # Git's own files; walk on only toward work trees inside them.
+            names[:] = [name for name in names if any(path / name == tree or path / name in tree.parents for tree in trees)]
+        elif leaves or offload_repository_marker(path, names, leaves):
+            raise ValueError("holds files or repositories outside its work trees and git directory")
+    for tree in trees:
+        if git(["--git-dir", str(tree / ".git"), "--work-tree", str(tree)],
+               "status", "--porcelain=v1", "-z", "--ignored=matching", "--untracked-files=all"):
             raise ValueError("has uncommitted, untracked or ignored files")
-    lfs = Path(git("rev-parse", "--absolute-git-dir").strip()) / "lfs/objects"
+    lfs = common / "lfs/objects"
     if lfs.is_dir() and any(lfs.iterdir()):
         raise ValueError("holds Git LFS objects no server is proven to have")
+    try:
+        configured = git(repository, "config", "-z", "--get-regexp", r"^remote\..+\.url$")
+    except ValueError:
+        configured = ""
     advertised, remotes = set(), []
-    for name in git("remote").split():
-        url = git("remote", "get-url", name).strip()
-        target = url
-        if url.startswith("file://") or not re.match(r"^[A-Za-z][A-Za-z0-9+.-]*://|^[^/]+:", url):
-            local = Path(unquote(url.removeprefix("file://")))
-            local = (local if local.is_absolute() else unit / local).resolve()
-            if local == data or data in local.parents:
-                continue
-            target = str(local)
+    for entry in configured.split("\0"):
+        # The configured URL decides, not an insteadOf rewrite of it.
+        url = entry.partition("\n")[2]
+        if not NETWORK_REMOTE.match(url):
+            continue
         try:
-            listing = git("ls-remote", "--", target, timeout=60)
+            listing = git(repository, "ls-remote", "--", url, timeout=60)
         except ValueError:
             continue
         shas = {line.split("\t", 1)[0] for line in listing.splitlines() if "\t" in line}
         if shas:
             advertised |= shas
             remotes.append(url)
-    checked = git("cat-file", "--batch-check=%(objectname) %(objecttype)", stdin="".join(sha + "\n" for sha in sorted(advertised)))
+    checked = git(repository, "cat-file", "--batch-check=%(objectname) %(objecttype)",
+                  stdin="".join(sha + "\n" for sha in sorted(advertised)))
     present = [line.split()[0] for line in checked.splitlines() if line.split()[-1] in ("commit", "tag")]
     # Every commit any ref, reflog or worktree HEAD reaches must be reachable
-    # from a tip a remote outside DATA advertises right now.
-    unproven = git("rev-list", "--all", "--reflog", "--stdin", stdin="".join(f"^{sha}\n" for sha in present)).split()
+    # from a tip a network or forge remote advertises right now.
+    unproven = git(repository, "rev-list", "--all", "--reflog", "--stdin",
+                   stdin="".join(f"^{sha}\n" for sha in present)).split()
     if unproven:
-        raise ValueError(f"{len(unproven)} commits are on no remote outside the task data")
-    head = subprocess.run(["git", *location, "rev-parse", "--verify", "-q", "HEAD"], cwd=unit, env=env,
+        raise ValueError(f"{len(unproven)} commits are on no network or forge remote")
+    head = subprocess.run(["git", *repository, "rev-parse", "--verify", "-q", "HEAD"], cwd=unit, env=env,
                           capture_output=True, text=True, timeout=600).stdout.strip()
     return {"remotes": remotes, "head": head or None}
 
@@ -1364,7 +1442,7 @@ def offload_candidates(data, state, task_id, rows, locations, cache):
     """Return the task's moves and the repository units it keeps, with reasons."""
     closed, row = offload_closed(data, state, task_id, rows)
     root = real_directory(data / task_id)
-    files, directories, repos, units = offload_inventory(root)
+    files, directories, repos, units = offload_inventory(root, data)
     # Only locally available report/bead evidence is needed here. Unlike
     # scratch expiry, offload never consults a forge or reads a live PR.
     text = offload_reference_text(root, row, locations, cache)
@@ -1414,9 +1492,8 @@ def offload_candidates(data, state, task_id, rows, locations, cache):
         result.append({"task": task_id, "path": str(path.relative_to(root)), "closed": closed,
                        "size": totals[path][1], "allocated_bytes": totals[path][2],
                        "reason": "report or bead referenced evidence; task closed over seven days"})
-    for unit, kind in sorted(units.items()):
+    for unit, reason in sorted(units.items()):
         summary = totals.get(unit, [0, 0, 0, False])
-        reason = offload_unit_kept(unit, kind)
         if reason:
             kept.append({"task": task_id, "path": str(unit.relative_to(root)), "reason": reason,
                          "size": summary[1], "allocated_bytes": summary[2]})
@@ -1424,7 +1501,7 @@ def offload_candidates(data, state, task_id, rows, locations, cache):
         result.append({"task": task_id, "path": str(unit.relative_to(root)), "closed": closed,
                        "size": summary[1], "allocated_bytes": summary[2], "repository": True,
                        "reason": "repository of a task closed over seven days; removed when every commit and "
-                                 "file is proven on a remote, else offloaded whole as one archive"})
+                                 "file is proven on a network or forge remote, else offloaded whole as one archive"})
     return result, kept
 
 
@@ -1517,6 +1594,9 @@ request = json.load(sys.stdin)
 volume = Path("/Volumes/MINI-DATA")
 if volume.is_symlink() or not volume.is_mount():
     raise ValueError("MINI-DATA is not mounted")
+if request["action"] == "ready":
+    print(json.dumps({"ready": True}))
+    raise SystemExit
 destination = Path(request["destination"])
 relative = destination.relative_to(volume / "firstmate-task-evidence")
 if not relative.parts or any(part in (".", "..") for part in relative.parts):
@@ -1644,7 +1724,7 @@ def offload(data, state, task_id):
             archive, unproven = None, ""
             if candidate.get("repository"):
                 try:
-                    proof = offload_repository_proof(source, data)
+                    proof = offload_repository_proof(source)
                 except ValueError as error:
                     unproven = str(error)
                 else:
@@ -1655,6 +1735,10 @@ def offload(data, state, task_id):
                     publish(source, pointer)
                     moved.append({"task": task_id, "path": relative, "removed": True, "size": pointer["size"]})
                     continue
+                try:
+                    offload_remote("ready", OFFLOAD_ROOT)
+                except (OSError, ValueError, subprocess.SubprocessError) as error:
+                    raise ValueError("mini-ts did not answer or MINI-DATA is not mounted; no archive written") from error
                 before = offload_tree_state(source)
                 archive = offload_archive(root, source)
             try:

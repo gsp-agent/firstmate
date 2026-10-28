@@ -27,6 +27,7 @@ import sqlite3
 import subprocess
 import sys
 import tarfile
+import time
 
 code, base = map(Path, sys.argv[1:])
 active = None
@@ -48,7 +49,7 @@ signal.signal(signal.SIGINT, lambda *_: sys.exit(130))
 fake = base / "fakebin"
 fake.mkdir()
 shim = '''#!/usr/bin/env python3
-import json, os, pathlib, runpy, shutil, sys
+import json, os, pathlib, runpy, shutil, sys, time
 p = pathlib.Path
 home = p(os.environ["FM_HOME"])
 tool = p(sys.argv[0]).name
@@ -59,10 +60,16 @@ def remote(name):
     return home / "remote" / name.removeprefix("mini-ts:").lstrip("/")
 if tool == "ssh":
     request = json.load(sys.stdin)
+    if mode == "mini-unreachable":
+        with (home / "archives-seen").open("a") as seen:
+            seen.writelines(path.name + "\\n" for path in (home / "data/task-one").glob(".firstmate-offload-*"))
+        sys.exit(255)
     path = remote(request["destination"])
     if mode == "remote-failed":
         sys.exit(9)
-    if request["action"] == "prepare":
+    if request["action"] == "ready":
+        print(json.dumps({"ready": True}))
+    elif request["action"] == "prepare":
         path.parent.mkdir(parents=True, exist_ok=True)
         helper = runpy.run_path(os.environ["OFFLOAD_HELPER"])
         print(json.dumps(helper["offload_prepare"](path, request["expected"])))
@@ -104,6 +111,9 @@ elif tool == "backup":
     request = json.load(sys.stdin)
     if mode == "backup-failed" or (mode == "second-backup-failed" and p(request["original"]).name == "z.bin"):
         sys.exit(7)
+    if mode == "backup-hang":
+        (home / "backup-started").write_text("started")
+        time.sleep(600)
     source = remote(request["location"])
     target = home / "independent-backup" / request["checksum"]
     if not target.exists():
@@ -172,7 +182,7 @@ def fixture(name, *, status="closed", days=10, configured=True):
         (home / "config/task-data-offload.json").write_text(json.dumps({"backup_verifier": [str(fake / "backup")]}))
     return home
 
-def run(home, action, *, fault="", ok=True, real_rsync=False, raw=False, task=("task-one",), stdin=""):
+def run(home, action, *, fault="", ok=True, real_rsync=False, raw=False, task=("task-one",), stdin="", interrupt=None):
     global active
     env = dict(os.environ, HOME=str(home / "user"), FM_HOME=str(home), PATH=str(fake) + os.pathsep + os.environ["PATH"],
                OFFLOAD_HELPER=str(code / "bin/fm-task-data.py"), OFFLOAD_FAULT=fault, FM_TASK_DATA_SWEEP="off",
@@ -183,6 +193,13 @@ def run(home, action, *, fault="", ok=True, real_rsync=False, raw=False, task=("
     active = subprocess.Popen(command, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                               text=True, start_new_session=True)
     try:
+        if interrupt:
+            # Stop the run with TERM, as a terminal or supervisor would, once it reaches the marker.
+            deadline = time.monotonic() + 60
+            while not interrupt.exists():
+                assert time.monotonic() < deadline and active.poll() is None, "the run never reached its interrupt point"
+                time.sleep(0.05)
+            os.killpg(active.pid, signal.SIGTERM)
         stdout, stderr = active.communicate(stdin, timeout=120)
         rc = active.returncode
     finally:
@@ -266,21 +283,36 @@ def git(*args):
     return subprocess.run(["git", "-c", "maintenance.auto=false", "-c", "gc.auto=0", *map(str, args)],
                           env=env, check=True, capture_output=True, text=True).stdout.strip()
 
-def repo_fixture(name, *, remote_inside=False):
+FORGE = "https://forge.example.invalid/o/r.git"
+
+def forge(home, repository):
+    # Test-only rewrite: production classifies the configured forge URL while
+    # the transport stays on this disk.
+    git("--git-dir", repository, "config", f"url.{home / 'user/forge.git'}.insteadOf", FORGE)
+
+def commit(tree, name, text):
+    (tree / name).write_text(text)
+    git("-C", tree, "add", name)
+    git("-C", tree, "commit", "-q", "-m", text.strip())
+
+def repo_fixture(name, *, remote="forge"):
     home = fixture(name)
     task = home / "data/task-one"
     (task / "report.md").write_text("Completed.\n")
-    remote = task / "origin.git" if remote_inside else home / "user/origin.git"
+    bare = {"forge": home / "user/forge.git", "inside": task / "origin.git",
+            "gate": home / "user/.no-mistakes/repos/0123456789ab.git"}[remote]
     clone = task / "clone"
-    git("init", "-q", "--bare", "-b", "main", remote)
+    git("init", "-q", "--bare", "-b", "main", bare)
     git("init", "-q", "-b", "main", clone)
-    (clone / "work.txt").write_text("pushed work\n")
     (clone / ".gitignore").write_text("*.log\n")
-    git("-C", clone, "add", "work.txt", ".gitignore")
-    git("-C", clone, "commit", "-q", "-m", "pushed work")
-    git("-C", clone, "remote", "add", "origin", remote)
-    git("-C", clone, "push", "-q", "-u", "origin", "main")
-    return home, remote, clone
+    git("-C", clone, "add", ".gitignore")
+    commit(clone, "work.txt", "pushed work\n")
+    if remote == "forge":
+        forge(home, clone / ".git")
+    name = "no-mistakes" if remote == "gate" else "origin"
+    git("-C", clone, "remote", "add", name, FORGE if remote == "forge" else bare)
+    git("-C", clone, "push", "-q", "-u", name, "main")
+    return home, clone
 
 def snapshot(path):
     entries = {}
@@ -294,8 +326,16 @@ def snapshot(path):
             entries[rel] = ("file", item.stat().st_mode & 0o777, item.read_bytes())
     return entries
 
+def restored(home, pointer, name):
+    assert pointer["archive"] == "tar" and pointer["location"].startswith("mini-ts:/Volumes/MINI-DATA/"), pointer
+    payload = home / "remote" / pointer["location"].removeprefix("mini-ts:").lstrip("/")
+    with tarfile.open(payload) as archive:
+        archive.extractall(home / "restored", filter="tar")
+    return snapshot(home / "restored" / name)
+
 def unproven_fixture(variant, name=""):
-    home, remote, clone = repo_fixture(name or "repo-" + variant, remote_inside=variant == "remote-inside")
+    remote = {"remote-inside": "inside", "gate-only": "gate"}.get(variant, "forge")
+    home, clone = repo_fixture(name or "repo-" + variant, remote=remote)
     if variant == "unpushed":
         (clone / "work.txt").write_text("unpushed work\n")
         git("-C", clone, "commit", "-q", "-am", "unpushed work")
@@ -313,14 +353,14 @@ def unproven_fixture(variant, name=""):
     return home, clone
 
 def check_proven_removed():
-    home, remote, clone = repo_fixture("repo-proven")
+    home, clone = repo_fixture("repo-proven")
     head = git("-C", clone, "rev-parse", "HEAD")
     plan = run(home, "offload-plan")
     assert [(move["path"], move.get("repository")) for move in plan["moves"]] == [("clone", True)], plan
     result = run(home, "offload")
     assert [(item["path"], item.get("removed")) for item in result["offloaded"]] == [("clone", True)], result
     pointer = json.loads(clone.read_text())
-    assert pointer["format"] == "firstmate-task-evidence-v1" and pointer["remotes"] == [str(remote)], pointer
+    assert pointer["format"] == "firstmate-task-evidence-v1" and pointer["remotes"] == [FORGE], pointer
     assert pointer["head"] == head and "location" not in pointer, pointer
     assert git("--git-dir", home / "Trash/clone/.git", "rev-parse", "HEAD") == head
     calls = (home / "calls").read_text().splitlines()
@@ -334,12 +374,8 @@ def check_unproven_archived(variant):
     result = run(home, "offload")
     assert "clone" in [item["path"] for item in result["offloaded"]], result
     pointer = json.loads(clone.read_text())
-    assert pointer["archive"] == "tar" and pointer["location"].startswith("mini-ts:/Volumes/MINI-DATA/"), pointer
-    payload = home / "remote" / pointer["location"].removeprefix("mini-ts:").lstrip("/")
-    restored = home / "restored"
-    with tarfile.open(payload) as archive:
-        archive.extractall(restored, filter="tar")
-    assert snapshot(restored / "clone") == before, "the offloaded archive does not restore the repository exactly"
+    assert "removed" not in pointer, pointer
+    assert restored(home, pointer, "clone") == before, "the offloaded archive does not restore the repository exactly"
     assert snapshot(home / "Trash/clone") == before
     assert any((home / "independent-backup").iterdir())
     assert not list((home / "data/task-one").glob(".firstmate-offload-*")), "the local archive copy was left behind"
@@ -352,21 +388,105 @@ def check_refused_repository_kept():
     assert not list((home / "data/task-one").glob(".firstmate-offload-*")), "a refused round left its archive copy"
     assert [item["path"] for item in run(home, "offload")["offloaded"]] == ["clone"]
 
-def check_linked_worktree_kept():
-    home = fixture("repo-linked-worktree")
+def check_unreachable_mini_writes_no_archive():
+    home, clone = unproven_fixture("unpushed", "repo-unreachable")
+    before = snapshot(clone)
+    run(home, "offload", fault="mini-unreachable", ok=False)
+    assert (home / "archives-seen").read_text() == "", "an archive was written before mini-ts answered"
+    assert snapshot(clone) == before and not (home / "Trash").exists()
+    assert not list((home / "data/task-one").glob(".firstmate-offload-*"))
+    assert [item["path"] for item in run(home, "offload")["offloaded"]] == ["clone"]
+
+def check_lanes_join_their_repository(variant):
+    home = fixture("repo-lanes-" + variant)
+    task = home / "data/task-one"
+    (task / "report.md").write_text("Completed.\n")
+    git("init", "-q", "--bare", "-b", "main", home / "user/forge.git")
+    heru, lane = task / "set/laptop/heru", task / "set/lanes/own"
+    git("init", "-q", "-b", "main", heru)
+    forge(home, heru / ".git")
+    commit(heru, "work.txt", "pushed work\n")
+    git("-C", heru, "remote", "add", "origin", FORGE)
+    git("-C", heru, "push", "-q", "-u", "origin", "main")
+    git("-C", heru, "worktree", "add", "-q", "-b", "lane", lane)
+    commit(lane, "lane.txt", "pushed lane work\n")
+    git("-C", lane, "push", "-q", "-u", "origin", "lane")
+    if variant == "untracked":
+        (lane / "notes.txt").write_text("untracked lane notes\n")
+    before = snapshot(task / "set")
+    plan = run(home, "offload-plan")
+    assert [(move["path"], move.get("repository")) for move in plan["moves"]] == [("set", True)], plan
+    result = run(home, "offload")
+    pointer = json.loads((task / "set").read_text())
+    if variant == "pushed":
+        assert [(item["path"], item.get("removed")) for item in result["offloaded"]] == [("set", True)], result
+        assert pointer["remotes"] == [FORGE], pointer
+    else:
+        assert [(item["path"], item.get("archive")) for item in result["offloaded"]] == [("set", "tar")], result
+        assert restored(home, pointer, "set") == before
+    assert snapshot(home / "Trash/set") == before
+
+def check_bare_worktree_inside_archived():
+    home = fixture("repo-bare-worktree")
+    task = home / "data/task-one"
+    (task / "report.md").write_text("Completed.\n")
+    seed = home / "user/seed"
+    git("init", "-q", "--bare", "-b", "main", home / "user/forge.git")
+    git("init", "-q", "-b", "main", seed)
+    commit(seed, "work.txt", "pushed work\n")
+    git("-C", seed, "push", "-q", home / "user/forge.git", "main")
+    repo = task / "repo.git"
+    git("clone", "-q", "--bare", home / "user/forge.git", repo)
+    git("--git-dir", repo, "remote", "set-url", "origin", FORGE)
+    forge(home, repo)
+    git("--git-dir", repo, "worktree", "add", "-q", repo / "wt", "main")
+    (repo / "wt/work.txt").write_text("uncommitted edit\n")
+    (repo / "wt/notes.txt").write_text("untracked work\n")
+    before = snapshot(repo)
+    result = run(home, "offload")
+    assert [(item["path"], item.get("archive")) for item in result["offloaded"]] == [("repo.git", "tar")], result
+    assert restored(home, json.loads(repo.read_text()), "repo.git") == before
+
+def check_outside_parent_worktree_archived():
+    home = fixture("repo-outside-parent")
     (home / "data/task-one/report.md").write_text("Completed.\n")
     main = home / "user/main"
     git("init", "-q", "-b", "main", main)
-    (main / "work.txt").write_text("unpushed work\n")
-    git("-C", main, "add", "work.txt")
-    git("-C", main, "commit", "-q", "-m", "unpushed work")
+    commit(main, "work.txt", "parent work\n")
+    worktree = home / "data/task-one/wt"
+    git("-C", main, "worktree", "add", "-q", "-b", "side", worktree)
+    (worktree / "notes.txt").write_text("worktree notes\n")
+    before, parent = snapshot(worktree), snapshot(main)
+    plan = run(home, "offload-plan")
+    assert [(move["path"], move.get("repository")) for move in plan["moves"]] == [("wt", True)], plan
+    result = run(home, "offload")
+    assert [(item["path"], item.get("archive")) for item in result["offloaded"]] == [("wt", "tar")], result
+    assert restored(home, json.loads(worktree.read_text()), "wt") == before
+    assert snapshot(main) == parent, "offload edited the parent repository"
+    assert "prunable" in git("-C", main, "worktree", "list", "--porcelain").split()
+
+def check_other_task_worktree_kept():
+    home = fixture("repo-other-task-worktree")
+    (home / "data/task-one/report.md").write_text("Completed.\n")
+    main = home / "data/task-two/main"
+    git("init", "-q", "-b", "main", main)
+    commit(main, "work.txt", "other task's work\n")
     worktree = home / "data/task-one/wt"
     git("-C", main, "worktree", "add", "-q", "-b", "side", worktree)
     before = snapshot(worktree)
     plan = run(home, "offload-plan")
-    assert plan["moves"] == [] and [item.get("path") for item in plan["retained"]] == ["wt"], plan
+    assert plan["moves"] == [] and [(item.get("path"), item["reason"]) for item in plan["retained"]] == [
+        ("wt", "linked worktree of a repository in another task")], plan
     assert run(home, "offload")["offloaded"] == []
     assert snapshot(worktree) == before and not (home / "calls").exists()
+
+def check_interrupted_offload_releases_lock():
+    home = fixture("interrupted-lock")
+    run(home, "offload", fault="backup-hang", ok=False, interrupt=home / "backup-started")
+    lock = home / "state/.meta-task-one.lock"
+    assert not (lock.exists() or lock.is_symlink()), "an offload stopped with TERM left the task meta lock held"
+    assert [move["path"] for move in run(home, "offload-plan")["moves"]] == ["build"]
+    assert [item["path"] for item in run(home, "offload")["offloaded"]] == ["build"]
 
 def check_trash_never_empties():
     home = fixture("trash-on-path")
@@ -399,11 +519,19 @@ for kind in ("directory", "file"):
 regressions.extend([("verified existing payload is reused", check_verified_reuse),
                     ("partial round reports completed moves", check_partial_report),
                     ("a repository proven on its remote is removed with a pointer", check_proven_removed)])
-for variant in ("unpushed", "dirty", "untracked", "ignored", "stash", "remote-inside", "unreadable"):
+for variant in ("unpushed", "dirty", "untracked", "ignored", "stash", "remote-inside", "gate-only", "unreadable"):
     regressions.append(("a repository with " + variant + " work is offloaded whole and restores exactly",
                         lambda variant=variant: check_unproven_archived(variant)))
 regressions.extend([("a refused repository offload keeps the repository and no archive copy", check_refused_repository_kept),
-                    ("a linked worktree of an unproven repository elsewhere stays", check_linked_worktree_kept),
+                    ("an unreachable mini writes no archive and the next pass offloads", check_unreachable_mini_writes_no_archive),
+                    ("a repository and its proven lanes in the task are removed as one folder",
+                     lambda: check_lanes_join_their_repository("pushed")),
+                    ("a repository and a lane with untracked work are offloaded whole as one folder",
+                     lambda: check_lanes_join_their_repository("untracked")),
+                    ("a bare clone with a dirty worktree inside it is offloaded whole", check_bare_worktree_inside_archived),
+                    ("a worktree of a repository outside DATA is offloaded whole as files", check_outside_parent_worktree_archived),
+                    ("a worktree of a repository in another task stays", check_other_task_worktree_kept),
+                    ("an offload stopped with TERM releases the task meta lock", check_interrupted_offload_releases_lock),
                     ("offload never runs a trash from PATH or feeds it stdin", check_trash_never_empties),
                     ("a sweep ends with an offload pass", lambda: check_sweep_offloads(True)),
                     ("a sweep in a home without a verifier offloads nothing", lambda: check_sweep_offloads(False))])
