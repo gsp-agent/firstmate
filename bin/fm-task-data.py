@@ -182,8 +182,8 @@ removes a leftover first.
 A linked worktree of a repository in another task, a repository with linked
 worktrees outside the task or sharing no folder below it, an unreadable
 worktree record, a submodule checkout outside its superproject's unit, and any
-unit holding one of them stay in place, named with reasons and sizes in
-offload-plan's retained list.
+unit holding one of them at any depth stay in place, named with reasons and
+sizes in offload-plan's retained list.
 
 Live offload must run through the shell wrapper, which holds the spawn meta lock.
 It requires private config/task-data-offload.json, mode without group/other writes,
@@ -1177,8 +1177,8 @@ def offload_repository_marker(path, names, leaves):
 def offload_inventory(root, data):
     # Units: each outermost repository outside record/, joined with its linked
     # worktrees in the task into the smallest folder below the task holding
-    # them all. Repository work in the scratch recovery hold still belongs to
-    # expiry and blocks offload.
+    # them all. Every repository below it is classified too. Repository work in
+    # the scratch recovery hold still belongs to expiry and blocks offload.
     groups = []
     for directory, names, leaves in os.walk(root, followlinks=False):
         path = Path(directory)
@@ -1186,7 +1186,9 @@ def offload_inventory(root, data):
         if rel.parts[:1] == ("record",):
             names[:] = []
             continue
-        if not offload_repository_marker(path, names, leaves):
+        marker = offload_repository_marker(path, names, leaves)
+        names[:] = [name for name in names if name != ".git"]
+        if not marker:
             continue
         if not rel.parts:
             raise ValueError("the task folder is itself a repository")
@@ -1197,7 +1199,6 @@ def offload_inventory(root, data):
         if unit == root:
             unit, reason = path, reason or "shares no folder below the task with its linked worktrees"
         groups.append((unit, reason))
-        names[:] = []
     # A unit inside another moves with it, and anything kept keeps the whole.
     units = {}
     for unit, reason in sorted(groups, key=lambda item: len(item[0].parts)):
@@ -1220,12 +1221,13 @@ def offload_unit_links(repository, root, data):
             text = dotgit.read_text().strip()
             if not text.startswith("gitdir: "):
                 return links, "linked worktree record is unreadable"
-            gitdir = repository / text.removeprefix("gitdir: ")
-            if not (gitdir / "commondir").is_file():
-                return links, "submodule checkout; offloaded only as part of its superproject"
-            common = (gitdir / (gitdir / "commondir").read_text().strip()).resolve()
+            gitdir = (repository / text.removeprefix("gitdir: ")).resolve()
+            commondir = gitdir / "commondir"
+            common = (gitdir / commondir.read_text().strip()).resolve() if commondir.is_file() else gitdir
             if root in common.parents:
                 return [common], None
+            if not commondir.is_file():
+                return links, "submodule checkout; offloaded only as part of its superproject"
             if common == data or data in common.parents:
                 return links, "linked worktree of a repository in another task"
             # Its repository is outside the task data: offloaded whole as files.

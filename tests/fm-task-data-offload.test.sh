@@ -415,6 +415,34 @@ def check_outside_parent_detached_worktree_kept():
     assert run(home, "offload")["offloaded"] == []
     assert snapshot(worktree) == before and snapshot(main) == parent and not (home / "calls").exists()
 
+def check_nested_outside_worktree_kept():
+    home, clone = repo_fixture("repo-nested-outside-worktree")
+    main = home / "user/main"
+    git("init", "-q", "-b", "main", main)
+    commit(main, "work.txt", "parent work\n")
+    git("-C", main, "worktree", "add", "-q", "--detach", clone / "ac-wt")
+    commit(clone / "ac-wt", "detached.txt", "a commit only this nested worktree's HEAD reaches\n")
+    before, parent = snapshot(clone), snapshot(main)
+    plan = run(home, "offload-plan")
+    assert plan["moves"] == [] and [(item.get("path"), item["reason"]) for item in plan["retained"]] == [
+        ("clone", "its HEAD, reflog or worktree refs reach commits no branch or tag of its repository outside DATA has")], plan
+    assert run(home, "offload")["offloaded"] == []
+    assert snapshot(clone) == before and snapshot(main) == parent and not (home / "calls").exists()
+
+def check_submodule_rides_superproject():
+    home, clone = repo_fixture("repo-submodule")
+    seed, sub = home / "user/sub-seed", home / "user/sub.git"
+    git("init", "-q", "--bare", "-b", "main", sub)
+    git("init", "-q", "-b", "main", seed)
+    commit(seed, "sub.txt", "submodule work\n")
+    git("-C", seed, "push", "-q", sub, "main")
+    git("-C", clone, "-c", "protocol.file.allow=always", "submodule", "add", "-q", sub, "vendor/x")
+    git("-C", clone, "commit", "-q", "-m", "add submodule")
+    before = snapshot(clone)
+    result = run(home, "offload")
+    assert [(item["path"], item.get("archive")) for item in result["offloaded"]] == [("clone", "tar")], result
+    assert restored(home, json.loads(clone.read_text()), "clone") == before
+
 def check_other_task_worktree_kept():
     home = fixture("repo-other-task-worktree")
     (home / "data/task-one/report.md").write_text("Completed.\n")
@@ -475,6 +503,9 @@ regressions.extend([("verified existing payload is reused", check_verified_reuse
                     ("a worktree of a repository outside DATA is offloaded whole as files", check_outside_parent_worktree_archived),
                     ("a worktree of a repository outside DATA on a commit no branch has stays",
                      check_outside_parent_detached_worktree_kept),
+                    ("a clone holding a detached worktree of a repository outside DATA stays",
+                     check_nested_outside_worktree_kept),
+                    ("a clone with a checked-out submodule is offloaded whole with it", check_submodule_rides_superproject),
                     ("a worktree of a repository in another task stays", check_other_task_worktree_kept),
                     ("an offload stopped with TERM releases the task meta lock", check_interrupted_offload_releases_lock),
                     ("offload never runs a trash from PATH or feeds it stdin", check_trash_never_empties),
