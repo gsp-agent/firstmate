@@ -1,0 +1,40 @@
+== code under test: /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5ZTEZB4GZ9TGA9F3RKDAJQB/bin/fm-spawn.sh
+== Treehouse: v2.3.0
+== lab tmux server up (private socket under the lab)
+== before the spawn, treehouse status --json:
+{"name":"1","status":"in-use","lease_holder":""}
+== fm-spawn.sh live-th-fix <project> --mode no-mistakes --yolo off --base-branch release
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Wqvo6z
+warn: no registry at /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Wqvo6z/data/projects.md; defaulting project to no-mistakes off
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Wqvo6z/data/live-th-fix/launch-brief.md records no ship branch; defaulting to legacy branch fm/live-th-fix
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Wqvo6z/data/live-th-fix/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+error: codex-cli 0.164.0 showed neither its folder-access prompt nor a started turn on the brief in window firstmate:fm-live-th-fix; inspect window firstmate:fm-live-th-fix
+spawn: reaping leaked worktree process(es) for live-th-fix: 16737 19472 19573
+spawn: force-killing leaked worktree process(es) for live-th-fix: 16737
+warning: leaving task live-th-fix's slot claim on /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Wqvo6z/work/pool-root/.treehouse/project-c15094/2/project in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it
+== fm-spawn exit=1 (87s)
+== treehouse calls (wrapper log; every call ran the real binary):
+status --json
+status --json
+status --json
+get --lease --lease-holder fm-spawn-live-th-fix --no-fetch
+race: worker 8145 ended before this get --lease
+get
+return --if-lease-holder fm-spawn-live-th-fix /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Wqvo6z/work/pool-root/.treehouse/project-c15094/1/project
+== after the spawn, treehouse status --json:
+{"name":"1","status":"available","lease_holder":"","path":"/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Wqvo6z/work/pool-root/.treehouse/project-c15094/1/project"}
+{"name":"2","status":"available","lease_holder":"","path":"/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Wqvo6z/work/pool-root/.treehouse/project-c15094/2/project"}
+== claimed slot 1 lease holder after the spawn: []
+== claimed slot 1 claim marker: task=some-other-task home=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.Wqvo6z 
+== claimed slot 1 HEAD: 243139d B worktree status=[]
+== spawn meta worktree line: none
+== spawned window pane (last lines):
+-- window @0 cwd=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.Wqvo6z/work/project
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$
+== teardown: lab tmux server, the claimed slot's worker, socket dir
+== done
+== correction: the 'claimed slot 1 lease holder' line above compared /private/var and /var spellings of the slot path and so printed empty; read by slot name instead, from real Treehouse state after the spawn exited:
+{"slot":"1","status":"available","lease_holder":""}

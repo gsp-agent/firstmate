@@ -1,0 +1,33 @@
+# tree: head 7741b114
+
+## fm-spawn-worktree-settle :: test_allocator_claimed_slot_is_never_returned success
+ok - a success spawn never enters or returns a claimed slot the reuse test refuses
+## exit=0 (14s)
+
+## fm-spawn-worktree-settle :: test_allocator_claimed_slot_is_never_returned abort
+ok - a abort spawn never enters or returns a claimed slot the reuse test refuses
+## exit=0 (6s)
+
+## fm-spawn-defer-slot :: test_adopted_slot_with_unpushed_commits_is_not_returned
+ok - an adopted target slot holding task commits keeps its ship branch and claim on refusal
+## exit=0 (11s)
+
+## fm-spawn-defer-slot :: test_slot_with_unpushed_commits_is_not_returned
+ok - a slot holding task commits is kept and the spawn refuses (origin)
+## exit=0 (21s)
+
+## fm-spawn-defer-slot :: test_dirty_slot_is_not_returned
+ok - a slot holding uncommitted changes is kept and the spawn refuses
+## exit=0 (23s)
+
+## fm-spawn-worktree-settle :: test_mixed_pool_makes_new_own_slot_when_none_free
+ok - no free own-clone slot: the allocator is leased forward until Treehouse makes one
+## exit=0 (9s)
+
+## fm-spawn-worktree-settle :: test_allocator_claimed_own_slot_becomes_target
+ok - a claimed own-clone slot the allocator hands out becomes the target, not a leaked lease
+## exit=0 (11s)
+
+## fm-spawn-worktree-settle :: test_allocator_claimed_target_abort_releases_lease
+ok - an aborted spawn that chose a claimed own-clone slot leaves no lease of its own on it
+## exit=0 (24s)

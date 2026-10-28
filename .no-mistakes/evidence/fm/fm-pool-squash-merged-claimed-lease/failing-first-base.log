@@ -1,0 +1,9 @@
+# tree: base 6e58c8a8 bin/ with the head 7741b114 tests
+
+## fm-spawn-worktree-settle :: test_allocator_claimed_clean_slot_lease_is_released success
+not ok - spawn left its steering lease (fm-spawn-settle-pool-claimed-clean-success) on a claimed slot the reuse test refuses (expected '', got 'fm-spawn-settle-pool-claimed-clean-success')
+## exit=1 (11s)
+
+## fm-spawn-worktree-settle :: test_allocator_claimed_clean_slot_lease_is_released abort
+not ok - spawn left its steering lease (fm-spawn-settle-pool-claimed-clean-abort) on a claimed slot the reuse test refuses (expected '', got 'fm-spawn-settle-pool-claimed-clean-abort')
+## exit=1 (6s)

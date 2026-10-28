@@ -1,0 +1,9 @@
+# tree: head 7741b114
+
+## fm-spawn-worktree-settle :: test_allocator_claimed_clean_slot_lease_is_released success
+ok - a success spawn releases its steering lease on a clean claimed slot the reuse test refuses
+## exit=0 (26s)
+
+## fm-spawn-worktree-settle :: test_allocator_claimed_clean_slot_lease_is_released abort
+ok - a abort spawn releases its steering lease on a clean claimed slot the reuse test refuses
+## exit=0 (7s)

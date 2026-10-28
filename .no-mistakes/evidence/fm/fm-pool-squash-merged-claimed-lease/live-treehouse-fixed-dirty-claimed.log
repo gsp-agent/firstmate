@@ -1,0 +1,40 @@
+== code under test: /Users/dalecarman/.agent-scratch/nm-runs/a5e67f4ea77f/01M5ZTEZB4GZ9TGA9F3RKDAJQB/bin/fm-spawn.sh
+== Treehouse: v2.3.0
+== lab tmux server up (private socket under the lab)
+== before the spawn, treehouse status --json:
+{"name":"1","status":"in-use","lease_holder":""}
+== fm-spawn.sh live-th-dirty <project> --mode no-mistakes --yolo off --base-branch release
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.wPRHRY
+warn: no registry at /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.wPRHRY/data/projects.md; defaulting project to no-mistakes off
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.wPRHRY/data/live-th-dirty/launch-brief.md records no ship branch; defaulting to legacy branch fm/live-th-dirty
+warning: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.wPRHRY/data/live-th-dirty/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+error: codex-cli 0.164.0 showed neither its folder-access prompt nor a started turn on the brief in window firstmate:fm-live-th-dirty; inspect window firstmate:fm-live-th-dirty
+spawn: reaping leaked worktree process(es) for live-th-dirty: 65797 67356 67410
+spawn: force-killing leaked worktree process(es) for live-th-dirty: 65797
+warning: leaving task live-th-dirty's slot claim on /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wPRHRY/work/pool-root/.treehouse/project-95cd41/2/project in place; the Treehouse project lock is no longer held, so the next spawn's claim replaces it
+== fm-spawn exit=1 (86s)
+== treehouse calls (wrapper log; every call ran the real binary):
+status --json
+status --json
+status --json
+get --lease --lease-holder fm-spawn-live-th-dirty --no-fetch
+race: worker 64742 ended before this get --lease
+enter 2
+== after the spawn, treehouse status --json:
+{"name":"1","status":"dirty","lease_holder":"","path":"/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wPRHRY/work/pool-root/.treehouse/project-95cd41/1/project"}
+{"name":"2","status":"leased","lease_holder":"fm-spawn-live-th-dirty","path":"/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wPRHRY/work/pool-root/.treehouse/project-95cd41/2/project"}
+== claimed slot 1 lease holder after the spawn: []
+== claimed slot 1 claim marker: task=some-other-task home=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.wPRHRY 
+== claimed slot 1 HEAD: 9916a14 B worktree status=[?? wip.txt]
+== spawn meta worktree line: none
+== spawned window pane (last lines):
+-- window @0 cwd=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.wPRHRY/work/project
+The default interactive shell is now zsh.
+To update your account to use zsh, please run `chsh -s /bin/zsh`.
+For more details, please visit https://support.apple.com/kb/HT208050.
+bash-3.2$
+== teardown: lab tmux server, the claimed slot's worker, socket dir
+== done
+== by slot name after the spawn:
+{"slot":"1","status":"dirty","lease_holder":""}
+== claimed slot 1 uncommitted file: uncommitted work of some-other-task
