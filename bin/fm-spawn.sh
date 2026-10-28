@@ -872,6 +872,8 @@ fm_backlog_directory_present "$STATE" "state directory" || {
 . "$SCRIPT_DIR/fm-dod-lib.sh"
 # shellcheck source=bin/fm-grok-worker-lib.sh
 . "$SCRIPT_DIR/fm-grok-worker-lib.sh"
+# shellcheck source=bin/fm-crew-resume-lib.sh
+. "$SCRIPT_DIR/fm-crew-resume-lib.sh"
 # shellcheck source=bin/fm-role-lib.sh
 . "$SCRIPT_DIR/fm-role-lib.sh"
 # shellcheck source=bin/fm-trace-context-lib.sh
@@ -7347,6 +7349,7 @@ if [ "$RELAUNCH" -eq 1 ]; then
   SPAWN_META_TMP=
   spawn_relaunch_close_old_endpoint
 fi
+CREW_RESUME_SINCE=$(date +%s)
 SPAWN_LAUNCH_SENT=1
 spawn_send_literal "$T" ". $(shell_quote "$LAUNCH_FILE")"
 sleep 0.3
@@ -7428,6 +7431,49 @@ if [ "$HARNESS" = codex ] && [ "$KIND" != secondmate ]; then
     exit 1
     ;;
   esac
+fi
+
+# Herdr restore resume. A Codex crew launches with hooks disabled, so Herdr
+# never learns its session. Report the session Codex wrote for this worktree
+# (bin/fm-crew-resume-lib.sh). A Grok crew's session already reaches Herdr
+# through its hook. What a bare resume cannot carry is its per-task home, so
+# record that home for the Grok guard to restore with --always-approve.
+if [ "$BACKEND" = herdr ] && [ "$KIND" != secondmate ]; then
+  crew_polls=${FM_CREW_RESUME_POLLS:-20}
+  crew_i=0
+  if [ "$HARNESS" = codex ]; then
+    crew_session_id=
+    while [ "$crew_i" -lt "$crew_polls" ]; do
+      crew_session_id=$(fm_crew_codex_session_id "$CODEX_STORE_DIR" "$WT" "$CREW_RESUME_SINCE")
+      [ -z "$crew_session_id" ] || break
+      crew_i=$((crew_i + 1))
+      [ "$crew_i" -ge "$crew_polls" ] || sleep "${FM_CREW_RESUME_INTERVAL:-0.5}"
+    done
+    if [ -n "$crew_session_id" ]; then
+      fm_crew_report_codex_session "$HERDR_SES" "$HERDR_PANE_ID" "$crew_session_id" ||
+        echo "warning: could not report Codex session $crew_session_id for $ID to Herdr pane $HERDR_PANE_ID; a Herdr restore will not resume this crew" >&2
+    else
+      echo "warning: no Codex session for $ID was found under $CODEX_STORE_DIR; a Herdr restore will not resume this crew" >&2
+    fi
+  elif [ "$HARNESS" = grok ]; then
+    # No post-launch gate proves a Grok turn started, so its session can
+    # take longer to appear than a Codex rollout.
+    crew_polls=${FM_CREW_RESUME_GROK_POLLS:-60}
+    crew_grok_session=
+    while [ "$crew_i" -lt "$crew_polls" ]; do
+      crew_grok_session=$(fm_crew_grok_session "$GROK_WORKER_HOME/sessions" "$WT" "$CREW_RESUME_SINCE")
+      [ -z "$crew_grok_session" ] || break
+      crew_i=$((crew_i + 1))
+      [ "$crew_i" -ge "$crew_polls" ] || sleep "${FM_CREW_RESUME_INTERVAL:-0.5}"
+    done
+    if [ -n "$crew_grok_session" ]; then
+      crew_grok_id=${crew_grok_session%%$'\t'*}
+      fm_crew_grok_resume_record_write "${GROK_HOME:-$HOME/.grok}" "$crew_grok_id" "$GROK_WORKER_HOME" ||
+        echo "warning: could not record the Grok resume home for $ID session $crew_grok_id" >&2
+    else
+      echo "warning: no Grok session for $ID was found under $GROK_WORKER_HOME/sessions; no resume home was recorded" >&2
+    fi
+  fi
 fi
 
 if [ "$KIND" = secondmate ] && [ "${FM_SKIP_SECONDMATE_INHERIT:-0}" != 1 ]; then
