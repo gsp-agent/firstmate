@@ -1,0 +1,2 @@
+# Failing-first: tests/fm-watch-triage.test.sh test_procevent_unacknowledged_result_redrains_until_handled failed 3/3 on the base (successor closed on the re-announced row instead of check: rearm-resurface); tests/fm-watch-recovery-loop.test.sh test_handling_successor_ignores_a_reappended_start_row also fails on the base watcher and passes on the fix.
+pr: 183

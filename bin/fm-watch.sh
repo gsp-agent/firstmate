@@ -3256,7 +3256,7 @@ resurface_queue_has_main_only() {
 }
 
 resurface_after_downtime() {
-  local epoch seq kind key payload rest start newer queue_seq
+  local epoch seq kind key payload rest start newer queue_seq at_start tab
   start=${WATCHER_START_SEQ:-0}
   newer=
   # Every append raises the counter before it writes its row, so a counter at
@@ -3269,11 +3269,34 @@ resurface_after_downtime() {
     RESURFACE_ALT_OWNER=1
     resurface_alternate_owner || RESURFACE_ALT_OWNER=0
     if fm_lock_acquire_wait_max "$FM_WAKE_QUEUE_LOCK" 2; then
-      while IFS="$(printf '\t')" read -r epoch seq kind key payload rest; do
+      # The twin test matches kind, key and payload, so a changed payload
+      # under an existing key still counts as new work. A re-append of a row
+      # already queued at this watcher's start (fm-procevent.sh reconcile
+      # re-announces an unhandled result every cycle) matches all three under
+      # a fresh sequence, so it is the old row again, not new work: only a
+      # post-start row with no at-start twin closes this watcher here.
+      tab=$(printf '\t')
+      at_start=
+      while IFS="$tab" read -r epoch seq kind key payload rest; do
+        case "$seq" in
+          ''|*[!0-9]*) continue ;;
+        esac
+        [ "$seq" -le "$start" ] || continue
+        at_start="$at_start
+$kind	$key	$payload"
+      done < "$FM_WAKE_QUEUE"
+      while IFS="$tab" read -r epoch seq kind key payload rest; do
         case "$seq" in
           ''|*[!0-9]*) continue ;;
         esac
         [ "$seq" -gt "$start" ] || continue
+        case "
+$at_start
+" in
+          *"
+$kind	$key	$payload
+"*) continue ;;
+        esac
         if resurface_row_main_only "$kind" "$key" "$payload"; then
           newer=$payload
           break

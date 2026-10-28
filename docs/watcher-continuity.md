@@ -215,7 +215,8 @@ So a finished, hung, or identity-mismatched claim cannot suppress that recovery 
 The recovery-episode contract below owns once-per-generation announcement.
 A handling successor does not re-announce.
 It enters its poll loop immediately and keeps scanning signals, stale panes, and checks.
-Like every watcher, it closes when a main-only row with a sequence above the queue sequence at its own start appears; rows queued before its start were part of its predecessor's wake.
+Like every watcher, it closes when a main-only row with a sequence above the queue sequence at its own start appears only if no still-queued row at or below that starting sequence has the same kind, key, and payload.
+A re-append of an unhandled process-event result therefore stays on the recovery path instead of closing the watcher as new work; a changed payload still qualifies as new work.
 
 ### Manual recovery and other harnesses
 
