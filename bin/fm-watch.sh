@@ -317,7 +317,10 @@ fi
 # markers, while bin/fm-wake-lib.sh owns their wake-facing routing, the legacy
 # turn-ended signature, annotation staleness checks, and guarded bookkeeping writes.
 
-POLL=${FM_POLL:-15}                   # seconds between cycles
+POLL=${FM_POLL:-15}                   # backstop seconds between cycles: the
+                                      # terminal event waits (backend
+                                      # transitions, state writes) only ever
+                                      # shorten it, never lengthen it
 # docs/turnend-guard.md "Guard grace and the poll cadence" owns beacon refreshes.
 # fm_poll_derived_grace (bin/fm-wake-lib.sh, sourced transitively above) owns
 # the grace derivation that accommodates the terminal wait.
@@ -448,6 +451,14 @@ EVENT_CAP_FAIL_MAX=${FM_EVENT_CAP_FAIL_MAX:-3}
 _event_cap_key=""
 _event_cap_ok=0
 _event_cap_fails=0
+# Consecutive state-wait failures (bin/fm-watch-statewait.py exiting 2 or
+# otherwise unusable) before the state fast-path is disabled for the rest of
+# this watcher process, mirroring EVENT_CAP_FAIL_MAX above. The capability
+# probe (a zero-timeout wait) runs once per process; FM_WATCH_STATE_WAIT=0
+# turns the state wait off entirely.
+STATE_WAIT_FAIL_MAX=${FM_STATE_WAIT_FAIL_MAX:-3}
+_state_wait_cap=""
+_state_wait_fails=0
 
 # afk_present: 0 while the away-mode flag exists. When set, the daemon wraps this
 # watcher and owns triage, so the watcher must behave one-shot (enqueue + exit on
@@ -2667,18 +2678,64 @@ heartbeat_scan_finds_actionable() {
   return "$found"
 }
 
+# state_wait_or_sleep <seconds>: wait for a write under this home's state/
+# (status and meta logs, the wake queue, hold-domain) or to its backlog, or
+# for the timeout, whichever comes first (bin/fm-watch-statewait.py owns the
+# watched set and its exit contract). Where that kqueue wait cannot run -
+# no python3, no kqueue on this platform, FM_WATCH_STATE_WAIT=0, the test
+# seam below, or STATE_WAIT_FAIL_MAX consecutive failures - it is exactly
+# the plain fm_sleep wait it replaces, so the POLL backstop is unchanged.
+# The waiter is a short-lived child of THIS watcher bounded by the same
+# seconds; it holds no lock and prints nothing.
+# FM_TEST_NO_STATE_WAIT=1, honored only when FM_TEST_SEAM=1, stands in for a
+# host without the kqueue wait so fork-budget fixtures measure poll work
+# itself on every platform.
+state_wait_or_sleep() {
+  local secs=$1 rc
+  if [ "${FM_WATCH_STATE_WAIT:-1}" = 0 ] \
+    || { [ "${FM_TEST_SEAM:-}" = 1 ] && [ -n "${FM_TEST_NO_STATE_WAIT:-}" ]; }; then
+    fm_sleep "$secs"
+    return
+  fi
+  if [ -z "$_state_wait_cap" ]; then
+    _state_wait_cap=0
+    if command -v python3 >/dev/null 2>&1; then
+      python3 -I "$SCRIPT_DIR/fm-watch-statewait.py" 0 "$STATE" </dev/null >/dev/null 2>&1
+      rc=$?
+      case "$rc" in 0|1) _state_wait_cap=1 ;; esac
+    fi
+  fi
+  if [ "$_state_wait_cap" != 1 ]; then
+    fm_sleep "$secs"
+    return
+  fi
+  python3 -I "$SCRIPT_DIR/fm-watch-statewait.py" "$secs" "$STATE" \
+    "$FM_HOME/data/backlog.md" </dev/null >/dev/null 2>&1
+  rc=$?
+  case "$rc" in
+    0|1) _state_wait_fails=0 ;;
+    *)
+      _state_wait_fails=$((_state_wait_fails + 1))
+      [ "$_state_wait_fails" -ge "$STATE_WAIT_FAIL_MAX" ] && _state_wait_cap=0
+      fm_sleep "$secs"
+      ;;
+  esac
+}
+
 # event_wait_or_sleep: the terminal wait of each supervision cycle. For a home
 # with push-capable windows (herdr), it replaces the blind POLL wait with a
 # bounded wait on the backend's native transition stream, so a crew going
 # `blocked` wakes the supervisor sub-second instead of after the stale-pane
 # wedge timer. For every other home - no push-capable window, backend not
 # capable, or the event path proven unreliable this process - it waits POLL
-# in fm_sleep (bin/fm-wake-lib.sh), which starts no process where Bash's sleep
-# builtin is installed. The poll loop above still runs every cycle, so
-# this only ever SHORTENS latency; it can never drop an escalation (the poll
-# loop is the permanent fail-closed backstop). This preserves the single live
-# supervision cycle: the reader is a short-lived subprocess of THIS watcher, not
-# a second watcher, so every guard/beacon/arm/turn-end mechanism is unchanged.
+# in state_wait_or_sleep above, so a status write wakes the cycle sub-second
+# and the wait degrades to fm_sleep (bin/fm-wake-lib.sh), which starts no
+# process where Bash's sleep builtin is installed. The poll loop above still
+# runs every cycle, so this only ever SHORTENS latency; it can never drop an
+# escalation (the poll loop is the permanent fail-closed backstop). This
+# preserves the single live supervision cycle: the reader is a short-lived
+# subprocess of THIS watcher, not a second watcher, so every
+# guard/beacon/arm/turn-end mechanism is unchanged.
 event_wait_or_sleep() {
   local w b kind session first_backend="" first_session="" rec rc listed
   local windows=()
@@ -2707,7 +2764,7 @@ $listed
 EOF
 
   if [ "${#windows[@]}" -eq 0 ]; then
-    fm_sleep "$POLL"
+    state_wait_or_sleep "$POLL"
     return
   fi
 
@@ -2723,7 +2780,7 @@ EOF
     _event_cap_fails=0
   fi
   if [ "$_event_cap_ok" != 1 ]; then
-    fm_sleep "$POLL"
+    state_wait_or_sleep "$POLL"
     return
   fi
 
@@ -2740,7 +2797,7 @@ EOF
       # pure polling for the rest of this watcher process.
       _event_cap_fails=$((_event_cap_fails + 1))
       [ "$_event_cap_fails" -ge "$EVENT_CAP_FAIL_MAX" ] && _event_cap_ok=0
-      fm_sleep "$POLL"
+      state_wait_or_sleep "$POLL"
       ;;
     *)
       # 1: a clean full-budget wait with no actionable edge - the reader already

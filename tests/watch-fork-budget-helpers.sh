@@ -157,12 +157,16 @@ SH
   printf '%s\n' "$home"
 }
 
-# Processes started across polls 2-5 of a watcher on <home>.
+# Processes started across polls 2-5 of a watcher on <home>. The kqueue
+# state wait is seamed off (FM_TEST_NO_STATE_WAIT, bin/fm-watch.sh) so the
+# budgets measure poll work itself, identically on hosts with and without
+# the wait; tests/fm-watch-state-wait.test.sh covers the wait for real.
 watch_polls() {  # <home> <log>
   local home=$1 log=$2 pid
   : > "$log"
   ( unset TMUX FM_TASK_ID
     export PATH="$home/fakebin:$SHIMS:$REAL_PATH" FM_HOME="$home" FM_ROOT_OVERRIDE="$ROOT" \
+      FM_TEST_SEAM=1 FM_TEST_NO_STATE_WAIT=1 \
       FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 \
       FM_SECONDMATE_LIVENESS_SECS=99999999 FM_INACTIVE_RECONCILE_SECS=1800 \
       FM_HEARTBEAT_MAX=999999 BASH_ENV="$COUNTER" FM_FORK_LOG="$log" \
