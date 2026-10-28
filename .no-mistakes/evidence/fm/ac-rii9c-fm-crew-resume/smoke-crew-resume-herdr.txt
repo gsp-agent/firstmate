@@ -1,0 +1,6 @@
+ok - real herdr: a codex crew launch binds the pane to its own session and records it
+ok - real herdr: a codex relaunch replaces the pane's binding to the retired session with its own
+ok - real herdr: a codex session report replaces a binding Herdr still holds for an earlier session
+Codex binding after nested-shell exit: codex	fm-crew-resume-session-3
+not ok - the harness switch reused the pane still bound to Codex
+bash tests/fm-crew-resume-herdr-smoke.test.sh  4.36s user 7.85s system 19% cpu 1:01.44 total

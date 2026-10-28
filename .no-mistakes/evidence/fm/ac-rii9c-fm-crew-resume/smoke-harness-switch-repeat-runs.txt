@@ -1,0 +1,60 @@
+Repeat runs of tests/fm-crew-resume-herdr-smoke.test.sh's harness-switch step on a loaded host (load avg 75-290), 2026-10-28 CT.
+Copies differed only in diagnostics: traced copies sent bash xtrace to a separate fd; untraced/verbose copies printed the spawn output.
+
+## traced copy x4
+=== run 1 06:12:38
+binding right before claude spawn: codex	fm-crew-resume-session-3
+ok - real herdr: a relaunch from codex onto another harness replaces the retained Codex pane and removes its resume record, and that harness's own session report binds the pane
+=== run 2 06:15:35
+binding right before claude spawn: codex	fm-crew-resume-session-3
+ok - real herdr: a relaunch from codex onto another harness replaces the retained Codex pane and removes its resume record, and that harness's own session report binds the pane
+=== run 3 06:17:39
+binding right before claude spawn: codex	fm-crew-resume-session-3
+ok - real herdr: a relaunch from codex onto another harness replaces the retained Codex pane and removes its resume record, and that harness's own session report binds the pane
+=== run 4 06:19:11
+binding right before claude spawn: codex	fm-crew-resume-session-3
+ok - real herdr: a relaunch from codex onto another harness replaces the retained Codex pane and removes its resume record, and that harness's own session report binds the pane
+
+## untraced copy x4 (batch 1)
+=== run 1 06:22:02
+binding right before claude spawn: codex	fm-crew-resume-session-3
+spawned hresume harness=claude kind=ship mode=no-mistakes yolo=off window=fm-lab-crew-resume-99643:w2:p2 worktree=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-resume-herdr.IvKydJ/wt
+ok - real herdr: a relaunch from codex onto another harness replaces the retained Codex pane and removes its resume record, and that harness's own session report binds the pane
+=== run 2 06:24:18
+binding right before claude spawn: codex	fm-crew-resume-session-3
+spawned hresume harness=claude kind=ship mode=no-mistakes yolo=off window=fm-lab-crew-resume-76880:w2:p2 worktree=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-resume-herdr.UGokLg/wt
+ok - real herdr: a relaunch from codex onto another harness replaces the retained Codex pane and removes its resume record, and that harness's own session report binds the pane
+=== run 3 06:25:39
+binding right before claude spawn: codex	fm-crew-resume-session-3
+spawned hresume harness=claude kind=ship mode=no-mistakes yolo=off window=fm-lab-crew-resume-21030:w2:p2 worktree=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-resume-herdr.VRZafz/wt
+ok - real herdr: a relaunch from codex onto another harness replaces the retained Codex pane and removes its resume record, and that harness's own session report binds the pane
+=== run 4 06:28:30
+binding right before claude spawn: codex	fm-crew-resume-session-3
+spawned hresume harness=claude kind=ship mode=no-mistakes yolo=off window=fm-lab-crew-resume-5482:w2:p2 worktree=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-resume-herdr.kwPTRO/wt
+not ok - the replacement pane did not launch the stand-in claude
+
+## untraced copy x4 (batch 2)
+=== run 1 06:30:51
+binding right before claude spawn: codex	fm-crew-resume-session-3
+spawned hresume harness=claude kind=ship mode=no-mistakes yolo=off window=fm-lab-crew-resume-74096:w2:p2 worktree=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-resume-herdr.s3RTnN/wt
+ok - real herdr: a relaunch from codex onto another harness replaces the retained Codex pane and removes its resume record, and that harness's own session report binds the pane
+=== run 2 06:32:39
+not ok - the nested worktree shell did not start
+=== run 3 06:33:14
+binding right before claude spawn: codex	fm-crew-resume-session-3
+spawned hresume harness=claude kind=ship mode=no-mistakes yolo=off window=fm-lab-crew-resume-49146:w2:p2 worktree=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-resume-herdr.Ahit5Y/wt
+ok - real herdr: a relaunch from codex onto another harness replaces the retained Codex pane and removes its resume record, and that harness's own session report binds the pane
+=== run 4 06:35:05
+not ok - the nested worktree shell did not start
+
+## unmodified test, verbose failure messages x5
+=== run 1 06:36:28
+ok - real herdr: a relaunch from codex onto another harness replaces the retained Codex pane and removes its resume record, and that harness's own session report binds the pane
+=== run 2 06:37:37
+ok - real herdr: a relaunch from codex onto another harness replaces the retained Codex pane and removes its resume record, and that harness's own session report binds the pane
+=== run 3 06:38:47
+ok - real herdr: a relaunch from codex onto another harness replaces the retained Codex pane and removes its resume record, and that harness's own session report binds the pane
+=== run 4 06:39:32
+ok - real herdr: a relaunch from codex onto another harness replaces the retained Codex pane and removes its resume record, and that harness's own session report binds the pane
+=== run 5 06:40:22
+ok - real herdr: a relaunch from codex onto another harness replaces the retained Codex pane and removes its resume record, and that harness's own session report binds the pane

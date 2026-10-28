@@ -1,0 +1,14 @@
+=== fixed smoke test, run 1 06:41:16
+ok - real herdr: a codex crew launch binds the pane to its own session and records it
+ok - real herdr: a codex relaunch replaces the pane's binding to the retired session with its own
+ok - real herdr: a codex session report replaces a binding Herdr still holds for an earlier session
+Codex binding after nested-shell exit: codex	fm-crew-resume-session-3
+ok - real herdr: a relaunch from codex onto another harness replaces the retained Codex pane and removes its resume record, and that harness's own session report binds the pane
+exit=0
+=== fixed smoke test, run 2 06:42:19
+ok - real herdr: a codex crew launch binds the pane to its own session and records it
+ok - real herdr: a codex relaunch replaces the pane's binding to the retired session with its own
+ok - real herdr: a codex session report replaces a binding Herdr still holds for an earlier session
+Codex binding after nested-shell exit: codex	fm-crew-resume-session-3
+ok - real herdr: a relaunch from codex onto another harness replaces the retained Codex pane and removes its resume record, and that harness's own session report binds the pane
+exit=0

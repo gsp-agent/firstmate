@@ -1,0 +1,20 @@
+ok - a missing teardown startup source refuses before cleanup
+ok - an unreadable teardown startup source refuses before cleanup
+ok - a missing adapter sibling refuses before cleanup
+ok - a forced descendant with a missing adapter sibling refuses before cleanup
+ok - a forced secondmate with a missing own adapter sibling refuses before child cleanup
+ok - present required sources still reach the ordinary teardown refusal
+task data finished: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.JrrgjR/task-data-ancestor-alias-fixture/physical/data/finished/.cleanup-hold until the next completed task
+ok - fm-teardown: fixture ancestor aliases preserve owned targets and recovery paths through staging and expiry
+task data finished: scratch recoverable in /private/tmp/fm-task-data-alias.Qm14Mv/data/finished/.cleanup-hold until the next completed task
+ok - fm-teardown: macos ancestor aliases preserve owned targets and recovery paths through staging and expiry
+task data finished: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.JrrgjR/task-data-scope/data/finished/.cleanup-hold until the next completed task
+ok - fm-teardown: data cleanup leaves named and referenced TMPDIR scratch untouched
+ok - bead-resolution exact
+ok - bead-resolution expanded
+ok - bead-resolution unrelated
+ok - bead-resolution suffix
+ok - bead-resolution prefix
+ok - bead-resolution owner
+ok - bead-resolution multiple
+ok - teardown removes the task's Codex resume record and leaves other tasks' records alone

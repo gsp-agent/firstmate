@@ -1,0 +1,55 @@
+06:19:45 lab session: fm-lab-crewrestore-18888-17715
+06:19:52 task crewa: pane w1:p2 worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.eIagoj/wt-crewa
+06:19:57 task crewb: pane w1:p3 worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.eIagoj/wt-crewb
+06:19:57 --- spawn crewa with THIS change's fm-spawn (codex crew, Herdr backend)
+    spawn(crewa): warning: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.eIagoj/home/data/crewa/launch-brief.md records no ship branch; defaulting to legacy branch fm/crewa
+    spawn(crewa): warning: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.eIagoj/home/data/crewa/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+    spawn(crewa): spawned crewa harness=codex kind=ship mode=no-mistakes yolo=off window=fm-lab-crewrestore-18888-17715:w1:p2 worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.eIagoj/wt-crewa
+06:20:22 --- spawn crewb with the BASE commit's fm-spawn (control)
+    spawn(crewb): warning: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.eIagoj/home/data/crewb/launch-brief.md records no ship branch; defaulting to legacy branch fm/crewb
+    spawn(crewb): warning: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.eIagoj/home/data/crewb/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+    spawn(crewb): spawned crewb harness=codex kind=ship mode=no-mistakes yolo=off window=fm-lab-crewrestore-18888-17715:w1:p3 worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.eIagoj/wt-crewb
+06:20:40 codex session written by crewa's codex: c86b2883-675c-4678-8268-ed3ffc07033e
+06:20:40 codex session written by crewb's codex: 214b9b66-3705-4b14-94ef-f4a39db104e9
+06:20:40 codex launch args crewa:   --dangerously-bypass-approvals-and-sandbox --disable hooks -c notify=["bash","-c","touch '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.eIagoj/home/state/crewa.turn-ended'
+06:20:40 Herdr binding before restore, crewa pane w1:p2: codex c86b2883-675c-4678-8268-ed3ffc07033e
+06:20:40 Herdr binding before restore, crewb pane w1:p3: 
+06:20:40 state/crewa.codex-resume:
+    session_id=c86b2883-675c-4678-8268-ed3ffc07033e
+    codex_home=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.eIagoj/codex-home
+    arg=--dangerously-bypass-approvals-and-sandbox
+    arg=--disable
+    arg=hooks
+    arg=-c
+    arg=notify=["bash","-c","touch '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.eIagoj/home/state/crewa.turn-ended'"]
+06:20:41 state/crewb.codex-resume: absent
+06:20:46 pane agent state crewa: live  crewb: live
+06:20:47 restore gate record of the lab server (before restart):
+    {"server":"3346471350:1793186386","panes":{"crewa":{"agent":"codex","name":null,"session":"c86b2883-675c-4678-8268-ed3ffc07033e","source":"herdr:codex"},"crewb":{"agent":"codex","name":null,"session":null,"source":null}}}
+06:20:47 --- stopping the lab Herdr server (crew processes die with it)
+06:20:50 --- restarting the lab Herdr server (restore)
+06:21:05 restore gate log (lab HERDR_RESTORE_STATE/restore.log), 13s after restart:
+    2026-10-28T06:21:00-0500 start codex c86b2883-675c-4678-8268-ed3ffc07033e w1:p2 focused: ahead of the queue
+06:21:06 Herdr binding after restore, crewa pane w1:p2: codex c86b2883-675c-4678-8268-ed3ffc07033e
+06:21:06 Herdr binding after restore, crewb pane w1:p3: 
+06:21:06 restored pane crewa (w1:p2) process-info foreground:
+    [{"name":"git","argv":["/opt/homebrew/opt/git/libexec/git-core/git","--shallow-file","/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.eIagoj/codex-home/.tmp/plugins-clone-NDVVnE/.git/shallow.lock","index-pack","--stdin","--fix-thin","--keep=fetch-pack 73295 on Dales-MacBook-Pro-M4-7.local","--pack_header=2,7305"]},{"name":"git-remote-http","argv":["/opt/homebrew/opt/git/libexec/git-core/git-remote-https","https://github.com/openai/plugins.git","https://github.com/openai/plugins.git"]},{"name":"git","argv":["/opt/homebrew/opt/git/libexec/git-core/git","remote-https","https://github.com/openai/plugins.git","https://github.com/openai/plugins.git"]},{"name":"git","argv":["/opt/homebrew/Cellar/git/2.56.0_1/bin/git","-c","safe.bareRepository=explicit","-C","/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.eIagoj/codex-home/.tmp/plugins-clone-NDVVnE","fetch","--depth","1","--no-tags","https://github.com/openai/plugins.git","+0722921d5542fc593105c27bd52630babd8b8c2a:refs/codex/curated-sync"]},{"name":"codex","argv":["/opt/homebrew/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex","resume","c86b2883-675c-4678-8268-ed3ffc07033e"]},{"name":"node","argv":["node","/opt/homebrew/bin/codex","resume","c86b2883-675c-4678-8268-ed3ffc07033e"]}]
+06:21:07 restored pane crewa (w1:p2) screen (last 25 lines):
+    |   Welcome to Codex, OpenAI's command-line coding agent
+    |   Choose how you want to use Codex.
+    | > 1. Sign in with ChatGPT
+    |      Usage included with Plus, Pro, Business, and Enterprise plans
+    |   2. Sign in with Device Code
+    |      Sign in from another device with a one-time code
+    |   3. Use an OpenAI API key
+    |      Pay for what you use
+    |   4. Use Amazon Bedrock
+    |      Connect using your AWS credentials
+    |   Press enter to continue
+06:21:07 restored pane crewb (w1:p3) process-info foreground:
+    [{"name":"zsh","argv":["-zsh"]}]
+06:21:07 restored pane crewb (w1:p3) screen (last 25 lines):
+    | ╭─wt-crewb on 🌱 crewb
+    | ╰─❯
+06:21:07 done
+06:21:09 lab fm-lab-crewrestore-18888-17715 torn down

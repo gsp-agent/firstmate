@@ -1,0 +1,73 @@
+06:22:07 lab session: fm-lab-crewrestore-99067-16425
+06:22:24 task crewa: pane w1:p2 worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.hEPQb6/wt-crewa
+06:22:31 task crewb: pane w1:p3 worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.hEPQb6/wt-crewb
+06:22:38 task crewc: pane w1:p4 worktree /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.hEPQb6/wt-crewc
+06:22:38 --- spawn crewa with THIS change's fm-spawn (codex crew, Herdr backend)
+    spawn(crewa): warning: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.hEPQb6/home/data/crewa/launch-brief.md records no ship branch; defaulting to legacy branch fm/crewa
+    spawn(crewa): warning: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.hEPQb6/home/data/crewa/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+    spawn(crewa): spawned crewa harness=codex kind=ship mode=no-mistakes yolo=off window=fm-lab-crewrestore-99067-16425:w1:p2 worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.hEPQb6/wt-crewa
+06:23:12 --- spawn crewc with THIS change's fm-spawn (second codex crew)
+    spawn(crewc): warning: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.hEPQb6/home/data/crewc/launch-brief.md records no ship branch; defaulting to legacy branch fm/crewc
+    spawn(crewc): warning: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.hEPQb6/home/data/crewc/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+    spawn(crewc): spawned crewc harness=codex kind=ship mode=no-mistakes yolo=off window=fm-lab-crewrestore-99067-16425:w1:p4 worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.hEPQb6/wt-crewc
+06:23:37 --- spawn crewb with the BASE commit's fm-spawn (control)
+    spawn(crewb): warning: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.hEPQb6/home/data/crewb/launch-brief.md records no ship branch; defaulting to legacy branch fm/crewb
+    spawn(crewb): warning: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.hEPQb6/home/data/crewb/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+    spawn(crewb): spawned crewb harness=codex kind=ship mode=no-mistakes yolo=off window=fm-lab-crewrestore-99067-16425:w1:p3 worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.hEPQb6/wt-crewb
+06:23:59 codex session written by crewa's codex: a4ec5144-32cb-4406-a831-eb99812c5c0b
+06:23:59 codex session written by crewc's codex: 7c24b75a-731f-45ae-9c55-b6ff7ccfacbe
+06:23:59 codex session written by crewb's codex: 69665ec0-8b8f-43d4-84a7-97b9afb65060
+06:23:59 codex launch args crewa:   --dangerously-bypass-approvals-and-sandbox --disable hooks -c notify=["bash","-c","touch '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.hEPQb6/home/state/crewa.turn-ended'
+06:24:00 Herdr binding before restore, crewa pane w1:p2: codex a4ec5144-32cb-4406-a831-eb99812c5c0b
+06:24:00 Herdr binding before restore, crewc pane w1:p4: codex 7c24b75a-731f-45ae-9c55-b6ff7ccfacbe
+06:24:00 Herdr binding before restore, crewb pane w1:p3: 
+06:24:00 state/crewa.codex-resume:
+    session_id=a4ec5144-32cb-4406-a831-eb99812c5c0b
+    codex_home=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.hEPQb6/codex-home
+    arg=--dangerously-bypass-approvals-and-sandbox
+    arg=--disable
+    arg=hooks
+    arg=-c
+    arg=notify=["bash","-c","touch '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.hEPQb6/home/state/crewa.turn-ended'"]
+06:24:00 state/crewb.codex-resume: absent
+06:24:04 pane agent state crewa: live  crewb: live
+06:24:05 restore gate record of the lab server (before restart):
+    {"server":"3346477464:1793186529","panes":{"crewa":{"agent":"codex","name":null,"session":"a4ec5144-32cb-4406-a831-eb99812c5c0b","source":"herdr:codex"},"crewc":{"agent":"codex","name":null,"session":"7c24b75a-731f-45ae-9c55-b6ff7ccfacbe","source":"herdr:codex"},"crewb":{"agent":"codex","name":null,"session":null,"source":null}}}
+06:24:06 --- stopping the lab Herdr server (crew processes die with it)
+06:24:09 --- restarting the lab Herdr server (restore)
+06:24:37 restore gate log (lab HERDR_RESTORE_STATE/restore.log), 27s after restart:
+    2026-10-28T06:24:18-0500 start codex a4ec5144-32cb-4406-a831-eb99812c5c0b w1:p2 focused: ahead of the queue
+    2026-10-28T06:24:32-0500 start codex 7c24b75a-731f-45ae-9c55-b6ff7ccfacbe w1:p4 waited=14.5s
+06:24:37 Herdr binding after restore, crewa pane w1:p2: codex a4ec5144-32cb-4406-a831-eb99812c5c0b
+06:24:37 Herdr binding after restore, crewc pane w1:p4: codex 7c24b75a-731f-45ae-9c55-b6ff7ccfacbe
+06:24:38 Herdr binding after restore, crewb pane w1:p3: 
+06:24:38 restored pane crewa (w1:p2) process-info foreground:
+    [{"name":"git","argv":["/opt/homebrew/opt/git/libexec/git-core/git","--shallow-file","/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.hEPQb6/codex-home/.tmp/plugins-clone-PwvAzJ/.git/shallow.lock","index-pack","--stdin","--fix-thin","--keep=fetch-pack 80568 on Dales-MacBook-Pro-M4-7.local","--pack_header=2,7305"]},{"name":"git-remote-http","argv":["/opt/homebrew/opt/git/libexec/git-core/git-remote-https","https://github.com/openai/plugins.git","https://github.com/openai/plugins.git"]},{"name":"git","argv":["/opt/homebrew/opt/git/libexec/git-core/git","remote-https","https://github.com/openai/plugins.git","https://github.com/openai/plugins.git"]},{"name":"git","argv":["/opt/homebrew/Cellar/git/2.56.0_1/bin/git","-c","safe.bareRepository=explicit","-C","/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-crew-restore.hEPQb6/codex-home/.tmp/plugins-clone-PwvAzJ","fetch","--depth","1","--no-tags","https://github.com/openai/plugins.git","+0722921d5542fc593105c27bd52630babd8b8c2a:refs/codex/curated-sync"]},{"name":"codex","argv":["/opt/homebrew/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex","resume","a4ec5144-32cb-4406-a831-eb99812c5c0b"]},{"name":"node","argv":["node","/opt/homebrew/bin/codex","resume","a4ec5144-32cb-4406-a831-eb99812c5c0b"]}]
+06:24:38 restored pane crewa (w1:p2) screen (last 25 lines):
+    |   Welcome to Codex, OpenAI's command-line coding agent
+    |   Choose how you want to use Codex.
+    | > 1. Sign in with ChatGPT
+    |      Usage included with Plus, Pro, Business, and Enterprise plans
+    |   2. Sign in with Device Code
+    |      Sign in from another device with a one-time code
+    |   3. Use an OpenAI API key
+    |      Pay for what you use
+    |   4. Use Amazon Bedrock
+    |      Connect using your AWS credentials
+    |   Press enter to continue
+06:24:38 restored pane crewc (w1:p4) process-info foreground:
+    [{"name":"codex","argv":["/opt/homebrew/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex","resume","7c24b75a-731f-45ae-9c55-b6ff7ccfacbe"]},{"name":"node","argv":["node","/opt/homebrew/bin/codex","resume","7c24b75a-731f-45ae-9c55-b6ff7ccfacbe"]}]
+06:24:38 restored pane crewc (w1:p4) screen (last 25 lines):
+    |   Update available · 0.164.0 → 0.165.0
+    |   Release notes: https://github.com/openai/codex/releases/latest
+    | › 1. Update now (runs `npm install -g @openai/codex`)
+    |   2. Skip
+    |   3. Skip until next version
+    |   enter continue · esc skip
+06:24:38 restored pane crewb (w1:p3) process-info foreground:
+    [{"name":"zsh","argv":["-zsh"]}]
+06:24:39 restored pane crewb (w1:p3) screen (last 25 lines):
+    | ╭─wt-crewb on 🌱 crewb
+    | ╰─❯
+06:24:39 done
+06:24:41 lab fm-lab-crewrestore-99067-16425 torn down
