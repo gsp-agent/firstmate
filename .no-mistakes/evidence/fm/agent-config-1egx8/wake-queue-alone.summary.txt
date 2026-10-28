@@ -1,0 +1,23 @@
+label=wake-queue-alone suite=tests/fm-wake-queue.test.sh
+repo_head=8f8b43eb7583ae0000a0d9aaec7a5550a26840be
+start_utc=2026-10-27T17:54:35Z
+pre_load1=58.44 pre_loadavg={ 58.44 57.85 64.00 }
+pre_swap_used_mb=2502.94
+pre_home_store_sha=750f18697633fdbf3b259fb913724e1748aed6edd99b108fe37881b94c16163e pre_home_store_fixture_keys=0
+pre_config_store_sha=9d9f88034d0c624c6c536bfcd040be1207386d5cd1ba1f94b7adfb2a93cc80bb pre_config_store_fixture_keys=0
+pre_survivors=0
+runner_rc=1 wall_s=98
+end_utc=2026-10-27T17:56:22Z
+post_load1=107.49 post_swap_used_mb=2502.94
+samples=13 max_load1=111.95 max_load1_minus_pre=53.51 max_swap_used_mb=2502.94 min_swap_used_mb=2502.94
+suite_tree_max_procs=17 suite_tree_max_running=3 suite_tree_max_rss_mb=98
+post_home_store_sha=750f18697633fdbf3b259fb913724e1748aed6edd99b108fe37881b94c16163e post_home_store_fixture_keys=0
+post_config_store_sha=8465a54c006a6f90398de8ac07f6fbf7393ca8fe8a64b5a7735bc253bfe0a38f post_config_store_fixture_keys=0
+post_survivors=0
+post_named_survivors=0
+killed9_lines=0
+memory_cap_lines=0
+FM_TEST_END 2026-10-27T17:56:11Z tests/fm-wake-queue.test.sh exit=1 duration_ms=65406 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=1 skipped_gate=0 duration_ms=96009
+ok_lines=3 not_ok_lines=1
+not ok - queue lock delayed the drain for 16s

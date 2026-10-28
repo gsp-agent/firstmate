@@ -1,0 +1,22 @@
+label=wake-queue-alone-2 suite=tests/fm-wake-queue.test.sh
+repo_head=8f8b43eb7583ae0000a0d9aaec7a5550a26840be
+start_utc=2026-10-27T18:00:22Z
+pre_load1=77.27 pre_loadavg={ 77.27 75.12 70.82 }
+pre_swap_used_mb=2502.94
+pre_home_store_sha=750f18697633fdbf3b259fb913724e1748aed6edd99b108fe37881b94c16163e pre_home_store_fixture_keys=0
+pre_config_store_sha=8465a54c006a6f90398de8ac07f6fbf7393ca8fe8a64b5a7735bc253bfe0a38f pre_config_store_fixture_keys=0
+pre_survivors=0
+runner_rc=0 wall_s=973
+end_utc=2026-10-27T18:16:43Z
+post_load1=67.39 post_swap_used_mb=2502.94
+samples=162 max_load1=135.30 max_load1_minus_pre=58.03 max_swap_used_mb=2502.94 min_swap_used_mb=2502.94
+suite_tree_max_procs=111 suite_tree_max_running=26 suite_tree_max_rss_mb=453
+post_home_store_sha=750f18697633fdbf3b259fb913724e1748aed6edd99b108fe37881b94c16163e post_home_store_fixture_keys=0
+post_config_store_sha=b62a7c61657b349b324590e518049dac882169c7373e9914d6ecf34de15283be post_config_store_fixture_keys=0
+post_survivors=0
+post_named_survivors=0
+killed9_lines=3
+memory_cap_lines=0
+FM_TEST_END 2026-10-27T18:16:35Z tests/fm-wake-queue.test.sh exit=0 duration_ms=959534 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=972478
+ok_lines=71 not_ok_lines=0

@@ -1,0 +1,8 @@
+label=supervision-host-alone suite=tests/fm-supervision-host.test.sh
+repo_head=8f8b43eb7583ae0000a0d9aaec7a5550a26840be
+start_utc=2026-10-27T18:17:34Z
+pre_load1=44.32 pre_loadavg={ 44.32 62.42 63.92 }
+pre_swap_used_mb=2502.94
+pre_home_store_sha=750f18697633fdbf3b259fb913724e1748aed6edd99b108fe37881b94c16163e pre_home_store_fixture_keys=0
+pre_config_store_sha=b62a7c61657b349b324590e518049dac882169c7373e9914d6ecf34de15283be pre_config_store_fixture_keys=0
+pre_survivors=0
