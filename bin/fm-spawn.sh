@@ -539,11 +539,11 @@
 #                  reports (relaunch_resume_args below owns it; it supplies its
 #                  own leading space, and is empty on every fresh spawn and for
 #                  every other harness)
-#     __TURNEND__  absolute path to state/<task-id>.turn-ended (for harnesses whose
-#                  turn-end signal rides the launch command, e.g. codex -c notify=[...])
+#     __TURNEND__  absolute path to state/<task-id>.turn-ended, for a raw launch
+#                  command whose turn-end signal rides the launch command
 #     __CODEXCREWARGS__ the Codex crew arguments after the model and effort flags,
 #                  bin/fm-crew-resume-lib.sh's fm_crew_codex_args with the
-#                  turn-end path, each word followed by a space
+#                  turn-end path (its -c notify=[...]), each word followed by a space
 #     __PIEXT__    absolute path to state/<task-id>.pi-ext.ts (pi busy-state extension,
 #                  written by this script; outside the worktree to avoid pi's trust gate;
 #                  a secondmate loads it beside its two primary extensions)
@@ -6553,7 +6553,8 @@ EOF
     # firstmate-launched worker. Codex therefore classifies unknown with
     # an explicit reason rather than falling back to idle, and no busy
     # wiring is installed. The turn-end NOTIFICATION marker still rides
-    # the launch command via -c notify=[...] and __TURNEND__.
+    # the launch command via -c notify=[...] in fm_crew_codex_args, which
+    # __CODEXCREWARGS__ carries into the launch.
     ;;
   grok*)
     # Parent turn-end wiring only. A secondmate already classifies through the
