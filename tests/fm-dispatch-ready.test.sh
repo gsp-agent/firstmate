@@ -85,6 +85,12 @@ declare_capacity() {  # <case-dir> <line>...
   printf '%s\n' "$@" > "$case_dir/home/config/project-capacity"
 }
 
+declare_machine_capacity() {  # <case-dir> <line>...
+  local case_dir=$1
+  shift
+  printf '%s\n' "$@" > "$case_dir/home/config/machine-capacity"
+}
+
 run_helper() {  # <case-dir> [helper args...] (project defaults to the clone)
   local case_dir=$1
   shift
@@ -386,6 +392,29 @@ test_uncapped_project_starts_everything_and_if_capped_is_silent() {
   pass "an unlimited project is told to start its ready rows, and --if-capped stays silent for it"
 }
 
+# The machine total beside places: project places free, every machine
+# place held, so the line holds the rows back exactly as bin/fm-spawn.sh
+# defers them - and a declared total alone still caps for --if-capped.
+test_full_machine_total_holds_ready_rows_beside_free_places() {
+  local case_dir out
+  case_dir=$(make_case machine-full)
+  declare_capacity "$case_dir" "proj 5"
+  declare_machine_capacity "$case_dir" "1"
+  write_worker "$case_dir" busy-1 'working [at=1790000000]: building'
+  axi "$case_dir" add ready-a "first ready" --kind ship --repo proj
+  out=$(run_helper "$case_dir") || fail "machine-full: helper failed"
+  assert_contains "$out" "proj has 4 of 5 places free" "machine-full: project count"
+  assert_contains "$out" "this machine has 0 of 1 worker places free across every project (holding: busy-1)" "machine-full: machine count"
+  assert_contains "$out" "Ready for it, in backlog order: ready-a. Nothing starts until a worker place frees on this machine" "machine-full: wait wording"
+  assert_not_contains "$out" "start it now" "machine-full: told to start into a full machine"
+  rm -f "$case_dir/home/config/project-capacity"
+  out=$(run_helper "$case_dir" --if-capped "$case_dir/proj") || fail "machine-full: --if-capped failed"
+  assert_contains "$out" "Dispatch: proj declares no place limit, and this machine has 0 of 1 worker places free" \
+    "machine-full: --if-capped stayed silent under a declared machine total"
+  assert_not_contains "$out" "start it now" "machine-full: --if-capped told to start into a full machine"
+  pass "a full machine total holds ready rows beside free project places, and caps an otherwise uncapped project for --if-capped"
+}
+
 test_zero_places_hold_ready_work_back() {
   local case_dir out
   case_dir=$(make_case zero)
@@ -508,5 +537,6 @@ test_zero_places_hold_ready_work_back
 test_no_ready_rows_skips_the_count
 test_firstmate_rows_match_only_a_firstmate_lineage_project
 test_failed_reads_are_named_and_never_fail_the_caller
+test_full_machine_total_holds_ready_rows_beside_free_places
 test_bad_request_exits_2
 test_instructions_carry_the_dispatch_and_merge_cleanup_rules

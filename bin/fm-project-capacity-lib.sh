@@ -120,6 +120,33 @@
 # not carry that identity cannot be recorded, so it is not admitted past its
 # count.
 #
+# Machine total: the optional config/machine-capacity in that same config
+# directory declares how many workers this machine admits at once across
+# every project, as one line holding 0 or a positive integer of at most six
+# digits. The file is off when it is absent or holds no non-whitespace line,
+# and dispatch then has no machine-wide ceiling. A line that is `#`, or that
+# begins with `#` followed by whitespace, is a comment and does not count as
+# the line. Any other shape - a second non-empty line, a value that is not
+# such an integer, or a file that exists but is not a readable regular file -
+# makes the declaration unreadable, and bin/fm-spawn.sh then refuses every
+# fresh ship or scout spawn exactly as it does for an unreadable
+# config/project-capacity. Occupancy is the walk above without the project
+# match: every holder of any project's place, in any local home, holds one
+# of the machine's places too (fm_project_capacity_occupants counts both in
+# its one walk, and only reads crew state for records outside the admitted
+# project when a total is declared). A fresh spawn is admitted only while
+# both its project's count and the machine total have a free place; the
+# total is the outer bound, so the headroom reading's one extra start past a
+# project's count still needs a free machine place, and a declared total of
+# 0 admits no worker and is not raised either. The total is counted under
+# the same shared project lock, so spawns for one project cannot race it.
+# Spawns for different projects hold different project locks (one home's
+# spawns are still serialized by its task-set lock through publication, as
+# bin/fm-spawn.sh's header owns), so two homes starting different projects
+# in the same moment can each pass a count taken before the other's record
+# exists: the total can be overshot by at most the spawns racing in that
+# moment, and every later spawn counts the published records and defers.
+#
 # The pool-tree limit beside places is fm_project_capacity_pool below.
 #
 # Requires bin/fm-wake-lib.sh (root home, local homes, project lock path),
@@ -229,6 +256,54 @@ fm_project_capacity_lookup() {  # <config-dir> <project-name>
   return 0
 }
 
+# Read the declared machine total (the header's "Machine total").
+# Sets FM_PROJECT_CAPACITY_TOTAL_FILE to the declaration path and
+# FM_PROJECT_CAPACITY_TOTAL to the total, or to empty when the file is
+# absent or holds no non-whitespace line. Returns 1 with
+# FM_PROJECT_CAPACITY_ERROR when the declaration is unreadable.
+fm_project_capacity_total_lookup() {  # <config-dir>
+  local line lineno=0 count=0 value=
+  FM_PROJECT_CAPACITY_TOTAL_FILE="$1/machine-capacity"
+  FM_PROJECT_CAPACITY_TOTAL=
+  FM_PROJECT_CAPACITY_ERROR=
+  if [ ! -e "$FM_PROJECT_CAPACITY_TOTAL_FILE" ] && [ ! -L "$FM_PROJECT_CAPACITY_TOTAL_FILE" ]; then
+    return 0
+  fi
+  if [ ! -f "$FM_PROJECT_CAPACITY_TOTAL_FILE" ] || [ ! -r "$FM_PROJECT_CAPACITY_TOTAL_FILE" ]; then
+    FM_PROJECT_CAPACITY_ERROR="$FM_PROJECT_CAPACITY_TOTAL_FILE is not a readable regular file"
+    return 1
+  fi
+  while IFS= read -r line || [ -n "$line" ]; do
+    lineno=$((lineno + 1))
+    line=${line%$'\r'}
+    line=${line#"${line%%[![:space:]]*}"}
+    line=${line%"${line##*[![:space:]]}"}
+    case "$line" in
+      '' | '#' | '#'[[:space:]]*) continue ;;
+    esac
+    count=$((count + 1))
+    if [ "$count" -gt 1 ]; then
+      FM_PROJECT_CAPACITY_ERROR="$FM_PROJECT_CAPACITY_TOTAL_FILE line $lineno declares the machine total a second time"
+      return 1
+    fi
+    value=$line
+  done < "$FM_PROJECT_CAPACITY_TOTAL_FILE"
+  [ "$count" -eq 0 ] && return 0
+  case "$value" in
+    0) ;;
+    '' | *[!0-9]* | 0*)
+      FM_PROJECT_CAPACITY_ERROR="$FM_PROJECT_CAPACITY_TOTAL_FILE declares a machine total that is not a positive integer: $value"
+      return 1
+      ;;
+  esac
+  if [ "${#value}" -gt 6 ]; then
+    FM_PROJECT_CAPACITY_ERROR="$FM_PROJECT_CAPACITY_TOTAL_FILE declares a machine total longer than six digits"
+    return 1
+  fi
+  FM_PROJECT_CAPACITY_TOTAL=$value
+  return 0
+}
+
 # Read one task's local crew state for the occupancy count. Returns:
 # 0 when bin/fm-crew-state.sh reads the task in <state-dir> as working;
 # 1 when the reader answered and the state is anything else - parked,
@@ -263,15 +338,22 @@ fm_project_capacity_is_working() {  # <state-dir> <id>
 # Sets FM_PROJECT_CAPACITY_OCCUPANTS to the count and
 # FM_PROJECT_CAPACITY_OCCUPANT_IDS to a comma-separated list of the holders,
 # each outside <first-state> qualified with its home and each whose crew state
-# could not be read marked "(state unreadable)". Returns 1 with
+# could not be read marked "(state unreadable)". When
+# FM_PROJECT_CAPACITY_TOTAL is set (fm_project_capacity_total_lookup), the
+# same walk also sets FM_PROJECT_CAPACITY_TOTAL_OCCUPANTS and
+# FM_PROJECT_CAPACITY_TOTAL_OCCUPANT_IDS over every project's holders; the
+# per-record crew-state read then also runs for records the project match
+# would have skipped. Returns 1 with
 # FM_PROJECT_CAPACITY_ERROR when the local homes cannot be enumerated, or when
 # a state directory or task record in them cannot be read, since skipping it
 # could undercount the holders.
 fm_project_capacity_occupants() {  # <project-lock> <project-dir> <first-state> <own-id>
-  local want=$1 own=$2 first=$3 self=$4 state meta kind project lock id label i rc
+  local want=$1 own=$2 first=$3 self=$4 state meta kind project lock id label i rc match
   local -a cache_dirs cache_locks
   FM_PROJECT_CAPACITY_OCCUPANTS=0
   FM_PROJECT_CAPACITY_OCCUPANT_IDS=
+  FM_PROJECT_CAPACITY_TOTAL_OCCUPANTS=0
+  FM_PROJECT_CAPACITY_TOTAL_OCCUPANT_IDS=
   FM_PROJECT_CAPACITY_ERROR=
   fm_local_firstmate_state_dirs "$first" || {
     FM_PROJECT_CAPACITY_ERROR=$FM_LOCAL_FIRSTMATE_ERROR
@@ -310,7 +392,12 @@ fm_project_capacity_occupants() {  # <project-lock> <project-dir> <first-state> 
         cache_dirs+=("$project")
         cache_locks+=("$lock")
       fi
-      [ -n "$lock" ] && [ "$lock" = "$want" ] || continue
+      [ -n "$lock" ] || continue
+      match=0
+      [ "$lock" != "$want" ] || match=1
+      # Without a declared machine total, a record outside this project is
+      # skipped before its crew-state read exactly as before.
+      [ "$match" -eq 1 ] || [ -n "${FM_PROJECT_CAPACITY_TOTAL:-}" ] || continue
       id=$(basename "$meta" .meta)
       # An unreadable crew state must retain its slot: skipping it would
       # undercount, while failing the whole count would refuse other spawns.
@@ -320,8 +407,14 @@ fm_project_capacity_occupants() {  # <project-lock> <project-dir> <first-state> 
       label=$id
       [ "$state" = "$first" ] || label="$id in $(dirname "$state")"
       [ "$rc" -eq 0 ] || label="$label (state unreadable)"
-      FM_PROJECT_CAPACITY_OCCUPANTS=$((FM_PROJECT_CAPACITY_OCCUPANTS + 1))
-      FM_PROJECT_CAPACITY_OCCUPANT_IDS="${FM_PROJECT_CAPACITY_OCCUPANT_IDS:+$FM_PROJECT_CAPACITY_OCCUPANT_IDS, }$label"
+      if [ "$match" -eq 1 ]; then
+        FM_PROJECT_CAPACITY_OCCUPANTS=$((FM_PROJECT_CAPACITY_OCCUPANTS + 1))
+        FM_PROJECT_CAPACITY_OCCUPANT_IDS="${FM_PROJECT_CAPACITY_OCCUPANT_IDS:+$FM_PROJECT_CAPACITY_OCCUPANT_IDS, }$label"
+      fi
+      if [ -n "${FM_PROJECT_CAPACITY_TOTAL:-}" ]; then
+        FM_PROJECT_CAPACITY_TOTAL_OCCUPANTS=$((FM_PROJECT_CAPACITY_TOTAL_OCCUPANTS + 1))
+        FM_PROJECT_CAPACITY_TOTAL_OCCUPANT_IDS="${FM_PROJECT_CAPACITY_TOTAL_OCCUPANT_IDS:+$FM_PROJECT_CAPACITY_TOTAL_OCCUPANT_IDS, }$label"
+      fi
     done
   done
   return 0

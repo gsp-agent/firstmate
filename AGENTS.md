@@ -199,6 +199,7 @@ Record the resulting mode, `yolo` merge posture, and the one-line reason for any
 
 Treat file or subsystem overlap as a risk signal rather than an automatic reason to wait, and dispatch isolated work immediately with no concurrency cap when each change can be independently implemented and validated and the selected delivery path can reconcile ordinary rebases or conflicts.
 A project's declared machine capacity (`config/project-capacity`) still bounds that dispatch: a spawn beyond it exits 75 without launching, and its item stays queued rather than blocked, unless `config/project-capacity-headroom` names a reading command that prints a line and exits 0 and that project has not already taken its one extra start in the current window.
+A declared machine total (`config/machine-capacity`) bounds it the same way across every project, as the outer bound an extra start still needs a free place under.
 A declared count of 0 is not raised.
 The [live-session check](docs/configuration.md#live-session-check) also gates ship and scout launches.
 Serialize only for a true semantic dependency, shared mutable external state, incompatible concurrent migration, or another concrete condition that makes independent progress or reconciliation unsafe; same-file editing alone is insufficient, and genuine blockers remain durable.

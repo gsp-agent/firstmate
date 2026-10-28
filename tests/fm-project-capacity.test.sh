@@ -175,6 +175,12 @@ declare_capacity() {  # <home> <line>...
   printf '%s\n' "$@" > "$home/config/project-capacity"
 }
 
+declare_machine_capacity() {  # <home> <line>...
+  local home=$1
+  shift
+  printf '%s\n' "$@" > "$home/config/machine-capacity"
+}
+
 # Body on stdin, after the shebang. The body is the reading program.
 install_reading() {  # <path>
   { printf '%s\n' '#!/usr/bin/env bash'; cat; } > "$1"
@@ -1636,6 +1642,136 @@ SH
   pass "a record whose crew state cannot be read holds a place and the count still succeeds"
 }
 
+# The machine total counts every project's holders in the same walk: a
+# project with no declared count of its own still cannot start while
+# another project's workers hold every machine place, and freeing one
+# (here, a recorded PR handoff) admits it.
+test_machine_total_defers_across_projects() {
+  local case_dir home out rc=0 before worktrees
+  case_dir=$(make_case machine-total task-c)
+  home="$case_dir/home"
+  declare_machine_capacity "$home" "# this laptop serves two workers in all" "2"
+  write_live "$home" live-a "$case_dir/other-project"
+  write_live "$home" live-b "$case_dir/project"
+  before=$(call_count "$case_dir")
+  worktrees=$(worktree_list "$case_dir")
+  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a spawn beyond the machine total was not deferred: $out"
+  assert_contains "$out" "deferred: this machine admits 2 worker(s) at once across every project ($home/config/machine-capacity) and 2 already hold a place (live-a, live-b)" \
+    "the deferral did not name the machine total and its holders"
+  assert_contains "$out" "task task-c was not launched and its backlog item stays queued" \
+    "the deferral did not say the task stays queued"
+  assert_nothing_created "$case_dir" "$home" task-c "$before" "$worktrees"
+  printf 'pr=%s\n' "https://github.com/o/r/pull/9" >> "$home/state/live-a.meta"
+  rc=0
+  out=$(spawn_ship "$case_dir" task-c) || rc=$?
+  expect_code 0 "$rc" "a spawn with a free machine place was refused: $out"
+  assert_contains "$out" "spawned task-c" "a spawn with a free machine place did not launch"
+  pass "the machine total defers across projects and admits again once a place frees"
+}
+
+# Per-project counts stay the inner bound: a free machine place never
+# admits past the project's own declared count.
+test_machine_total_room_keeps_the_project_bound() {
+  local case_dir home out rc=0
+  case_dir=$(make_case machine-total-inner task-c)
+  home="$case_dir/home"
+  declare_capacity "$home" "project 1"
+  declare_machine_capacity "$home" "8"
+  write_live "$home" live-a "$case_dir/project"
+  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "room under the machine total admitted past the project's count: $out"
+  assert_contains "$out" "deferred: project project admits 1 worker(s) at once on this machine" \
+    "the deferral did not keep the project's own capacity message"
+  assert_absent "$home/state/task-c.meta" "the deferred spawn published a record"
+  pass "room under the machine total never admits past the project's own count"
+}
+
+# A declared total of 0 is the machine-wide brake: nobody starts, whatever
+# any project declares, and no headroom reading is consulted for it.
+test_machine_total_zero_admits_no_worker() {
+  local case_dir home out rc=0 before worktrees runs
+  case_dir=$(make_case machine-total-zero task-c)
+  home="$case_dir/home"
+  declare_capacity "$home" "project 2"
+  declare_machine_capacity "$home" "0"
+  install_reading "$case_dir/reading" <<EOF
+printf '%s\n' 'cpu_idle_pct=40 load1=12 disk_free_gb=80' >> $(printf '%q' "$case_dir/reading.log")
+exit 0
+EOF
+  write_headroom "$home" "$case_dir/reading"
+  before=$(call_count "$case_dir")
+  worktrees=$(worktree_list "$case_dir")
+  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a machine total of 0 admitted a spawn: $out"
+  assert_contains "$out" "deferred: this machine admits 0 worker(s) at once across every project ($home/config/machine-capacity) and 0 already hold a place" \
+    "a machine total of 0 did not keep the machine deferral"
+  assert_nothing_created "$case_dir" "$home" task-c "$before" "$worktrees"
+  runs=$(reading_runs "$case_dir/reading.log")
+  [ "$runs" = 0 ] || fail "the reading ran for a machine total of 0 (runs=$runs)"
+  pass "a machine total of 0 admits no worker"
+}
+
+# The total is the outer bound: a headroom reading that would admit one
+# extra start past the project's count still defers while every machine
+# place is held, and the deferred extra start gives its window back like
+# any spawn that launched no worker.
+test_machine_total_bounds_a_headroom_extra_start() {
+  local case_dir home out rc=0 before worktrees runs
+  case_dir=$(make_case machine-total-headroom task-c)
+  home="$case_dir/home"
+  declare_capacity "$home" "project 1"
+  declare_machine_capacity "$home" "1"
+  install_reading "$case_dir/reading" <<EOF
+printf '%s\n' 'cpu_idle_pct=40 load1=12 disk_free_gb=80'
+printf '%s\n' 'ran' >> $(printf '%q' "$case_dir/reading.log")
+exit 0
+EOF
+  write_headroom "$home" "$case_dir/reading"
+  write_live "$home" live-a "$case_dir/project"
+  before=$(call_count "$case_dir")
+  worktrees=$(worktree_list "$case_dir")
+  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a headroom extra start launched past a full machine total: $out"
+  assert_contains "$out" "deferred: this machine admits 1 worker(s) at once across every project ($home/config/machine-capacity) and 1 already hold a place (live-a)" \
+    "the extra start was not deferred by the machine total"
+  assert_nothing_created "$case_dir" "$home" task-c "$before" "$worktrees"
+  runs=$(reading_runs "$case_dir/reading.log")
+  [ "$runs" = 1 ] || fail "the extra start did not run the reading once (runs=$runs)"
+  [ "$(overshare_count "$home")" = 0 ] || fail "an extra start deferred by the machine total kept its window"
+  pass "a headroom extra start still needs a free machine place"
+}
+
+# A machine-capacity file that cannot be read as one total refuses every
+# fresh spawn rather than guessing, exactly like project-capacity.
+test_unreadable_machine_total_refuses_every_spawn() {
+  local case_dir home out rc label body before worktrees
+  case_dir=$(make_case machine-total-unreadable task-c)
+  home="$case_dir/home"
+  while IFS='|' read -r label body; do
+    [ -n "$label" ] || continue
+    printf '%b' "$body" > "$home/config/machine-capacity"
+    before=$(call_count "$case_dir")
+    worktrees=$(worktree_list "$case_dir")
+    rc=0
+    out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+    expect_code 1 "$rc" "$label: an unreadable machine total did not refuse: $out"
+    assert_contains "$out" "the machine capacity declaration is unreadable" "$label: the refusal did not name the declaration"
+    assert_nothing_created "$case_dir" "$home" task-c "$before" "$worktrees"
+  done <<'ROWS'
+non-numeric total|eight\n
+leading zero|08\n
+named twice|2\n3\n
+over six digits|1234567\n
+ROWS
+  rm -f "$home/config/machine-capacity"
+  mkdir "$home/config/machine-capacity"
+  rc=0
+  out=$(spawn_ship "$case_dir" task-c "$case_dir/unused") || rc=$?
+  expect_code 1 "$rc" "a machine total that is not a file did not refuse: $out"
+  pass "an unreadable machine total refuses every fresh spawn rather than guessing the limit"
+}
+
 test_unreadable_crew_state_holds_a_place
 test_undeclared_capacity_keeps_dispatch_uncapped
 test_full_pool_defers_beside_free_places
@@ -1673,3 +1809,8 @@ test_teardown_during_headroom_reading_is_not_refused
 test_spawn_during_headroom_reading_takes_the_extra_start
 test_failed_retake_after_headroom_reading_defers
 test_same_home_spawns_during_headroom_reading_defer
+test_machine_total_defers_across_projects
+test_machine_total_room_keeps_the_project_bound
+test_machine_total_zero_admits_no_worker
+test_machine_total_bounds_a_headroom_extra_start
+test_unreadable_machine_total_refuses_every_spawn
