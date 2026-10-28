@@ -7434,45 +7434,28 @@ if [ "$HARNESS" = codex ] && [ "$KIND" != secondmate ]; then
 fi
 
 # Herdr restore resume. A Codex crew launches with hooks disabled, so Herdr
-# never learns its session. Report the session Codex wrote for this worktree
-# (bin/fm-crew-resume-lib.sh). A Grok crew's session already reaches Herdr
-# through its hook. What a bare resume cannot carry is its per-task home, so
-# record that home for the Grok guard to restore with --always-approve.
-if [ "$BACKEND" = herdr ] && [ "$KIND" != secondmate ]; then
-  crew_polls=${FM_CREW_RESUME_POLLS:-20}
+# never learns its session. Report the session Codex wrote for this worktree,
+# then record the CODEX_HOME and the crew launch flags (launch_template's
+# Codex crew line) that a bare `codex resume <id>` cannot carry
+# (bin/fm-crew-resume-lib.sh). A Grok crew's session reaches Herdr through its
+# hook, and its summary.json already records the worker grok_home.
+if [ "$BACKEND" = herdr ] && [ "$HARNESS" = codex ] && [ "$KIND" != secondmate ]; then
   crew_i=0
-  if [ "$HARNESS" = codex ]; then
-    crew_session_id=
-    while [ "$crew_i" -lt "$crew_polls" ]; do
-      crew_session_id=$(fm_crew_codex_session_id "$CODEX_STORE_DIR" "$WT" "$CREW_RESUME_SINCE")
-      [ -z "$crew_session_id" ] || break
-      crew_i=$((crew_i + 1))
-      [ "$crew_i" -ge "$crew_polls" ] || sleep "${FM_CREW_RESUME_INTERVAL:-0.5}"
-    done
-    if [ -n "$crew_session_id" ]; then
-      fm_crew_report_codex_session "$HERDR_SES" "$HERDR_PANE_ID" "$crew_session_id" ||
-        echo "warning: could not report Codex session $crew_session_id for $ID to Herdr pane $HERDR_PANE_ID; a Herdr restore will not resume this crew" >&2
-    else
-      echo "warning: no Codex session for $ID was found under $CODEX_STORE_DIR; a Herdr restore will not resume this crew" >&2
-    fi
-  elif [ "$HARNESS" = grok ]; then
-    # No post-launch gate proves a Grok turn started, so its session can
-    # take longer to appear than a Codex rollout.
-    crew_polls=${FM_CREW_RESUME_GROK_POLLS:-60}
-    crew_grok_session=
-    while [ "$crew_i" -lt "$crew_polls" ]; do
-      crew_grok_session=$(fm_crew_grok_session "$GROK_WORKER_HOME/sessions" "$WT" "$CREW_RESUME_SINCE")
-      [ -z "$crew_grok_session" ] || break
-      crew_i=$((crew_i + 1))
-      [ "$crew_i" -ge "$crew_polls" ] || sleep "${FM_CREW_RESUME_INTERVAL:-0.5}"
-    done
-    if [ -n "$crew_grok_session" ]; then
-      crew_grok_id=${crew_grok_session%%$'\t'*}
-      fm_crew_grok_resume_record_write "${GROK_HOME:-$HOME/.grok}" "$crew_grok_id" "$GROK_WORKER_HOME" ||
-        echo "warning: could not record the Grok resume home for $ID session $crew_grok_id" >&2
-    else
-      echo "warning: no Grok session for $ID was found under $GROK_WORKER_HOME/sessions; no resume home was recorded" >&2
-    fi
+  crew_session_id=
+  while [ "$crew_i" -lt 20 ]; do
+    crew_session_id=$(fm_crew_codex_session_id "$CODEX_STORE_DIR" "$WT" "$CREW_RESUME_SINCE") || crew_session_id=
+    [ -z "$crew_session_id" ] || break
+    crew_i=$((crew_i + 1))
+    [ "$crew_i" -ge 20 ] || sleep 0.5
+  done
+  if [ -n "$crew_session_id" ]; then
+    fm_crew_report_codex_session "$HERDR_SES" "$HERDR_PANE_ID" "$crew_session_id" ||
+      echo "warning: Herdr pane $HERDR_PANE_ID did not take Codex session $crew_session_id for $ID; a Herdr restore will not resume this crew" >&2
+    fm_crew_codex_resume_record_write "$STATE/$ID.codex-resume" "$crew_session_id" "$CODEX_STORE_DIR" \
+      --dangerously-bypass-approvals-and-sandbox --disable hooks -c "notify=[\"bash\",\"-c\",\"touch $sq_turnend\"]" ||
+      echo "warning: could not record the Codex resume home and flags for $ID session $crew_session_id" >&2
+  else
+    echo "warning: no Codex session for $ID was found under $CODEX_STORE_DIR; a Herdr restore will not resume this crew" >&2
   fi
 fi
 

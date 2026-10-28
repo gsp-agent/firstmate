@@ -2660,6 +2660,26 @@ test_local_only_force_overrides_unpushed() {
   pass "local-only worktree with unpushed work is torn down under --force (escape hatch)"
 }
 
+test_teardown_removes_the_codex_resume_record() {
+  local case_dir rc
+  case_dir=$(make_case codex-resume-record)
+  write_meta "$case_dir" local-only ship
+  printf '%s\n' 'session_id=x1-session' > "$case_dir/state/task-x1.codex-resume"
+  printf '%s\n' 'session_id=y2-session' > "$case_dir/state/task-y2.codex-resume"
+
+  set +e
+  run_teardown "$case_dir" --force > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  expect_code 0 "$rc" "codex-resume-record: teardown failed: $(cat "$case_dir/stderr")"
+  assert_absent "$case_dir/state/task-x1.codex-resume" \
+    "codex-resume-record: teardown left the torn-down task's Codex resume record behind"
+  assert_present "$case_dir/state/task-y2.codex-resume" \
+    "codex-resume-record: teardown removed another task's Codex resume record"
+  pass "teardown removes the task's Codex resume record and leaves other tasks' records alone"
+}
+
 # Mark the case's home as a secondmate home bound to a parent: teardown and
 # fm-pr-check run with FM_HOME="$case_dir/home" so the parent-channel
 # publishers resolve that binding while the task state stays in $case_dir/state.
@@ -10236,6 +10256,7 @@ test_local_only_merged_to_local_main_allows
 test_no_mistakes_origin_remote_allows
 test_no_mistakes_truly_unpushed_refuses
 test_local_only_force_overrides_unpushed
+test_teardown_removes_the_codex_resume_record
 test_secondmate_pr_registration_publishes_ready_line
 test_secondmate_home_teardown_delivers_final_line_or_refuses
 test_teardown_missing_busy_sidecar_completes
