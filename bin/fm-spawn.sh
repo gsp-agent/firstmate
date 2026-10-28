@@ -2551,9 +2551,35 @@ spawn_queue_start_refuse() {  # <reason>
   exit 1
 }
 
+# The Dale-stop gate, last in line: while Dale's stop token stands
+# (~/Library/Application Support/agent-observer/dale-stop.json, no expiry ever;
+# absent = no stop, unreadable or corrupt = the stop holds) a queue start
+# admits nothing. DALE_STOP_FILE is the test seam. Checked at admission and
+# again before the brief claim, so a stop that lands mid-start still holds.
+spawn_dale_stop_refuse() {
+  local f line at words
+  f=${DALE_STOP_FILE:-$HOME/Library/Application Support/agent-observer/dale-stop.json}
+  [ -e "$f" ] || return 0
+  line=$(python3 -I -c '
+import json, sys
+try:
+    token = json.load(open(sys.argv[1]))
+    if not isinstance(token, dict):
+        raise ValueError
+    words = token.get("words") if isinstance(token.get("words"), str) else ""
+    at = token.get("at") or "unknown"
+except Exception:
+    at, words = "unknown", "corrupt dale-stop token"
+clean = lambda s: " ".join(str(s).split())
+print(clean(at) + "\t" + clean(words))' "$f" 2>/dev/null) || line=$'unknown\tcorrupt dale-stop token'
+  IFS=$'\t' read -r at words <<<"$line"
+  spawn_queue_start_refuse "Refused by the Dale-stop guard: Dale stopped the pipeline on ${at:-unknown} (\"${words:-}\", ~/Library/Application Support/agent-observer/dale-stop.json). Nothing starts, and no agent may lift this, slate work, or raise places while it stands. Dale lifts it himself in a terminal: pipeline-resume. If he has told you to restart, tell him this guard is what is holding and stop."
+}
+
 # The one read, under this task's spawn lock: the row, the note's decision and
 # its route set mode, yolo and the launch profile.
 spawn_queue_start_read() {
+  spawn_dale_stop_refuse
   local data out decided name resolved status route_source line re prefix
   data=$(fm_backlog_data_absolute "$DATA") ||
     spawn_queue_start_refuse "its backlog data directory cannot be resolved: $DATA"
@@ -2609,6 +2635,7 @@ spawn_queue_start_read() {
 # The claim, after the capacity check: the brief bin/fm-brief.sh creates
 # exclusively, filled from the same read.
 spawn_queue_start_brief() {
+  spawn_dale_stop_refuse
   local out spec base proj_real
   if [ -e "$BRIEF" ] || [ -L "$BRIEF" ]; then
     spawn_queue_start_refuse "a hand start created data/$ID/brief.md during this start; left to the captain"
