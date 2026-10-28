@@ -420,7 +420,9 @@ cmd_run() {
         fi
         ;;
     esac
-    sleep "$SPEC_INTERVAL"
+    # fm_sleep (bin/fm-wake-lib.sh) waits without a sleep process where
+    # Bash's sleep loadable exists; sleep(1) as before elsewhere.
+    fm_sleep "$SPEC_INTERVAL"
   done
 
   now=$(date +%s)

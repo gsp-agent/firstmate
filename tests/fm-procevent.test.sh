@@ -4312,6 +4312,11 @@ pass "an orphaned runner is reaped within the lease plus ONE check interval"
 # Asserted through the executable interface rather than by reading the source:
 # a real listener is started at each value, and the guard's actual sleep
 # argument is observed. Reading `10#` out of the script would prove nothing.
+# The guard waits through fm_sleep (bin/fm-wake-lib.sh), which starts no
+# process where Bash's sleep loadable exists, so this case stands in a Bash
+# without the builtin (FM_TEST_NO_SLEEP_BUILTIN, honored only under the
+# suite's FM_TEST_SEAM=1) and observes the same argument on the sleep(1)
+# fallback every such Bash runs.
 INTERVAL_BIN=$(fm_fakebin "$TMP_ROOT/decimal-interval-bin")
 REAL_SLEEP=$(command -v sleep) || fail "this host has no sleep to observe guard intervals"
 cat > "$INTERVAL_BIN/sleep" <<SH
@@ -4329,7 +4334,7 @@ for interval in 08 010; do
   pe_register "$HINTERVAL" lavish "interval-$interval" \
     -- "$QUIET_STUB" "$HINTERVAL/poll" >/dev/null
   PATH="$INTERVAL_BIN:$PATH" INTERVAL_SLEEP_LOG="$HINTERVAL/sleeps" \
-    FM_PROCEVENT_OWNER_CHECK_SECONDS="$interval" \
+    FM_TEST_NO_SLEEP_BUILTIN=1 FM_PROCEVENT_OWNER_CHECK_SECONDS="$interval" \
     pe "$HINTERVAL" reconcile >/dev/null
   wait_for "$HINTERVAL/poll.descendant" \
     || fail "a zero-prefixed decimal interval ($interval) prevented the listener from starting"
