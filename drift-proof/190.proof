@@ -1,0 +1,2 @@
+# Failing-first test test_machine_total_defers_across_projects in tests/fm-project-capacity.test.sh: on the base there is no machine-capacity handling, so a project with no declared count of its own launches while other projects' workers hold every machine place; after this change that spawn defers with exit 75 until a place frees.
+pr: 190
