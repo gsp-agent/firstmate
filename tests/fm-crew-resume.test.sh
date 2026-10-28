@@ -89,11 +89,13 @@ test_codex_report_fails_when_herdr_keeps_another_session() {
     fm_crew_report_codex_session fm-lab-test w1:p9 new-id >/dev/null 2>&1; then
     fail "a codex report herdr accepted but never applied counted as success"
   fi
+  : > "$log"
   if FM_CREW_HERDR_LOG=$log FM_CREW_HERDR_AGENT_GET='{"result":{"agent":null}}' PATH="$FAKEBIN:$PATH" \
     fm_crew_report_codex_session fm-lab-test w1:p9 new-id >/dev/null 2>&1; then
-    fail "a codex report into a pane with no readable registration counted as success"
+    fail "a codex report into a pane with no registered codex agent counted as success"
   fi
-  pass "codex session report fails when the pane does not read back the reported session"
+  [ ! -s "$log" ] || fail "a codex session was reported before Herdr registered the pane's codex agent: $(cat "$log")"
+  pass "codex session report fails when the pane does not read back the reported session, and never reports before Herdr registers the codex agent"
 }
 
 test_codex_resume_record_keeps_home_and_the_launch_line_args() {

@@ -6,7 +6,9 @@
 # pane. After each launch the pane must be bound to that launch's own Codex
 # session, read back from Herdr's registry, and state/<id>.codex-resume must
 # name it: a relaunch replaces the earlier binding, so nothing stays bound to
-# the retired session.
+# the retired session. A relaunch onto another harness then leaves neither a
+# Codex binding nor a Codex resume record, and that harness's own session
+# report binds the pane.
 #
 # No real Codex runs. The stand-in `codex` writes the session rollout Codex
 # writes for its worktree, draws the in-turn footer the spawn's launch gate
@@ -193,3 +195,32 @@ pass "real herdr: a codex relaunch replaces the pane's binding to the retired se
 fm_crew_report_codex_session "$SESSION" "$PANE_ID" fm-crew-resume-session-3 \
   || fail "a report into a pane still bound to session 2 did not take session 3: $(fm_backend_herdr_pane_agent_session_ref "$SESSION" "$PANE_ID")"
 pass "real herdr: a codex session report replaces a binding Herdr still holds for an earlier session"
+
+# A relaunch onto another harness must leave no Codex binding behind: the pane's
+# registration belongs to the new harness's agent. The stand-in opencode is an
+# opencode-named process, which Herdr registers as the pane's opencode agent.
+ln -s "$STANDIN_BIN" "$AGENT_DIR/opencode"
+cat > "$FAKEBIN/opencode" <<EOF
+#!/usr/bin/env bash
+exec "$AGENT_DIR/opencode"
+EOF
+chmod +x "$FAKEBIN/opencode"
+stop_codex
+OUT=$(env FM_HOME="$HOME_DIR" HERDR_SESSION="$SESSION" FM_SPAWN_NO_GUARD=1 CODEX_HOME="$CODEX_HOME_LAB" \
+  "$ROOT/bin/fm-spawn.sh" hresume --relaunch --harness opencode 2>&1) \
+  || fail "the relaunch from codex onto opencode failed: $OUT"
+assert_not_contains "$OUT" "still holds Codex session" "the relaunch onto opencode warned that the retired Codex binding survived"
+case "$(fm_backend_herdr_pane_agent_session_ref "$SESSION" "$PANE_ID")" in
+  codex$'\t'*) fail "the pane is still bound to a Codex session after the relaunch onto opencode" ;;
+esac
+[ ! -e "$HOME_DIR/state/hresume.codex-resume" ] || fail "the relaunch onto opencode left the Codex resume record behind"
+i=0
+until [ "$(fm_backend_herdr_agent_identity_raw "$SESSION" "$PANE_ID" | cut -f1)" = opencode ]; do
+  [ "$i" -lt 60 ] || fail "Herdr never registered the relaunched opencode agent: $(fm_backend_herdr_agent_identity_raw "$SESSION" "$PANE_ID")"
+  sleep 0.5
+  i=$((i + 1))
+done
+case "$(fm_backend_herdr_pane_agent_session_ref "$SESSION" "$PANE_ID")" in
+  codex$'\t'*) fail "the opencode agent's pane is still bound to a Codex session" ;;
+esac
+pass "real herdr: a relaunch from codex onto another harness drops the Codex binding and record, and the new agent holds the pane"

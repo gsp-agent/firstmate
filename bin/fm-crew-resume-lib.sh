@@ -13,9 +13,14 @@
 # A restore then types `codex resume <id>` and the restore gate paces it.
 #
 # Measured on Herdr 0.9.1 in an fm-lab- session, with a codex-named process as
-# the pane's agent: a report sent before Herdr registers that agent is dropped,
-# so bin/fm-spawn.sh reports only once fm_crew_herdr_pane_runs_codex holds; and
-# a pane already bound to an earlier session (a relaunch) keeps that binding
+# the pane's agent. A report Herdr takes after it has registered that agent is
+# tied to the process: Herdr drops the binding when Codex exits, so a relaunch
+# onto another harness leaves that harness's own report free to bind the pane.
+# A report taken before the registration outlives the process and keeps the
+# pane bound to the dead session against any other harness's report, so
+# fm_crew_report_codex_session reports only once fm_crew_herdr_pane_runs_codex
+# holds. A pane still bound to an earlier Codex session (a relaunch that
+# reports before Herdr notices the old process is gone) keeps that binding
 # unless the report names its session start (--session-start-source startup),
 # which is what lets a relaunch's new session replace the old one.
 #
@@ -87,6 +92,7 @@ PY
 
 fm_crew_report_codex_session() { # <herdr-session> <pane-id> <session-id>
   [ -n "${1:-}" ] && [ -n "${2:-}" ] && [ -n "${3:-}" ] || return 1
+  fm_crew_herdr_pane_runs_codex "$1" "$2" || return 1
   fm_backend_herdr_cli "$1" pane report-agent-session "$2" \
     --source herdr:codex --agent codex --agent-session-id "$3" \
     --session-start-source startup >/dev/null || return 1

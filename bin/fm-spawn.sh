@@ -7452,7 +7452,17 @@ fi
 # from, which a bare `codex resume <id>` cannot carry
 # (bin/fm-crew-resume-lib.sh). A raw launch command was not built from them,
 # so it gets no record. A Grok crew's session reaches Herdr through its hook,
-# and its summary.json already records the worker grok_home.
+# and its summary.json already records the worker grok_home. A relaunch onto
+# another harness reads the pane back: Herdr drops a Codex binding when Codex
+# exits, and only the new harness's own agent can bind the pane after it.
+if [ "$BACKEND" = herdr ] && [ "$RELAUNCH" -eq 1 ] && [ "$HARNESS" != codex ]; then
+  crew_bound=$(fm_backend_herdr_pane_agent_session_ref "$HERDR_SES" "$HERDR_PANE_ID") || crew_bound=
+  case $crew_bound in
+  codex$'\t'*)
+    echo "warning: Herdr pane $HERDR_PANE_ID still holds Codex session ${crew_bound#*$'\t'} from before $ID's relaunch onto $HARNESS; a Herdr restore would resume that retired session in this pane" >&2
+    ;;
+  esac
+fi
 if [ "$BACKEND" = herdr ] && [ "$HARNESS" = codex ] && [ "$KIND" != secondmate ]; then
   crew_i=0
   crew_session_id=
