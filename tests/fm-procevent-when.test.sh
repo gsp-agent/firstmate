@@ -646,4 +646,47 @@ assert_grep 'status: fired' "$RESULT" \
 assert_grep 'v2 ran against' "$RESULT" "the fired action ran the rebound (v2) bytes, not a rejection from a torn read"
 pass "the fire-time reload never observes rebind_one's spec/trust publish mid-rename"
 
+# --- the poll wait starts no sleep process where the builtin exists --------
+# The runner polls for as long as the watch is armed, so its interval wait
+# must not start a sleep process per poll (.agent-config-ks05d). Observed
+# through the executable interface: a PATH sleep records every external wait,
+# the condition counts every poll, and the two counts are compared. On a host
+# without Bash's sleep loadable the same case proves the wait still falls
+# back to sleep(1) once per poll instead of spinning.
+H="$TMP_ROOT/h-sleepwait"; new_home "$H"
+SLEEPWAIT_BIN=$(fm_fakebin "$TMP_ROOT/sleepwait-bin")
+REAL_SLEEP=$(command -v sleep) || fail "this host has no sleep to observe poll waits"
+cat > "$SLEEPWAIT_BIN/sleep" <<SH
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "\$SLEEPWAIT_LOG"
+exec "$REAL_SLEEP" "\$@"
+SH
+chmod +x "$SLEEPWAIT_BIN/sleep"
+if FM_HOME="$H" bash -c '. "$1/bin/fm-wake-lib.sh" >/dev/null 2>&1; fm_sleep_builtin_available' _ "$ROOT"; then
+  SLEEPWAIT_BUILTIN=1
+else
+  SLEEPWAIT_BUILTIN=0
+fi
+when "$H" arm sleepwait --interval 0.3 --stable 2 \
+  --condition "$COND" "$TMP_ROOT/never-sleepwait" "$TMP_ROOT/sleepwait-count" \
+  --action "$ACT" "$TMP_ROOT/sleepwait-act" >/dev/null
+PATH="$SLEEPWAIT_BIN:$PATH" SLEEPWAIT_LOG="$TMP_ROOT/sleepwait-sleeps" \
+  pe "$H" reconcile >/dev/null
+for _ in $(seq 1 300); do
+  [ "$(count_lines "$TMP_ROOT/sleepwait-count")" -ge 6 ] && break
+  sleep 0.1
+done
+[ "$(count_lines "$TMP_ROOT/sleepwait-count")" -ge 6 ] \
+  || fail "the sleepwait condition was not polled enough to judge its waits"
+SLEEPWAIT_WAITS=$(grep -cx '0.3' "$TMP_ROOT/sleepwait-sleeps" 2>/dev/null || true)
+if [ "$SLEEPWAIT_BUILTIN" = 1 ]; then
+  [ "$SLEEPWAIT_WAITS" -eq 0 ] \
+    || fail "poll waits started $SLEEPWAIT_WAITS sleep processes where the sleep builtin exists"
+else
+  [ "$SLEEPWAIT_WAITS" -ge 3 ] \
+    || fail "poll waits did not fall back to sleep(1) without the sleep builtin (saw $SLEEPWAIT_WAITS)"
+fi
+when "$H" retire sleepwait >/dev/null
+pass "the poll wait starts no sleep process where the sleep builtin exists and falls back to sleep(1) without it"
+
 printf 'all fm-procevent-when tests passed\n'

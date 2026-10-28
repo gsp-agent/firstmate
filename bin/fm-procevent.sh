@@ -1557,7 +1557,9 @@ cmd_owner_watchdog() {  # <source-id> <runner-pid> <runner-identity> <ready-file
   printf 'ready\n' > "$ready" || die "cannot confirm owner guard initialization"
   trap - EXIT
   while :; do
-    sleep "$half"
+    # fm_sleep (bin/fm-wake-lib.sh) waits without a sleep process where
+    # Bash's sleep loadable exists; sleep(1) as before elsewhere.
+    fm_sleep "$half"
     fm_procevent_pid_state "$pid" "$identity"
     pid_state=$?
     case "$pid_state" in
