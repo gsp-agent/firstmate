@@ -7454,7 +7454,8 @@ fi
 # so it gets no record. A Grok crew's session reaches Herdr through its hook,
 # and its summary.json already records the worker grok_home. A relaunch onto
 # another harness reads the pane back: Herdr drops a Codex binding when Codex
-# exits, and only the new harness's own agent can bind the pane after it.
+# exits so the new harness's own session report can bind the pane, and a Codex
+# binding still there would keep that report out.
 if [ "$BACKEND" = herdr ] && [ "$RELAUNCH" -eq 1 ] && [ "$HARNESS" != codex ]; then
   crew_bound=$(fm_backend_herdr_pane_agent_session_ref "$HERDR_SES" "$HERDR_PANE_ID") || crew_bound=
   case $crew_bound in

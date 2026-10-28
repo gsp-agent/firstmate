@@ -27,6 +27,7 @@ pass() { printf 'ok - %s\n' "$1"; }
 
 command -v herdr >/dev/null 2>&1 || { echo "skip: herdr not found"; exit 0; }
 command -v jq >/dev/null 2>&1 || { echo "skip: jq not found (required by the herdr adapter)"; exit 0; }
+command -v node >/dev/null 2>&1 || { echo "skip: node not found (required by bin/fm-claude-trust.sh for the claude relaunch)"; exit 0; }
 
 # shellcheck source=tests/herdr-test-safety.sh
 . "$ROOT/tests/herdr-test-safety.sh"
@@ -196,31 +197,36 @@ fm_crew_report_codex_session "$SESSION" "$PANE_ID" fm-crew-resume-session-3 \
   || fail "a report into a pane still bound to session 2 did not take session 3: $(fm_backend_herdr_pane_agent_session_ref "$SESSION" "$PANE_ID")"
 pass "real herdr: a codex session report replaces a binding Herdr still holds for an earlier session"
 
-# A relaunch onto another harness must leave no Codex binding behind: the pane's
-# registration belongs to the new harness's agent. The stand-in opencode is an
-# opencode-named process, which Herdr registers as the pane's opencode agent.
-ln -s "$STANDIN_BIN" "$AGENT_DIR/opencode"
-cat > "$FAKEBIN/opencode" <<EOF
+# A relaunch onto another harness must leave no Codex binding behind for that
+# harness's own session report to fight. The stand-in claude reports its session
+# from inside the pane the way a Herdr hook does, naming no session start - the
+# report a pane still bound to Codex would keep ignoring - and then becomes a
+# claude-named agent. Its folder-trust registration goes to a throwaway
+# CLAUDE_CONFIG_DIR.
+CLAUDE_CONFIG_LAB="$SCRATCH/claude-config"
+mkdir -p "$CLAUDE_CONFIG_LAB"
+ln -s "$STANDIN_BIN" "$AGENT_DIR/claude"
+printf -v HERDR_BIN_Q '%q' "$(command -v herdr)"
+cat > "$FAKEBIN/claude" <<EOF
 #!/usr/bin/env bash
-exec "$AGENT_DIR/opencode"
+( for _ in \$(seq 1 60); do
+    $HERDR_BIN_Q pane report-agent-session "\$HERDR_PANE_ID" --source herdr:claude --agent claude \\
+      --agent-session-id fm-crew-resume-claude-1 --session "$SESSION" >/dev/null 2>&1
+    sleep 0.5
+  done ) &
+exec "$AGENT_DIR/claude"
 EOF
-chmod +x "$FAKEBIN/opencode"
+chmod +x "$FAKEBIN/claude"
 stop_codex
-OUT=$(env FM_HOME="$HOME_DIR" HERDR_SESSION="$SESSION" FM_SPAWN_NO_GUARD=1 CODEX_HOME="$CODEX_HOME_LAB" \
-  "$ROOT/bin/fm-spawn.sh" hresume --relaunch --harness opencode 2>&1) \
-  || fail "the relaunch from codex onto opencode failed: $OUT"
-assert_not_contains "$OUT" "still holds Codex session" "the relaunch onto opencode warned that the retired Codex binding survived"
-case "$(fm_backend_herdr_pane_agent_session_ref "$SESSION" "$PANE_ID")" in
-  codex$'\t'*) fail "the pane is still bound to a Codex session after the relaunch onto opencode" ;;
-esac
-[ ! -e "$HOME_DIR/state/hresume.codex-resume" ] || fail "the relaunch onto opencode left the Codex resume record behind"
+OUT=$(env FM_HOME="$HOME_DIR" HERDR_SESSION="$SESSION" FM_SPAWN_NO_GUARD=1 CLAUDE_CONFIG_DIR="$CLAUDE_CONFIG_LAB" \
+  "$ROOT/bin/fm-spawn.sh" hresume --relaunch --harness claude 2>&1) \
+  || fail "the relaunch from codex onto claude failed: $OUT"
+assert_not_contains "$OUT" "still holds Codex session" "the relaunch onto claude warned that the retired Codex binding survived"
+[ ! -e "$HOME_DIR/state/hresume.codex-resume" ] || fail "the relaunch onto claude left the Codex resume record behind"
 i=0
-until [ "$(fm_backend_herdr_agent_identity_raw "$SESSION" "$PANE_ID" | cut -f1)" = opencode ]; do
-  [ "$i" -lt 60 ] || fail "Herdr never registered the relaunched opencode agent: $(fm_backend_herdr_agent_identity_raw "$SESSION" "$PANE_ID")"
+until [ "$(fm_backend_herdr_pane_agent_session_ref "$SESSION" "$PANE_ID")" = "claude"$'\t'"fm-crew-resume-claude-1" ]; do
+  [ "$i" -lt 60 ] || fail "claude's own session report never bound the pane, which holds '$(fm_backend_herdr_pane_agent_session_ref "$SESSION" "$PANE_ID")'"
   sleep 0.5
   i=$((i + 1))
 done
-case "$(fm_backend_herdr_pane_agent_session_ref "$SESSION" "$PANE_ID")" in
-  codex$'\t'*) fail "the opencode agent's pane is still bound to a Codex session" ;;
-esac
-pass "real herdr: a relaunch from codex onto another harness drops the Codex binding and record, and the new agent holds the pane"
+pass "real herdr: a relaunch from codex onto another harness drops the Codex binding and record, and that harness's own session report binds the pane"

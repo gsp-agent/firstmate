@@ -14,8 +14,9 @@
 #
 # Measured on Herdr 0.9.1 in an fm-lab- session, with a codex-named process as
 # the pane's agent. A report Herdr takes after it has registered that agent is
-# tied to the process: Herdr drops the binding when Codex exits, so a relaunch
-# onto another harness leaves that harness's own report free to bind the pane.
+# tied to the process: Herdr drops the binding when Codex exits, so after a
+# relaunch onto another harness that harness's own session report binds the
+# pane, even one naming no session start (measured with a claude report).
 # A report taken before the registration outlives the process and keeps the
 # pane bound to the dead session against any other harness's report, so
 # fm_crew_report_codex_session reports only once fm_crew_herdr_pane_runs_codex
