@@ -495,16 +495,16 @@ _fm_status_declared_wait_scan() {  # <resolve-verb> <legacy-captain-re>
 }
 
 # The newest status event that states the task's state, or nothing. A note or
-# a resolved line is not a state, so the read walks back past it; a
-# needs-decision or blocked line that a later resolved line closed, and a pause
-# it retracted under status_declared_wait_line's phase-key rule, are passed
-# too, so skipping the resolved line never revives what it ended. Either of
-# those passed lines ends every earlier pause, as any later event other than
-# resolved does for status_declared_wait_line, so skipping it never revives a
-# pause either. Bounded like last_status_line: a tail window with no such event
-# widens the read to the whole file. bin/fm-crew-state.sh weighs this line
-# against a done or failed run and bin/fm-inactive-reconcile.sh keeps a pane
-# open while it says working.
+# a resolved line is not a state, so the read walks back past it. A skipped
+# note ends every earlier pause, as any later event other than resolved does
+# for status_declared_wait_line. A needs-decision or blocked line that a later
+# resolved line closed, and a pause it retracted under that same phase-key
+# rule, are passed too, so skipping the resolved line never revives what it
+# ended, and either of those passed lines also ends every earlier pause.
+# Bounded like last_status_line: a tail window with no such event widens the
+# read to the whole file. bin/fm-crew-state.sh weighs this line against a done
+# or failed run and bin/fm-inactive-reconcile.sh keeps a pane open while it
+# says working.
 status_newest_state_line() {  # <status-file>
   local f=$1 legacy_re
   [ -f "$f" ] && [ -r "$f" ] || return 0
@@ -534,7 +534,7 @@ _fm_status_state_scan() {  # <legacy-captain-re>
     _fm_status_line_is_event "$line" "$legacy_re" || continue
     status_line_verb "$line" verb
     case "$verb" in
-      note) continue ;;
+      note) pause_ended=1; continue ;;
       "$resolve")
         _fm_decision_key "$line" default key && closed="$closed$key"$'\n'
         _fm_decision_key "$line" "$_FM_CLASSIFY_KEYLESS_PHASE" key || key=
