@@ -1,0 +1,43 @@
+=== live-redrain-base: tree base-archive ===
+lab home: marked disposable FM_HOME under $TMPDIR
+
+## 1. Capture one real process-event result, then retire its source
+registered: delivery-src (lavish)
+register exit=0
+reconciled: published=0 started=1 stopped=0 uncertain=0 failed=0
+reconcile exit=0
+retired: delivery-src
+retire exit=0
+--- queue (seq counter: 1) ---
+  seq=1 kind=check key=procevent:delivery-src:1 payload=check: procevent lavish delivery-src 1
+
+## 2. First watcher surfaces the captured result
+watcher #1 exit wait=0
+  w1| check: process-event result captured: procevent:delivery-src:1
+drain #1 exit=0 (no handled call: the handler is interrupted)
+--- queue (seq counter: 2) ---
+  seq=1 kind=check key=procevent:delivery-src:1 payload=check: procevent lavish delivery-src 1
+  seq=2 kind=check key=procevent:delivery-src:1 payload=check: procevent lavish delivery-src 1
+
+## 3. Successor watcher starts with the result still unacknowledged
+watcher #2 exit wait=0
+  w2| check: procevent lavish delivery-src 1
+--- queue (seq counter: 3) ---
+  seq=1 kind=check key=procevent:delivery-src:1 payload=check: procevent lavish delivery-src 1
+  seq=2 kind=check key=procevent:delivery-src:1 payload=check: procevent lavish delivery-src 1
+  seq=3 kind=check key=procevent:delivery-src:1 payload=check: procevent lavish delivery-src 1
+RESULT successor: did NOT report check: rearm-resurface
+
+## 4. Successor's drain replays the durable row; handle and acknowledge
+drain #2 exit=0
+  replayed| 1793182839 3 check procevent:delivery-src:1 check: procevent lavish delivery-src 1
+handled: delivery-src 1
+handled exit=0
+ack boundary: through seq=3 (generation present: yes)
+ack exit=0
+--- queue (seq counter: 3) ---
+  (empty)
+
+## 5. A third watcher after handling stays quiet
+watcher #3 still polling after 12s (beacon present: yes)
+queued records before/after third watcher: 0 -> 0

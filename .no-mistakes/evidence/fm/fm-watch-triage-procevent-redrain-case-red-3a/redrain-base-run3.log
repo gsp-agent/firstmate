@@ -1,0 +1,10 @@
+# tree: redrain-base-run3 (archive)
+# command: FM_TEST_ONLY=test_procevent_unacknowledged_result_redrains_until_handled bin/fm-test-run.sh tests/fm-watch-triage.test.sh
+# started: 2026-10-28T10:19:51Z  load: 79.34 87.02 94.83
+FM_TEST_BEGIN 2026-10-28T10:20:16Z tests/fm-watch-triage.test.sh family=watcher-wake-lock expected_gate_skip=none
+not ok - the successor did not report recovery for the unacknowledged result: check: procevent lavish delivery-src 1
+FM_TEST_END 2026-10-28T10:21:36Z tests/fm-watch-triage.test.sh exit=1 duration_ms=79261 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=1 skipped_gate=0 duration_ms=104816
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=1 duration_ms=79261 failed=1
+FM_TEST_SLOWEST rank=1 script=tests/fm-watch-triage.test.sh duration_ms=79261
+# exit: 1

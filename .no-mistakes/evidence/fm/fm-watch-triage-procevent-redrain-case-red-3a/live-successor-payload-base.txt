@@ -1,0 +1,20 @@
+=== live-successor-payload-base: tree base-archive, mode=payload ===
+## 1. Capture an unhandled process-event result and surface it once
+registered: delivery-src (lavish)
+reconciled: published=0 started=1 stopped=0 uncertain=0 failed=0
+retired: delivery-src
+  w1| check: process-event result captured: procevent:delivery-src:1
+drain exit=0 (result left unhandled)
+--- queue (seq counter: 2) ---
+  seq=1 kind=check key=procevent:delivery-src:1 payload=check: procevent lavish delivery-src 1
+  seq=2 kind=check key=procevent:delivery-src:1 payload=check: procevent lavish delivery-src 1
+
+## 2. Handling successor starts at queue seq 2; its reconcile re-appends the result each cycle
+successor EXITED during re-appends after 1 beacons:
+  w2| check: procevent lavish delivery-src 1
+--- queue (seq counter: 3) ---
+  seq=1 kind=check key=procevent:delivery-src:1 payload=check: procevent lavish delivery-src 1
+  seq=2 kind=check key=procevent:delivery-src:1 payload=check: procevent lavish delivery-src 1
+  seq=3 kind=check key=procevent:delivery-src:1 payload=check: procevent lavish delivery-src 1
+re-appended twin rows above start seq 2: 1
+RESULT: FAIL successor closed on a re-append

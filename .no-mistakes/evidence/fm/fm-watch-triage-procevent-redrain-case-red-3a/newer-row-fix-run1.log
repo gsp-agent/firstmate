@@ -1,0 +1,10 @@
+# tree: newer-row-fix-run1 (5a7fa92c)
+# command: FM_TEST_ONLY=test_handling_successor_closes_on_a_row_newer_than_its_start bin/fm-test-run.sh tests/fm-watch-recovery-loop.test.sh
+# started: 2026-10-28T10:16:03Z  load: 108.10 92.24 98.38
+FM_TEST_BEGIN 2026-10-28T10:16:27Z tests/fm-watch-recovery-loop.test.sh family=watcher-wake-lock expected_gate_skip=none
+ok - a handling successor closes on a main row newer than its start and leaves the older row
+FM_TEST_END 2026-10-28T10:16:43Z tests/fm-watch-recovery-loop.test.sh exit=0 duration_ms=16219 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=39899
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=1 duration_ms=16219 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-watch-recovery-loop.test.sh duration_ms=16219
+# exit: 0
