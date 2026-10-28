@@ -34,8 +34,11 @@ agent_get_body() { # <agent> <session-id>
 
 test_codex_session_id_finds_only_the_new_matching_worktree_rollout() {
   local home=$TMP_ROOT/codex-home wt=$TMP_ROOT/wt other=$TMP_ROOT/other
-  local day=$home/sessions/2026/10/28 id
-  mkdir -p "$day" "$wt" "$other"
+  local day=$home/sessions/2026/10/28 january=$home/sessions/2026/01/01 id
+  mkdir -p "$day" "$january" "$wt" "$other"
+  printf '%s\n' '{"type":"session_meta","payload":{"id":"resumed-id","session_id":"resumed-id","cwd":"'"$wt"'"}}' \
+    > "$january/rollout-2026-01-01T00-00-00-resumed-id.jsonl"
+  touch -t 202610280500 "$january/rollout-2026-01-01T00-00-00-resumed-id.jsonl"
   printf '%s\n' '{"type":"session_meta","payload":{"id":"old-id","cwd":"'"$wt"'"}}' \
     > "$day/rollout-2026-10-28T00-00-00-old-id.jsonl"
   printf '%s\n' '{"type":"session_meta","payload":{"id":"other-id","cwd":"'"$other"'"}}' \
@@ -50,9 +53,9 @@ test_codex_session_id_finds_only_the_new_matching_worktree_rollout() {
   touch -t 202610280400 "$day/rollout-2026-10-28T04-00-00-sub-id.jsonl"
   id=$(fm_crew_codex_session_id "$home" "$wt" "$(date -j -f '%Y%m%d%H%M' 202610280130 +%s 2>/dev/null || date -d '2026-10-28 01:30' +%s)")
   [ "$id" = new-id ] || fail "codex discovery returned '$id', expected new-id"
-  id=$(fm_crew_codex_session_id "$TMP_ROOT/no-such-home" "$wt" 0) || fail "codex discovery failed on a missing home"
+  id=$(fm_crew_codex_session_id "$TMP_ROOT/no-such-home" "$wt" "$(date +%s)") || fail "codex discovery failed on a missing home"
   [ -z "$id" ] || fail "codex discovery invented '$id' from a missing home"
-  pass "codex session discovery finds only the crew's new worktree session, not a newer subagent thread, and is quiet on a missing home"
+  pass "codex session discovery finds only the crew's new worktree session from the spawn's date folders, not a newer subagent thread or an older resumed session, and is quiet on a missing home"
 }
 
 test_codex_report_is_verified_by_reading_the_pane_back() {

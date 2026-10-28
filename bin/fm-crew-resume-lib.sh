@@ -4,7 +4,8 @@
 # Codex crew launch with --disable hooks, so Herdr never learns the Codex
 # session from its hook. fm_crew_codex_session_id finds the session Codex
 # itself wrote for this worktree, never a subagent thread (whose session_id
-# names its parent), and fm_crew_report_codex_session reports it
+# names its parent), reading only the sessions/YYYY/MM/DD folders from the day
+# before the spawn through tomorrow, and fm_crew_report_codex_session reports it
 # to the pane's Herdr server with the exact report Herdr's Codex hook would
 # have sent, then reads the pane's registration back: Herdr can accept a
 # report with rc=0 and never apply it (bin/backends/herdr.sh's
@@ -41,11 +42,19 @@ fm_crew_shell_words() { # <arg>...: each argument as a shell word and a space
 
 fm_crew_codex_session_id() { # <codex-home> <worktree> <since-epoch>
   python3 -I - "$1" "$2" "$3" <<'PY'
-import json, os, sys
+import datetime, json, os, sys, time
 home, wt, since = sys.argv[1], os.path.realpath(sys.argv[2]), float(sys.argv[3])
 best = None
-for root, _dirs, files in os.walk(os.path.join(home, "sessions")):
-    for name in files:
+day = datetime.date.fromtimestamp(since) - datetime.timedelta(days=1)
+last = datetime.date.fromtimestamp(time.time()) + datetime.timedelta(days=1)
+while day <= last:
+    root = os.path.join(home, "sessions", day.strftime("%Y/%m/%d"))
+    day += datetime.timedelta(days=1)
+    try:
+        names = os.listdir(root)
+    except OSError:
+        continue
+    for name in names:
         if not name.startswith("rollout-") or not name.endswith(".jsonl"):
             continue
         path = os.path.join(root, name)
