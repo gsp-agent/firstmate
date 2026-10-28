@@ -1599,13 +1599,12 @@ SPAWN_TARGET_LEASE=
 SPAWN_TARGET_CLAIMED=0
 RELAUNCH_REPLACEMENT_PENDING=0
 # A relaunch of an old-clone ship starts in a fresh slot of this home's clone
-# (fm_relaunch_live_clone): RELAUNCH_FRESH=1, with the old copy, its HEAD, its
-# project and its endpoint kept here so the copy can be retired once the
-# replacement record names the new slot (spawn_relaunch_retire_old_copy).
+# (fm_relaunch_live_clone): RELAUNCH_FRESH=1, with the old copy, its HEAD and
+# its endpoint kept here; the endpoint is closed once the replacement record
+# names the new slot (spawn_relaunch_close_old_endpoint).
 RELAUNCH_FRESH=0
 RELAUNCH_OLD_WT=
 RELAUNCH_OLD_HEAD=
-RELAUNCH_OLD_PROJ=
 RELAUNCH_OLD_TARGET=
 RELAUNCH_OLD_STATE=
 RELAUNCH_REPLACEMENT_BUSY_GEN=
@@ -2790,18 +2789,17 @@ if [ "$RELAUNCH" -eq 1 ]; then
     # An old-clone ship starts in a fresh slot of this home's clone, taken,
     # claimed and given a new pane by the ordinary spawn path below; its
     # branch comes along at the old copy's HEAD (spawn_relaunch_carry_branch),
-    # and the old copy is retired once the replacement record names the new
-    # slot. bin/fm-control.sh ran these same checks before it stopped the
+    # and the old endpoint is closed once the replacement record names the new
+    # slot; the old copy stays for its clone's retirement. bin/fm-control.sh ran these same checks before it stopped the
     # agent; they run again here, under the task's record lock.
     if [ "$KIND" = ship ] && RELAUNCH_LIVE=$(fm_relaunch_live_clone "$RELAUNCH_META" "$FM_HOME"); then
-      if RELAUNCH_FRESH_REFUSAL=$(fm_relaunch_fresh_slot_refusal "$RELAUNCH_WT" "$PROJ" "$ID" "$BRANCH" "$RELAUNCH_LIVE" "$RELAUNCH_META" "$STATE"); then
+      if RELAUNCH_FRESH_REFUSAL=$(fm_relaunch_fresh_slot_refusal "$RELAUNCH_WT" "$PROJ" "$BRANCH" "$RELAUNCH_LIVE"); then
         echo "error: task $ID lives in $PROJ, not this home's clone $RELAUNCH_LIVE, and cannot start in a fresh slot there: $RELAUNCH_FRESH_REFUSAL; nothing was relaunched" >&2
         exit 1
       fi
       RELAUNCH_FRESH=1
       RELAUNCH_OLD_WT=$RELAUNCH_WT
       RELAUNCH_OLD_HEAD=$(git -C "$RELAUNCH_WT" rev-parse --verify -q 'HEAD^{commit}')
-      RELAUNCH_OLD_PROJ=$PROJ
       RELAUNCH_OLD_TARGET=$RELAUNCH_TARGET
       RELAUNCH_OLD_STATE=$RELAUNCH_STATE
       RELAUNCH_WT=
@@ -4198,9 +4196,9 @@ if [ "$KIND" != secondmate ] &&
   if [ "$RELAUNCH" -eq 1 ]; then
     # The early refusal is advisory until allocation is excluded. Keep this
     # lock through launch delivery so a pre-claim slot cannot change hands.
-    fm_treehouse_slot_owner_state "$RELAUNCH_WT" "$ID"
+    fm_treehouse_slot_owner_state "${RELAUNCH_OLD_WT:-$RELAUNCH_WT}" "$ID"
     if [ "$FM_TREEHOUSE_SLOT_OWNER" = other ]; then
-      echo "error: task $ID's recorded worktree '$RELAUNCH_WT' is claimed by task $FM_TREEHOUSE_SLOT_OWNER_ID; refusing to relaunch into a reassigned slot" >&2
+      echo "error: task $ID's recorded worktree '${RELAUNCH_OLD_WT:-$RELAUNCH_WT}' is claimed by task $FM_TREEHOUSE_SLOT_OWNER_ID; refusing to relaunch into a reassigned slot" >&2
       exit 1
     fi
   fi
@@ -4828,63 +4826,17 @@ spawn_relaunch_carry_branch() { # <slot>
   echo "relaunch: task $ID starts in a fresh slot $slot of this home's clone, on $BRANCH at ${start:0:12}; its old copy was $RELAUNCH_OLD_WT" >&2
 }
 
-# Once the replacement record names the new slot, a fresh-slot relaunch's old
-# copy is a finished copy and is returned as teardown returns one: its
-# endpoint, proven agent-free by the relaunch gate, is closed, the copy goes
-# back to its own clone's pool, and its claim is let go. Only a copy that holds
-# nothing the new slot lacks is returned (clean with no submodule ignored, and
-# its HEAD in the new slot's history), whose claim still names this task or
-# is absent, and that no other local task record names, as teardown requires;
-# otherwise it keeps its claim and endpoint, and the warning names it.
-spawn_relaunch_retire_old_copy() {
-  local old=$RELAUNCH_OLD_WT dirty head out lock sharer sharer_rc
-  [ "$RELAUNCH_FRESH" = 1 ] && [ -n "$old" ] && [ -d "$old" ] || return 0
-  dirty=$(git -C "$old" -c core.quotePath=false status --porcelain --untracked-files=all --ignore-submodules=none 2>/dev/null) ||
-    dirty="unreadable status"
-  head=$(git -C "$old" rev-parse --verify -q 'HEAD^{commit}' 2>/dev/null || true)
-  if [ -n "$dirty" ] || [ -z "$head" ] || ! git -C "$WT" merge-base --is-ancestor "$head" HEAD 2>/dev/null; then
-    echo "warning: task $ID now lives in $WT, but its old copy $old holds work that slot lacks (${dirty:+uncommitted: $(printf '%s\n' "$dirty" | head -3 | tr '\n' ';') }HEAD ${head:-unreadable}); the old copy keeps its claim and endpoint - carry or discard that work, then return it" >&2
-    return 0
+# Once the replacement record names the new slot, a fresh-slot relaunch closes
+# the old endpoint, which the relaunch gate proved agent-free. The old copy and
+# its claim stay as they are: returning a copy is teardown's, and this one goes
+# when its clone retires.
+spawn_relaunch_close_old_endpoint() {
+  [ "$RELAUNCH_FRESH" = 1 ] && [ "$RELAUNCH_OLD_STATE" = dead ] || return 0
+  if fm_backend_kill "$BACKEND" "$RELAUNCH_OLD_TARGET" "" "$W" >/dev/null 2>&1; then
+    echo "relaunch: closed task $ID's old endpoint $RELAUNCH_OLD_TARGET; its old copy $RELAUNCH_OLD_WT stays for its clone's retirement" >&2
+  else
+    echo "warning: task $ID now lives in $WT, but its old endpoint $RELAUNCH_OLD_TARGET could not be closed; close it by hand" >&2
   fi
-  if [ "$RELAUNCH_OLD_STATE" = dead ] &&
-    ! fm_backend_kill "$BACKEND" "$RELAUNCH_OLD_TARGET" "" "$W" >/dev/null 2>&1; then
-    echo "warning: task $ID now lives in $WT, but its old endpoint $RELAUNCH_OLD_TARGET could not be closed, so its old copy $old was not returned and keeps its claim" >&2
-    return 0
-  fi
-  # The return is made under the shared Treehouse project lock, as teardown's is.
-  if ! lock=$(fm_treehouse_project_lock_path "$RELAUNCH_OLD_PROJ") ||
-    ! fm_lock_acquire_wait_max "$lock" "$FM_PROJECT_CAPACITY_RELEASE_WAIT"; then
-    echo "warning: task $ID now lives in $WT, but the Treehouse project lock for $RELAUNCH_OLD_PROJ could not be taken, so its old copy $old was not returned and keeps its claim" >&2
-    return 0
-  fi
-  fm_treehouse_slot_owner_state "$old" "$ID"
-  case "$FM_TREEHOUSE_SLOT_OWNER" in
-    mine | absent) ;;
-    *)
-      fm_lock_release "$lock" || true
-      echo "warning: task $ID now lives in $WT, but its old copy $old reads claimed by ${FM_TREEHOUSE_SLOT_OWNER_ID:-an unreadable claim}, so it was left untouched" >&2
-      return 0
-      ;;
-  esac
-  sharer_rc=0
-  sharer=$(fm_relaunch_old_copy_shared_by "$old" "$STATE/$ID.meta" "$STATE") || sharer_rc=$?
-  if [ "$sharer_rc" != 1 ]; then
-    fm_lock_release "$lock" || true
-    if [ "$sharer_rc" = 0 ]; then
-      echo "warning: task $ID now lives in $WT, but its old copy $old is also task $sharer's recorded worktree, so it was left untouched" >&2
-    else
-      echo "warning: task $ID now lives in $WT, but the local task records cannot all be read (${FM_LOCAL_FIRSTMATE_ERROR:-unknown}), so its old copy $old was left untouched" >&2
-    fi
-    return 0
-  fi
-  if ! out=$(CDPATH='' cd -- "$RELAUNCH_OLD_PROJ" && treehouse return --force "$old" </dev/null 2>&1); then
-    fm_lock_release "$lock" || true
-    echo "warning: task $ID now lives in $WT, but treehouse return of its old copy $old failed, so it keeps its claim: ${out:-no output}" >&2
-    return 0
-  fi
-  fm_treehouse_slot_owner_release "$old" "$ID"
-  fm_lock_release "$lock" || true
-  echo "relaunch: returned task $ID's old copy $old to $RELAUNCH_OLD_PROJ's pool" >&2
 }
 
 # Write the per-task Cursor plugin that carries bin/fm-cursor-crew-guard.mjs as a
@@ -7393,7 +7345,7 @@ if [ "$RELAUNCH" -eq 1 ]; then
   RELAUNCH_REPLACEMENT_PENDING=0
   SPAWN_META_PUBLISH_STARTED=0
   SPAWN_META_TMP=
-  spawn_relaunch_retire_old_copy
+  spawn_relaunch_close_old_endpoint
 fi
 SPAWN_LAUNCH_SENT=1
 spawn_send_literal "$T" ". $(shell_quote "$LAUNCH_FILE")"

@@ -5,7 +5,8 @@
 # from origin when origin already holds it and otherwise fetched from the old
 # copy, so unpushed commits are kept without being published. Nothing else
 # crosses clones. Uncommitted work refuses in fm-control before any agent
-# stops, and the old copy is returned once the new record names the new slot.
+# stops. Once the new record names the new slot the old pane is closed; the
+# old copy and its claim stay for the old clone's retirement.
 # (.agent-config-8wnyx.1: two paused GSP tasks hold 72 and 1 unpushed commits
 # in copies of a clone this home no longer uses.)
 set -u
@@ -237,10 +238,12 @@ test_relaunch_starts_an_old_clone_ship_in_a_fresh_live_slot() {
   git -C "$dir/origin.git" rev-parse -q --verify "refs/heads/fm/$id" >/dev/null &&
     fail "fresh: the unpushed branch was pushed to origin"
   [ -e "$dir/livepool/1/.fm-slot-owner" ] || fail "fresh: the live slot is not claimed"
-  [ -e "$dir/oldpool/7/.fm-slot-owner" ] && fail "fresh: the old copy's claim was not released"
+  assert_grep "task=$id" "$dir/oldpool/7/.fm-slot-owner" "fresh: the old copy's claim did not stay"
+  assert_equals "$head_old" "$(git -C "$OLDWT" rev-parse HEAD)" "fresh: the old copy was changed"
   assert_equals 'fmlab:%9' "$(meta_field "$dir" "$id" window)" "fresh: the record does not name the new pane"
   assert_grep 'tab create' "$dir/fake/herdr-log" "fresh: no new pane was created"
-  assert_grep "return --force $OLDWT" "$dir/treehouse.log" "fresh: the old copy was not returned"
+  grep -q '^return' "$dir/treehouse.log" && fail "fresh: a copy was returned; the old copy is its clone's retirement's"
+  assert_contains "$out" "closed task $id's old endpoint fmlab:%7" "fresh: the old pane was not closed"
   grep -q '^get' "$dir/treehouse.log" && fail "fresh: the relaunch asked treehouse get, which resets the tree it hands out"
   grep -Eq "^pane (run|send-text) %9 \\. '" "$dir/fake/herdr-log" || fail "fresh: the replacement was not launched in the new pane"
   pass "a relaunch starts an old-clone ship in a fresh live slot at the old copy's HEAD, unpublished"
@@ -277,7 +280,7 @@ test_control_relaunches_an_old_clone_ship_into_a_fresh_slot() {
   assert_contains "$out" "worktree=$dir/livepool/1/proj" "ctl: fm-control did not report the fresh slot"
   assert_equals "$head_old" "$(git -C "$dir/livepool/1/proj" rev-parse HEAD)" "ctl: the slot is not at the old copy's HEAD"
   assert_grep 'phase=complete' "$dir/home/state/$id.control-relaunch" "ctl: the transaction did not complete"
-  [ -e "$dir/oldpool/7/.fm-slot-owner" ] && fail "ctl: the old copy's claim was not released"
+  assert_grep "task=$id" "$dir/oldpool/7/.fm-slot-owner" "ctl: the old copy's claim did not stay"
   pass "fm-control relaunches an old-clone ship into a fresh live slot end to end"
 }
 
@@ -370,9 +373,9 @@ test_control_refuses_a_worktree_of_another_repository() {
   pass "an old-clone relaunch refuses a recorded worktree that belongs to another repository"
 }
 
-# An old copy whose slot claim now names another task is never taken from
-# or returned: fm-control refuses before the agent stops, and fm-spawn
-# refuses before any slot, import or return.
+# An old copy whose slot claim now names another task is never read from:
+# the reassigned-slot refusal stops it in fm-control before the agent stops,
+# and in fm-spawn before any slot or import.
 test_relaunch_refuses_an_old_copy_another_task_claims() {
   local dir id=owned-a1 out rc=0 before
   make_case owned "$id"
@@ -383,51 +386,18 @@ test_relaunch_refuses_an_old_copy_another_task_claims() {
   before=$(cat "$dir/home/state/$id.meta")
   out=$(run_control_relaunch "$dir" "$id") || rc=$?
   [ "$rc" -ne 0 ] || fail "owned: a copy another task claims was relaunched: $out"
-  assert_contains "$out" "is now claimed by task other-task" "owned: the refusal did not name the other claimant"
+  assert_contains "$out" "is claimed by task other-task" "owned: the refusal did not name the other claimant"
   [ -e "$dir/fake/herdr-agent-live" ] || fail "owned: the agent was stopped"
   assert_equals "$before" "$(cat "$dir/home/state/$id.meta")" "owned: the record changed"
   rm -f "$dir/fake/herdr-agent-live"
   rc=0
   out=$(run_spawn_relaunch "$dir" "$id") || rc=$?
   [ "$rc" -ne 0 ] || fail "owned: fm-spawn relaunched a copy another task claims: $out"
-  assert_contains "$out" "is now claimed by task other-task" "owned: fm-spawn's refusal did not name the other claimant"
+  assert_contains "$out" "is claimed by task other-task" "owned: fm-spawn's refusal did not name the other claimant"
   [ -e "$dir/treehouse.log" ] && grep -q '^return' "$dir/treehouse.log" && fail "owned: a slot was returned"
   assert_grep 'task=other-task' "$dir/oldpool/7/.fm-slot-owner" "owned: the other task's claim was changed"
   [ -e "$dir/livepool/1/.fm-slot-owner" ] && fail "owned: a live slot was claimed"
-  pass "an old-clone relaunch refuses an old copy another task now claims"
-}
-
-# An old copy another local task record also names (here a legacy copy with
-# no claim at all) is never taken from or returned: returning it would kill
-# that task's processes. fm-control refuses before the agent stops, and
-# fm-spawn before any slot, import or return.
-test_relaunch_refuses_an_old_copy_another_record_names() {
-  local dir id=shared-a1 out rc=0 before
-  make_case shared "$id"
-  dir=$CASE_DIR
-  : > "$dir/fake/herdr-agent-live"
-  rm -f "$dir/oldpool/7/.fm-slot-owner"
-  {
-    echo "window=fmlab:%8"
-    echo "worktree=$OLDWT"
-    echo "project=$dir/old/proj"
-    echo "kind=ship"
-    echo "backend=herdr"
-  } > "$dir/home/state/other-task.meta"
-  before=$(cat "$dir/home/state/$id.meta")
-  out=$(run_control_relaunch "$dir" "$id") || rc=$?
-  [ "$rc" -ne 0 ] || fail "shared: a copy another record names was relaunched: $out"
-  assert_contains "$out" "is also task other-task's recorded worktree" "shared: the refusal did not name the other record"
-  [ -e "$dir/fake/herdr-agent-live" ] || fail "shared: the agent was stopped"
-  assert_equals "$before" "$(cat "$dir/home/state/$id.meta")" "shared: the record changed"
-  rm -f "$dir/fake/herdr-agent-live"
-  rc=0
-  out=$(run_spawn_relaunch "$dir" "$id") || rc=$?
-  [ "$rc" -ne 0 ] || fail "shared: fm-spawn relaunched a copy another record names: $out"
-  assert_contains "$out" "is also task other-task's recorded worktree" "shared: fm-spawn's refusal did not name the other record"
-  [ -e "$dir/treehouse.log" ] && grep -q '^return' "$dir/treehouse.log" && fail "shared: a slot was returned"
-  [ -e "$dir/livepool/1/.fm-slot-owner" ] && fail "shared: a live slot was claimed"
-  pass "an old-clone relaunch refuses an old copy another local task record names"
+  pass "an old-clone relaunch refuses an old copy another task now claims, before it reads from it"
 }
 
 # A copy not on its ship branch is refused: the slot would start on a branch
@@ -536,7 +506,6 @@ test_control_defers_on_a_full_live_pool_before_stopping_the_agent
 test_relaunch_refuses_a_copy_not_on_its_branch
 test_control_refuses_a_worktree_of_another_repository
 test_relaunch_refuses_an_old_copy_another_task_claims
-test_relaunch_refuses_an_old_copy_another_record_names
 test_relaunch_refuses_a_live_branch_outside_the_copys_history
 test_relaunch_moves_an_older_live_branch_forward
 test_relaunch_deferred_before_the_record_returns_the_slot
