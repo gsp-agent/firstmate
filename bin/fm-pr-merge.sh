@@ -10,15 +10,15 @@
 # change is refused outright: that adapter is read-only, and the refusal at the
 # parse below owns why.
 #
-# On every provider a merge is also refused when the request carries a label
-# named hold, matched without regard to case: the same rule fm-merge-on-green
-# applies before it ever calls this script, read live from the same forge view
-# that verifies the other conditions (GitHub and Forgejo report labels as
-# named objects, GitLab as plain names). The refusal names who added the
-# label and when, read from that forge's label-event history; when that
-# history cannot be read the merge still refuses and says so, because a held
-# request must not merge on an unattributed label. A label list that is
-# present but unreadable refuses the same way a state read does.
+# On GitHub, GitLab, and Forgejo a merge is also refused when the request
+# carries a label named hold, matched without regard to case: the same rule
+# fm-merge-on-green applies before it ever calls this script, read live from
+# the same forge view that verifies the other conditions (GitHub and Forgejo
+# report labels as named objects, GitLab as plain names). The refusal names
+# who added the label and when, read from that forge's label-event history;
+# when that history cannot be read the merge still refuses and says so,
+# because a held request must not merge on an unattributed label. A label
+# list that is present but unreadable refuses the same way a state read does.
 #
 # Merge method on GitHub defaults to --squash when the caller passes none of
 # --squash, --merge, --rebase, or --method after the optional -- separator.
