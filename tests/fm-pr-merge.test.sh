@@ -64,6 +64,9 @@ make_case() {
     'queued=false' \
     'base=main' > "$case_dir/github-outcome"
   : > "$case_dir/github-rules"
+  printf '[]\n' > "$case_dir/github-timeline.json"
+  printf '[]\n' > "$case_dir/mr-label-events.json"
+  printf '[]\n' > "$case_dir/tea-timeline.json"
   # The base branch the forge reports by default: unprotected, with no ruleset
   # rule, so nothing is required unless a case says otherwise.
   write_github_required "$case_dir"
@@ -152,6 +155,18 @@ write_github_rollup_json() {
   cat > "$case_dir/github-view.json" <<JSON
 {"state":"OPEN","isDraft":false,"mergeable":"MERGEABLE","mergeStateStatus":"CLEAN","headRefOid":"$head","baseRefName":"main","statusCheckRollup":[$rollup]}
 JSON
+}
+
+# Set the labels on the case's live GitHub view. Args: case_dir <name>...
+write_github_labels() {
+  local case_dir=$1 tmp labels_json
+  shift
+  labels_json=$(printf '%s\n' "$@" | jq -Rsc 'split("\n") | map(select(length > 0) | {name: .})') \
+    || fail "write_github_labels: jq failed"
+  tmp=$(mktemp "$case_dir/github-view.XXXXXX")
+  jq -c --argjson labels "$labels_json" '.labels = $labels' \
+    "$case_dir/github-view.json" > "$tmp" 2>/dev/null || fail "write_github_labels: jq failed"
+  mv "$tmp" "$case_dir/github-view.json"
 }
 
 assert_logged_gh_merge() {
@@ -280,6 +295,16 @@ case "${1:-} ${2:-}" in
     # The required-check reads: the branch itself, and its rules read without
     # the merge-queue filter the queue reader below applies.
     case " $* " in
+      *" repos/"*"/issues/"*"/timeline"*)
+        # Later pages are served only to a reader that asks for every page.
+        cat "$FM_TEST_GH_TIMELINE"
+        case " $* " in
+          *" --paginate "*)
+            [ ! -e "$FM_TEST_GH_TIMELINE.page2" ] || cat "$FM_TEST_GH_TIMELINE.page2"
+            ;;
+        esac
+        exit 0
+        ;;
       *" repos/"*"/pulls/"*"/reviews"*)
         # The approval at the head this mock reports, which every merge without
         # --attended-override requires (bin/fm-pr-merge.sh's reviewer rule).
@@ -439,6 +464,16 @@ add_glab_mock() {
 #!/usr/bin/env bash
 printf 'GITLAB_HOST=%s %s\n' "${GITLAB_HOST-<unset>}" "$*" >> "$FM_TEST_GLAB_LOG"
 case_dir=$(dirname "$FM_TEST_GLAB_JSON")
+if [ "${1:-}" = api ]; then
+  # Later pages are served only to a reader that asks for every page.
+  cat "$case_dir/mr-label-events.json"
+  case " $* " in
+    *" --paginate "*)
+      [ ! -e "$case_dir/mr-label-events-page2.json" ] || cat "$case_dir/mr-label-events-page2.json"
+      ;;
+  esac
+  exit 0
+fi
 case "${1:-} ${2:-}" in
   "mr view")
     [ ! -e "$case_dir/glab-view-fails" ] || exit 1
@@ -469,7 +504,7 @@ write_mr_json() {
   local file=$1 kv key value
   local state=opened detail=mergeable conflicts=false discussions=true
   local head=$MR_HEAD pipeline_sha=$MR_HEAD pipeline_status=success pipeline=present
-  local merge_when_pipeline_succeeds=false merge_after=null
+  local merge_when_pipeline_succeeds=false merge_after=null labels_json='[]'
   shift
   for kv in "$@"; do
     key=${kv%%=*}
@@ -485,6 +520,7 @@ write_mr_json() {
       pipeline) pipeline=$value ;;
       merge_when_pipeline_succeeds) merge_when_pipeline_succeeds=$value ;;
       merge_after) merge_after=$value ;;
+      labels) labels_json=$(printf '%s' "$value" | jq -Rc 'split(",") | map(select(length > 0))') ;;
       *) fail "write_mr_json: unknown field '$key'" ;;
     esac
   done
@@ -495,8 +531,8 @@ write_mr_json() {
     "$state" "$detail" "$conflicts" > "$file"
   printf '"blocking_discussions_resolved":%s,"sha":"%s","head_pipeline":%s,' \
     "$discussions" "$head" "$pipeline" >> "$file"
-  printf '"merge_when_pipeline_succeeds":%s,"merge_after":%s}\n' \
-    "$merge_when_pipeline_succeeds" "$merge_after" >> "$file"
+  printf '"merge_when_pipeline_succeeds":%s,"merge_after":%s,"labels":%s}\n' \
+    "$merge_when_pipeline_succeeds" "$merge_after" "$labels_json" >> "$file"
 }
 
 # tea mock recording every invocation, so a test can prove the login and
@@ -547,6 +583,20 @@ while [ $# -gt 0 ]; do
   esac
 done
 case "$endpoint" in
+  */issues/*/timeline*)
+    page=1
+    case "$endpoint" in
+      *page=*) page=${endpoint##*page=}; page=${page%%&*} ;;
+    esac
+    if [ "$page" = 1 ]; then
+      cat "$log_dir/tea-timeline.json"
+    elif [ -e "$log_dir/tea-timeline-page$page.json" ]; then
+      cat "$log_dir/tea-timeline-page$page.json"
+    else
+      # Forgejo answers a timeline page past the end with null, not [].
+      printf 'null\n'
+    fi
+    ;;
   */status|*/status\?*)
     [ ! -e "$log_dir/tea-status-fails" ] || exit 1
     page=1
@@ -609,7 +659,7 @@ SH
 # with named fields overridden so one case drives exactly one condition.
 write_forgejo_pr_json() {
   local file=$1 kv key value
-  local state=open mergeable=true merged=false draft=false head=$FJ_HEAD
+  local state=open mergeable=true merged=false draft=false head=$FJ_HEAD labels_json='[]'
   shift
   for kv in "$@"; do
     key=${kv%%=*}
@@ -620,11 +670,12 @@ write_forgejo_pr_json() {
       merged) merged=$value ;;
       draft) draft=$value ;;
       head) head=$value ;;
+      labels) labels_json=$(printf '%s' "$value" | jq -Rc 'split(",") | map(select(length > 0) | {name: .})') ;;
       *) fail "write_forgejo_pr_json: unknown field '$key'" ;;
     esac
   done
-  printf '{"state":"%s","mergeable":%s,"merged":%s,"draft":%s,"head":{"sha":"%s"}}\n' \
-    "$state" "$mergeable" "$merged" "$draft" "$head" > "$file"
+  printf '{"state":"%s","mergeable":%s,"merged":%s,"draft":%s,"head":{"sha":"%s"},"labels":%s}\n' \
+    "$state" "$mergeable" "$merged" "$draft" "$head" "$labels_json" > "$file"
 }
 
 # write_forgejo_status_json <file> [state=<value>] [total_count=<n>]
@@ -752,6 +803,7 @@ run_pr_merge() {
   FM_TEST_GH_OUTCOME="$case_dir/github-outcome" \
   FM_TEST_GH_RULES="$case_dir/github-rules" \
   FM_TEST_GH_VIEW_JSON="$case_dir/github-view.json" \
+  FM_TEST_GH_TIMELINE="$case_dir/github-timeline.json" \
   FM_TEST_GH_MERGEABLE_SEQUENCE="${FM_TEST_GH_MERGEABLE_SEQUENCE:-}" \
   FM_TEST_GH_MERGEABLE_CALLS="$case_dir/mergeable-calls" \
   FM_TEST_GH_HEAD="$case_dir/github-head" \
@@ -4719,7 +4771,194 @@ test_allow_missing_refused_on_forgejo() {
   pass "fm-pr-merge refuses --allow-missing on Forgejo"
 }
 
+test_github_hold_label_refuses_and_names_labeler() {
+  local case_dir rc
+  case_dir=$(make_case github-hold-label)
+  mkdir -p "$case_dir/wt"
+  add_gh_mocks "$case_dir" deadbeefcafefeed0000000000000000deadbeef
+  write_github_labels "$case_dir" Hold ready
+  cat > "$case_dir/github-timeline.json" <<'JSON'
+[{"event":"labeled","label":{"name":"Hold"},"actor":{"login":"repo-owner"},"created_at":"2026-10-27T01:02:03Z"}]
+JSON
+  : > "$case_dir/gh-axi.log"
+
+  set +e
+  run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/9 \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  expect_code 1 "$rc" "github-hold-label: fm-pr-merge should refuse a hold-labeled PR"
+  assert_grep "'hold' label" "$case_dir/stderr" \
+    "github-hold-label: refusal did not name the hold label"
+  assert_grep 'repo-owner' "$case_dir/stderr" \
+    "github-hold-label: refusal did not name who labeled it"
+  assert_grep '2026-10-27T01:02:03Z' "$case_dir/stderr" \
+    "github-hold-label: refusal did not name when it was labeled"
+  assert_no_grep 'pr merge' "$case_dir/gh.log" \
+    "github-hold-label: gh pr merge ran despite the hold label"
+  pass "fm-pr-merge refuses a GitHub PR carrying the hold label and names who labeled it and when"
+}
+
+test_github_other_labels_still_merge() {
+  local case_dir rc
+  case_dir=$(make_case github-other-labels)
+  mkdir -p "$case_dir/wt"
+  add_gh_mocks "$case_dir" deadbeefcafefeed0000000000000000deadbeef
+  write_github_labels "$case_dir" ready
+  : > "$case_dir/gh-axi.log"
+
+  set +e
+  run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/9 \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  expect_code 0 "$rc" "github-other-labels: fm-pr-merge should merge a PR without the hold label"
+  assert_logged_gh_merge "$case_dir" 9 example/repo --squash
+  pass "fm-pr-merge still merges a GitHub PR whose labels do not include hold"
+}
+
+test_gitlab_hold_label_refuses_and_names_labeler() {
+  local case_dir rc
+  case_dir=$(make_gitlab_case gitlab-hold-label labels=hold,ready)
+  cat > "$case_dir/mr-label-events.json" <<'JSON'
+[{"action":"add","label":{"name":"hold"},"user":{"username":"gl-owner"},"created_at":"2026-10-27T04:05:06Z"}]
+JSON
+
+  set +e
+  run_pr_merge "$case_dir" task-x1 "$MR_URL" \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  expect_code 1 "$rc" "gitlab-hold-label: fm-pr-merge should refuse a hold-labeled MR"
+  assert_grep "'hold' label" "$case_dir/stderr" \
+    "gitlab-hold-label: refusal did not name the hold label"
+  assert_grep 'gl-owner' "$case_dir/stderr" \
+    "gitlab-hold-label: refusal did not name who labeled it"
+  assert_grep '2026-10-27T04:05:06Z' "$case_dir/stderr" \
+    "gitlab-hold-label: refusal did not name when it was labeled"
+  assert_no_grep 'mr merge' "$case_dir/glab.log" \
+    "gitlab-hold-label: glab mr merge ran despite the hold label"
+  pass "fm-pr-merge refuses a GitLab MR carrying the hold label and names who labeled it and when"
+}
+
+test_forgejo_hold_label_refuses_and_names_labeler() {
+  local case_dir rc
+  case_dir=$(make_forgejo_case forgejo-hold-label labels=hold)
+  cat > "$case_dir/tea-timeline.json" <<'JSON'
+[{"type":"label","body":"1","label":{"name":"hold"},"user":{"login":"fj-owner"},"created_at":"2026-10-27T07:08:09Z"}]
+JSON
+
+  set +e
+  run_pr_merge "$case_dir" task-x1 "$FJ_URL" \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  expect_code 1 "$rc" "forgejo-hold-label: fm-pr-merge should refuse a hold-labeled PR"
+  assert_grep "'hold' label" "$case_dir/stderr" \
+    "forgejo-hold-label: refusal did not name the hold label"
+  assert_grep 'fj-owner' "$case_dir/stderr" \
+    "forgejo-hold-label: refusal did not name who labeled it"
+  assert_grep '2026-10-27T07:08:09Z' "$case_dir/stderr" \
+    "forgejo-hold-label: refusal did not name when it was labeled"
+  assert_no_grep 'pulls/9/merge' "$case_dir/tea.log" \
+    "forgejo-hold-label: the Forgejo merge ran despite the hold label"
+  pass "fm-pr-merge refuses a Forgejo PR carrying the hold label and names who labeled it and when"
+}
+
+# A hold added, removed and added again past the first page of history is
+# named by its latest add, not the stale first one.
+test_github_hold_label_names_labeler_past_first_page() {
+  local case_dir rc
+  case_dir=$(make_case github-hold-label-paged)
+  mkdir -p "$case_dir/wt"
+  add_gh_mocks "$case_dir" deadbeefcafefeed0000000000000000deadbeef
+  write_github_labels "$case_dir" hold
+  cat > "$case_dir/github-timeline.json" <<'JSON'
+[{"event":"labeled","label":{"name":"hold"},"actor":{"login":"early-owner"},"created_at":"2026-10-20T01:00:00Z"},
+ {"event":"unlabeled","label":{"name":"hold"},"actor":{"login":"early-owner"},"created_at":"2026-10-21T01:00:00Z"}]
+JSON
+  cat > "$case_dir/github-timeline.json.page2" <<'JSON'
+[{"event":"labeled","label":{"name":"hold"},"actor":{"login":"cutover-owner"},"created_at":"2026-10-27T01:02:03Z"}]
+JSON
+  : > "$case_dir/gh-axi.log"
+
+  set +e
+  run_pr_merge "$case_dir" task-x1 https://github.com/example/repo/pull/9 \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  expect_code 1 "$rc" "github-hold-label-paged: fm-pr-merge should refuse a hold-labeled PR"
+  assert_grep 'labeled by cutover-owner at 2026-10-27T01:02:03Z' "$case_dir/stderr" \
+    "github-hold-label-paged: refusal did not name the latest labeler past the first page"
+  assert_no_grep 'pr merge' "$case_dir/gh.log" \
+    "github-hold-label-paged: gh pr merge ran despite the hold label"
+  pass "fm-pr-merge names the GitHub hold labeler from past the first timeline page"
+}
+
+test_gitlab_hold_label_names_labeler_past_first_page() {
+  local case_dir rc
+  case_dir=$(make_gitlab_case gitlab-hold-label-paged labels=hold)
+  cat > "$case_dir/mr-label-events.json" <<'JSON'
+[{"action":"add","label":{"name":"hold"},"user":{"username":"early-owner"},"created_at":"2026-10-20T01:00:00Z"},
+ {"action":"remove","label":{"name":"hold"},"user":{"username":"early-owner"},"created_at":"2026-10-21T01:00:00Z"}]
+JSON
+  cat > "$case_dir/mr-label-events-page2.json" <<'JSON'
+[{"action":"add","label":{"name":"hold"},"user":{"username":"cutover-owner"},"created_at":"2026-10-27T04:05:06Z"}]
+JSON
+
+  set +e
+  run_pr_merge "$case_dir" task-x1 "$MR_URL" \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  expect_code 1 "$rc" "gitlab-hold-label-paged: fm-pr-merge should refuse a hold-labeled MR"
+  assert_grep 'labeled by cutover-owner at 2026-10-27T04:05:06Z' "$case_dir/stderr" \
+    "gitlab-hold-label-paged: refusal did not name the latest labeler past the first page"
+  assert_no_grep 'mr merge' "$case_dir/glab.log" \
+    "gitlab-hold-label-paged: glab mr merge ran despite the hold label"
+  pass "fm-pr-merge names the GitLab hold labeler from past the first label-event page"
+}
+
+# The first page ends on a removal, which must not be named as the labeler.
+test_forgejo_hold_label_names_labeler_past_first_page() {
+  local case_dir rc
+  case_dir=$(make_forgejo_case forgejo-hold-label-paged labels=hold)
+  cat > "$case_dir/tea-timeline.json" <<'JSON'
+[{"type":"label","body":"1","label":{"name":"hold"},"user":{"login":"early-owner"},"created_at":"2026-10-20T01:00:00Z"},
+ {"type":"label","body":"","label":{"name":"hold"},"user":{"login":"remover"},"created_at":"2026-10-21T01:00:00Z"}]
+JSON
+  cat > "$case_dir/tea-timeline-page2.json" <<'JSON'
+[{"type":"label","body":"1","label":{"name":"hold"},"user":{"login":"cutover-owner"},"created_at":"2026-10-27T07:08:09Z"}]
+JSON
+
+  set +e
+  run_pr_merge "$case_dir" task-x1 "$FJ_URL" \
+    > "$case_dir/stdout" 2> "$case_dir/stderr"
+  rc=$?
+  set -e
+
+  expect_code 1 "$rc" "forgejo-hold-label-paged: fm-pr-merge should refuse a hold-labeled PR"
+  assert_grep 'labeled by cutover-owner at 2026-10-27T07:08:09Z' "$case_dir/stderr" \
+    "forgejo-hold-label-paged: refusal did not name the latest labeler past the first page"
+  assert_no_grep 'pulls/9/merge' "$case_dir/tea.log" \
+    "forgejo-hold-label-paged: the Forgejo merge ran despite the hold label"
+  pass "fm-pr-merge names the Forgejo hold labeler from past the first timeline page"
+}
+
 test_gitlab_head_override_args_refuse_before_recording
+test_github_hold_label_refuses_and_names_labeler
+test_github_hold_label_names_labeler_past_first_page
+test_gitlab_hold_label_names_labeler_past_first_page
+test_forgejo_hold_label_names_labeler_past_first_page
+test_github_other_labels_still_merge
+test_gitlab_hold_label_refuses_and_names_labeler
+test_forgejo_hold_label_refuses_and_names_labeler
 test_secondmate_merge_reports_upward_once
 test_secondmate_merge_reports_on_the_local_route
 test_gitlab_merge_reports_upward
