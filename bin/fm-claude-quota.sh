@@ -16,7 +16,8 @@
 # polls usage through Keychain items of its own that were approved when each
 # account was added, so it reads every account's windows with no prompt. Its
 # launchd poller (com.dalecarman.cusage, every 30 minutes) writes a snapshot,
-# and this reads that snapshot with `cusage -c -j`, which never fetches.
+# and this reads that snapshot with `cusage -c -j`, which makes no network
+# fetch but still runs cusage's per-account Keychain attribute probes.
 #
 # The account is config/claude-account's pin when the home has one
 # (bin/fm-worker-account-lib.sh), otherwise this process's CLAUDE_CONFIG_DIR,
@@ -53,8 +54,8 @@
 # one. A snapshot that is not valid exits 2 with nothing on stdout.
 #
 # It never reads Claude Code's Keychain item and never blocks: a missing
-# cusage, a run past FM_CLAUDE_QUOTA_SECONDS (default 5, a guard on a file
-# read), no readable snapshot, an account the snapshot has no reading time
+# cusage, a run past FM_CLAUDE_QUOTA_SECONDS (default 15, cusage's own bound
+# for building that document), no readable snapshot, an account the snapshot has no reading time
 # for, a reading more than 3600 seconds old (two poller runs, so the poller
 # has stopped; cusage's own warning for the account is added when it gives
 # one), an account cusage cannot measure, or no unreset five_hour or
@@ -65,7 +66,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FM_ROOT="${FM_ROOT_OVERRIDE:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 FM_HOME="${FM_HOME:-$FM_ROOT}"
 CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
-FM_CLAUDE_QUOTA_SECONDS=${FM_CLAUDE_QUOTA_SECONDS:-5}
+FM_CLAUDE_QUOTA_SECONDS=${FM_CLAUDE_QUOTA_SECONDS:-15}
 POLLER="its poller (com.dalecarman.cusage, every 30m) may have stopped"
 
 # shellcheck source=bin/fm-quota-axi-lib.sh
