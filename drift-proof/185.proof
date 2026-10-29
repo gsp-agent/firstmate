@@ -1,0 +1,2 @@
+# Failing-first: tests/fm-crew-resume.test.sh Codex session discovery and the exact Herdr report-agent-session call fail on the base (bin/fm-crew-resume-lib.sh does not exist), and the lab measurement showed a Codex crew pane with no Herdr session before the fix and the same session id after a lab Herdr restore with it.
+pr: 185

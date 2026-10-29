@@ -27,8 +27,9 @@ A root saved as untrusted shows "Open restricted" instead and is refused rather 
 A second dialog, "Hooks need review - N hooks are new or changed", appears whenever the machine's `~/.codex/hooks.json` or a project's own `.codex/hooks.json` carries a hook Codex has not persisted trust for.
 It is unanswerable rather than merely inconvenient: its selection starts on "Review hooks", which is neither trusting nor declining, and arrow navigation of the modal is not verified live and is not supported on every backend (Orca accepts only Enter and C-c; the `../../../bin/fm-send.sh` header owns which keys each backend passes through), so Firstmate does not rely on moving its selection.
 Writing Codex's own trust store to pre-accept it would manufacture an operator consent that was never given.
-So crewmate and scout launches disable Codex's hook layer outright (`bin/fm-spawn.sh`'s launch template owns the flag), which is the opposite of `--dangerously-bypass-hook-trust` - that flag RUNS the untrusted hooks.
+So crewmate and scout launches disable Codex's hook layer outright (`../../../bin/fm-crew-resume-lib.sh`'s `fm_crew_codex_args` owns the flag), which is the opposite of `--dangerously-bypass-hook-trust` - that flag RUNS the untrusted hooks.
 A crewmate loses nothing: its turn-end signal is the `-c notify=` program on the same launch, and the Firstmate hooks in a project's `.codex/hooks.json` are primary-session infrastructure that stands down in a child worktree.
+On Herdr, the spawn itself reports the session that Herdr's Codex hook would have reported ([docs/herdr-backend.md](../../../../../docs/herdr-backend.md#codex-crew-sessions)).
 A secondmate is a primary in its own home and keeps its hooks, so an unanswerable modal there is still possible and is the operator's own hook review to settle.
 
 ## Skill popup

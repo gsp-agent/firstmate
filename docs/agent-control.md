@@ -118,7 +118,8 @@ A relaunch does take one session reference when the endpoint's own runtime recor
 6. **Preserve runtime-bound status authority where supported.**
    The endpoint's runtime may bind pane status to one session identity; the launch owner preserves it only when that runtime records a reference the replacement adapter can consume, and otherwise launches the ordinary fresh session.
    This reference is a launch input, never authority to send, close, or act on the pane.
-   [`docs/herdr-backend.md`](herdr-backend.md#agent-status-authority-and-relaunch) owns the mechanism and measured behavior.
+   A stopped Herdr pane still bound to a retired Codex session is not adopted: once its process view shows only a shell, a relaunch onto another harness closes it and creates one fresh endpoint in the same worktree.
+   [`docs/herdr-backend.md`](herdr-backend.md#agent-status-authority-and-relaunch) owns the mechanism and measured behavior, including [the Codex case](herdr-backend.md#codex-crew-sessions).
 
 Switching harness is therefore one ordinary relaunch rather than a separate mechanism.
 

@@ -544,8 +544,11 @@
 #                  reports (relaunch_resume_args below owns it; it supplies its
 #                  own leading space, and is empty on every fresh spawn and for
 #                  every other harness)
-#     __TURNEND__  absolute path to state/<task-id>.turn-ended (for harnesses whose
-#                  turn-end signal rides the launch command, e.g. codex -c notify=[...])
+#     __TURNEND__  absolute path to state/<task-id>.turn-ended, for a raw launch
+#                  command whose turn-end signal rides the launch command
+#     __CODEXCREWARGS__ the Codex crew arguments after the model and effort flags,
+#                  bin/fm-crew-resume-lib.sh's fm_crew_codex_args with the
+#                  turn-end path (its -c notify=[...]), each word followed by a space
 #     __PIEXT__    absolute path to state/<task-id>.pi-ext.ts (pi busy-state extension,
 #                  written by this script; outside the worktree to avoid pi's trust gate;
 #                  a secondmate loads it beside its two primary extensions)
@@ -877,6 +880,8 @@ fm_backlog_directory_present "$STATE" "state directory" || {
 . "$SCRIPT_DIR/fm-dod-lib.sh"
 # shellcheck source=bin/fm-grok-worker-lib.sh
 . "$SCRIPT_DIR/fm-grok-worker-lib.sh"
+# shellcheck source=bin/fm-crew-resume-lib.sh
+. "$SCRIPT_DIR/fm-crew-resume-lib.sh"
 # shellcheck source=bin/fm-role-lib.sh
 . "$SCRIPT_DIR/fm-role-lib.sh"
 # shellcheck source=bin/fm-trace-context-lib.sh
@@ -3145,7 +3150,7 @@ launch_template() {
     if [ "$kind" = secondmate ]; then
       printf '%s' 'codex __MODELFLAG____EFFORTFLAG__--dangerously-bypass-approvals-and-sandbox "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
     else
-      printf '%s' 'codex __MODELFLAG____EFFORTFLAG__--dangerously-bypass-approvals-and-sandbox --disable hooks -c "notify=[\"bash\",\"-c\",\"touch __TURNEND__\"]" "$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
+      printf '%s' 'codex __MODELFLAG____EFFORTFLAG____CODEXCREWARGS__"$(__OPINPUT__ encode launch-brief < __BRIEF__)"'
     fi
     ;;
   opencode) printf '%s' 'OPENCODE_CONFIG_CONTENT='\''{"permission":{"*":"allow"}__EFFORTFLAG__}'\'' opencode __MODELFLAG__--prompt "$(__OPINPUT__ encode launch-brief < __BRIEF__)"' ;;
@@ -5047,6 +5052,27 @@ if [ "$RELAUNCH" -eq 1 ]; then
   # uncommitted changes are exactly as the previous agent left them, and nothing
   # below may touch them.
   [ "$KIND" = secondmate ] || WT=$RELAUNCH_WT
+  if [ "$RELAUNCH_REBIND" -eq 0 ] && [ "$BACKEND" = herdr ] && [ "$HARNESS" != codex ] && [ "$KIND" != secondmate ]; then
+    crew_bound=$(fm_backend_herdr_pane_agent_session_ref "$HERDR_SES" "$HERDR_PANE_ID") || crew_bound=
+    case $crew_bound in
+    codex$'\t'*)
+      if [ "$(fm_backend_herdr_pane_process_state "$HERDR_SES" "$HERDR_PANE_ID")" != shell ]; then
+        echo "error: Herdr pane $HERDR_PANE_ID still holds its retired Codex session and could not be replaced; refusing to launch $HARNESS for $ID" >&2
+        exit 1
+      fi
+      # Close through the session-locked, focus-safe kill: a bare pane close
+      # here would be unlocked, and on Herdr without the focus fixes it can
+      # move the operator's focus with nothing restoring it. The kill's own
+      # return proves nothing, so the pane must read back gone.
+      fm_backend_kill herdr "$RELAUNCH_TARGET" >/dev/null 2>&1 || true
+      if [ "$(fm_backend_herdr_pane_presence_state "$HERDR_SES" "$HERDR_PANE_ID")" != dead ]; then
+        echo "error: Herdr pane $HERDR_PANE_ID still holds its retired Codex session and could not be replaced; refusing to launch $HARNESS for $ID" >&2
+        exit 1
+      fi
+      RELAUNCH_REBIND=1
+      ;;
+    esac
+  fi
   if [ "$RELAUNCH_REBIND" -eq 0 ]; then
     # Adopt the recorded endpoint instead of creating one. This is what keeps a
     # relaunch a REPLACEMENT rather than a second copy of the task: no new
@@ -5056,17 +5082,20 @@ if [ "$RELAUNCH" -eq 1 ]; then
     WT_TARGET=$T
     SES=${T%%:*}
   else
-    # The recorded endpoint is authoritatively gone, so there is nothing to
-    # adopt: create ONE fresh endpoint for the same task, opened directly in the
-    # recorded worktree. The record published below writes window= (and herdr's
-    # ids) from these values, which is the whole rebind - the task id, brief,
-    # worktree, armed poll and status log are untouched.
+    # The recorded endpoint is authoritatively gone, or was a stopped Herdr
+    # pane still bound to a retired Codex session that the block above just
+    # closed, so there is nothing to adopt: create ONE fresh endpoint for the
+    # same task, opened directly in the recorded worktree. The record published
+    # below writes window= (and herdr's ids) from these values, which is the
+    # whole rebind - the task id, brief, worktree, armed poll and status log are
+    # untouched.
     #
     # Herdr is the ONLY backend that reaches here: the gate above rebinds only
     # on a PROVEN-gone endpoint, and absence is provable only on herdr, whose
     # every read is scoped to the session the record names
-    # (fm_control_endpoint_absence_verdict owns that argument). tmux and every
-    # secondmate were already refused, so there is no dispatch left to make.
+    # (fm_control_endpoint_absence_verdict owns that argument); the Codex close
+    # above runs only on herdr. tmux and every secondmate were already refused,
+    # so there is no dispatch left to make.
     #
     # This deliberately uses the FLAT container shape rather than Herdr's
     # presentation projection: projection is a presentation-only layout that is
@@ -6605,7 +6634,8 @@ EOF
     # firstmate-launched worker. Codex therefore classifies unknown with
     # an explicit reason rather than falling back to idle, and no busy
     # wiring is installed. The turn-end NOTIFICATION marker still rides
-    # the launch command via -c notify=[...] and __TURNEND__.
+    # the launch command via -c notify=[...] in fm_crew_codex_args, which
+    # __CODEXCREWARGS__ carries into the launch.
     ;;
   grok*)
     # Parent turn-end wiring only. A secondmate already classifies through the
@@ -7029,6 +7059,13 @@ if [ "$HARNESS" = rovo ]; then
 fi
 LAUNCH=${LAUNCH//__BRIEF__/$sq_brief}
 LAUNCH=${LAUNCH//__TURNEND__/$sq_turnend}
+case "$LAUNCH" in
+*__CODEXCREWARGS__*)
+  fm_crew_codex_args "$sq_turnend"
+  codex_crew_words=$(fm_crew_shell_words "${FM_CREW_CODEX_ARGS[@]}")
+  LAUNCH=${LAUNCH//__CODEXCREWARGS__/"$codex_crew_words"}
+  ;;
+esac
 LAUNCH=${LAUNCH//__PIEXT__/$sq_piext}
 LAUNCH=${LAUNCH//__PITURNEND__/$sq_piturnend}
 LAUNCH=${LAUNCH//__PIWATCH__/$sq_piwatch}
@@ -7404,6 +7441,7 @@ if [ "$RELAUNCH" -eq 1 ]; then
   SPAWN_META_TMP=
   spawn_relaunch_close_old_endpoint
 fi
+CREW_RESUME_SINCE=$(date +%s)
 SPAWN_LAUNCH_SENT=1
 spawn_send_literal "$T" ". $(shell_quote "$LAUNCH_FILE")"
 sleep 0.3
@@ -7485,6 +7523,49 @@ if [ "$HARNESS" = codex ] && [ "$KIND" != secondmate ]; then
     exit 1
     ;;
   esac
+fi
+
+# Herdr restore resume. A Codex crew launches with hooks disabled, so Herdr
+# never learns its session. Once Herdr has registered the pane's Codex agent,
+# report the session Codex wrote for this worktree, replacing any session an
+# earlier incarnation bound to the pane, then record the CODEX_HOME and the
+# crew arguments the launch line was built
+# from, which a bare `codex resume <id>` cannot carry
+# (bin/fm-crew-resume-lib.sh). A raw launch command was not built from them,
+# so it gets no record. A Grok crew's session reaches Herdr through its hook,
+# and its summary.json already records the worker grok_home. A relaunch onto
+# another harness replaces a stopped pane still bound to Codex before launch
+# and reads the new pane back afterward: a surviving Codex binding would keep
+# the new harness's own session report out.
+if [ "$BACKEND" = herdr ] && [ "$RELAUNCH" -eq 1 ] && [ "$HARNESS" != codex ] && [ "$KIND" != secondmate ]; then
+  crew_bound=$(fm_backend_herdr_pane_agent_session_ref "$HERDR_SES" "$HERDR_PANE_ID") || crew_bound=
+  case $crew_bound in
+  codex$'\t'*)
+    echo "warning: Herdr pane $HERDR_PANE_ID still holds Codex session ${crew_bound#*$'\t'} from before $ID's relaunch onto $HARNESS; a Herdr restore would resume that retired session in this pane" >&2
+    ;;
+  esac
+fi
+if [ "$BACKEND" = herdr ] && [ "$HARNESS" = codex ] && [ "$KIND" != secondmate ]; then
+  crew_i=0
+  crew_session_id=
+  while [ "$crew_i" -lt 20 ]; do
+    [ -n "$crew_session_id" ] ||
+      crew_session_id=$(fm_crew_codex_session_id "$CODEX_STORE_DIR" "$WT" "$CREW_RESUME_SINCE") || crew_session_id=
+    [ -z "$crew_session_id" ] || ! fm_crew_herdr_pane_runs_codex "$HERDR_SES" "$HERDR_PANE_ID" || break
+    crew_i=$((crew_i + 1))
+    [ "$crew_i" -ge 20 ] || sleep 0.5
+  done
+  if [ -n "$crew_session_id" ]; then
+    fm_crew_report_codex_session "$HERDR_SES" "$HERDR_PANE_ID" "$crew_session_id" ||
+      echo "warning: Herdr pane $HERDR_PANE_ID did not take Codex session $crew_session_id for $ID; a Herdr restore will not resume this crew's current session" >&2
+    if [ -n "${FM_CREW_CODEX_ARGS+set}" ]; then
+      fm_crew_codex_resume_record_write "$STATE/$ID.codex-resume" "$crew_session_id" "$CODEX_STORE_DIR" \
+        "${FM_CREW_CODEX_ARGS[@]}" ||
+        echo "warning: could not record the Codex resume home and flags for $ID session $crew_session_id" >&2
+    fi
+  else
+    echo "warning: no Codex session for $ID was found under $CODEX_STORE_DIR; a Herdr restore will not resume this crew" >&2
+  fi
 fi
 
 if [ "$KIND" = secondmate ] && [ "${FM_SKIP_SECONDMATE_INHERIT:-0}" != 1 ]; then
