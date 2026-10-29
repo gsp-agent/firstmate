@@ -4253,16 +4253,18 @@ spawn_machine_total_defer() {
   exit "$SPAWN_DEFER_EXIT"
 }
 
-# This home's ordinary task records, one id per line, for the machine-total
-# recheck below.
-spawn_home_worker_ids() {
+# This home's ordinary task records, one "<id> <spawn_gen>" per line, for the
+# machine-total recheck below. Every publication writes a fresh spawn_gen, so
+# a fresh restart that replaces a record under the same id reads as a new
+# record, not as the one admission counted (chip, PR 195 review 5705538165).
+spawn_home_worker_records() {
   local meta id
   for meta in "$STATE"/*.meta; do
     [ -f "$meta" ] && [ ! -L "$meta" ] || continue
     [ "$(fm_meta_get "$meta" kind)" != secondmate ] || continue
     id=${meta##*/}
     id=${id%.meta}
-    [ "$id" = "$ID" ] || printf '%s\n' "$id"
+    [ "$id" = "$ID" ] || printf '%s %s\n' "$id" "$(fm_meta_get "$meta" spawn_gen)"
   done
 }
 
@@ -4271,25 +4273,27 @@ spawn_home_worker_ids() {
 # than missed.
 SPAWN_HOME_WORKERS_COUNTED=
 spawn_count_occupants() {
-  [ -z "$SPAWN_MACHINE_CAPACITY" ] || SPAWN_HOME_WORKERS_COUNTED=$'\n'"$(spawn_home_worker_ids)"$'\n'
+  [ -z "$SPAWN_MACHINE_CAPACITY" ] || SPAWN_HOME_WORKERS_COUNTED=$'\n'"$(spawn_home_worker_records)"$'\n'
   fm_project_capacity_occupants "$SPAWN_TREEHOUSE_PROJECT_LOCK" "$PROJ_ABS" "$STATE" "$ID"
 }
 
 # The machine total within this home, at publication. Spawns for different
 # projects hold different project locks, so another spawn in this home may
 # have published since admission counted; each ordinary record this home holds
-# now and did not hold then takes one more place. Two homes starting in the
-# same moment can still each pass, as bin/fm-project-capacity-lib.sh says.
+# now and did not hold then takes one more place. A relaunch's new spawn_gen
+# counts again too, which can only defer a start, never admit one past the
+# total. Two homes starting in the same moment can still each pass, as
+# bin/fm-project-capacity-lib.sh says.
 spawn_recheck_machine_total() {
-  local id ids='' new=0
+  local record ids='' new=0
   [ -n "$SPAWN_MACHINE_CAPACITY" ] || return 0
-  while IFS= read -r id; do
-    [ -n "$id" ] || continue
-    case "$SPAWN_HOME_WORKERS_COUNTED" in *$'\n'"$id"$'\n'*) continue ;; esac
+  while IFS= read -r record; do
+    [ -n "$record" ] || continue
+    case "$SPAWN_HOME_WORKERS_COUNTED" in *$'\n'"$record"$'\n'*) continue ;; esac
     new=$((new + 1))
-    ids="${ids:+$ids, }$id"
+    ids="${ids:+$ids, }${record%% *}"
   done <<EOF
-$(spawn_home_worker_ids)
+$(spawn_home_worker_records)
 EOF
   [ "$new" -gt 0 ] || return 0
   FM_PROJECT_CAPACITY_TOTAL_OCCUPANTS=$((FM_PROJECT_CAPACITY_TOTAL_OCCUPANTS + new))

@@ -1934,6 +1934,37 @@ test_machine_total_is_rechecked_at_publication_in_one_home() {
   pass "the machine total is rechecked at publication, so two spawns in one home cannot both take its last place"
 }
 
+# The recheck tells a same-id replacement from the record admission counted
+# (chip, PR 195 review 5705538165): task-b's earlier record holds no place (its
+# PR is recorded), so the first spawn's admission counts 0, and a fresh restart
+# of task-b that publishes meanwhile takes the one place.
+test_machine_total_recheck_sees_a_same_id_replacement() {
+  local case_dir home hold wt_a pid_a rc_a=0 rc_b=0 out_b
+  case_dir=$(make_case taskset-machine-restart task-a task-b)
+  home="$case_dir/home"
+  declare_machine_capacity "$home" "1"
+  fm_write_meta "$home/state/task-b.meta" \
+    "window=firstmate:fm-task-b" \
+    "project=$case_dir/other-project" \
+    "kind=ship" \
+    "spawn_gen=s-earlier" \
+    "pr=https://github.com/o/r/pull/7"
+  hold="$case_dir/hold"
+  wt_a=$(new_worktree "$case_dir" task-a)
+  FM_FAKE_HOLD="$hold" spawn_ship "$case_dir" task-a "$wt_a" > "$case_dir/a.out" 2>&1 &
+  pid_a=$!
+  wait_for_file "$hold.reached" "the first spawn never got past admission: $(cat "$case_dir/a.out")"
+  out_b=$(spawn_other_ship "$case_dir" task-b) || rc_b=$?
+  : > "$hold.release"
+  wait "$pid_a" || rc_a=$?
+  expect_code 0 "$rc_b" "the restarted task did not take the one machine place: $out_b"
+  expect_code "$DEFER_EXIT" "$rc_a" "the first spawn published past the machine total beside a same-id replacement: $(cat "$case_dir/a.out")"
+  assert_contains "$(cat "$case_dir/a.out")" "and 1 already hold a place (task-b)" \
+    "the deferral did not name the replacement record that filled the total"
+  assert_absent "$home/state/task-a.meta" "the first spawn published past the machine total"
+  pass "the machine-total recheck counts a same-id replacement published after admission"
+}
+
 # The away spend cap counts this home's records, and is rechecked inside the
 # publication hold the same way.
 test_away_spend_cap_is_rechecked_at_publication() {
@@ -2035,4 +2066,5 @@ test_two_fresh_spawns_in_one_home_both_publish
 test_task_set_held_at_publication_defers_every_kind
 test_forced_teardown_during_a_spawns_start_is_never_missed
 test_machine_total_is_rechecked_at_publication_in_one_home
+test_machine_total_recheck_sees_a_same_id_replacement
 test_away_spend_cap_is_rechecked_at_publication
