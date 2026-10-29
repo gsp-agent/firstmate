@@ -1,0 +1,11 @@
+br reopen operator-k82 -> rc=0
+operator-k82     rc=0  has bead operator-k82 status=open -> teardown REFUSES
+    owner db: dev/operator/.beads/beads.db
+br close operator-k82 -> rc=0
+operator-k82     rc=0  has bead operator-k82 status=closed -> teardown may close
+    owner db: dev/operator/.beads/beads.db
+--- base commit reading the same open bead
+br reopen operator-k82 -> rc=0
+operator-k82     rc=3  no bead -> teardown keeps its old behavior
+    owner db: (lookup status 1)
+br close operator-k82 -> rc=0

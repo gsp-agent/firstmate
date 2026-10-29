@@ -1,0 +1,150 @@
+
+===== Disposable bead homes (made with real br br 0.5.10) under a throwaway HOME
+./.agent-config-beads/.beads/beads.db
+./dev/_archived/groove-interview/.beads/beads.db
+./dev/agent-observer-beads/.beads/beads.db
+./dev/agent-observer/.beads/beads.db
+./dev/groovetech-media-player/.beads/beads.db
+./dev/gsp-beads/.beads/beads.db
+./dev/no-prefix/.beads/beads.db
+./dev/operator/.beads/beads.db
+dev/agent-config/.beads is a link to .agent-config-beads/.beads
+fixture beads: operator=operator-k82 gint=gint-7ju obs(tied, same bead)=obs-rrm obs(tied, different beads)=obs-vi6
+
+===== Bead-home discovery: bash bin/fm-task-data-lib.sh bead-locations (branch)
+warning: bead home $LIVE/user/dev/no-prefix/.beads/beads.db records no issue_prefix; its ids are not bead references
+.agent-config .agent-config-beads
+obs dev/agent-observer-beads
+obs dev/agent-observer
+groovetech dev/groovetech-media-player
+gsp dev/gsp-beads
+operator dev/operator
+gint dev/_archived/groove-interview
+exit=0
+
+===== Backlog rows in the lab home
+- [x] ordinary-text - words that look like beads (repo: example) (closed 2026-10-09)
+- [x] operator-task - discovered home (repo: example) (closed 2026-10-09)
+- [x] archived-task - archived home (repo: example) (closed 2026-10-09)
+- [x] obs-task - tied homes (repo: example) (closed 2026-10-09)
+- [x] obs-split-task - different beads under one id (repo: example) (closed 2026-10-09)
+- [x] parentdone - parent closed long ago (repo: example) (closed 2026-10-09)
+- [x] gp - grandparent closed long ago (repo: example) (closed 2026-10-09)
+- [ ] gp-1 - nearest parent reopened (repo: example)
+
+===== Task reports
+--- archived-task/report.md
+Evidence: none in this report.
+Bead: gint-7ju
+--- gp-1-2/report.md
+Evidence: [build](build/).
+--- obs-split-task/report.md
+Evidence: [build](build/).
+Bead: obs-vi6
+--- obs-task/report.md
+Evidence: none in this report.
+Bead: obs-rrm
+--- operator-task/report.md
+Evidence: none in this report.
+Bead: operator-k82
+--- ordinary-text/report.md
+Evidence: [build](build/).
+Bead: be-still
+Beads: no-mistakes
+Bead: .agent-config
+Bead: gsp-beads
+bead_id=unknown-prefix-123
+Bead: gsp
+--- orphan-old/report.md
+Evidence: [build](build/).
+--- orphan-partial/report.md
+Evidence: [build](build/).
+--- orphan-recent/report.md
+Evidence: [build](build/).
+--- orphan-touched/report.md
+Evidence: [build](build/).
+--- parentdone-2-retry/report.md
+Evidence: [build](build/).
+orphan-old: every entry aged 20 days; orphan-recent: written now; orphan-touched: aged 20 days, then build/evidence.bin touched now
+orphan-locked: task folder chmod 000; orphan-partial: subfolder private/ chmod 000 holding a file written today
+
+===== Offload plan on this branch (61a146f7): bash bin/fm-task-data-lib.sh offload-plan DATA STATE
+archived-task          MOVE logs (close date 2026-10-09)
+gp-1-2                 KEPT: task still has an open or in-progress backlog row
+obs-split-task         KEPT: unread bead obs-vi6: different beads share its id in $LIVE/user/dev/agent-observer-beads/.beads/beads.db, $LIVE/user/dev/agent-observer/.beads/beads.db
+obs-task               MOVE build (close date 2026-10-09)
+operator-task          MOVE build (close date 2026-10-09)
+ordinary-text          MOVE build (close date 2026-10-09)
+orphan-locked          KEPT: [Errno 13] Permission denied: '$LIVE/lab/data/orphan-locked'
+orphan-old             MOVE build (close date 2026-10-09)
+orphan-partial         KEPT: [Errno 13] Permission denied: '$LIVE/lab/data/orphan-partial/private'
+orphan-recent          KEPT: task has not been closed for seven complete days
+orphan-touched         KEPT: task has not been closed for seven complete days
+parentdone-2-retry     MOVE build (close date 2026-10-09)
+total bytes planned to move: 417792
+
+===== Same fixture, offload plan at the base commit (810d6ae3)
+archived-task          KEPT: unresolved bead owner: gint-7ju
+gp-1-2                 KEPT: closed date is missing or ambiguous
+obs-split-task         MOVE build (close date 2026-10-09)
+obs-task               MOVE build (close date 2026-10-09)
+operator-task          KEPT: unresolved bead owner: operator-k82
+ordinary-text          KEPT: unresolved bead owner: .agent-config
+orphan-locked          KEPT: closed date is missing or ambiguous
+orphan-old             KEPT: closed date is missing or ambiguous
+orphan-partial         KEPT: closed date is missing or ambiguous
+orphan-recent          KEPT: closed date is missing or ambiguous
+orphan-touched         KEPT: closed date is missing or ambiguous
+parentdone-2-retry     KEPT: closed date is missing or ambiguous
+total bytes planned to move: 139264
+
+===== Teardown bead gate (fm_task_bead_read) with real br, branch
+warning: bead home $LIVE/user/dev/no-prefix/.beads/beads.db records no issue_prefix; its ids are not bead references
+operator-k82     rc=0  has bead operator-k82 status=closed -> teardown may close
+    owner db: dev/operator/.beads/beads.db
+gint-7ju         rc=0  has bead gint-7ju status=open -> teardown REFUSES
+    owner db: dev/_archived/groove-interview/.beads/beads.db
+obs-rrm          rc=0  has bead obs-rrm status=open -> teardown REFUSES
+    owner db: dev/agent-observer/.beads/beads.db
+error: unread bead obs-vi6: different beads share its id in $LIVE/user/dev/agent-observer-beads/.beads/beads.db, $LIVE/user/dev/agent-observer/.beads/beads.db
+obs-vi6          rc=1  unread (no one readable home owns bead obs-vi6) -> teardown REFUSES
+    owner db: (lookup status 2)
+gsp-beads        rc=3  no bead -> teardown keeps its old behavior
+    owner db: dev/gsp-beads/.beads/beads.db
+unknown-prefix-1 rc=3  no bead -> teardown keeps its old behavior
+    owner db: (lookup status 1)
+(operator-k82 was closed with 'br close' earlier in this run; while open it read status=open and teardown refused)
+
+===== Teardown bead gate, base commit
+operator-k82     rc=3  no bead -> teardown keeps its old behavior
+    owner db: (lookup status 1)
+gint-7ju         rc=3  no bead -> teardown keeps its old behavior
+    owner db: (lookup status 1)
+obs-rrm          rc=0  has bead obs-rrm status=open -> teardown REFUSES
+    owner db: dev/agent-observer/.beads/beads.db
+
+===== Adversarial: one bead home whose database is not a database (dev/broken-home, no prefix in config)
+warning: bead home $LIVE/user/dev/no-prefix/.beads/beads.db records no issue_prefix; its ids are not bead references
+error: bead homes could not be read, so no bead id is resolved: $LIVE/user/dev/broken-home/.beads/beads.db (file is not a database)
+discovery exit=1
+archived-task          KEPT: unread bead gint-7ju: the bead homes on this machine could not be read
+gp-1-2                 KEPT: task still has an open or in-progress backlog row
+obs-split-task         KEPT: unread bead obs-vi6: the bead homes on this machine could not be read
+obs-task               KEPT: unread bead obs-rrm: the bead homes on this machine could not be read
+operator-task          KEPT: unread bead operator-k82: the bead homes on this machine could not be read
+ordinary-text          KEPT: unread bead .agent-config: the bead homes on this machine could not be read
+orphan-locked          KEPT: [Errno 13] Permission denied: '$LIVE/lab/data/orphan-locked'
+orphan-old             MOVE build (close date 2026-10-09)
+orphan-partial         KEPT: [Errno 13] Permission denied: '$LIVE/lab/data/orphan-partial/private'
+orphan-recent          KEPT: task has not been closed for seven complete days
+orphan-touched         KEPT: task has not been closed for seven complete days
+parentdone-2-retry     MOVE build (close date 2026-10-09)
+total bytes planned to move: 139264
+warning: bead home $LIVE/user/dev/no-prefix/.beads/beads.db records no issue_prefix; its ids are not bead references
+error: bead homes could not be read, so no bead id is resolved: $LIVE/user/dev/broken-home/.beads/beads.db (file is not a database)
+operator-k82     rc=1  unread (the bead homes on this machine could not be read) -> teardown REFUSES
+    owner db: (lookup status 1)
+warning: bead home $LIVE/user/dev/no-prefix/.beads/beads.db records no issue_prefix; its ids are not bead references
+error: bead homes could not be read, so no bead id is resolved: $LIVE/user/dev/broken-home/.beads/beads.db (file is not a database)
+unknown-prefix-1 rc=1  unread (the bead homes on this machine could not be read) -> teardown REFUSES
+    owner db: (lookup status 1)

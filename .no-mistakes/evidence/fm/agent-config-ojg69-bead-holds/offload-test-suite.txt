@@ -1,0 +1,60 @@
+PASS: fake directory placement
+PASS: fake single-file placement
+PASS: directory retries copy-partial
+PASS: directory retries copy-wrong
+PASS: file retries copy-partial
+PASS: file retries copy-wrong
+PASS: verified existing payload is reused
+PASS: partial round reports completed moves
+PASS: a fully pushed repository is offloaded whole as one archive, never removed
+PASS: a refused repository offload keeps the repository and no archive copy
+PASS: an unreachable mini writes no archive and the next pass offloads
+PASS: a repository and its lanes in the task are offloaded whole as one folder
+PASS: a worktree of a repository outside DATA stays untouched
+PASS: a clone holding a detached worktree of a repository outside DATA stays
+PASS: a clone with a checked-out submodule is offloaded whole with it
+PASS: a worktree of a repository in another task stays
+PASS: an offload stopped with TERM releases the task meta lock
+PASS: offload never runs a trash from PATH or feeds it stdin
+PASS: a sweep ends with an offload pass
+PASS: a sweep in a home without a verifier offloads nothing
+PASS: an offload pass removes only archive copies its journal names
+PASS: a repository whose worktree record is empty stays
+PASS: a repository whose worktree record is missing stays
+PASS: no new archive while an earlier copy is still on disk
+PASS: stale or inconsistent worktree records keep the unit
+PASS: special and sparse files keep the unit
+PASS: hard links and symlinks reaching outside the unit are archived exactly
+PASS: a by-hand offload waits for the offload another run holds
+PASS: a reopened task's journaled archive copy is still removed
+PASS: a separated git directory stays while a bare one is archived
+PASS: a repository borrowing objects from outside its unit stays
+PASS: bead-like ordinary text does not hold a task
+PASS: newly mapped bead homes resolve
+PASS: a sub-attempt takes its parent task's close date
+PASS: a bead home absent from the old typed table resolves by discovery
+PASS: an orphan task takes its folder's newest write as its close date
+PASS: an old orphan's repository offloads despite the offload's own writes
+PASS: an old orphan offloads every referenced directory in one run
+PASS: an old orphan whose repository offload failed retries on the next pass
+PASS: tied bead homes resolve by br's record, and different beads under one id hold the task
+PASS: a repository archive keeps resource forks and other extended attributes
+PASS: a repository holding an access control list stays
+PASS: a repository holding file flags stays
+PASS: real /usr/bin/rsync directory placement
+PASS: real /usr/bin/rsync single-file placement
+PASS: closed-over-seven-days offloads, checksums both copies, keeps Trash and leaves an exact-path pointer; rerun is a no-op
+PASS: normal scratch expiry preserves the pointer after its report reference is removed
+PASS: open, in-progress, recent and date-only seven-day boundary tasks stay untouched
+PASS: current open row wins over an old archived completion without live metadata
+PASS: repository work in the scratch recovery hold blocks offload too
+PASS: missing independent backup verifier refuses before remote calls or local writes
+PASS: failed or mismatched remote/backup copies and denied Trash preserve original bytes
+PASS: source changes after copying refuse Trash
+PASS: interruption after Trash recovers pointer only after reverifying both copies
+PASS: brief-only, log-only and backlog-prose-only path mentions do not authorize offload
+PASS: report/row/saved-source bead IDs resolve local bead comments, while saved-source prose is not move authority
+PASS: an unread bead source with a known home retains the original without remote calls
+PASS: a bead-like string with no known home is ordinary text and does not hold the task
+PASS: a bead home whose record cannot be read holds bead-like text instead of making it ordinary
+exit=0

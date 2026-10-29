@@ -1,0 +1,39 @@
+== group bead-gate
+ok - bead-resolution exact
+ok - bead-resolution expanded
+ok - bead-resolution unrelated
+ok - bead-resolution suffix
+ok - bead-resolution prefix
+ok - bead-resolution owner
+ok - bead-resolution multiple
+ok - fm-teardown: tied bead homes resolve by br's own record; one database is one home; ambiguity or an unreadable tie refuses
+ok - fm-teardown: a merged task is not marked done, closed, or cleaned up while its bead is open, even with --force
+ok - fm-teardown: a task whose PR is only green is not cleaned up before its merge while its bead is open
+ok - fm-teardown: ac-<x> answers to .agent-config-<x>, and a task named without the leading dot answers to the dotted bead
+ok - fm-teardown: a task whose own last merge handoff, owned or not, leaves activation and live verification pending is not done
+ok - fm-teardown: a bead database that does not answer refuses cleanup rather than guessing
+ok - fm-teardown: a bead home the old typed table lacked is discovered, and its bead's done decides cleanup
+ok - fm-teardown: an unreadable bead home refuses cleanup, and a cached prefix still resolves its bead
+ok - fm-teardown: a task with no bead is cleaned up as before, and its record is archived for a restore
+group bead-gate exit=0
+== group task-data-named-beads
+ok - fm-teardown: agent-config named bead is read from the database that owns its prefix
+ok - fm-teardown: gsp named bead is read from the database that owns its prefix
+ok - fm-teardown: other-project named bead is read from the database that owns its prefix
+ok - fm-teardown: missing-project named bead is read from the database that owns its prefix
+ok - fm-teardown: fallback named bead is read from the database that owns its prefix
+ok - fm-teardown: archived named bead is read from the database that owns its prefix
+ok - fm-teardown: not-found named bead is read from the database that owns its prefix
+ok - fm-teardown: unowned named bead is read from the database that owns its prefix
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.LxbHLM/task-data-named-unreadable/data/task-x1/.cleanup-hold until the next completed task
+ok - fm-teardown: unreadable named bead is read from the database that owns its prefix
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.LxbHLM/task-data-named-archive-unreadable/data/task-x1/.cleanup-hold until the next completed task
+ok - fm-teardown: archive-unreadable named bead is read from the database that owns its prefix
+task data task-x1: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.LxbHLM/task-data-named-timeout/data/task-x1/.cleanup-hold until the next completed task
+ok - fm-teardown: timeout named bead is read from the database that owns its prefix
+group task-data-named-beads exit=0
+== group task-data-beads
+task data proof-owner: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.AoAQ1Q/task-data-bead-backlog/data/proof-owner/.cleanup-hold until the next completed task
+task data proof-owner: scratch recoverable in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-teardown-tests.AoAQ1Q/task-data-bead-backlog/data/proof-owner/.cleanup-hold until the next completed task
+ok - fm-teardown: owning and named Bead links use the configured graph across retirement, replay, staging, expiry and unavailable-backend retries
+group task-data-beads exit=0
