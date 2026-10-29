@@ -1968,6 +1968,14 @@ test_completion_retires_a_record_when_its_backlog_row_is_missing() {
 
   out=$(run_teardown "$case_dir" "$id") || rc=$?
   [ "$rc" -eq 0 ] || fail "teardown failed when the backlog row was already gone: $out"
+  case "$out" in
+    *"Backlog: $id is closed in"*|*"Backlog: $id stays open in"*)
+      fail "teardown reported a backlog item it never had as closed or held: $out" ;;
+  esac
+  case "$out" in
+    *"Backlog: $id has no item in"*) ;;
+    *) fail "teardown did not say the task had no backlog item: $out" ;;
+  esac
   assert_absent "$home/state/$id.meta" \
     "teardown left the task record after the backlog row was already gone"
   assert_absent "$home/state/$id.backlog-close" \

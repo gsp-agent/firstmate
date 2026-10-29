@@ -61,6 +61,10 @@
 FM_BACKLOG_TRANSITION_SKIP=
 # Set by the mutating helpers when they return non-zero.
 FM_BACKLOG_TRANSITION_ERROR=
+# Set by fm_backlog_retire_task_record: 1 when a close or retain found no
+# backlog row and retired the record without a backlog mutation, else 0.
+# shellcheck disable=SC2034 # Output global, read by the sourcing caller.
+FM_BACKLOG_TRANSITION_ROW_MISSING=0
 FM_BACKLOG_ROW_RESULT=
 FM_BACKLOG_ROW_STATE=
 FM_BACKLOG_ROW_ERROR=
@@ -878,7 +882,8 @@ fm_backlog_retain_transition() {
 # failure leaves that protection in place so an older sweep cannot expire it.
 # FM_BACKLOG_RETIRE_LABEL names the record in a removal error; it defaults to "task record".
 fm_backlog_retire_task_record() {
-  local meta=$1 data=$2 id=$3 state=$4 helper kind='' pr='' prepare=0 transition=retire row_missing=0
+  local meta=$1 data=$2 id=$3 state=$4 helper kind='' pr='' prepare=0 transition=retire
+  FM_BACKLOG_TRANSITION_ROW_MISSING=0
   shift 4
   case "${1:-}" in --close|--retain) transition=${1#--}; shift ;; esac
   if [ "${1:-}" = --pr ]; then pr=${2:-}; fi
@@ -904,7 +909,7 @@ fm_backlog_retire_task_record() {
     close|retain)
       if ! fm_backlog_row_probe "$data" "$id"; then
         if [ "$FM_BACKLOG_ROW_RESULT" = not_found ]; then
-          row_missing=1
+          FM_BACKLOG_TRANSITION_ROW_MISSING=1
         else
           FM_BACKLOG_TRANSITION_ERROR=$FM_BACKLOG_ROW_ERROR
           return 1
@@ -912,7 +917,7 @@ fm_backlog_retire_task_record() {
       fi
       ;;
   esac
-  if [ "$row_missing" = 0 ]; then
+  if [ "$FM_BACKLOG_TRANSITION_ROW_MISSING" = 0 ]; then
     case "$transition" in
       close) fm_backlog_done "$data" "$id" "$@" || return 1 ;;
       retain) fm_backlog_retain "$data" "$id" "$@" || return 1 ;;
@@ -1270,7 +1275,9 @@ fm_backlog_close_marker_replay() {  # <state-dir> <marker-path> <authorized-data
       if FM_BACKLOG_RETIRE_LABEL="the interrupted task record" \
           fm_backlog_atomic_transition close "$meta" "$marker" "$data" "$id" "$state" \
           "${args[@]+"${args[@]}"}"; then
-        if [ "$cleanup_incomplete" = 1 ]; then
+        if [ "$FM_BACKLOG_TRANSITION_ROW_MISSING" = 1 ]; then
+          FM_BACKLOG_CLOSE_REPLAY_RESULT=stale
+        elif [ "$cleanup_incomplete" = 1 ]; then
           FM_BACKLOG_CLOSE_REPLAY_RESULT=closed_incomplete
         else
           FM_BACKLOG_CLOSE_REPLAY_RESULT=closed
@@ -1290,7 +1297,9 @@ fm_backlog_close_marker_replay() {  # <state-dir> <marker-path> <authorized-data
   if FM_BACKLOG_RETIRE_LABEL="the interrupted task record" \
       fm_backlog_atomic_transition "$mode" "$meta" "$marker" "$data" "$id" "$state" \
       "${args[@]+"${args[@]}"}"; then
-    if [ "$mode" = retain ]; then
+    if [ "$FM_BACKLOG_TRANSITION_ROW_MISSING" = 1 ]; then
+      FM_BACKLOG_CLOSE_REPLAY_RESULT=stale
+    elif [ "$mode" = retain ]; then
       if [ "$cleanup_incomplete" = 1 ]; then
         FM_BACKLOG_CLOSE_REPLAY_RESULT=retained_incomplete
       else

@@ -1769,7 +1769,9 @@ backlog_refresh_reminder() {
   else
     backlog_display="${DATA%/}/backlog.md"
   fi
-  if [ "$BACKLOG_CLOSED" = 1 ] && [ "$BACKLOG_TRANSITION" = retain ]; then
+  if [ "$BACKLOG_CLOSED" = 1 ] && [ "$FM_BACKLOG_TRANSITION_ROW_MISSING" = 1 ]; then
+    printf '%s\n' "Backlog: $ID has no item in $backlog_display, so nothing there was closed or changed. What its freed place can start is the Dispatch line below."
+  elif [ "$BACKLOG_CLOSED" = 1 ] && [ "$BACKLOG_TRANSITION" = retain ]; then
     printf '%s\n' "Backlog: $ID stays open in $backlog_display, still held for the captain with its deliverable recorded. Relay the question and follow .agents/skills/captain-hold-lifecycle/SKILL.md for resolution authority."
   elif [ "$BACKLOG_CLOSED" = 1 ]; then
     printf '%s\n' "Backlog: $ID is closed in $backlog_display. What its freed place can start is the Dispatch line below."
