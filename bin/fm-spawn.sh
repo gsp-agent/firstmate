@@ -264,7 +264,9 @@
 #   The local root is whatever bin/fm-wake-lib.sh's
 #   fm_firstmate_root_home resolves, so a home seeded from another machine anchors
 #   that lock itself rather than failing to resolve one;
-#   contention refuses rather than waits.
+#   contention does not wait: it prints one `deferred:` line naming the lock and
+#   exits 75 before anything exists for the task, so the caller retries it.
+#   Regression coverage: tests/fm-project-capacity.test.sh.
 #   Project capacity: when this machine declares how many workers a project
 #   admits at once (config/project-capacity; bin/fm-project-capacity-lib.sh owns
 #   the declaration, what holds a place, and the race argument), a fresh ship or
@@ -4241,12 +4243,15 @@ if [ "$KIND" != secondmate ] &&
     exit 1
   }
   if ! fm_lock_try_acquire "$SPAWN_TREEHOUSE_PROJECT_LOCK"; then
+    # Held only while another spawn allocates or a cleanup returns a slot, so
+    # this is a deferral every caller retries, not a refusal: nothing exists
+    # yet for this task (agent-config .agent-config-pwmp9).
     if [ "$BACKEND" = orca ]; then
-      echo "error: another spawn or cleanup holds the shared project lock for $PROJ_ABS; refusing to race its capacity admission" >&2
+      echo "deferred: another spawn or cleanup holds the shared project lock for $PROJ_ABS; refusing to race its capacity admission; task $ID was not launched - start it again once that holder finishes" >&2
     else
-      echo "error: another Treehouse slot allocation or return is in progress for $PROJ_ABS; refusing to race it" >&2
+      echo "deferred: another Treehouse slot allocation or return is in progress for $PROJ_ABS; refusing to race it; task $ID was not launched - start it again once that holder finishes" >&2
     fi
-    exit 1
+    exit "$SPAWN_DEFER_EXIT"
   fi
   SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=1
   if [ "$RELAUNCH" -eq 1 ]; then
