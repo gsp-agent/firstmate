@@ -3434,11 +3434,6 @@ while :; do
   # alive. Supervision scripts warn when this goes stale with tasks in flight.
   fm_touch_empty "$STATE/.last-watcher-beat"
 
-  # One walk of the meta files for this poll. Later window lookups read it
-  # in this shell. Rebuilding every lookup is what forked the watcher
-  # (.agent-config-ks05d).
-  fm_backend_window_index_load "$STATE" || fm_backend_window_index_clear
-
   # Opt-in fleet activity ledger (docs/fleet-ledger.md): pick up newly appended
   # status lines before this cycle can exit on a wake. Off costs one file test.
   [ ! -e "$CONFIG/fleet-ledger" ] || FM_HOME=$FM_HOME FM_STATE_OVERRIDE=$STATE FM_CONFIG_OVERRIDE=$CONFIG "$SCRIPT_DIR/fm-fleet-ledger.sh" capture || true

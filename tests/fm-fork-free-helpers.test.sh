@@ -344,7 +344,6 @@ mkdir -p "$FM_CONFIG_OVERRIDE"
 printf 'window=s:fm-a\nharness=claude\nkind=ship\n' > "$STATE/a.meta"
 printf 'backend=orca\nterminal=term-b\nharness=codex\nkind=secondmate\n' > "$STATE/b.meta"
 printf 'window=s:fm-a\n' > "$STATE/c.meta"
-fm_backend_window_index_load "$STATE"
 window_kind s:fm-a kind
 window_backend s:fm-a backend
 window_harness s:fm-a harness
