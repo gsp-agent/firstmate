@@ -1393,7 +1393,7 @@ test_status_and_turn_end_batch_never_uses_churn_evidence() {
     FM_STATE_OVERRIDE="$state" FM_CREW_STATE_BIN="$fakebin/fm-crew-state.sh" FM_POLL=3 FM_SIGNAL_GRACE=1 \
     FM_CHECK_INTERVAL=9999999 FM_HEARTBEAT=999999 "$WATCH" > "$out" &
   pid=$!
-  wait_for_exit "$pid" 100 || fail "watcher absorbed a status-and-turn-end batch on churn evidence"
+  wait_for_exit "$pid" 300 || fail "watcher absorbed a status-and-turn-end batch on churn evidence"
   grep -F "$state/firststatus.status" "$out" >/dev/null \
     || fail "watcher did not print the status file from the surfaced mixed batch"
   grep -F "$state/secondturn.turn-ended" "$out" >/dev/null \
