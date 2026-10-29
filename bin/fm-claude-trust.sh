@@ -31,7 +31,8 @@
 #   <id>        the secondmate id that home must already be marked for
 #   --lab-home  the disposable lab home bin/fm-live-lab.sh launches a lab
 #               primary in
-# Prints one line naming what it registered; refuses loudly on anything else.
+# Prints what it registered (with --check, one line saying it could); refuses
+# loudly on anything else.
 #
 # WHY THIS EXISTS. Claude Code gates a folder it has never seen behind an
 # interactive workspace-trust dialog, and --dangerously-skip-permissions does
@@ -89,12 +90,13 @@
 # rather than flipping it, because doing so would grant every future
 # interactive session in that checkout silent external-file inclusion the
 # human declined, permanently and without being asked. The worktree entry is
-# left unwritten too: the spawn wedges on the dialog, which is the honest
-# outcome given a standing decline, not registered trust with a stripped
-# consent record. Approved===false with WarningShown false or absent is NOT
-# that decision: Claude Code's default project entry carries both flags as
-# false before the dialog was ever shown, so that pair means "never asked" and
-# is treated like an absent flag - trust registered, no import consent.
+# left unwritten too, so the launch refuses rather than wedging on the dialog,
+# which is the honest outcome given a standing decline, not registered trust
+# with a stripped consent record. Approved===false with WarningShown false or
+# absent is NOT that decision: Claude Code's default project entry carries
+# both flags as false before the dialog was ever shown, so that pair means
+# "never asked" and is treated like an absent flag - trust registered, no
+# import consent.
 #
 # THE SCOPE TEST IS THE SAFETY PROPERTY, and it is STRUCTURAL rather than a
 # path policy. Each mode has its own, because the two directories have entirely
@@ -534,8 +536,8 @@ const flagsLanded = (projects, key, flags) =>
 // which means never asked, not declined); flipping it to true would grant every future
 // interactive session in that checkout silent external-file inclusion the
 // human declined. Refuse the whole registration instead of overriding it -
-// the worktree entry is not written either, so the spawn wedges on the
-// dialog rather than the human's consent being spent without being asked.
+// the worktree entry is not written either, so the launch refuses rather
+// than the human's consent being spent without being asked.
 const declinedExternalImports = (projects, key) =>
   projects?.[key]?.hasClaudeMdExternalIncludesApproved === false &&
   projects?.[key]?.hasClaudeMdExternalIncludesWarningShown === true;
