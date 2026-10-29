@@ -271,6 +271,34 @@ JSON
 # hasClaudeMdExternalIncludesWarningShown to true. So false/false is "never
 # asked", not "No, disable": it must be treated like an absent flag - trust
 # registered, no import consent manufactured - rather than refused.
+test_check_mode_reports_a_decline_without_writing() {
+  local rec store out before after
+  rec=$(make_case check-decline)
+  read_case "$rec"
+  store="$CONFIG/.claude.json"
+  cat > "$store" <<JSON
+{"projects":{"$PROJ":{"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}}}
+JSON
+  before=$(cat "$store")
+  out=$(CLAUDE_CONFIG_DIR="$CONFIG" HOME="$CONFIG" "$TRUST" --check "$WT" "$PROJ" 2>&1)
+  expect_code 1 $? "a check against a declined project must refuse: $out"
+  assert_contains "$out" "declined external CLAUDE.md imports" \
+    "the check refusal did not name the declined-consent reason"
+  after=$(cat "$store")
+  [ "$before" = "$after" ] || fail "the check modified the store"
+  pass "fm-claude-trust.sh --check: reports a decline without writing"
+}
+
+test_check_mode_accepts_a_fresh_worktree_without_writing() {
+  local rec out
+  rec=$(make_case check-fresh)
+  read_case "$rec"
+  out=$(CLAUDE_CONFIG_DIR="$CONFIG" HOME="$CONFIG" "$TRUST" --check "$WT" "$PROJ" 2>&1)
+  expect_code 0 $? "a check against a fresh worktree must pass: $out"
+  [ ! -e "$CONFIG/.claude.json" ] || fail "the check wrote a trust store"
+  pass "fm-claude-trust.sh --check: accepts a fresh worktree without writing"
+}
+
 test_project_root_entry_default_import_flags_are_not_a_decline() {
   local rec store out
   rec=$(make_case project-default-flags)
@@ -845,6 +873,8 @@ test_fresh_worktree_also_trusts_the_project_root_without_import_consent
 test_registration_carries_forward_existing_import_consent
 test_project_root_entry_preserves_other_keys
 test_project_root_entry_declined_external_imports_is_not_overridden
+test_check_mode_reports_a_decline_without_writing
+test_check_mode_accepts_a_fresh_worktree_without_writing
 test_project_root_entry_default_import_flags_are_not_a_decline
 test_registration_is_idempotent
 test_primary_checkout_is_refused

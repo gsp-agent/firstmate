@@ -91,6 +91,14 @@
 #              worker account pin (bin/fm-worker-account-lib.sh) here, so a pin
 #              that no longer resolves or is signed out refuses before the old
 #              agent stops.
+#              A replacement Claude profile must also pass the read-only
+#              trust check (bin/fm-claude-trust.sh --check) here, in the
+#              store the pinned account selects, so a registration that
+#              would refuse - the recorded case is an explicit
+#              external-imports decline on the project entry - refuses at
+#              the same point, before the old agent stops and before the
+#              trust store is written. bin/fm-spawn.sh still performs the
+#              registration itself at launch.
 #              The same pre-stop refusal applies to this home's worker tool
 #              exclusions (bin/fm-exclude-tools-lib.sh): a malformed list, or a
 #              replacement runtime that cannot hide the listed tools.
@@ -1599,8 +1607,36 @@ resolve_relaunch_profile() {
   # signed out must refuse here, while nothing has changed yet.
   local account_model=$TARGET_MODEL
   [ "$account_model" != default ] || account_model=
-  fm_worker_account_select "$TARGET_HARNESS" "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" \
-    "$account_model" "$TARGET_HARNESS" >/dev/null || return 1
+  local account_selection account_root
+  account_selection=$(fm_worker_account_select "$TARGET_HARNESS" "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" \
+    "$account_model" "$TARGET_HARNESS") || return 1
+  account_root=${account_selection#*$'\t'}
+  account_root=${account_root%%$'\t'*}
+  # A Claude replacement's trust registration happens in fm-spawn only after
+  # the old agent stops, so run its owner's read-only check here, in the
+  # store the account pin above selects (an ordinary pin reads the ambient
+  # store with CLAUDE_CONFIG_DIR unset). A missing recorded copy is left for
+  # safe_checkpoint, which names it; a secondmate home has no project entry
+  # to decline, so its relaunch is unchanged.
+  if [ "$KIND" != secondmate ]; then
+    case "$TARGET_HARNESS" in
+      claude*)
+        local trust_project
+        trust_project=$(fm_meta_get "$META" project)
+        if [ -n "$WT" ] && [ -d "$WT" ] && [ -n "$trust_project" ]; then
+          if [ -n "$account_selection" ] && [ -n "$account_root" ]; then
+            CLAUDE_CONFIG_DIR="$account_root" \
+              "$SCRIPT_DIR/fm-claude-trust.sh" --check "$WT" "$trust_project" >/dev/null || return 1
+          elif [ -n "$account_selection" ]; then
+            env -u CLAUDE_CONFIG_DIR \
+              "$SCRIPT_DIR/fm-claude-trust.sh" --check "$WT" "$trust_project" >/dev/null || return 1
+          else
+            "$SCRIPT_DIR/fm-claude-trust.sh" --check "$WT" "$trust_project" >/dev/null || return 1
+          fi
+        fi
+        ;;
+    esac
+  fi
   # Likewise config/crew-exclude-tools: a malformed file, or a replacement
   # runtime that cannot hide the listed tools, refuses here, before the old
   # agent stops. Secondmate agents are not covered.

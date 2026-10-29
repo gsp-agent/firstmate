@@ -11,6 +11,14 @@
 # Usage: fm-claude-trust.sh <worktree> <project>
 #        fm-claude-trust.sh --secondmate-home <home> <id>
 #        fm-claude-trust.sh --lab-home <home>
+#        fm-claude-trust.sh --check <worktree> <project>
+#        fm-claude-trust.sh --check --secondmate-home <home> <id>
+#        fm-claude-trust.sh --check --lab-home <home>
+#   --check  read-only: run every scope and store refusal above and report
+#            whether a registration would be refused, without writing the
+#            store or creating the config directory. bin/fm-control.sh's
+#            relaunch uses it before the old agent stops; the registration
+#            itself still happens at launch in bin/fm-spawn.sh.
 #   <worktree>  the isolated task worktree this spawn launches into
 #   <project>   the primary checkout that worktree belongs to
 #   <home>      the seeded secondmate home this spawn launches into
@@ -187,11 +195,17 @@ unset CDPATH \
   GIT_CONFIG_SYSTEM GIT_CONFIG_NOSYSTEM GIT_CONFIG_COUNT
 
 usage() {
-  echo "usage: fm-claude-trust.sh <worktree> <project>" >&2
-  echo "       fm-claude-trust.sh --secondmate-home <home> <id>" >&2
-  echo "       fm-claude-trust.sh --lab-home <home>" >&2
+  echo "usage: fm-claude-trust.sh [--check] <worktree> <project>" >&2
+  echo "       fm-claude-trust.sh [--check] --secondmate-home <home> <id>" >&2
+  echo "       fm-claude-trust.sh [--check] --lab-home <home>" >&2
   exit 2
 }
+
+CHECK_ONLY=0
+if [ "${1:-}" = --check ]; then
+  CHECK_ONLY=1
+  shift
+fi
 
 # MODE selects which structural scope test decides the argument, and SCOPE_NOUN
 # names what the argument was expected to be so every shared refusal below reads
@@ -268,6 +282,11 @@ esac
 # the same reason, and refuse only when it genuinely cannot be written, since a
 # store this cannot reach means the worker meets the dialog after all.
 CONFIG_DIR_REAL=$(real_dir "$CONFIG_DIR") || true
+if [ -z "$CONFIG_DIR_REAL" ] && [ "$CHECK_ONLY" = 1 ]; then
+  # A missing config directory holds no store and no decline, and the
+  # registration path creates it at launch; a check writes nothing.
+  CONFIG_DIR_REAL=$CONFIG_DIR
+fi
 if [ -z "$CONFIG_DIR_REAL" ]; then
   mkdir -p "$CONFIG_DIR" 2>/dev/null || true
   CONFIG_DIR_REAL=$(real_dir "$CONFIG_DIR") || true
@@ -454,6 +473,52 @@ fi
 # left exactly as undecided as it already was - the worker wedges on it, the
 # same honest outcome as an explicit decline, rather than a spawn spending
 # consent the human was never asked for.
+if [ "$CHECK_ONLY" = 1 ]; then
+  if ! node - "$STORE" "$MODE" "${PROJ_CANON:-}" <<'NODE'
+const fs = require("node:fs");
+const [store, mode, project] = process.argv.slice(2);
+let raw;
+try {
+  raw = fs.readFileSync(store, "utf8");
+} catch (err) {
+  if (err.code === "ENOENT") process.exit(0);
+  console.error(`error: ${err.message}`);
+  process.exit(1);
+}
+try {
+  let root = {};
+  if (raw.trim() !== "") {
+    root = JSON.parse(raw);
+    if (root === null || typeof root !== "object" || Array.isArray(root)) {
+      throw new Error(`${store} is not a JSON object`);
+    }
+  }
+  const projects = root.projects === undefined ? {} : root.projects;
+  if (projects === null || typeof projects !== "object" || Array.isArray(projects)) {
+    throw new Error(`${store} has a non-object "projects" value`);
+  }
+  if (
+    mode === "worktree" &&
+    projects?.[project]?.hasClaudeMdExternalIncludesApproved === false &&
+    projects?.[project]?.hasClaudeMdExternalIncludesWarningShown === true
+  ) {
+    console.error(
+      `error: project entry for ${project} in ${store} already declined external CLAUDE.md imports; refusing to override that consent. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once`,
+    );
+    process.exit(1);
+  }
+} catch (err) {
+  console.error(`error: ${err.message}`);
+  process.exit(1);
+}
+NODE
+  then
+    refuse "trust cannot be recorded for '$TARGET_REAL' in '$STORE' (check only; nothing was written)"
+  fi
+  echo "check: trust can be recorded for $TARGET_REAL"
+  exit 0
+fi
+
 TRUST_FLAG='hasTrustDialogAccepted'
 IMPORT_FLAGS='["hasClaudeMdExternalIncludesApproved","hasClaudeMdExternalIncludesWarningShown"]'
 if [ "$MODE" = worktree ]; then
