@@ -10,6 +10,7 @@ Usage: fm-task-data.py prepare DATA STATE ID [PR]
        fm-task-data.py offload-plan DATA STATE [ID]
        bash fm-task-data-lib.sh offload DATA STATE ID
        fm-task-data.py mark DATA ID cut-off|too-large
+       fm-task-data.py bead-owner BEAD DATABASE...
 Prepare, retire, stage, expire and mark need the caller to hold STATE/.meta-ID.lock, the
 lock also used by spawn.
 Pending takes no lock and prints, in one pass, each unexpired cleanup record's
@@ -170,9 +171,17 @@ bead-like string holds the task rather than count as ordinary text.
 A task with no backlog row of its own takes the date from the nearest parent
 task's backlog row (an open parent row holds it instead); a task whose rows
 or parent rows give no single date takes the folder's newest write, which is
-also when its cleanup record was last written. An offload's own writes during
-its run do not move that date. Only a folder that cannot be read at all is
-kept for a missing date.
+also when its cleanup record was last written. The offload's own writes do
+not count: while its journal exists, the journal, its archive copies, its
+pointers and the directories those writes change are left out, so a run that
+fails or stops partway retries on the next pass. Only a folder that cannot be
+read at all is kept for a missing date.
+Bead-owner prints which of several homes' DATABASEs owns BEAD when more than
+one home claims its prefix, or nothing when none holds it under its id or the
+longer id br expands it to. Copies of one bead (one created_at) belong to the
+copy br updated last; path order never decides. Different beads under one id,
+or a home that cannot be read, fail the lookup, so teardown refuses and
+offload keeps the task under a named reason.
 Date-only completion waits through seven complete local calendar days.
 Small text and root brief/report files stay. Referenced directories or larger
 files may move, but symlink and hardlink evidence stays pending alias ownership.
@@ -273,7 +282,7 @@ plus the failed task/path/reason; the command retains its nonzero exit status.
 from array import array
 import contextlib
 import copy
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 import hashlib
 import html
 import json
@@ -1160,7 +1169,30 @@ def offload_closed_date(candidates):
     return closed, [row for row in candidates if row[1] == closed]
 
 
-def offload_closed(data, state, task_id, rows, written=None):
+def offload_newest_write(root, task_id):
+    """Date a task folder's newest write, leaving out the offload's own writes."""
+    journal = root / OFFLOAD_RECORD
+    own = set()
+    if journal.exists() or journal.is_symlink():
+        record = offload_journal(root, task_id)
+        own = {root, journal.parent, journal, *(root / name for name in record.get("archives", []))}
+        for relative in record["entries"]:
+            own.update((root / relative, (root / relative).parent))
+    own = {str(path) for path in own}
+
+    def writes():
+        if str(root) not in own:
+            yield root.lstat().st_mtime
+        for directory, names, leaves in os.walk(root, followlinks=False):
+            for name in (*names, *leaves):
+                path = os.path.join(directory, name)
+                if path not in own:
+                    yield os.lstat(path).st_mtime
+
+    return date.fromtimestamp(max(writes(), default=root.lstat().st_mtime)).isoformat()
+
+
+def offload_closed(data, state, task_id, rows):
     if not TASK_ID.fullmatch(task_id):
         raise ValueError("invalid task id")
     for suffix in ("meta", "backlog-close"):
@@ -1174,9 +1206,9 @@ def offload_closed(data, state, task_id, rows, written=None):
     # A task with no backlog row of its own takes the nearest parent task's
     # rows: the first ancestor with rows decides, and an open one holds it.
     # Rows that give no single date fall to the folder's newest write, which
-    # is also the date its cleanup record was last written; a run's re-check
-    # passes the date it started with, so its own writes do not move it. Only
-    # a task folder that cannot be read at all keeps the missing-date reason.
+    # is also the date its cleanup record was last written; the offload's own
+    # writes do not count. Only a task folder that cannot be read at all
+    # keeps the missing-date reason.
     parent = task_id
     while not candidates and "-" in parent:
         parent = parent.rsplit("-", 1)[0]
@@ -1187,15 +1219,8 @@ def offload_closed(data, state, task_id, rows, written=None):
             break
     row = "\n".join(item[3] for item in chosen)
     if closed is None:
-        closed = written
-    if closed is None:
         try:
-            root = data / task_id
-            newest = root.lstat().st_mtime
-            for directory, names, leaves in os.walk(root, followlinks=False):
-                for name in (*names, *leaves):
-                    newest = max(newest, os.lstat(os.path.join(directory, name)).st_mtime)
-            closed = date.fromtimestamp(newest).isoformat()
+            closed = offload_newest_write(data / task_id, task_id)
         except OSError:
             closed = None
     if closed is None:
@@ -1204,6 +1229,32 @@ def offload_closed(data, state, task_id, rows, written=None):
     if date.today() <= date.fromisoformat(closed) + timedelta(days=7):
         raise ValueError("task has not been closed for seven complete days")
     return closed, row
+
+
+def bead_time(value):
+    moment = datetime.fromisoformat(value)
+    return moment if moment.tzinfo else moment.replace(tzinfo=timezone.utc)
+
+
+def bead_owner(bead, databases):
+    """Name the one of several homes' databases that owns BEAD, or None when none holds it."""
+    head, _, tail = bead.rpartition("-")
+    held = []
+    for database in databases:
+        try:
+            with contextlib.closing(sqlite3.connect(Path(database).as_uri() + "?mode=ro", uri=True, timeout=5)) as db:
+                rows = db.execute("SELECT id, created_at, updated_at FROM issues WHERE id = ? OR id GLOB ?",
+                                  (bead, f"{head}-*-{tail}")).fetchall()
+            rows = [row for row in rows if row[0] == bead] or rows
+            if len(rows) > 1:
+                raise ValueError("several beads match the id")
+            held.extend((bead_time(created), bead_time(updated), database) for _, created, updated in rows)
+        except (sqlite3.Error, OSError, TypeError, ValueError) as error:
+            raise ValueError(f"unread bead {bead}: {database}: {error}") from error
+    if len({created for created, _, _ in held}) > 1:
+        raise ValueError(f"unread bead {bead}: different beads share its id in "
+                         + ", ".join(str(database) for _, _, database in held))
+    return max(held, key=lambda item: item[1])[2] if held else None
 
 
 def offload_bead_text(bead, locations, cache):
@@ -1217,20 +1268,10 @@ def offload_bead_text(bead, locations, cache):
         # with an id after it, is ordinary text, not a bead reference.
         return ""
     longest = max(len(prefix) for prefix, _ in owners)
-    homes = [home for prefix, home in owners if len(prefix) == longest]
-    # When two homes claim the longest prefix, the home whose database
-    # holds the id owns it.
-    home = homes[0]
-    for tied in homes:
-        tied_path = Path.home() / tied / ".beads/beads.db"
-        try:
-            with sqlite3.connect(tied_path.as_uri() + "?mode=ro", uri=True, timeout=5) as probe:
-                if probe.execute("SELECT 1 FROM issues WHERE id = ?", (bead,)).fetchone():
-                    home = tied
-                    break
-        except (sqlite3.Error, OSError):
-            continue
-    path = Path.home() / home / ".beads/beads.db"
+    homes = [Path.home() / home / ".beads/beads.db" for prefix, home in owners if len(prefix) == longest]
+    path = homes[0] if len(homes) == 1 else bead_owner(bead, homes)
+    if path is None:
+        return ""
     try:
         with sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=5) as db:
             columns = {row[1] for row in db.execute("PRAGMA table_info(issues)")}
@@ -1903,7 +1944,7 @@ def offload(data, state, task_id):
     for name in list(record.get("archives", [])):
         with contextlib.suppress(OSError, ValueError, subprocess.SubprocessError):
             release(name)
-    closed, _ = offload_closed(data, state, task_id, rows)
+    offload_closed(data, state, task_id, rows)
     candidates = {item["path"]: item for item in offload_candidates(data, state, task_id, rows, locations, cache)[0]}
     # A crash after Trash but before pointer publication leaves this journal.
     # Complete the pointer only after both copies are freshly verified again.
@@ -1971,7 +2012,7 @@ def offload(data, state, task_id):
                 if offload_remote("verify", destination) != expected:
                     raise ValueError("remote copy checksum or size mismatch; original retained")
                 pointer["backup"] = offload_backup(command, pointer)
-                offload_closed(data, state, task_id, completed_row_index(data), closed)
+                offload_closed(data, state, task_id, completed_row_index(data))
                 if not recovery:
                     if (offload_tree_state(source) != before) if archive else (offload_manifest(source) != expected):
                         raise ValueError("local evidence changed after copy; original retained")
@@ -2280,6 +2321,12 @@ def cleanup(action, data, state, task_id, project="", pr=""):
 if __name__ == "__main__":
     if sys.argv[1:] == ["--help"]:
         print(__doc__)
+        sys.exit(0)
+    if sys.argv[1:2] == ["bead-owner"] and len(sys.argv) > 3:
+        try:
+            print(bead_owner(sys.argv[2], sys.argv[3:]) or "")
+        except ValueError as error:
+            sys.exit(f"error: {error}")
         sys.exit(0)
     try:
         arities = {"prepare": {5, 6}, "retire": {5, 6}, "stage": {7}, "expire": {5}, "plan": {5}, "pending": {3}, "mark": {5},

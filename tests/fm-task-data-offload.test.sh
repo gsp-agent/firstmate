@@ -772,6 +772,42 @@ def check_orphan_repository_offloads():
     assert [(item["path"], item.get("archive")) for item in result["offloaded"]] == [("clone", "tar")], result
     assert json.loads(clone.read_text())["format"] == "firstmate-task-evidence-v1"
 
+def check_orphan_retries_after_failed_run():
+    home, clone = repo_fixture("orphan-retry")
+    (home / "data/backlog.md").write_text("")
+    age(home / "data/task-one", 20)
+    run(home, "offload", fault="backup-failed", ok=False)
+    assert (clone / ".git").is_dir() and (home / "data/task-one/record/data-offload.json").is_file()
+    result = run(home, "offload")
+    assert [(item["path"], item.get("archive")) for item in result["offloaded"]] == [("clone", "tar")], result
+
+def bead_store(beads, rows, comments):
+    beads.mkdir(parents=True)
+    (beads / "config.yaml").write_text("# issue_prefix: obs\n")
+    with sqlite3.connect(beads / "beads.db") as db:
+        db.execute("CREATE TABLE issues(id TEXT, description TEXT, created_at TEXT, updated_at TEXT)")
+        db.execute("CREATE TABLE comments(issue_id TEXT, text TEXT)")
+        db.executemany("INSERT INTO issues VALUES (?, '', ?, ?)", rows)
+        db.executemany("INSERT INTO comments VALUES (?, ?)", comments)
+
+def check_tied_bead_homes():
+    home = fixture("bead-tied-homes")
+    created = "2026-10-13T05:09:57.644071+00:00"
+    # A stale worktree copy sorts before the live home and holds the same bead.
+    bead_store(home / "user/dev/agent-observer-beads/.beads",
+               [("obs-copy", created, "2026-10-14T04:52:51.023697+00:00"),
+                ("obs-split", "2026-10-01T00:00:00+00:00", "2026-10-01T00:00:00+00:00")],
+               [("obs-copy", "Evidence: none yet.")])
+    bead_store(home / "user/dev/agent-observer/.beads",
+               [("obs-copy", created, "2026-10-14T08:58:30.436810+00:00"),
+                ("obs-split", "2026-10-02T00:00:00+00:00", "2026-10-02T00:00:00+00:00")],
+               [("obs-copy", "Evidence: [build](build/).")])
+    (home / "data/task-one/report.md").write_text("Evidence: none. Bead: obs-copy\n")
+    assert [item["path"] for item in run(home, "offload-plan")["moves"]] == ["build"]
+    (home / "data/task-one/report.md").write_text("Evidence: [build](build/). Bead: obs-split\n")
+    plan = run(home, "offload-plan")
+    assert plan["moves"] == [] and "different beads share its id" in plan["retained"][0]["reason"], plan
+
 def check_orphan_offloads_every_unit():
     home = fixture("orphan-two-units")
     task = home / "data/task-one"
@@ -833,7 +869,11 @@ regressions.extend([("verified existing payload is reused", check_verified_reuse
                     ("a bead home absent from the old typed table resolves by discovery", check_discovered_bead_home_resolves),
                     ("an orphan task takes its folder's newest write as its close date", check_orphan_newest_write),
                     ("an old orphan's repository offloads despite the offload's own writes", check_orphan_repository_offloads),
-                    ("an old orphan offloads every referenced directory in one run", check_orphan_offloads_every_unit)])
+                    ("an old orphan offloads every referenced directory in one run", check_orphan_offloads_every_unit),
+                    ("an old orphan whose repository offload failed retries on the next pass",
+                     check_orphan_retries_after_failed_run),
+                    ("tied bead homes resolve by br's record, and different beads under one id hold the task",
+                     check_tied_bead_homes)])
 if sys.platform == "darwin":
     regressions.extend([("a repository archive keeps resource forks and other extended attributes",
                          check_archive_keeps_extended_attributes),

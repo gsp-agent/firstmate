@@ -5814,13 +5814,72 @@ SH
   HOME="$case_dir/home" PATH="$case_dir/fakebin:$PATH" bash "$case_dir/check.sh" "$ROOT"
 }
 
+test_tied_bead_homes_resolve_by_their_record() {
+  local case_dir
+  case_dir="$TMP_ROOT/bead-ties"
+  mkdir -p "$case_dir/home/dev"
+  python3 - "$case_dir/home/dev" <<'PY'
+import sqlite3
+import sys
+from pathlib import Path
+
+dev = Path(sys.argv[1])
+created = "2026-10-13T05:09:57.644071+00:00"
+# A stale worktree copy sorts before the live home and holds the same bead.
+for name, updated, split in (("agent-observer-beads", "2026-10-14T04:52:51.023697+00:00", "2026-10-01T00:00:00+00:00"),
+                             ("agent-observer", "2026-10-14T08:58:30.436810+00:00", "2026-10-02T00:00:00+00:00")):
+    beads = dev / name / ".beads"
+    beads.mkdir(parents=True)
+    (beads / "config.yaml").write_text("# issue_prefix: obs\n")
+    with sqlite3.connect(beads / "beads.db") as db:
+        db.execute("CREATE TABLE issues(id TEXT PRIMARY KEY, created_at TEXT, updated_at TEXT)")
+        db.executemany("INSERT INTO issues VALUES (?, ?, ?)", [("obs-copy", created, updated), ("obs-split", split, split)])
+(dev / "agent-observer-link").mkdir()
+(dev / "agent-observer-link/.beads").symlink_to("../agent-observer/.beads")
+PY
+  cat > "$case_dir/check.sh" <<'SH'
+#!/usr/bin/env bash
+set -u
+. "$1/tests/lib.sh"
+. "$ROOT/bin/fm-timeout-lib.sh"
+. "$ROOT/bin/fm-task-data-lib.sh"
+. "$ROOT/bin/fm-task-bead-lib.sh"
+fm_task_data_bead_locations || fail "bead-ties: discovery failed"
+[ "$(printf '%s\n' "$FM_TASK_DATA_BEAD_LOCATIONS" | grep -c '^obs ')" = 2 ] \
+  || fail "bead-ties: one database reached by two paths was two homes: $FM_TASK_DATA_BEAD_LOCATIONS"
+[ "$(fm_task_data_bead_database obs-copy)" = "$HOME/dev/agent-observer/.beads/beads.db" ] \
+  || fail "bead-ties: a stale copy that sorts first owned the bead"
+rc=0
+fm_task_data_bead_database obs-split >/dev/null 2>&1 || rc=$?
+expect_code 2 "$rc" "bead-ties: two different beads under one id did not fail closed"
+rc=0
+fm_task_bead_read obs-split 2>/dev/null || rc=$?
+expect_code 1 "$rc" "bead-ties: the bead gate did not refuse an id two homes hold as different beads"
+mkdir -p "$HOME/dev/agent-observer-lane/.beads"
+printf '# issue_prefix: obs\n' > "$HOME/dev/agent-observer-lane/.beads/config.yaml"
+printf 'not a database\n' > "$HOME/dev/agent-observer-lane/.beads/beads.db"
+unset FM_TASK_DATA_BEAD_LOCATIONS
+fm_task_data_bead_locations || fail "bead-ties: discovery opened a database whose config.yaml names its prefix"
+rc=0
+fm_task_data_bead_database obs-copy >/dev/null 2>&1 || rc=$?
+expect_code 2 "$rc" "bead-ties: an unreadable tied home let another home own the bead"
+rc=0
+fm_task_bead_read obs-copy 2>/dev/null || rc=$?
+expect_code 1 "$rc" "bead-ties: the bead gate did not refuse while a tied home was unreadable"
+pass "fm-teardown: tied bead homes resolve by br's own record; one database is one home; ambiguity or an unreadable tie refuses"
+SH
+  env -u FM_TASK_DATA_BEAD_LOCATIONS HOME="$case_dir/home" bash "$case_dir/check.sh" "$ROOT"
+}
+
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = bead-resolution ]; then
   test_task_bead_resolves_canonical_id || exit 1
+  test_tied_bead_homes_resolve_by_their_record || exit 1
   exit 0
 fi
 
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = bead-gate ]; then
   test_task_bead_resolves_canonical_id || exit 1
+  test_tied_bead_homes_resolve_by_their_record || exit 1
   test_merged_task_with_an_open_bead_is_not_cleaned_up
   test_green_unmerged_task_with_an_open_bead_is_not_cleaned_up
   test_agent_config_task_answers_to_its_dotted_bead
@@ -10292,6 +10351,7 @@ test_held_meta_lock_teardown_gives_up_within_bound
 test_local_only_fork_remote_allows
 test_teardown_closes_the_backlog_item_itself
 test_task_bead_resolves_canonical_id || exit 1
+test_tied_bead_homes_resolve_by_their_record || exit 1
 test_merged_task_with_an_open_bead_is_not_cleaned_up
 test_green_unmerged_task_with_an_open_bead_is_not_cleaned_up
 test_agent_config_task_answers_to_its_dotted_bead

@@ -260,19 +260,27 @@ fm_task_data_sweep_start() { # <data> <state>
 # set, otherwise the issue_prefix row in its database's config table. A home
 # that reads cleanly but records no prefix is skipped with a warning naming
 # it. A home whose record cannot be read fails discovery, so its ids are never
-# taken for ordinary text.
+# taken for ordinary text. One database is one home: paths that reach the same
+# database are one line, under the path that is not a link when there is one.
 fm_task_data_bead_locations_discover() {
   python3 -I - <<'PY'
 import contextlib, glob, os, re, sqlite3, sys
 from pathlib import Path
 
 home = os.environ["HOME"]
+real_home = os.path.realpath(home)
+homes = {}
 unread = []
 for pattern in ("dev/*/.beads/beads.db", "dev/_archived/*/.beads/beads.db", ".agent-config-beads/.beads/beads.db"):
     for db in sorted(glob.glob(os.path.join(glob.escape(home), pattern))):
         if not os.path.isfile(db):
             continue
         owner = os.path.relpath(os.path.dirname(os.path.dirname(db)), home)
+        real = os.path.realpath(db)
+        if real in homes:
+            if real == os.path.join(real_home, owner, ".beads", "beads.db"):
+                homes[real] = (homes[real][0], owner)
+            continue
         prefix = ""
         try:
             config = os.path.join(os.path.dirname(db), "config.yaml")
@@ -291,10 +299,13 @@ for pattern in ("dev/*/.beads/beads.db", "dev/_archived/*/.beads/beads.db", ".ag
         except (OSError, sqlite3.Error) as error:
             unread.append(f"{db} ({error})")
             continue
-        if not prefix or any(character.isspace() for character in prefix):
-            print(f"warning: bead home {db} records no issue_prefix; its ids are not bead references", file=sys.stderr)
-            continue
-        print(prefix, owner)
+        homes[real] = (prefix, owner)
+for prefix, owner in homes.values():
+    if not prefix or any(character.isspace() for character in prefix):
+        print(f"warning: bead home {os.path.join(home, owner, '.beads/beads.db')} records no issue_prefix; "
+              "its ids are not bead references", file=sys.stderr)
+        continue
+    print(prefix, owner)
 if unread:
     sys.exit("error: bead homes could not be read, so no bead id is resolved: " + "; ".join(unread))
 PY
@@ -310,26 +321,31 @@ fm_task_data_bead_locations() {
   export FM_TASK_DATA_BEAD_LOCATIONS
 }
 
-# Callers load the map first with fm_task_data_bead_locations.
+# Callers load the map first with fm_task_data_bead_locations. Prints the
+# database that owns the bead and returns 0, returns 1 when no home owns it,
+# and returns 2 when several homes claim its prefix and fm-task-data.py
+# bead-owner names none of them: a home it cannot read, or different beads
+# under the one id.
 fm_task_data_bead_database() { # <bead>
-  local bead=$1 prefix home best='' owner='' escaped
+  local bead=$1 prefix home best='' owner homes=()
   while read -r prefix home; do
     case "$bead" in
-      "$prefix"-*) [ "${#prefix}" -lt "${#best}" ] || { best=$prefix; owner=$home; } ;;
+      "$prefix"-*)
+        [ "${#prefix}" -le "${#best}" ] || { best=$prefix; homes=(); }
+        [ "${#prefix}" -lt "${#best}" ] || homes+=("$HOME/$home/.beads/beads.db")
+        ;;
     esac
   done <<< "$FM_TASK_DATA_BEAD_LOCATIONS"
-  [ -n "$owner" ] || return 1
-  # When two homes claim the longest prefix, the home whose database holds
-  # the id owns it.
-  escaped=${bead//\'/\'\'}
-  while read -r prefix home; do
-    [ "$prefix" = "$best" ] || continue
-    if [ "$("/usr/bin/sqlite3" -readonly "$HOME/$home/.beads/beads.db" "SELECT 1 FROM issues WHERE id = '$escaped' LIMIT 1" 2>/dev/null)" = 1 ]; then
-      owner=$home
-      break
-    fi
-  done <<< "$FM_TASK_DATA_BEAD_LOCATIONS"
-  printf '%s\n' "$HOME/$owner/.beads/beads.db"
+  case "${#homes[@]}" in
+    0) return 1 ;;
+    1) owner=${homes[0]} ;;
+    *)
+      owner=$(python3 "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-task-data.py" bead-owner "$bead" "${homes[@]}") \
+        || return 2
+      [ -n "$owner" ] || return 1
+      ;;
+  esac
+  printf '%s\n' "$owner"
 }
 
 fm_task_data_bead_id_matches() { # <asked-id> <canonical-id> <database>
@@ -345,12 +361,14 @@ fm_task_data_bead_id_matches() { # <asked-id> <canonical-id> <database>
 # home's backlog for an id a task can carry. Prints the bead and returns 0,
 # returns 3 when the owner answered that it does not exist or nothing can own
 # it, returns 4 when a markdown backlog lacks the row so its archive decides,
-# and fails when the bead homes or the owner cannot be read or the read times out.
+# and fails when the bead homes or the owner cannot be read, several homes
+# hold different beads under its id, or the read times out.
 # br runs from / so no database above the working directory can answer.
 fm_task_data_bead_reference() { # <data> <bead>
-  local data=$1 bead=$2 db out canonical status=0
+  local data=$1 bead=$2 db out canonical status=0 owned=0
   fm_task_data_bead_locations || return 1
-  if db=$(fm_task_data_bead_database "$bead"); then
+  db=$(fm_task_data_bead_database "$bead") || owned=$?
+  if [ "$owned" = 0 ]; then
     out=$(
       unset BEADS_DIR BEADS_DB BR_DB
       cd / && fm_run_timed 10 br --db "$db" show "$bead" --json
@@ -364,6 +382,7 @@ fm_task_data_bead_reference() { # <data> <bead>
     printf '%s\n' "$out"
     return 0
   fi
+  [ "$owned" = 1 ] || return 1
   fm_task_id_path_safe "$bead" || return 3
   if fm_backlog_row_probe "$data" "$bead"; then
     fm_backlog_row_show "$data" "$bead" --full || return 1
