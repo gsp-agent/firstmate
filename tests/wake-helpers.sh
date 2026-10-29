@@ -322,6 +322,14 @@ SH
   printf '%s\n' "$dir"
 }
 
+# Polls a case gives a watcher to exit on its own. Process-start starvation on a
+# loaded machine makes fm-watch.sh slow, never stuck, so the bound is generous:
+# a passing case returns the moment the watcher exits, and a watcher that never
+# exits still fails when the polls run out. Consumed by sourcing suites, so it
+# reads as "unused" here.
+# shellcheck disable=SC2034
+WATCHER_EXIT_POLLS=300
+
 # Only pass a process owned by this test. A deadline must also bound cleanup:
 # TERM can be ignored or remain pending on a stopped child, so never follow it
 # with an unbounded wait. Keep process evidence before the final owned-PID kill.
