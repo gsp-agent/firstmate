@@ -1038,6 +1038,49 @@ test_signed_out_worker_account_pin_refuses_before_stop() {
   pass "fm-control relaunch: a signed-out worker account pin refuses before the old agent stops"
 }
 
+test_declined_claude_trust_refuses_before_stop() {
+  local dir out rc id=rl-trust proj_real store before_store
+  dir=$(new_case trust-decline "$id")
+  add_ship_task "$dir" "$id" claude
+  proj_real=$(cd -P "$dir/proj" && pwd -P)
+  mkdir -p "$dir/user-home"
+  store="$dir/user-home/.claude.json"
+  cat > "$store" <<JSON
+{"projects":{"$proj_real":{"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}}}
+JSON
+  before_store=$(cat "$store")
+  cp -p "$dir/home/data/$id/brief.md" "$dir/brief-before"
+  cp -p "$dir/home/state/$id.meta" "$dir/meta-before"
+  out=$(run_control "$dir" "$id" relaunch --note "trust declined"); rc=$?
+  expect_code 1 "$rc" "a relaunch onto claude whose trust registration would refuse must refuse before stopping"$'\n'"$out"
+  assert_contains "$out" "declined external CLAUDE.md imports" \
+    "the refusal should name the declined trust reason"
+  [ "$(cat "$dir/fake/command")" = claude ] || fail "a declined-trust relaunch must refuse before the running agent stops"
+  [ ! -s "$dir/fake/literal" ] || fail "a declined-trust relaunch must refuse before any lifecycle input is sent"
+  cmp -s "$dir/meta-before" "$dir/home/state/$id.meta" || fail "a refused relaunch must leave the task record untouched"
+  cmp -s "$dir/brief-before" "$dir/home/data/$id/brief.md" || fail "a refused relaunch must leave the instructions untouched"
+  [ "$(cat "$store")" = "$before_store" ] || fail "the preflight must not write the trust store"
+  assert_absent "$dir/home/state/$id.control-relaunch" "the refusal must not journal a relaunch"
+  # The store that matters is the pinned account's, not the ambient one: a
+  # decline recorded only there must refuse the same way.
+  dir=$(new_case trust-decline-pinned "$id")
+  add_ship_task "$dir" "$id" claude
+  make_claude_auth_stub "$dir"
+  proj_real=$(cd -P "$dir/proj" && pwd -P)
+  mkdir -p "$dir/home/config" "$dir/work"
+  : > "$dir/work/.credentials.json"
+  cat > "$dir/work/.claude.json" <<JSON
+{"projects":{"$proj_real":{"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}}}
+JSON
+  printf '%s\n' "$dir/work" > "$dir/home/config/claude-account"
+  out=$(run_control "$dir" "$id" relaunch --note "pinned trust declined"); rc=$?
+  expect_code 1 "$rc" "a relaunch under a pinned account whose trust store holds a decline must refuse"$'\n'"$out"
+  assert_contains "$out" "declined external CLAUDE.md imports" \
+    "the pinned refusal should name the declined trust reason"
+  [ "$(cat "$dir/fake/command")" = claude ] || fail "a pinned declined-trust relaunch must refuse before the running agent stops"
+  pass "fm-control relaunch: declined Claude trust refuses before the old agent stops"
+}
+
 test_worker_account_pin_follows_the_relaunch() {
   local dir out rc id=rl-acct
   dir=$(new_case acct "$id")
@@ -3862,6 +3905,7 @@ test_prefixed_recorded_harness_requires_explicit_replacement
 test_same_harness_relaunch_keeps_the_profile_axes
 test_native_ultra_relaunch_preserves_profile_and_rejects_before_stop
 test_signed_out_worker_account_pin_refuses_before_stop
+test_declined_claude_trust_refuses_before_stop
 test_worker_account_pin_follows_the_relaunch
 test_pi_exclude_tools_follow_the_relaunch
 test_exclude_tools_refusals_happen_before_the_agent_stops

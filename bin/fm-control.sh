@@ -91,6 +91,14 @@
 #              worker account pin (bin/fm-worker-account-lib.sh) here, so a pin
 #              that no longer resolves or is signed out refuses before the old
 #              agent stops.
+#              A ship or scout's replacement Claude profile must also pass
+#              the read-only trust check (bin/fm-claude-trust.sh --check)
+#              here, in the store the pinned account selects, so a
+#              registration that would refuse - the recorded case is an
+#              explicit external-imports decline on the project entry -
+#              refuses at the same point, before the old agent stops and
+#              before the trust store is written. bin/fm-spawn.sh still
+#              performs the registration itself at launch.
 #              The same pre-stop refusal applies to this home's worker tool
 #              exclusions (bin/fm-exclude-tools-lib.sh): a malformed list, or a
 #              replacement runtime that cannot hide the listed tools.
@@ -1599,8 +1607,44 @@ resolve_relaunch_profile() {
   # signed out must refuse here, while nothing has changed yet.
   local account_model=$TARGET_MODEL
   [ "$account_model" != default ] || account_model=
-  fm_worker_account_select "$TARGET_HARNESS" "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" \
-    "$account_model" "$TARGET_HARNESS" >/dev/null || return 1
+  local account_selection account_root
+  account_selection=$(fm_worker_account_select "$TARGET_HARNESS" "${FM_CONFIG_OVERRIDE:-$FM_HOME/config}" \
+    "$account_model" "$TARGET_HARNESS") || return 1
+  account_root=${account_selection#*$'\t'}
+  account_root=${account_root%%$'\t'*}
+  # A Claude replacement's trust registration happens in fm-spawn only after
+  # the old agent stops, so run its owner's read-only check here, in the
+  # store the account pin above selects (an ordinary pin reads the ambient
+  # store with CLAUDE_CONFIG_DIR unset). An old-clone ship registers a fresh
+  # slot of this home's clone instead, which does not exist yet, so only
+  # that clone's own entry is checked. A missing recorded copy is left for
+  # safe_checkpoint, which names it; a secondmate home has no project entry
+  # to decline, so its relaunch is unchanged.
+  if [ "$KIND" != secondmate ]; then
+    case "$TARGET_HARNESS" in
+      claude*)
+        local trust_project
+        local -a trust_args=()
+        trust_project=$(fm_meta_get "$META" project)
+        if [ -n "$RELAUNCH_LIVE_CLONE" ]; then
+          trust_args=(--project "$RELAUNCH_LIVE_CLONE")
+        elif [ -n "$WT" ] && [ -d "$WT" ] && [ -n "$trust_project" ]; then
+          trust_args=("$WT" "$trust_project")
+        fi
+        if [ "${#trust_args[@]}" -gt 0 ]; then
+          if [ -n "$account_selection" ] && [ -n "$account_root" ]; then
+            CLAUDE_CONFIG_DIR="$account_root" \
+              "$SCRIPT_DIR/fm-claude-trust.sh" --check "${trust_args[@]}" >/dev/null || return 1
+          elif [ -n "$account_selection" ]; then
+            env -u CLAUDE_CONFIG_DIR \
+              "$SCRIPT_DIR/fm-claude-trust.sh" --check "${trust_args[@]}" >/dev/null || return 1
+          else
+            "$SCRIPT_DIR/fm-claude-trust.sh" --check "${trust_args[@]}" >/dev/null || return 1
+          fi
+        fi
+        ;;
+    esac
+  fi
   # Likewise config/crew-exclude-tools: a malformed file, or a replacement
   # runtime that cannot hide the listed tools, refuses here, before the old
   # agent stops. Secondmate agents are not covered.
@@ -1660,7 +1704,7 @@ safe_checkpoint() {
   # (bin/fm-wake-lib.sh's fm_relaunch_live_clone), which carries its commits
   # but never uncommitted work, so the same checks bin/fm-spawn.sh runs refuse
   # here, before the agent is stopped.
-  if [ "$KIND" = ship ] && RELAUNCH_LIVE_CLONE=$(fm_relaunch_live_clone "$META" "$FM_HOME"); then
+  if [ -n "$RELAUNCH_LIVE_CLONE" ]; then
     RELAUNCH_BRANCH=$(fm_meta_get "$META" branch)
     [ -n "$RELAUNCH_BRANCH" ] || RELAUNCH_BRANCH="fm/$ID"
     if fresh_refusal=$(fm_relaunch_fresh_slot_refusal "$WT" "$(fm_meta_get "$META" project)" "$RELAUNCH_BRANCH" "$RELAUNCH_LIVE_CLONE"); then
@@ -1734,6 +1778,10 @@ do_relaunch() {
   local -a spawn_args
 
   require_state_verified_backend relaunch
+  RELAUNCH_LIVE_CLONE=
+  if [ "$KIND" = ship ]; then
+    RELAUNCH_LIVE_CLONE=$(fm_relaunch_live_clone "$META" "$FM_HOME") || RELAUNCH_LIVE_CLONE=
+  fi
   resolve_relaunch_profile
 
   case "$KIND" in

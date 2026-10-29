@@ -11,13 +11,28 @@
 # Usage: fm-claude-trust.sh <worktree> <project>
 #        fm-claude-trust.sh --secondmate-home <home> <id>
 #        fm-claude-trust.sh --lab-home <home>
+#        fm-claude-trust.sh --check <worktree> <project>
+#        fm-claude-trust.sh --check --secondmate-home <home> <id>
+#        fm-claude-trust.sh --check --lab-home <home>
+#        fm-claude-trust.sh --check --project <project>
+#   --check  read-only: run the same scope and store refusals as a
+#            registration (described below) and report
+#            whether a registration would be refused, without writing the
+#            store or creating the config directory. bin/fm-control.sh's
+#            relaunch uses it before the old agent stops; the registration
+#            itself still happens at launch in bin/fm-spawn.sh.
+#   --project  check only: a launch into a worktree of <project> that
+#            bin/fm-spawn.sh has not created yet (an old-clone ship's fresh
+#            slot), so the worktree's scope test is left to that
+#            registration and only <project>'s entry and the store are read.
 #   <worktree>  the isolated task worktree this spawn launches into
 #   <project>   the primary checkout that worktree belongs to
 #   <home>      the seeded secondmate home this spawn launches into
 #   <id>        the secondmate id that home must already be marked for
 #   --lab-home  the disposable lab home bin/fm-live-lab.sh launches a lab
 #               primary in
-# Prints one line naming what it registered; refuses loudly on anything else.
+# Prints what it registered (with --check, one line saying it could); refuses
+# loudly on anything else.
 #
 # WHY THIS EXISTS. Claude Code gates a folder it has never seen behind an
 # interactive workspace-trust dialog, and --dangerously-skip-permissions does
@@ -75,12 +90,13 @@
 # rather than flipping it, because doing so would grant every future
 # interactive session in that checkout silent external-file inclusion the
 # human declined, permanently and without being asked. The worktree entry is
-# left unwritten too: the spawn wedges on the dialog, which is the honest
-# outcome given a standing decline, not registered trust with a stripped
-# consent record. Approved===false with WarningShown false or absent is NOT
-# that decision: Claude Code's default project entry carries both flags as
-# false before the dialog was ever shown, so that pair means "never asked" and
-# is treated like an absent flag - trust registered, no import consent.
+# left unwritten too, so the launch refuses rather than wedging on the dialog,
+# which is the honest outcome given a standing decline, not registered trust
+# with a stripped consent record. Approved===false with WarningShown false or
+# absent is NOT that decision: Claude Code's default project entry carries
+# both flags as false before the dialog was ever shown, so that pair means
+# "never asked" and is treated like an absent flag - trust registered, no
+# import consent.
 #
 # THE SCOPE TEST IS THE SAFETY PROPERTY, and it is STRUCTURAL rather than a
 # path policy. Each mode has its own, because the two directories have entirely
@@ -187,11 +203,19 @@ unset CDPATH \
   GIT_CONFIG_SYSTEM GIT_CONFIG_NOSYSTEM GIT_CONFIG_COUNT
 
 usage() {
-  echo "usage: fm-claude-trust.sh <worktree> <project>" >&2
-  echo "       fm-claude-trust.sh --secondmate-home <home> <id>" >&2
-  echo "       fm-claude-trust.sh --lab-home <home>" >&2
+  echo "usage: fm-claude-trust.sh [--check] <worktree> <project>" >&2
+  echo "       fm-claude-trust.sh [--check] --secondmate-home <home> <id>" >&2
+  echo "       fm-claude-trust.sh [--check] --lab-home <home>" >&2
+  echo "       fm-claude-trust.sh --check --project <project>" >&2
   exit 2
 }
+
+CHECK_ONLY=0
+if [ "${1:-}" = --check ]; then
+  CHECK_ONLY=1
+  shift
+fi
+PROJECT_ONLY=0
 
 # MODE selects which structural scope test decides the argument, and SCOPE_NOUN
 # names what the argument was expected to be so every shared refusal below reads
@@ -212,6 +236,15 @@ case "${1:-}" in
     SUB_ID=
     PROJ_ARG=
     SCOPE_NOUN="lab home"
+    ;;
+  --project)
+    [ "$CHECK_ONLY" = 1 ] && [ "$#" -eq 2 ] || usage
+    MODE=worktree
+    PROJECT_ONLY=1
+    TARGET_ARG=$2
+    SUB_ID=
+    PROJ_ARG=$2
+    SCOPE_NOUN="project"
     ;;
   '' | -h | --help)
     usage
@@ -268,6 +301,11 @@ esac
 # the same reason, and refuse only when it genuinely cannot be written, since a
 # store this cannot reach means the worker meets the dialog after all.
 CONFIG_DIR_REAL=$(real_dir "$CONFIG_DIR") || true
+if [ -z "$CONFIG_DIR_REAL" ] && [ "$CHECK_ONLY" = 1 ]; then
+  # A missing config directory holds no store and no decline, and the
+  # registration path creates it at launch; a check writes nothing.
+  CONFIG_DIR_REAL=$CONFIG_DIR
+fi
 if [ -z "$CONFIG_DIR_REAL" ]; then
   mkdir -p "$CONFIG_DIR" 2>/dev/null || true
   CONFIG_DIR_REAL=$(real_dir "$CONFIG_DIR") || true
@@ -285,22 +323,24 @@ if [ -n "${HOME:-}" ]; then
 fi
 
 if [ "$MODE" = worktree ]; then
-  WT_TOP=$(git -C "$TARGET_REAL" rev-parse --show-toplevel 2>/dev/null) || true
-  [ -n "$WT_TOP" ] || refuse "'$TARGET_REAL' is not inside a git repository"
-  WT_TOP_REAL=$(real_dir "$WT_TOP") || true
-  [ "$WT_TOP_REAL" = "$TARGET_REAL" ] || refuse "'$TARGET_REAL' is not a worktree root (its root is '${WT_TOP_REAL:-unresolvable}')"
+  if [ "$PROJECT_ONLY" = 0 ]; then
+    WT_TOP=$(git -C "$TARGET_REAL" rev-parse --show-toplevel 2>/dev/null) || true
+    [ -n "$WT_TOP" ] || refuse "'$TARGET_REAL' is not inside a git repository"
+    WT_TOP_REAL=$(real_dir "$WT_TOP") || true
+    [ "$WT_TOP_REAL" = "$TARGET_REAL" ] || refuse "'$TARGET_REAL' is not a worktree root (its root is '${WT_TOP_REAL:-unresolvable}')"
 
-  WT_GIT_DIR=$(git -C "$TARGET_REAL" rev-parse --absolute-git-dir 2>/dev/null) || true
-  [ -n "$WT_GIT_DIR" ] || refuse "'$TARGET_REAL' has no resolvable git directory"
-  WT_GIT_DIR=$(real_dir "$WT_GIT_DIR") || true
-  [ -n "$WT_GIT_DIR" ] || refuse "'$TARGET_REAL' has an unresolvable git directory"
-  WT_COMMON=$(common_dir_of "$TARGET_REAL") || true
-  [ -n "$WT_COMMON" ] || refuse "'$TARGET_REAL' has no resolvable git common directory"
-  [ "$WT_GIT_DIR" != "$WT_COMMON" ] || refuse "'$TARGET_REAL' is a primary checkout, not an isolated worktree"
+    WT_GIT_DIR=$(git -C "$TARGET_REAL" rev-parse --absolute-git-dir 2>/dev/null) || true
+    [ -n "$WT_GIT_DIR" ] || refuse "'$TARGET_REAL' has no resolvable git directory"
+    WT_GIT_DIR=$(real_dir "$WT_GIT_DIR") || true
+    [ -n "$WT_GIT_DIR" ] || refuse "'$TARGET_REAL' has an unresolvable git directory"
+    WT_COMMON=$(common_dir_of "$TARGET_REAL") || true
+    [ -n "$WT_COMMON" ] || refuse "'$TARGET_REAL' has no resolvable git common directory"
+    [ "$WT_GIT_DIR" != "$WT_COMMON" ] || refuse "'$TARGET_REAL' is a primary checkout, not an isolated worktree"
+  fi
 
   PROJ_COMMON=$(common_dir_of "$PROJ_REAL") || true
   [ -n "$PROJ_COMMON" ] || refuse "project '$PROJ_REAL' is not inside a git repository"
-  [ "$WT_COMMON" = "$PROJ_COMMON" ] || refuse "'$TARGET_REAL' is not a worktree of project '$PROJ_REAL'"
+  [ "$PROJECT_ONLY" = 1 ] || [ "$WT_COMMON" = "$PROJ_COMMON" ] || refuse "'$TARGET_REAL' is not a worktree of project '$PROJ_REAL'"
 
   # The external-imports flags must land on the primary checkout - its own git
   # dir equals the common dir - because that is exactly the path Claude Code's
@@ -457,15 +497,15 @@ fi
 TRUST_FLAG='hasTrustDialogAccepted'
 IMPORT_FLAGS='["hasClaudeMdExternalIncludesApproved","hasClaudeMdExternalIncludesWarningShown"]'
 if [ "$MODE" = worktree ]; then
-  WRITE_ARGS=("$STORE" "$MODE" "$TARGET_REAL" "$PROJ_CANON" "$TRUST_FLAG" "$IMPORT_FLAGS")
+  WRITE_ARGS=("$STORE" "$MODE" "$TARGET_REAL" "$PROJ_CANON" "$TRUST_FLAG" "$IMPORT_FLAGS" "$CHECK_ONLY")
 else
-  WRITE_ARGS=("$STORE" "$MODE" "$TARGET_REAL" "" "$TRUST_FLAG" "$IMPORT_FLAGS")
+  WRITE_ARGS=("$STORE" "$MODE" "$TARGET_REAL" "" "$TRUST_FLAG" "$IMPORT_FLAGS" "$CHECK_ONLY")
 fi
 if ! node - "${WRITE_ARGS[@]}" <<'NODE'
 const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
-const [store, mode, target, project, trustFlag, importFlagsJson] = process.argv.slice(2);
+const [store, mode, target, project, trustFlag, importFlagsJson, checkOnly] = process.argv.slice(2);
 const importFlags = JSON.parse(importFlagsJson);
 const readStore = () => {
   try {
@@ -496,8 +536,8 @@ const flagsLanded = (projects, key, flags) =>
 // which means never asked, not declined); flipping it to true would grant every future
 // interactive session in that checkout silent external-file inclusion the
 // human declined. Refuse the whole registration instead of overriding it -
-// the worktree entry is not written either, so the spawn wedges on the
-// dialog rather than the human's consent being spent without being asked.
+// the worktree entry is not written either, so the launch refuses rather
+// than the human's consent being spent without being asked.
 const declinedExternalImports = (projects, key) =>
   projects?.[key]?.hasClaudeMdExternalIncludesApproved === false &&
   projects?.[key]?.hasClaudeMdExternalIncludesWarningShown === true;
@@ -524,13 +564,14 @@ const attempt = () => {
   if (projects === null || typeof projects !== "object" || Array.isArray(projects)) {
     throw new Error(`${store} has a non-object "projects" value`);
   }
+  if (mode === "worktree" && declinedExternalImports(projects, project)) {
+    throw new Error(
+      `project entry for ${project} in ${store} already declined external CLAUDE.md imports; refusing to override that consent. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once`,
+    );
+  }
+  if (checkOnly === "1") return "checked";
   let keys;
   if (mode === "worktree") {
-    if (declinedExternalImports(projects, project)) {
-      throw new Error(
-        `project entry for ${project} in ${store} already declined external CLAUDE.md imports; refusing to override that consent. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once`,
-      );
-    }
     const carryImportConsent = approvedExternalImports(projects, project);
     const targetFlags = carryImportConsent ? [trustFlag, ...importFlags] : [trustFlag];
     const projectFlags = carryImportConsent ? [trustFlag, ...importFlags] : [trustFlag];
@@ -568,7 +609,7 @@ const attempt = () => {
 try {
   for (let i = 0; i < 3; i += 1) {
     const result = attempt();
-    if (result === "recorded") process.exit(0);
+    if (result === "recorded" || result === "checked") process.exit(0);
     if (result === "moved" && i >= 1) {
       console.error(`error: ${store} was modified while trust was being recorded; refusing to overwrite it`);
       process.exit(1);
@@ -582,13 +623,19 @@ console.error(`error: ${store} did not retain trust for ${target}${project ? ` a
 process.exit(1);
 NODE
 then
-  if [ "$MODE" = worktree ]; then
+  if [ "$CHECK_ONLY" = 1 ]; then
+    refuse "trust cannot be recorded for '$TARGET_REAL' in '$STORE' (check only; nothing was written)"
+  elif [ "$MODE" = worktree ]; then
     refuse "could not record trust for '$TARGET_REAL' and project '$PROJ_CANON' in '$STORE'"
   else
     refuse "could not record trust for '$TARGET_REAL' in '$STORE'"
   fi
 fi
 
+if [ "$CHECK_ONLY" = 1 ]; then
+  echo "check: trust can be recorded for $TARGET_REAL"
+  exit 0
+fi
 echo "trusted: $TARGET_REAL"
 if [ "$MODE" = worktree ]; then
   echo "trusted (project root): $PROJ_CANON"

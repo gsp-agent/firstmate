@@ -1,0 +1,2 @@
+# Failing-first test test_declined_claude_trust_refuses_before_stop in tests/fm-control-relaunch.test.sh: on the base, a relaunch onto claude whose trust store holds an explicit external-imports decline for the project stops the old agent and then refuses to launch, leaving no agent; after this change the relaunch refuses before the old agent stops, with the task record, instructions and trust store unchanged.
+pr: 191
