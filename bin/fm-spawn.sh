@@ -73,7 +73,9 @@
 #   mode no-mistakes and yolo off; its labels go to bin/fm-dispatch-resolve.sh
 #   --labels, which must answer clear, through either its default route or a
 #   label route picked from those same recorded labels, and that profile is
-#   the launch's harness, model and effort. The note lists the exact labels
+#   the launch's harness, model and effort. Without --route-reason, the
+#   resolver's route: line, its source and quota figures, is the recorded
+#   route_reason. The note lists the exact labels
 #   the resolver receives, so a label route it picks is the routing it
 #   records, not a silent mismatch. A route answering anything but clear
 #   (escalated, refused, or unreadable) refuses. Any other note, a scout or
@@ -2666,6 +2668,10 @@ spawn_queue_start_read() {
   default* | label*) ;;
   *) spawn_queue_start_refuse "its labels ($decided) resolve through route source '$route_source', not a default or label route; left to the captain" ;;
   esac
+  if [ "$ROUTE_REASON_SET" -eq 0 ]; then
+    ROUTE_REASON=$(printf '%s\n' "$resolved" | sed -n 's/^ *route: //p' | head -1)
+    [ -z "$ROUTE_REASON" ] || ROUTE_REASON_SET=1
+  fi
   line=$(printf '%s\n' "$resolved" | sed -n 's/^ *profile: //p' | head -1)
   re="^[[:space:]]*--(harness|model|effort)[[:space:]]+'([^']*)'(.*)$"
   while [[ $line =~ $re ]]; do

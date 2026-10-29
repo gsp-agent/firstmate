@@ -41,6 +41,8 @@ Start each intake by running `quota-axi` once with no `--json`, and reuse that T
 Post-consolidation quota-axi (the floor owned by `bin/fm-quota-axi-lib.sh`) puts `spendPriority` in the default `quota[]` block beside `effectivePercentRemaining`, `runway`, `confidence`, `limitedBy`, and `resetsAt`.
 Sparse `exhaustion[]` carries finite-runway seconds only for `projected_exhaustion` and `exhausted_now`.
 Sparse `attention[]` names auth, stale, and unmeasurable facts.
+When `attention[]` shows Claude's read withheld as `keychain_prompt_required`, take Claude's figure from one [`bin/fm-claude-quota.sh`](../../../bin/fm-claude-quota.sh) run instead, which reads the account a Claude worker would launch on with no prompt, and quote its `summary` in the route reason.
+Never run `quota-axi --allow-keychain-prompt` or answer a Keychain dialog for the captain; an unknown reading is disclosed uncertainty with its cause.
 `spendPriority` is THE quota-perspective ranker.
 It already computes the economics that older instructions reconstructed by hand from headroom, pace, reserve, and window-id lists; do not recompute those.
 Do not read `--json` on the normal path, and do not reach for `--full` to rebuild that economics.

@@ -472,6 +472,7 @@ A backend spawn refusal from a missing dependency, version gate, or unauthentica
 ### Task metadata
 
 An optional `route_reason=`, supplied by `--route-reason` on `bin/fm-spawn.sh` or `bin/fm-control.sh <id> relaunch`, records why the runtime was chosen, with carriage returns and newlines flattened to spaces.
+A queue start without `--route-reason` records its label resolver's route line, the route source and quota figures it weighed.
 A relaunch replaces it when supplied, preserves it when omitted and the resolved harness, model, and effort are unchanged, and otherwise removes it.
 When the launch route in `bin/fm-cursor-guard.sh` changes the harness, the route's own fallback reason replaces any supplied reason.
 `relaunch --restore` carries the archived reason over when `--harness`, `--model`, and `--effort` are all omitted.
@@ -1427,7 +1428,7 @@ After the answer, code applies all remaining checks and ranking:
 
 - The confidence floor and the matched rule's `approval` and `floor`.
 - Each candidate's `provider` and `floor`.
-- Every applicable account-wide and model/product row from one `quota-axi --json` snapshot.
+- Every applicable account-wide and model/product row from one `quota-axi --json` snapshot, with Claude's row read through [`bin/fm-claude-quota.sh`](../bin/fm-claude-quota.sh) when quota-axi leaves it unmeasured.
 - The numeric `spendPriority` argmax over candidates, using each candidate's limiting row.
 
 The [shared quota library](../bin/fm-quota-axi-lib.sh) accepts schema 5 and schema 6 and implements the [account-matching contract](../.agents/skills/quota-array-dispatch/SKILL.md#1-eligibility).

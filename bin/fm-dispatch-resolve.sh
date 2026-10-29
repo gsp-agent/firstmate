@@ -8,7 +8,8 @@
 #
 # Worker routing (--labels, an empty value is allowed): no model judgment or
 #   typesafe.ai call or key. After shared configuration validation and label
-#   conflict checks, attempt one quota-axi --json snapshot when available.
+#   conflict checks, attempt one quota-axi --json snapshot when available,
+#   with Claude's row read through bin/fm-claude-quota.sh --fill.
 #   The first matching label in the comma-separated input picks its
 #   `label_routes` profile. With no match, walk the `default` object or array
 #   in configured order. Either way a profile is skipped only on concrete
@@ -19,7 +20,10 @@
 #   its source, except ep-opus, which means the work needs Opus, so it
 #   escalates instead of running on another model. This path does not rank
 #   arrays by spendPriority or apply rule approvals or floors.
-#   Prints "status: clear ... source: label|default" and the profile line, exit 0.
+#   Prints "status: clear ... source: label|default", a "route:" line naming
+#   the source and the quota figure of each profile it weighed (a label route
+#   skipped as exhausted, then default rungs through the chosen one), and the
+#   profile line, exit 0.
 #   Missing configuration, no matching route and no default, an exhausted
 #   ep-opus route, an exhausted label route with no eligible default rung, or
 #   every default rung concretely exhausted prints escalate, exit 0.
@@ -45,7 +49,8 @@
 #   rule's declared `min_confidence` on that rule's probability, falling to the
 #   most probable other option that clears its own floor), the rule's declared
 #   `approval` and `floor`, each profile's declared `provider` and `floor`, the
-#   quota rows from ONE quota-axi --json snapshot (schema 5 or 6; each
+#   quota rows from ONE quota-axi --json snapshot, with Claude's row read
+#   through bin/fm-claude-quota.sh --fill (schema 5 or 6; each
 #   candidate binds to one row through quota_row in
 #   bin/fm-quota-axi-lib.sh, so a Pi lane such as openai-codex-work/...
 #   reads its own account's row and an expanded provider with no row for the
@@ -118,6 +123,15 @@ TS_TIMEOUT=5
 DEFAULT_WHEN="No listed rule applies to this task."
 
 die() { printf 'error: %s\n' "$1" >&2; exit 2; }
+# stdin snapshot -> stdout snapshot with Claude's prompt-free reading filled in
+# by bin/fm-claude-quota.sh, whose header owns when and how; a failure leaves
+# the caller's snapshot as it was.
+claude_fill() {
+  local out
+  out=$(FM_HOME="$FM_HOME" FM_CONFIG_OVERRIDE="$CONFIG" "$SCRIPT_DIR/fm-claude-quota.sh" --fill 2>/dev/null) &&
+    [ -n "$out" ] || return 1
+  printf '%s\n' "$out"
+}
 no_rules() {
   printf 'dispatch-resolve:\n  status: escalate\n  reason: no rules to match\n'
   exit 0
@@ -249,6 +263,7 @@ if [ -n "$LABELS_SET" ]; then
     labels_quota_raw=$(quota-axi --json 2>/dev/null) || labels_quota_raw=''
     if [ -n "$labels_quota_raw" ] && printf '%s\n' "$labels_quota_raw" | fm_quota_json_valid; then
       LABELS_QUOTA=$labels_quota_raw
+      labels_quota_raw=$(printf '%s\n' "$LABELS_QUOTA" | claude_fill) && LABELS_QUOTA=$labels_quota_raw
     fi
   fi
   LABELS_PMAP='{}'
@@ -263,30 +278,47 @@ if [ -n "$LABELS_SET" ]; then
     def profiles($v): if ($v | type) == "array" then $v elif ($v | type) == "object" then [$v] else [] end;
     def flat: gsub("[\\r\\n]"; " ");
     def bare($m): (($m // "") | split("/") | last);
+    def provider($prof): $prof.provider // $pmap[$prof.harness] // null;
+    def row($prof): quota_row($quota; provider($prof); quota_lane($prof.harness; $prof.model));
+    def applicable($prof):
+      [row($prof).quotaSemantics.effectiveAvailability[]? | select(
+        .scope == "all_models" or .scope == "all_products" or
+        (bare($prof.model) != "" and (.scope == ("model:" + bare($prof.model)) or .scope == ("product:" + bare($prof.model)))))];
     def blocked($prof):
-      ($prof.provider // $pmap[$prof.harness] // null) as $p
-      | if $p == null or $quota == null then false
-        else quota_row($quota; $p; quota_lane($prof.harness; $prof.model)) as $row
-        | if $row == null or quota_prepaid_usable($row) then false
-          else ([$row.quotaSemantics.effectiveAvailability[]? | select(
-                  .scope == "all_models" or .scope == "all_products" or
-                  (bare($prof.model) != "" and (.scope == ("model:" + bare($prof.model)) or .scope == ("product:" + bare($prof.model)))))] ) as $app
-          | any($app[]; ((.runway.status // "") == "exhausted_now") or
-                (.status == "known" and ((.effectivePercentRemaining | type) == "number") and .effectivePercentRemaining <= 0))
-          end
+      if provider($prof) == null or $quota == null then false
+      elif row($prof) == null or quota_prepaid_usable(row($prof)) then false
+      else any(applicable($prof)[]; ((.runway.status // "") == "exhausted_now") or
+             (.status == "known" and ((.effectivePercentRemaining | type) == "number") and .effectivePercentRemaining <= 0))
+      end;
+    def figure($prof):
+      provider($prof) as $p
+      | if $p == null then "\($prof.harness) quota unknown: no quota provider"
+        elif $quota == null then "\($p) quota unread"
+        elif $p == "claude" and ($quota.claudeQuota.summary // null) != null then $quota.claudeQuota.summary
+        elif row($prof) == null then "\($p) quota unknown: no quota row"
+        else ([applicable($prof)[] | select((.runway.status // "") == "exhausted_now")] | first) as $out
+        | ([applicable($prof)[] | select(.status == "known")] | min_by(.effectivePercentRemaining)) as $low
+        | (if $out != null then "\($p) exhausted_now at \($out.scope)"
+           elif $low == null then "\($p) quota unknown (\(row($prof).quotaSemantics.status))"
+           else "\($p) \($low.effectivePercentRemaining)% left at \($low.scope)" end)
+          + (if quota_prepaid_usable(row($prof)) then ", prepaid credits usable" else "" end)
         end;
     ($labels | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(length > 0))) as $ls
     | (.label_routes // {}) as $routes
     | ([$ls[] | select($routes[.] != null)] | first // null) as $hit
-    | (profiles(.default // null) | map(select(blocked(.) | not)) | first // null) as $walk
-    | (if $hit == null then {src: "default", detail: "no label matched", p: $walk}
-       elif (blocked($routes[$hit]) | not) then {src: "label", detail: $hit, p: $routes[$hit]}
+    | profiles(.default // null) as $defaults
+    | ([range(0; $defaults | length) | select($defaults[.] | blocked(.) | not)] | first // null) as $wi
+    | (if $wi == null then null else $defaults[$wi] end) as $walk
+    | (if $wi == null then $defaults else $defaults[:($wi + 1)] end) as $walked
+    | (if $hit == null then {src: "default", detail: "no label matched", p: $walk, seen: $walked}
+       elif (blocked($routes[$hit]) | not) then {src: "label", detail: $hit, p: $routes[$hit], seen: [$routes[$hit]]}
        elif $hit == "ep-opus" then {why: "label route ep-opus is exhausted and the work needs Opus"}
        elif $walk == null then {why: "label route \($hit) is exhausted and no default rung is eligible"}
-       else {src: "default", detail: "label \($hit) exhausted", p: $walk} end)
+       else {src: "default", detail: "label \($hit) exhausted", p: $walk, seen: ([$routes[$hit]] + $walked)} end)
     | if .why then "ESCALATE\t\(.why)"
       elif .p == null then "NONE"
       else ["dispatch-resolve:", "  status: clear", "  source: \(.src) (\(.detail | flat))",
+            "  route: " + ("\(.src) (\(.detail)); " + (reduce (.seen[] | figure(.)) as $f ([]; if index([$f]) then . else . + [$f] end) | join("; ")) | flat),
             "  profile: --harness \(.p.harness | @sh)"
             + (if .p.model then " --model \(.p.model | @sh)" else "" end)
             + (if .p.effort then " --effort \(.p.effort | @sh)" else "" end)] | join("\n") end
@@ -450,6 +482,9 @@ jq -e --slurpfile rules "$RULES" '
 command -v quota-axi >/dev/null 2>&1 || emit_error "quota-axi not installed"
 quota-axi --json > "$QUOTA" 2>/dev/null || emit_error "quota-axi --json failed"
 fm_quota_json_valid < "$QUOTA" || emit_error "quota-axi --json returned an invalid snapshot"
+if quota_filled=$(claude_fill < "$QUOTA"); then
+  printf '%s\n' "$quota_filled" > "$QUOTA"
+fi
 
 # ---- resolution: declared gates + quota evidence + argmax, all in jq ------------
 RESULT=$(jq -n --arg floor "$CONFIDENCE_FLOOR" --argjson lat "$LAT_MS" --arg none_criterion "$DEFAULT_WHEN" --argjson pmap "$PMAP" \

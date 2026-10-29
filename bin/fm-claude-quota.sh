@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+# fm-claude-quota.sh - read Claude's quota for the account a Claude worker
+# from this home would launch on, with no macOS Keychain prompt.
+#
+# Usage:
+#   fm-claude-quota.sh           print one reading as a JSON object
+#   fm-claude-quota.sh --fill    read a quota-axi --json snapshot on stdin and
+#                                print it with that reading filled in
+#
+# Claude Code's Keychain item opens silently only for the claude binary, so
+# quota-axi withholds the value read (attention keychain_prompt_required)
+# unless someone once approved its dialog through --allow-keychain-prompt.
+# Firstmate never passes that flag and never answers the dialog. cusage
+# (`cusage -j`) polls usage through Keychain items of its own that were
+# approved when each account was added, so it reads every account's
+# five_hour and seven_day windows with no prompt.
+#
+# The account is config/claude-account's pin when the home has one
+# (bin/fm-worker-account-lib.sh), otherwise this process's CLAUDE_CONFIG_DIR,
+# which bin/fm-spawn.sh hands an unpinned Claude worker, otherwise ~/.claude.
+# cusage names an account by its directory ~/.claude-accounts/<label>, so
+# only a root there has a reading and cusage is not run for any other.
+#
+# Reading, one JSON object, exit 0 whether known or unknown:
+#   known:   {"provider":"claude","source":"cusage","account":"<label>",
+#             "status":"known","effectivePercentRemaining":N,
+#             "limitedBy":"<window>","windows":[{"key":..,"usedPercent":..,
+#             "resetsAt":..}],"summary":"claude N% left, limited by ..."}
+#   unknown: {"provider":"claude","source":"cusage","account":"<label>"|null,
+#             "status":"unknown","cause":"...",
+#             "summary":"claude quota unknown: <cause>"}
+# effectivePercentRemaining is 100 minus the most-used of the five_hour and
+# seven_day windows cusage reports as reliable. summary is the phrase a route
+# reason quotes.
+#
+# --fill leaves a snapshot whose claude row quota-axi measured (status known
+# or partial) unchanged and runs nothing. Otherwise it adds the reading as
+# top-level claudeQuota, and a known reading replaces the claude row that
+# quota_row (bin/fm-quota-axi-lib.sh) binds for an unqualified Claude
+# candidate with one all_models availability carrying its
+# effectivePercentRemaining, runway exhausted_now at 0 and unknown otherwise,
+# and no spendPriority, so ranking leaves Claude unranked rather than invent
+# one. A snapshot that is not valid exits 2 with nothing on stdout.
+#
+# It never reads Claude Code's Keychain item and never blocks: a missing
+# cusage, a run past FM_CLAUDE_QUOTA_SECONDS (default 30), an unreadable
+# reading, or an account cusage cannot measure is an unknown reading with its
+# cause.
+set -u
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FM_ROOT="${FM_ROOT_OVERRIDE:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+FM_HOME="${FM_HOME:-$FM_ROOT}"
+CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
+FM_CLAUDE_QUOTA_SECONDS=${FM_CLAUDE_QUOTA_SECONDS:-30}
+
+# shellcheck source=bin/fm-quota-axi-lib.sh
+. "$SCRIPT_DIR/fm-quota-axi-lib.sh"
+# shellcheck source=bin/fm-worker-account-lib.sh
+. "$SCRIPT_DIR/fm-worker-account-lib.sh"
+
+die() { printf 'error: %s\n' "$1" >&2; exit 2; }
+usage() {
+  awk '
+    NR == 1 { next }
+    /^#/ { sub(/^# ?/, ""); print; next }
+    { exit }
+  ' "${BASH_SOURCE[0]}"
+}
+
+unknown() {  # <label or ""> <cause>
+  jq -cn --arg a "$1" --arg c "$2" '
+    ($c | gsub("[\\r\\n]+"; " ")) as $cause |
+    {provider: "claude", source: "cusage", account: (if $a == "" then null else $a end),
+     status: "unknown", cause: $cause, summary: "claude quota unknown: \($cause)"}'
+}
+
+reading() {
+  local pin root label accounts parent doc rc=0
+  pin=$(fm_worker_account_resolve claude "$CONFIG" 2>/dev/null) || {
+    unknown '' "config/claude-account cannot be resolved"
+    return
+  }
+  if [ -n "$pin" ]; then
+    root=$(printf '%s\n' "$pin" | cut -f2)
+  else
+    root=${CLAUDE_CONFIG_DIR:-}
+  fi
+  if [ -z "$root" ]; then
+    unknown '' "Claude workers launch on ~/.claude, which is not a cusage account (~/.claude-accounts/<label>)"
+    return
+  fi
+  label=$(basename "$root")
+  accounts=$(cd "${HOME:-/nonexistent}/.claude-accounts" 2>/dev/null && pwd -P) || accounts=
+  parent=$(cd "$(dirname "$root")" 2>/dev/null && pwd -P) || parent=
+  if [ -z "$accounts" ] || [ "$parent" != "$accounts" ]; then
+    unknown '' "Claude workers launch on $root, which is not a cusage account (~/.claude-accounts/<label>)"
+    return
+  fi
+  if ! command -v cusage >/dev/null 2>&1; then
+    unknown "$label" "cusage is not installed"
+    return
+  fi
+  doc=$(fm_run_timed "$FM_CLAUDE_QUOTA_SECONDS" cusage -j 2>/dev/null </dev/null) || rc=$?
+  if [ "$rc" -eq 124 ]; then
+    unknown "$label" "cusage -j did not answer within ${FM_CLAUDE_QUOTA_SECONDS}s"
+    return
+  fi
+  # cusage exits 1 when any one account could not be read, so the document,
+  # not the exit status, says whether this account was.
+  printf '%s\n' "$doc" | jq -ce --arg l "$label" '
+    def unknown($cause):
+      ($cause | gsub("[\\r\\n]+"; " ")) as $c |
+      {provider: "claude", source: "cusage", account: $l, status: "unknown", cause: $c,
+       summary: "claude quota unknown: \($c)"};
+    if (.accounts | type) != "array" then error("no accounts") else . end |
+    ([.accounts[] | select(.label == $l)] | first) as $a |
+    if $a == null then unknown("cusage has no account \($l)")
+    elif ($a.error // null) != null then unknown("cusage could not measure \($l): \($a.error)")
+    elif $a.measured != true then unknown("cusage has not measured \($l)")
+    else
+      [$a.windows[]? |
+        select((.key == "five_hour" or .key == "seven_day") and .reliable != false and
+               (.used_percentage | type) == "number") |
+        {key, usedPercent: (.used_percentage + 0),
+         resetsAt: (if (.resets_at | type) == "number" then (.resets_at | floor | todate) else null end)}] as $w |
+      if ($w | length) == 0 then unknown("cusage has no five_hour or seven_day window for \($l)")
+      else
+        ($w | max_by(.usedPercent)) as $limit |
+        ([[100 - $limit.usedPercent, 0] | max, 100] | min) as $left |
+        {provider: "claude", source: "cusage", account: $l, status: "known",
+         effectivePercentRemaining: $left, limitedBy: $limit.key, windows: $w,
+         summary: "claude \($left)% left, limited by \($limit.key) (\($w | map("\(.key) \(.usedPercent)% used") | join(", ")); cusage account \($l))"}
+      end
+    end' 2>/dev/null || unknown "$label" "cusage -j gave no readable account list (exit $rc)"
+}
+
+fill() {
+  local snapshot claude
+  snapshot=$(cat) || die "cannot read the snapshot on stdin"
+  printf '%s\n' "$snapshot" | fm_quota_json_valid || die "stdin is not a valid quota-axi --json snapshot"
+  if printf '%s\n' "$snapshot" | jq -e "$FM_QUOTA_ROW_JQ"'
+    quota_row(.; "claude"; "") as $row |
+    $row != null and (["known", "partial"] | index($row.quotaSemantics.status)) != null' >/dev/null 2>&1; then
+    printf '%s\n' "$snapshot"
+    return 0
+  fi
+  claude=$(reading)
+  printf '%s\n' "$snapshot" | jq -c --argjson r "$claude" '
+    . + {claudeQuota: $r} |
+    if $r.status != "known" then .
+    else
+      (.schemaVersion == 6) as $six |
+      .providers |= (map(select(.provider != "claude" or ($six and .accountKey != "default"))) +
+        [{provider: "claude"} + (if $six then {accountKey: "default"} else {} end) +
+         {source: "cusage", quotaSemantics: {status: "known", effectiveAvailability: [
+           {scope: "all_models", status: "known", effectivePercentRemaining: $r.effectivePercentRemaining,
+            boundedBy: [$r.limitedBy],
+            runway: {status: (if $r.effectivePercentRemaining <= 0 then "exhausted_now" else "unknown" end)}}]}}])
+    end' || die "cannot fill the snapshot"
+}
+
+case "${1:-}" in
+'') [ "$#" -eq 0 ] || die "unexpected argument: $1"; reading ;;
+--fill) [ "$#" -eq 1 ] || die "--fill takes no argument"; fill ;;
+-h | --help | help) usage ;;
+*) die "unknown option: $1" ;;
+esac
