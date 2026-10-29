@@ -345,6 +345,47 @@ test_control_defers_on_a_full_live_pool_before_stopping_the_agent() {
   pass "fm-control defers an old-clone relaunch on a full live pool before stopping the agent"
 }
 
+# The replacement's Claude trust registers this home's clone, not the old
+# one, so a decline on the live clone's entry refuses before the agent stops,
+# and a decline on the old clone's entry alone does not refuse.
+test_control_checks_the_live_clones_trust_before_stopping_the_agent() {
+  local dir id=trust-a1 out rc=0 live old store before before_store
+  make_case trust "$id"
+  dir=$CASE_DIR
+  : > "$dir/fake/herdr-agent-live"
+  live=$(cd "$dir/home/projects/proj" && pwd -P)
+  mkdir -p "$dir/user-home"
+  store="$dir/user-home/.claude.json"
+  cat > "$store" <<JSON
+{"projects":{"$live":{"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}}}
+JSON
+  before_store=$(cat "$store")
+  before=$(cat "$dir/home/state/$id.meta")
+  out=$(run_control_relaunch "$dir" "$id") || rc=$?
+  [ "$rc" -ne 0 ] || fail "trust: a relaunch whose live clone declined imports was relaunched: $out"
+  assert_contains "$out" "declined external CLAUDE.md imports" "trust: the refusal did not name the declined trust"
+  [ -e "$dir/fake/herdr-agent-live" ] || fail "trust: the agent was stopped"
+  grep -q 'pane send-text' "$dir/fake/herdr-log" && fail "trust: something was typed into the agent's pane"
+  assert_equals "$before" "$(cat "$dir/home/state/$id.meta")" "trust: the record changed"
+  assert_equals "$before_store" "$(cat "$store")" "trust: the check wrote the trust store"
+  [ -e "$dir/home/state/$id.control-relaunch" ] && fail "trust: the refusal journaled a relaunch"
+  [ -e "$dir/livepool/1/.fm-slot-owner" ] && fail "trust: a live slot was claimed"
+
+  id=oldtrust-a1
+  make_case oldtrust "$id"
+  dir=$CASE_DIR
+  old=$(cd "$dir/old/proj" && pwd -P)
+  mkdir -p "$dir/user-home"
+  cat > "$dir/user-home/.claude.json" <<JSON
+{"projects":{"$old":{"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}}}
+JSON
+  rc=0
+  out=$(run_control_relaunch "$dir" "$id") || rc=$?
+  expect_code 0 "$rc" "oldtrust: a decline on the old clone alone refused the relaunch: $out"
+  assert_contains "$out" "worktree=$dir/livepool/1/proj" "oldtrust: fm-control did not report the fresh slot"
+  pass "fm-control checks the live clone's Claude trust, not the old clone's, before stopping the agent"
+}
+
 # A record whose worktree is a clean copy of another repository (on a branch
 # of the right name) is refused before any agent stops, and that history is
 # never imported: the old copy must belong to the recorded project.
@@ -506,6 +547,7 @@ test_relaunch_takes_the_branch_from_origin_when_origin_has_it
 test_control_refuses_uncommitted_work_before_stopping_the_agent
 test_control_refuses_an_ignored_submodule_edit
 test_control_defers_on_a_full_live_pool_before_stopping_the_agent
+test_control_checks_the_live_clones_trust_before_stopping_the_agent
 test_relaunch_refuses_a_copy_not_on_its_branch
 test_control_refuses_a_worktree_of_another_repository
 test_relaunch_refuses_an_old_copy_another_task_claims

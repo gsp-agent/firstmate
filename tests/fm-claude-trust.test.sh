@@ -266,11 +266,6 @@ JSON
   pass "fm-claude-trust.sh: refuses to override a project's declined external-imports consent"
 }
 
-# Claude Code's own default project entry carries BOTH external-imports flags as
-# false before the dialog was ever shown; answering the dialog either way sets
-# hasClaudeMdExternalIncludesWarningShown to true. So false/false is "never
-# asked", not "No, disable": it must be treated like an absent flag - trust
-# registered, no import consent manufactured - rather than refused.
 test_check_mode_reports_a_decline_without_writing() {
   local rec store out before after
   rec=$(make_case check-decline)
@@ -299,6 +294,11 @@ test_check_mode_accepts_a_fresh_worktree_without_writing() {
   pass "fm-claude-trust.sh --check: accepts a fresh worktree without writing"
 }
 
+# Claude Code's own default project entry carries BOTH external-imports flags as
+# false before the dialog was ever shown; answering the dialog either way sets
+# hasClaudeMdExternalIncludesWarningShown to true. So false/false is "never
+# asked", not "No, disable": it must be treated like an absent flag - trust
+# registered, no import consent manufactured - rather than refused.
 test_project_root_entry_default_import_flags_are_not_a_decline() {
   local rec store out
   rec=$(make_case project-default-flags)
