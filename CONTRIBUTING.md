@@ -102,10 +102,12 @@ The `firstmate-coding-guidelines` skill owns the rule that local no-mistakes Tes
 Verify the same way the gate does: reach for `bin/fm-test-run.sh` with the subjects you care about rather than chaining `bash tests/a.test.sh && bash tests/b.test.sh`, because a list of script paths gets the same bounded concurrency as `--changed`.
 The pipeline publishes that evidence itself, so never hand-commit `.no-mistakes/` paths onto a feature branch; CI rejects them as tracked personal fleet paths.
 Every PR to `upstream-lean` adds its own file `drift-proof/<N>.proof` holding a `pr: <N>` line, after a `#` comment naming its failing-first test or measurement, and leaves the squash subject's `(#N)` unedited.
-The named test must be measured red on the current upstream main files and green on the PR, and the nightly replay of its patch on current upstream must be clean.
+A PR that adds or changes behavior names a test measured red on the current upstream main files and green on the PR, and the nightly replay of its patch on current upstream must be clean.
+A cut PR instead names its archive branch and the callers outside this repository of what it removes, keeps the suite green, and does not merge while one of those callers would break.
+The cutover PR is held to its own live check.
 No PR merges to `upstream-lean` while its proof is pending.
 No direct pushes to `upstream-lean` are allowed.
-A PR that cannot name the series it belongs to does not merge.
+Every PR names its series: spawn-dispatch, teardown-taskdata, runtime-core, watcher-budgets, pr-merge, holds-inbox-wake, drift-guard, herdr-backend, session-fleet or docs-skills; a PR that fits none of them names a new series with its reason, and a PR that names no series does not merge.
 `drift-proof.txt` closed at PR 167 and takes no new line, so two open PRs never edit the same file.
 
 Check and test the toolbelt before pushing:
