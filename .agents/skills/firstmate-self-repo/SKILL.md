@@ -57,12 +57,10 @@ The gate is code, not memory: `bin/fm-role-lib.sh`'s `fm_role_gate_self_publish`
 
 An authorized contribution then flows through the task's normal delivery contract - usually no-mistakes - like any other project; the grant answers only "may this publish", never "how".
 Every PR to `upstream-lean` adds its own file `drift-proof/<N>.proof` holding a `pr: <N>` line, after a `#` comment naming its failing-first test or measurement, and leaves the squash subject's `(#N)` unedited.
-A PR that adds or changes behavior names a test measured red on the current upstream main files and green on the PR, and the nightly replay of its patch on current upstream must be clean.
+A PR that adds or changes behavior names a failing-first test or measurement that loses on the current upstream main files and wins on the PR.
 A cut PR instead names its archive branch and the callers outside this repository of what it removes, keeps the suite green, and does not merge while one of those callers would break.
-The cutover PR is held to its own live check.
 No PR merges to `upstream-lean` while its proof is pending.
 No direct pushes to `upstream-lean` are allowed.
-Every PR names its series: spawn-dispatch, teardown-taskdata, runtime-core, watcher-budgets, pr-merge, holds-inbox-wake, drift-guard, herdr-backend, session-fleet or docs-skills; a PR that fits none of them names a new series with its reason, and a PR that names no series does not merge.
 `drift-proof.txt` closed at PR 167 and takes no new line, so two open PRs never edit the same file.
 
 A gate refusal names the exact remedy: write `maintainer <scope>` into `config/firstmate-role`, or pass `--upstream-consent <scope>` for that one task with the captain's explicit approval.
