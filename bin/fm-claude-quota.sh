@@ -11,9 +11,10 @@
 # quota-axi withholds the value read (attention keychain_prompt_required)
 # unless someone once approved its dialog through --allow-keychain-prompt.
 # Firstmate never passes that flag and never answers the dialog. cusage
-# (`cusage -j`) polls usage through Keychain items of its own that were
-# approved when each account was added, so it reads every account's
-# five_hour and seven_day windows with no prompt.
+# polls usage through Keychain items of its own that were approved when each
+# account was added, so it reads every account's windows with no prompt. Its
+# launchd poller (com.dalecarman.cusage, every 30 minutes) writes a snapshot,
+# and this reads that snapshot with `cusage -c -j`, which never fetches.
 #
 # The account is config/claude-account's pin when the home has one
 # (bin/fm-worker-account-lib.sh), otherwise this process's CLAUDE_CONFIG_DIR,
@@ -30,8 +31,12 @@
 #             "status":"unknown","cause":"...",
 #             "summary":"claude quota unknown: <cause>"}
 # effectivePercentRemaining is 100 minus the most-used of the five_hour and
-# seven_day windows cusage reports as reliable. summary is the phrase a route
-# reason quotes.
+# seven_day windows cusage reports as reliable whose reset has not passed,
+# since a cached snapshot does not roll a window over. summary is the phrase
+# a route reason quotes: it names those windows, the snapshot's age (the
+# account's fetched_at), and any reliable, unreset model-scoped window
+# (seven_day_opus, seven_day_sonnet, or limit:...) more used than the
+# limiting window, which never changes effectivePercentRemaining or limitedBy.
 #
 # --fill leaves a snapshot whose claude row quota-axi measured (status known
 # or partial) unchanged and runs nothing. Otherwise it adds the reading as
@@ -43,16 +48,19 @@
 # one. A snapshot that is not valid exits 2 with nothing on stdout.
 #
 # It never reads Claude Code's Keychain item and never blocks: a missing
-# cusage, a run past FM_CLAUDE_QUOTA_SECONDS (default 30), an unreadable
-# reading, or an account cusage cannot measure is an unknown reading with its
-# cause.
+# cusage, a run past FM_CLAUDE_QUOTA_SECONDS (default 5, a guard on a file
+# read), no readable snapshot, an account the snapshot has no reading time
+# for, a reading more than 3600 seconds old (two poller runs, so the poller
+# has stopped), an account cusage cannot measure, or no unreset five_hour or
+# seven_day window is an unknown reading with its cause.
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FM_ROOT="${FM_ROOT_OVERRIDE:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 FM_HOME="${FM_HOME:-$FM_ROOT}"
 CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
-FM_CLAUDE_QUOTA_SECONDS=${FM_CLAUDE_QUOTA_SECONDS:-30}
+FM_CLAUDE_QUOTA_SECONDS=${FM_CLAUDE_QUOTA_SECONDS:-5}
+POLLER="its poller (com.dalecarman.cusage, every 30m) may have stopped"
 
 # shellcheck source=bin/fm-quota-axi-lib.sh
 . "$SCRIPT_DIR/fm-quota-axi-lib.sh"
@@ -101,38 +109,54 @@ reading() {
     unknown "$label" "cusage is not installed"
     return
   fi
-  doc=$(fm_run_timed "$FM_CLAUDE_QUOTA_SECONDS" cusage -j 2>/dev/null </dev/null) || rc=$?
+  doc=$(fm_run_timed "$FM_CLAUDE_QUOTA_SECONDS" cusage -c -j 2>/dev/null </dev/null) || rc=$?
   if [ "$rc" -eq 124 ]; then
-    unknown "$label" "cusage -j did not answer within ${FM_CLAUDE_QUOTA_SECONDS}s"
+    unknown "$label" "cusage -c -j did not answer within ${FM_CLAUDE_QUOTA_SECONDS}s"
     return
   fi
   # cusage exits 1 when any one account could not be read, so the document,
   # not the exit status, says whether this account was.
-  printf '%s\n' "$doc" | jq -ce --arg l "$label" '
+  printf '%s\n' "$doc" | jq -ce --arg l "$label" --arg poller "$POLLER" '
     def unknown($cause):
       ($cause | gsub("[\\r\\n]+"; " ")) as $c |
       {provider: "claude", source: "cusage", account: $l, status: "unknown", cause: $c,
        summary: "claude quota unknown: \($c)"};
+    def age: floor | if . < 60 then "\(.)s" elif . < 3600 then "\(. / 60 | floor)m"
+      else "\(. / 3600 | floor)h\(. % 3600 / 60 | floor)m" end;
+    def current: .reliable != false and (.used_percentage | type) == "number" and
+      ((.resets_at | type) != "number" or .resets_at > now);
     if (.accounts | type) != "array" then error("no accounts") else . end |
     ([.accounts[] | select(.label == $l)] | first) as $a |
-    if $a == null then unknown("cusage has no account \($l)")
-    elif ($a.error // null) != null then unknown("cusage could not measure \($l): \($a.error)")
-    elif $a.measured != true then unknown("cusage has not measured \($l)")
+    if $a == null or ($a.fetched_at | type) != "number" or $a.fetched_at <= 0 then
+      unknown("cusage snapshot has no reading for \($l); \($poller)")
     else
-      [$a.windows[]? |
-        select((.key == "five_hour" or .key == "seven_day") and .reliable != false and
-               (.used_percentage | type) == "number") |
-        {key, usedPercent: (.used_percentage + 0),
-         resetsAt: (if (.resets_at | type) == "number" then (.resets_at | floor | todate) else null end)}] as $w |
-      if ($w | length) == 0 then unknown("cusage has no five_hour or seven_day window for \($l)")
+      ([now - $a.fetched_at, 0] | max) as $age |
+      if $age > 3600 then unknown("cusage snapshot for \($l) is \($age | age) old; \($poller)")
+      elif ($a.error // null) != null then unknown("cusage could not measure \($l): \($a.error)")
+      elif $a.measured != true then unknown("cusage has not measured \($l)")
       else
-        ($w | max_by(.usedPercent)) as $limit |
-        ([[100 - $limit.usedPercent, 0] | max, 100] | min) as $left |
-        {provider: "claude", source: "cusage", account: $l, status: "known",
-         effectivePercentRemaining: $left, limitedBy: $limit.key, windows: $w,
-         summary: "claude \($left)% left, limited by \($limit.key) (\($w | map("\(.key) \(.usedPercent)% used") | join(", ")); cusage account \($l))"}
+        [$a.windows[]? | select(.key == "five_hour" or .key == "seven_day")] as $all |
+        [$all[] | select(current) |
+          {key, usedPercent: (.used_percentage + 0),
+           resetsAt: (if (.resets_at | type) == "number" then (.resets_at | floor | todate) else null end)}] as $w |
+        if ($w | length) == 0 and ($all | length) > 0 then
+          unknown("every five_hour and seven_day window for \($l) has reset since cusage read it \($age | age) ago")
+        elif ($w | length) == 0 then unknown("cusage has no five_hour or seven_day window for \($l)")
+        else
+          ($w | max_by(.usedPercent)) as $limit |
+          ([[100 - $limit.usedPercent, 0] | max, 100] | min) as $left |
+          [$a.windows[]? |
+            select((.key == "seven_day_opus" or .key == "seven_day_sonnet" or (.key | tostring | startswith("limit:"))) and
+                   current and .used_percentage > $limit.usedPercent) |
+            "\(.key) \(.used_percentage + 0)% used"] as $also |
+          {provider: "claude", source: "cusage", account: $l, status: "known",
+           effectivePercentRemaining: $left, limitedBy: $limit.key, windows: $w,
+           summary: ("claude \($left)% left, limited by \($limit.key) (\($w | map("\(.key) \(.usedPercent)% used") | join(", "))" +
+             (if $also == [] then "" else "; also \($also | join(", "))" end) +
+             "; cusage account \($l), as of \($age | age) ago)")}
+        end
       end
-    end' 2>/dev/null || unknown "$label" "cusage -j gave no readable account list (exit $rc)"
+    end' 2>/dev/null || unknown "$label" "cusage -c -j gave no readable account list (exit $rc); $POLLER"
 }
 
 fill() {

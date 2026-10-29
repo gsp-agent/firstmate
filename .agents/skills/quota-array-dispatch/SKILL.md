@@ -26,6 +26,7 @@ Pass it the intake's already-captured default TOON or permitted JSON fallback th
 Pass each candidate as `harness:model`, with earlier candidates preferred.
 The helper's header owns its provider mapping and quota selection mechanics.
 If the helper requests Grok prepaid credit evidence, use this skill's permitted TOON-to-JSON fallback and pass its JSON snapshot back to the helper before selecting.
+When a candidate is Claude and the TOON shows Claude's read withheld as `keychain_prompt_required`, pass the helper the filled JSON that [Read the default TOON](#read-the-default-toon) names, so the helper and the route reason use the same Claude figure.
 This is an optional narrow helper with a known limitation: it maps each harness to one primary provider family only, so a candidate whose established provider differs from that primary family is checked against the wrong quota row.
 omp has no primary family, so the helper keys an `omp:` candidate on its model prefix, mapping only `openai-codex/` and `claude-bridge/` and refusing every other prefix; the helper's header owns that mapping.
 Authoritative multi-provider routing - including provider discovery from the harness catalog and quota matching by that explicit provider - stays owned by this skill's intake procedure above and AGENTS.md section 4, not by the helper.
@@ -41,7 +42,7 @@ Start each intake by running `quota-axi` once with no `--json`, and reuse that T
 Post-consolidation quota-axi (the floor owned by `bin/fm-quota-axi-lib.sh`) puts `spendPriority` in the default `quota[]` block beside `effectivePercentRemaining`, `runway`, `confidence`, `limitedBy`, and `resetsAt`.
 Sparse `exhaustion[]` carries finite-runway seconds only for `projected_exhaustion` and `exhausted_now`.
 Sparse `attention[]` names auth, stale, and unmeasurable facts.
-When `attention[]` shows Claude's read withheld as `keychain_prompt_required`, take Claude's figure from one [`bin/fm-claude-quota.sh`](../../../bin/fm-claude-quota.sh) run instead, which reads the account a Claude worker would launch on with no prompt, and quote its `summary` in the route reason.
+When a candidate is Claude and `attention[]` shows Claude's read withheld as `keychain_prompt_required`, that is an allowed use of the one `--json` read: take it as `quota-axi --json | bin/fm-claude-quota.sh --fill` ([reader](../../../bin/fm-claude-quota.sh)), which fills in Claude's figure for the account a Claude worker would launch on with no prompt, use that filled JSON as the snapshot, and quote its `claudeQuota.summary` in the route reason.
 Never run `quota-axi --allow-keychain-prompt` or answer a Keychain dialog for the captain; an unknown reading is disclosed uncertainty with its cause.
 `spendPriority` is THE quota-perspective ranker.
 It already computes the economics that older instructions reconstructed by hand from headroom, pace, reserve, and window-id lists; do not recompute those.

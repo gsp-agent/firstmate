@@ -182,7 +182,7 @@ test_queue_start_starts_a_template_ship_from_its_note() {
 # quota-axi withholds Claude's Keychain read, so its Claude row is unmeasured;
 # the route reason carries the figure cusage reads for the launch account.
 test_queue_start_records_its_route_and_claude_figure() {
-  local case_dir id out rc=0 meta dale
+  local case_dir id out rc=0 meta dale now
   id=qs-route-a3
   case_dir=$(make_home route)
   dale="$case_dir/user-home/.claude-accounts/dale"
@@ -191,13 +191,14 @@ test_queue_start_records_its_route_and_claude_figure() {
 {"schemaVersion": 5, "providers": [
   {"provider": "claude", "quotaSemantics": {"status": "unknown", "effectiveAvailability": []}}]}
 JSON
-  cat > "$case_dir/cusage.json" <<'JSON'
-{"schema_version": 5, "accounts": [{"label": "dale", "measured": true, "error": null, "windows": [
-  {"key": "five_hour", "used_percentage": 2.0, "resets_at": 1793310000, "reliable": true},
-  {"key": "seven_day", "used_percentage": 22.0, "resets_at": 1793793600, "reliable": true}]}]}
+  now=$(date +%s)
+  cat > "$case_dir/cusage.json" <<JSON
+{"schema_version": 5, "accounts": [{"label": "dale", "measured": true, "error": null, "fetched_at": $((now - 750)), "windows": [
+  {"key": "five_hour", "used_percentage": 2.0, "resets_at": $((now + 18000)), "reliable": true},
+  {"key": "seven_day", "used_percentage": 22.0, "resets_at": $((now + 432000)), "reliable": true}]}]}
 JSON
   printf '#!/usr/bin/env bash\ncat %q\n' "$case_dir/quota.json" > "$case_dir/fakebin/quota-axi"
-  printf '#!/usr/bin/env bash\ncat %q\n' "$case_dir/cusage.json" > "$case_dir/fakebin/cusage"
+  printf '#!/usr/bin/env bash\n[ "$*" = "-c -j" ] || exit 64\ncat %q\n' "$case_dir/cusage.json" > "$case_dir/fakebin/cusage"
   chmod +x "$case_dir/fakebin/quota-axi" "$case_dir/fakebin/cusage"
   add_item "$case_dir" "$id" "$TEMPLATE_NOTE"
 
@@ -205,7 +206,7 @@ JSON
   expect_code 0 "$rc" "a queue start with a keychain-withheld Claude did not start: $out"
   meta="$(home_of "$case_dir")/state/$id.meta"
   assert_line 'harness=claude' "$meta" "the default route's harness was not used"
-  assert_line 'route_reason=default (no label matched); claude 78% left, limited by seven_day (five_hour 2% used, seven_day 22% used; cusage account dale)' "$meta" \
+  assert_line 'route_reason=default (no label matched); claude 78% left, limited by seven_day (five_hour 2% used, seven_day 22% used; cusage account dale, as of 12m ago)' "$meta" \
     "the route reason does not name the measured Claude figure: $(grep '^route_reason=' "$meta")"
   pass "a queue start records its route and the measured Claude figure as its route reason"
 }

@@ -1303,15 +1303,17 @@ CLAUDE_HOME="$TMP_ROOT/claude-home"
 DALE_ROOT="$CLAUDE_HOME/.claude-accounts/dale"
 CUSAGE="$TMP_ROOT/cusage.json"
 mkdir -p "$DALE_ROOT" "$CLAUDE_HOME/elsewhere/dale"
-write_cusage() {  # <dale five_hour used> <dale seven_day used>
+write_cusage() {  # <dale five_hour used> <dale seven_day used> [dale read seconds ago] [dale five_hour resets in seconds]
+  local now
+  now=$(date +%s)
   cat > "$CUSAGE" <<JSON
 {"schema_version": 5, "accounts": [
-  {"label": "faith", "measured": true, "error": null, "windows": [
-    {"key": "five_hour", "used_percentage": 90.0, "resets_at": 1793297400, "reliable": true},
-    {"key": "seven_day", "used_percentage": 95.0, "resets_at": 1793808000, "reliable": true}]},
-  {"label": "dale", "measured": true, "error": null, "windows": [
-    {"key": "five_hour", "used_percentage": $1, "resets_at": 1793310000, "reliable": true},
-    {"key": "seven_day", "used_percentage": $2, "resets_at": 1793793600, "reliable": true},
+  {"label": "faith", "measured": true, "error": null, "fetched_at": $((now - 750)), "windows": [
+    {"key": "five_hour", "used_percentage": 90.0, "resets_at": $((now + 3600)), "reliable": true},
+    {"key": "seven_day", "used_percentage": 95.0, "resets_at": $((now + 432000)), "reliable": true}]},
+  {"label": "dale", "measured": true, "error": null, "fetched_at": $((now - ${3:-750})), "windows": [
+    {"key": "five_hour", "used_percentage": $1, "resets_at": $((now + ${4:-18000})), "reliable": true},
+    {"key": "seven_day", "used_percentage": $2, "resets_at": $((now + 432000)), "reliable": true},
     {"key": "extra_usage", "used_percentage": 100.0, "resets_at": null, "reliable": true}]}]}
 JSON
 }
@@ -1339,26 +1341,41 @@ write_cusage 2.0 22.0
 CUSAGE_FIXTURE=$CUSAGE run_claude "$DALE_ROOT" --labels "pipeline"
 expect_code 0 "$code" "a keychain-withheld Claude route exits 0"
 assert_contains "$out" "status: clear" "a keychain-withheld Claude route is clear"
-assert_contains "$out" "  route: default (no label matched); claude 78% left, limited by seven_day (five_hour 2% used, seven_day 22% used; cusage account dale)" \
+assert_contains "$out" "  route: default (no label matched); claude 78% left, limited by seven_day (five_hour 2% used, seven_day 22% used; cusage account dale, as of 12m ago)" \
   "the route names the measured Claude window and percent for the account it launches on"
 assert_contains "$out" "profile: --harness 'claude' --model 'claude-opus-5-5[1m]' --effort 'xhigh'" "Claude with room keeps the first rung"
 assert_not_contains "$out" "keychain" "the route never reports a keychain prompt"
-assert_equals '-j' "$(cat "$LOG/cusage.calls")" "cusage is read once"
+assert_equals '-c -j' "$(cat "$LOG/cusage.calls")" "cusage's cached snapshot is read once, never fetched"
 assert_equals '--json' "$(cat "$LOG/quota-axi.calls")" "quota-axi is read once, never with --allow-keychain-prompt"
 
 reset_log
 write_cusage 3.0 100.0
 CUSAGE_FIXTURE=$CUSAGE run_claude "$DALE_ROOT" --labels ""
 assert_contains "$out" "profile: --harness 'muse' --model 'muse-wonder-1.0' --effort 'high'" "a Claude account cusage reads as spent is skipped"
-assert_contains "$out" "  route: default (no label matched); claude 0% left, limited by seven_day (five_hour 3% used, seven_day 100% used; cusage account dale); muse quota unknown (unknown)" \
+assert_contains "$out" "  route: default (no label matched); claude 0% left, limited by seven_day (five_hour 3% used, seven_day 100% used; cusage account dale, as of 12m ago); muse quota unknown (unknown)" \
   "the route names the spent Claude figure and the rung it fell to"
+
+reset_log
+write_cusage 100.0 22.0 750 -300
+CUSAGE_FIXTURE=$CUSAGE run_claude "$DALE_ROOT" --labels ""
+assert_contains "$out" "profile: --harness 'claude'" "a spent five_hour window whose reset passed never blocks the Claude rung"
+assert_contains "$out" "  route: default (no label matched); claude 78% left, limited by seven_day (seven_day 22% used; cusage account dale, as of 12m ago)" \
+  "a five_hour window whose reset passed is dropped from the figure"
+
+reset_log
+write_cusage 3.0 100.0 7530
+CUSAGE_FIXTURE=$CUSAGE run_claude "$DALE_ROOT" --labels ""
+expect_code 0 "$code" "a stale Claude read exits 0"
+assert_contains "$out" "profile: --harness 'claude'" "a stale Claude read never blocks the Claude rung"
+assert_contains "$out" "  route: default (no label matched); claude quota unknown: cusage snapshot for dale is 2h5m old; its poller (com.dalecarman.cusage, every 30m) may have stopped" \
+  "a stale Claude read is unknown with its age and poller"
 
 reset_log
 run_claude "$DALE_ROOT" --labels ""
 expect_code 0 "$code" "a Claude read cusage cannot answer exits 0"
 assert_contains "$out" "profile: --harness 'claude'" "an unread Claude quota never blocks the Claude rung"
-assert_contains "$out" "  route: default (no label matched); claude quota unknown: cusage -j gave no readable account list (exit 1)" \
-  "an unread Claude quota is unknown with its cause"
+assert_contains "$out" "  route: default (no label matched); claude quota unknown: cusage -c -j gave no readable account list (exit 1); its poller (com.dalecarman.cusage, every 30m) may have stopped" \
+  "a missing cusage snapshot is unknown with its cause"
 assert_not_contains "$out" "keychain" "an unread Claude quota is not reported as a keychain prompt"
 
 reset_log
