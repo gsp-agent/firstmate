@@ -116,6 +116,9 @@ wait_poll_cycle() {  # <state> <pid> [limit-ticks]
 # but because fm-watch.sh does bounded startup work before its first poll: a
 # tighter budget reaps the process while it is still starting and reports a
 # spurious "did not surface" failure.
+# A negated wait, a TERM-stop wait, and a wait whose watcher has another short
+# exit path (a 1 s stale-escalate or busy-turn timer, a churn deadline) keep
+# their tighter literal, because there a longer bound changes what the case proves.
 wait_numeric_file() {
   local file=$1 limit=${2:-30} i=0 value
   while [ "$i" -lt "$limit" ]; do
