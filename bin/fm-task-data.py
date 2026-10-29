@@ -159,6 +159,13 @@ authorize offload.
 A current unchecked row overrides archived completion. Missing/ambiguous dates,
 live metadata, pending closes, a task folder that is itself a repository and
 repository work in the scratch recovery hold keep the whole task.
+A string counts as a bead reference for offload only when its prefix is a bead
+home this machine knows, with an id after that prefix; anything else the bead
+pattern catches is ordinary text and does not hold the task, and an id whose
+known home cannot be read is the only bead hold. A task with no close date of
+its own takes the date from its own cleanup record or the nearest parent
+task's backlog row; only a task with no such record at all is kept for a
+missing date.
 Date-only completion waits through seven complete local calendar days.
 Small text and root brief/report files stay. Referenced directories or larger
 files may move, but symlink and hardlink evidence stays pending alias ownership.
@@ -1137,6 +1144,16 @@ OFFLOAD_ROOT = "/Volumes/MINI-DATA/firstmate-task-evidence"
 OFFLOAD_POINTER = "firstmate-task-evidence-v1"
 
 
+def offload_closed_date(candidates):
+    """Return the one definite close date in a task's backlog rows, or None."""
+    if any(row[1] is None for row in candidates):
+        return None
+    candidates = [row for row in candidates if row[0]] or candidates
+    if not candidates or any(not row[1] for row in candidates):
+        return None
+    return max(row[1] for row in candidates)
+
+
 def offload_closed(data, state, task_id, rows):
     if not TASK_ID.fullmatch(task_id):
         raise ValueError("invalid task id")
@@ -1147,14 +1164,32 @@ def offload_closed(data, state, task_id, rows):
     candidates = rows.get(task_id, [])
     if any(row[1] is None for row in candidates):
         raise ValueError("task still has an open or in-progress backlog row")
-    candidates = [row for row in candidates if row[0]] or candidates
-    if not candidates or any(not row[1] for row in candidates):
+    closed = offload_closed_date(candidates)
+    row = "\n".join(item[3] for item in candidates if item[1] == closed)
+    if closed is None:
+        # An ended task with no close date of its own takes the date from the
+        # authoritative record of its end: its own cleanup record, or the
+        # nearest parent task's backlog row.
+        receipt = data / task_id / RECEIPT
+        try:
+            record = json.loads(receipt.read_text())
+            if (isinstance(record, dict) and record.get("version") == 1
+                    and record.get("task") == task_id and receipt.is_file() and not receipt.is_symlink()):
+                closed = date.fromtimestamp(receipt.stat().st_mtime).isoformat()
+        except (OSError, ValueError):
+            closed = None
+        parent = task_id
+        while closed is None and "-" in parent:
+            parent = parent.rsplit("-", 1)[0]
+            closed = offload_closed_date(rows.get(parent, []))
+            if closed is not None:
+                row = "\n".join(item[3] for item in rows[parent] if item[1] == closed)
+    if closed is None:
         raise ValueError("closed date is missing or ambiguous")
-    closed = max(row[1] for row in candidates)
     # Dates have no time of day: wait through the whole seventh local day.
     if date.today() <= date.fromisoformat(closed) + timedelta(days=7):
         raise ValueError("task has not been closed for seven complete days")
-    return closed, "\n".join(row[3] for row in candidates if row[1] == closed)
+    return closed, row
 
 
 def offload_bead_text(bead, locations, cache):
@@ -1162,7 +1197,9 @@ def offload_bead_text(bead, locations, cache):
         return cache[bead]
     owners = [(prefix, home) for home, prefix in locations if bead.startswith(prefix + "-")]
     if not owners:
-        raise ValueError(f"unresolved bead owner: {bead}")
+        # A bead-like string whose prefix is no bead home this machine knows,
+        # with an id after it, is ordinary text, not a bead reference.
+        return ""
     _, home = max(owners, key=lambda item: len(item[0]))
     path = Path.home() / home / ".beads/beads.db"
     try:

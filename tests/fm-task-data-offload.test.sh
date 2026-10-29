@@ -676,6 +676,44 @@ def check_borrowing_repository_kept():
     assert snapshot(clone) == before
     git("-C", clone, "log", "-1", "--format=%s")
 
+def check_unknown_bead_text_ignored():
+    home = fixture("bead-ordinary-text")
+    (home / "data/task-one/report.md").write_text(
+        "Evidence: [build](build/). Bead: be-still and Bead: .agent-config and Beads: no-mistakes\n")
+    plan = run(home, "offload-plan")
+    assert [item["path"] for item in plan["moves"]] == ["build"], plan
+    run(home, "offload")
+    assert (home / "Trash/build/evidence.bin").is_file()
+
+def check_added_bead_homes_resolve():
+    home = fixture("bead-added-homes")
+    database = home / "user/dev/PfizerOutDoCancerV3/.beads/beads.db"
+    database.parent.mkdir(parents=True)
+    with sqlite3.connect(database) as db:
+        db.execute("CREATE TABLE issues(id TEXT, description TEXT)")
+        db.execute("CREATE TABLE comments(issue_id TEXT, text TEXT)")
+        db.execute("INSERT INTO issues VALUES (?, ?)", ("pfizer-fixture", "Report archived."))
+        db.execute("INSERT INTO comments VALUES (?, ?)", ("pfizer-fixture", "Evidence: [build](build/)."))
+    (home / "data/task-one/report.md").write_text("Evidence: none. Bead: pfizer-fixture\n")
+    assert [item["path"] for item in run(home, "offload-plan")["moves"]] == ["build"]
+
+def check_sub_attempt_uses_parent_date():
+    home = fixture("sub-attempt-date")
+    sub = home / "data/task-one-sub"
+    (sub / "build").mkdir(parents=True)
+    (sub / "build/evidence.bin").write_bytes(b"original-evidence" * 256)
+    (sub / "report.md").write_text("Evidence: [build](build/).\n")
+    plan = run(home, "offload-plan", task=("task-one-sub",))
+    assert [(item["task"], item["path"]) for item in plan["moves"]] == [("task-one-sub", "build")], plan
+    run(home, "offload", task=("task-one-sub",))
+    assert (home / "Trash/build/evidence.bin").is_file()
+    lonely = home / "data/lonely-task"
+    (lonely / "build").mkdir(parents=True)
+    (lonely / "build/evidence.bin").write_bytes(b"original-evidence" * 256)
+    (lonely / "report.md").write_text("Evidence: [build](build/).\n")
+    plan = run(home, "offload-plan", task=("lonely-task",))
+    assert plan["moves"] == [] and plan["retained"], plan
+
 def check_outside_links_carried():
     home, clone = repo_fixture("repo-outside-links")
     (home / "user/shared.bin").write_bytes(b"shared by a hard link")
@@ -719,7 +757,10 @@ regressions.extend([("verified existing payload is reused", check_verified_reuse
                     ("a by-hand offload waits for the offload another run holds", check_offloads_take_one_lock),
                     ("a reopened task's journaled archive copy is still removed", check_reopened_task_leftover_removed),
                     ("a separated git directory stays while a bare one is archived", check_separated_git_dir_kept),
-                    ("a repository borrowing objects from outside its unit stays", check_borrowing_repository_kept)])
+                    ("a repository borrowing objects from outside its unit stays", check_borrowing_repository_kept),
+                    ("bead-like ordinary text does not hold a task", check_unknown_bead_text_ignored),
+                    ("newly mapped bead homes resolve", check_added_bead_homes_resolve),
+                    ("a sub-attempt takes its parent task's close date", check_sub_attempt_uses_parent_date)])
 if sys.platform == "darwin":
     regressions.extend([("a repository archive keeps resource forks and other extended attributes",
                          check_archive_keeps_extended_attributes),
@@ -858,15 +899,21 @@ for locator in ("report", "row", "saved"):
         assert (home / "data/task-one/unrelated/keep.bin").read_bytes() == b"must stay"
 print("PASS: report/row/saved-source bead IDs resolve local bead comments, while saved-source prose is not move authority", flush=True)
 
-for bead in (".agent-config-unread", "unknown-prefix"):
-    home = fixture("unresolved-" + bead)
-    (home / "data/task-one/report.md").write_text(f"Evidence: [build](build/). Bead: {bead}\n")
-    plan = run(home, "offload-plan")
-    assert plan["moves"] == [] and plan["retained"]
-    run(home, "offload", ok=False)
-    assert (home / "data/task-one/build/evidence.bin").is_file()
-    assert not (home / "calls").exists()
-print("PASS: unread or unknown named bead sources retain the original without remote calls", flush=True)
+home = fixture("unresolved-.agent-config-unread")
+(home / "data/task-one/report.md").write_text("Evidence: [build](build/). Bead: .agent-config-unread\n")
+plan = run(home, "offload-plan")
+assert plan["moves"] == [] and plan["retained"]
+run(home, "offload", ok=False)
+assert (home / "data/task-one/build/evidence.bin").is_file()
+assert not (home / "calls").exists()
+print("PASS: an unread bead source with a known home retains the original without remote calls", flush=True)
+
+home = fixture("unresolved-unknown-prefix")
+(home / "data/task-one/report.md").write_text("Evidence: [build](build/). Bead: unknown-prefix\n")
+assert [item["path"] for item in run(home, "offload-plan")["moves"]] == ["build"]
+run(home, "offload")
+assert (home / "Trash/build/evidence.bin").is_file()
+print("PASS: a bead-like string with no known home is ordinary text and does not hold the task", flush=True)
 PY
 test_pid=$!
 wait "$test_pid"

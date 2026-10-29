@@ -261,6 +261,9 @@ fm_task_data_bead_locations() {
 dev/be-still bd
 dev/carman-compound carmanco
 dev/pfizer-clickless clickless
+dev/PfizerOutDoCancerV3 pfizer
+dev/_archived/groove-flow gflow
+dev/claude-usage cusage
 dev/dale dale
 dev/gj-tool gj
 dev/gj-gitlab-config gj-gitlab-config
