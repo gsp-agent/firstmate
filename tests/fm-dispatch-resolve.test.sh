@@ -150,8 +150,18 @@ cat "${QUOTA_AXI_FIXTURE:?}"
 SH
 chmod +x "$FAKEBIN/quota-axi"
 
+# A fake cusage, so no case reads the real one: with no CUSAGE_FIXTURE it
+# answers like a cusage that could read nothing.
+cat > "$FAKEBIN/cusage" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "${CUSAGE_CALLS:?}"
+[ -n "${CUSAGE_FIXTURE:-}" ] || exit 1
+cat "$CUSAGE_FIXTURE"
+SH
+chmod +x "$FAKEBIN/cusage"
+
 RESPONSE="$TMP_ROOT/response.json"
-export FAKE_CURL_LOG="$LOG" FAKE_CURL_RESPONSE="$RESPONSE" QUOTA_AXI_CALLS="$LOG/quota-axi.calls" QUOTA_AXI_FIXTURE="$QUOTA" CHILD_ENV_LOG="$LOG/child-env"
+export FAKE_CURL_LOG="$LOG" FAKE_CURL_RESPONSE="$RESPONSE" QUOTA_AXI_CALLS="$LOG/quota-axi.calls" QUOTA_AXI_FIXTURE="$QUOTA" CHILD_ENV_LOG="$LOG/child-env" CUSAGE_CALLS="$LOG/cusage.calls"
 
 reset_log() {
   rm -rf "$LOG"
@@ -1284,5 +1294,97 @@ assert_contains "$out" "profile: --harness 'claude'" "replay: an unlabelled bead
 cp "$BASE_RULES" "$RULES"
 write_quota "$QUOTA" 0.7597
 pass "an exhausted label route falls through the default walk, and ep-opus escalates"
+
+# ---- Claude's quota behind the Keychain is read from cusage, never prompted ------
+# quota-axi 0.1.61 withholds Claude's Keychain read and reports only an
+# attention row, so its --json Claude row is unmeasured; cusage reads the
+# account a Claude worker launches on (CLAUDE_CONFIG_DIR) with no prompt.
+CLAUDE_HOME="$TMP_ROOT/claude-home"
+DALE_ROOT="$CLAUDE_HOME/.claude-accounts/dale"
+CUSAGE="$TMP_ROOT/cusage.json"
+mkdir -p "$DALE_ROOT" "$CLAUDE_HOME/elsewhere/dale"
+write_cusage() {  # <dale five_hour used> <dale seven_day used>
+  cat > "$CUSAGE" <<JSON
+{"schema_version": 5, "accounts": [
+  {"label": "faith", "measured": true, "error": null, "windows": [
+    {"key": "five_hour", "used_percentage": 90.0, "resets_at": 1793297400, "reliable": true},
+    {"key": "seven_day", "used_percentage": 95.0, "resets_at": 1793808000, "reliable": true}]},
+  {"label": "dale", "measured": true, "error": null, "windows": [
+    {"key": "five_hour", "used_percentage": $1, "resets_at": 1793310000, "reliable": true},
+    {"key": "seven_day", "used_percentage": $2, "resets_at": 1793793600, "reliable": true},
+    {"key": "extra_usage", "used_percentage": 100.0, "resets_at": null, "reliable": true}]}]}
+JSON
+}
+cat > "$QUOTA" <<'JSON'
+{
+  "schemaVersion": 5,
+  "generatedAt": "2026-10-29T17:21:14.309Z",
+  "providers": [
+    {"provider":"claude","state":{"status":"unknown"},"quotaSemantics":{"status":"unknown","effectiveAvailability":[]}},
+    {"provider":"codex","quotaSemantics":{"status":"known","effectiveAvailability":[{"scope":"all_models","status":"known","effectivePercentRemaining":77,"runway":{"status":"projected_exhaustion"},"selection":{"spendPriority":-1.3279}}]}},
+    {"provider":"grok","credits":{"remaining":2000,"unit":"credits"},"quotaSemantics":{"status":"known","effectiveAvailability":[{"scope":"all_products","status":"known","effectivePercentRemaining":95,"runway":{"status":"through_reset"},"selection":{"spendPriority":1.1744}}]}},
+    {"provider":"muse","quotaSemantics":{"status":"unknown","effectiveAvailability":[]}}
+  ]
+}
+JSON
+printf '%s\n' '{"default":[{"harness":"claude","model":"claude-opus-5-5[1m]","effort":"xhigh"},{"harness":"muse","model":"muse-wonder-1.0","effort":"high"},{"harness":"grok","model":"grok-4.7","effort":"xhigh"}]}' > "$RULES"
+run_claude() {  # <claude config dir> <args...>
+  local dir=$1
+  shift
+  HOME="$CLAUDE_HOME" CLAUDE_CONFIG_DIR="$dir" run code out err "$@"
+}
+
+reset_log
+write_cusage 2.0 22.0
+CUSAGE_FIXTURE=$CUSAGE run_claude "$DALE_ROOT" --labels "pipeline"
+expect_code 0 "$code" "a keychain-withheld Claude route exits 0"
+assert_contains "$out" "status: clear" "a keychain-withheld Claude route is clear"
+assert_contains "$out" "  route: default (no label matched); claude 78% left, limited by seven_day (five_hour 2% used, seven_day 22% used; cusage account dale)" \
+  "the route names the measured Claude window and percent for the account it launches on"
+assert_contains "$out" "profile: --harness 'claude' --model 'claude-opus-5-5[1m]' --effort 'xhigh'" "Claude with room keeps the first rung"
+assert_not_contains "$out" "keychain" "the route never reports a keychain prompt"
+assert_equals '-j' "$(cat "$LOG/cusage.calls")" "cusage is read once"
+assert_equals '--json' "$(cat "$LOG/quota-axi.calls")" "quota-axi is read once, never with --allow-keychain-prompt"
+
+reset_log
+write_cusage 3.0 100.0
+CUSAGE_FIXTURE=$CUSAGE run_claude "$DALE_ROOT" --labels ""
+assert_contains "$out" "profile: --harness 'muse' --model 'muse-wonder-1.0' --effort 'high'" "a Claude account cusage reads as spent is skipped"
+assert_contains "$out" "  route: default (no label matched); claude 0% left, limited by seven_day (five_hour 3% used, seven_day 100% used; cusage account dale); muse quota unknown (unknown)" \
+  "the route names the spent Claude figure and the rung it fell to"
+
+reset_log
+run_claude "$DALE_ROOT" --labels ""
+expect_code 0 "$code" "a Claude read cusage cannot answer exits 0"
+assert_contains "$out" "profile: --harness 'claude'" "an unread Claude quota never blocks the Claude rung"
+assert_contains "$out" "  route: default (no label matched); claude quota unknown: cusage -j gave no readable account list (exit 1)" \
+  "an unread Claude quota is unknown with its cause"
+assert_not_contains "$out" "keychain" "an unread Claude quota is not reported as a keychain prompt"
+
+reset_log
+CUSAGE_FIXTURE=$CUSAGE run_claude "$CLAUDE_HOME/elsewhere/dale" --labels ""
+assert_contains "$out" "profile: --harness 'claude'" "an account outside cusage keeps the Claude rung"
+assert_contains "$out" "claude quota unknown: Claude workers launch on $CLAUDE_HOME/elsewhere/dale, which is not a cusage account" \
+  "an account outside cusage is unknown with its cause"
+assert_absent "$LOG/cusage.calls" "cusage is not read for an account it does not hold"
+
+reset_log
+write_cusage 2.0 22.0
+jq '(.providers[] | select(.provider == "claude")) |= (.quotaSemantics = {status: "known", effectiveAvailability: [{scope: "all_models", status: "known", effectivePercentRemaining: 64, runway: {status: "through_reset"}, selection: {spendPriority: 0.2}}]})' "$QUOTA" > "$QUOTA.measured"
+QUOTA_AXI_FIXTURE="$QUOTA.measured" CUSAGE_FIXTURE=$CUSAGE run_claude "$DALE_ROOT" --labels ""
+assert_contains "$out" "  route: default (no label matched); claude 64% left at all_models" "a Claude row quota-axi measured itself is kept"
+assert_absent "$LOG/cusage.calls" "cusage is not read when quota-axi measured Claude"
+
+reset_log
+write_cusage 2.0 22.0
+cp "$BASE_RULES" "$RULES"
+write_response "$RESPONSE" rule_4 0.9
+TYPESAFE_API_KEY=$KEY CUSAGE_FIXTURE=$CUSAGE run_claude "$DALE_ROOT" "$BRIEF" --project pager
+expect_code 0 "$code" "brief mode with a keychain-withheld Claude exits 0"
+assert_contains "$out" "candidate: claude:sonnet  provider=claude  scope=all_models  remaining=78%" "brief mode shows the measured Claude figure"
+assert_not_contains "$out" "provider claude unmeasured" "brief mode no longer reads Claude as unmeasured"
+
+write_quota "$QUOTA" 0.7597
+pass "a keychain-withheld Claude quota reads cusage with no prompt, or reports unknown with its cause and keeps the rung"
 
 printf '# all fm-dispatch-resolve tests passed\n'
