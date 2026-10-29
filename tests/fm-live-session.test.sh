@@ -234,33 +234,6 @@ assert_not_launched() {  # <case-dir> <project-dir> <id> <worktrees-before>
 
 # --- cases ------------------------------------------------------------------
 
-test_headroom_reading_defers_with_the_shared_exit_status() {
-  local case_dir id=headroom-contender lock kind out rc STATE FM_HOME
-  local -a args
-  case_dir=$(make_case headroom-exit "$id")
-  STATE="$case_dir/home/state"
-  FM_HOME="$case_dir/home"
-  . "$ROOT/bin/fm-wake-lib.sh"
-  lock=$(fm_task_set_lock_path "$STATE") || fail "could not resolve the task-set lock"
-  fm_lock_try_acquire "$lock" || fail "could not hold the task set for the headroom fixture"
-  fm_lock_set_role "$lock" task-spawn-reading || fail "could not mark the headroom reading"
-  for kind in ship scout batch-ship batch-scout; do
-    args=("$id" "$case_dir/project")
-    case "$kind" in batch-*) args=("$id=$case_dir/project") ;; esac
-    case "$kind" in
-      *scout) args+=(--scout) ;;
-      *) args+=(--mode no-mistakes --yolo off) ;;
-    esac
-    rc=0
-    out=$(run_spawn "$case_dir" "$case_dir/unused" 0 '' "${args[@]}") || rc=$?
-    expect_code "$DEFER_EXIT" "$rc" "a $kind contending with a headroom reading did not defer: $out"
-    assert_contains "$out" 'headroom reading' "the $kind deferral omitted its cause"
-    assert_absent "$STATE/$id.meta" "a headroom-reading deferral published a task record"
-  done
-  fm_lock_release "$lock"
-  pass "headroom-reading contention exits 75 for ships, scouts, and batch entries"
-}
-
 test_late_refusal_closes_new_endpoints_and_allows_retry() {
   local case_dir id kind code wt out rc line
   local -a args
@@ -349,8 +322,7 @@ test_already_stopped_control_refusal_restores_instructions() {
 
 test_refusal_regressions() {
   local test failed=
-  for test in test_headroom_reading_defers_with_the_shared_exit_status \
-    test_late_refusal_closes_new_endpoints_and_allows_retry \
+  for test in test_late_refusal_closes_new_endpoints_and_allows_retry \
     test_already_stopped_control_refusal_restores_instructions; do
     ("$test") || failed="$failed $test"
   done

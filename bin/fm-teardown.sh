@@ -2834,7 +2834,9 @@ collect_descendant_task_locks() {
   # this a fresh spawn could publish a record into the gap and be mutated
   # without ever having been lifecycle-locked (bin/fm-wake-lib.sh's
   # fm_task_set_lock_path owns why). Taken per home, parent before child, and
-  # held until this teardown exits.
+  # held until this teardown exits. The fresh epoch, written before the set is
+  # read, tells a spawn that was already starting in this home that its home
+  # was taken, so it defers at publication instead of publishing afterwards.
   task_set_lock=$(fm_task_set_lock_path "$sub_state") || {
     echo "REFUSED: secondmate home $home has an invalid task-set lock path; forced teardown changed nothing" >&2
     return 1
@@ -2849,6 +2851,10 @@ collect_descendant_task_locks() {
     return 1
   fi
   DESCENDANT_LOCK_PATHS+=("$task_set_lock")
+  if ! fm_task_set_epoch_new "$sub_state"; then
+    echo "REFUSED: secondmate home $home could not mark its task set as taken; forced teardown changed nothing" >&2
+    return 1
+  fi
   child_ids=()
   for child_meta in "$sub_state"/*.meta; do
     [ -e "$child_meta" ] || continue
@@ -2889,7 +2895,8 @@ preflight_descendant_task_locks() {
   # parent-before-child preorder, sorted by id within each home, each control
   # lock before its matching metadata lock. No child lock holder ever reaches
   # back for a parent lock. bin/fm-spawn.sh takes the same task-set lock before
-  # its own per-task locks when it publishes a fresh record.
+  # its metadata lock when it publishes a fresh record, with a single try,
+  # since it already holds its own spawn and project locks then.
   for ((i=0; i < ${#DESCENDANT_TASK_IDS[@]}; i++)); do
     state=${DESCENDANT_TASK_STATES[$i]}
     task_id=${DESCENDANT_TASK_IDS[$i]}

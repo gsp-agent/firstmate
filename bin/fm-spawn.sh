@@ -234,14 +234,20 @@
 #   focus-sensitive presentation mutation.
 #   Every single-task invocation holds one task-id-scoped lock across backend
 #   creation through metadata publication, so concurrent same-id spawns serialize
-#   even when they select different backends. A fresh spawn first takes the
-#   per-home task-set lock and keeps it through publication, including during a
-#   headroom reading, so forced teardown cannot remove its state mid-spawn.
-#   While the holder records role task-spawn-reading, a competing fresh spawn
-#   prints `deferred:`, exits 75, and leaves its backlog item queued; this also
-#   applies to scouts and batch entries. Other task-set contention refuses with
-#   exit 1, naming the recorded holder role when known. --relaunch is exempt
-#   because the existing task's control lock covers it.
+#   even when they select different backends. A fresh ship or scout reads its
+#   home's task-set epoch when it starts and takes the per-home task-set lock
+#   only across publishing its record, so spawns in one home start side by side
+#   instead of queueing behind each other's slow start. Under that hold it
+#   publishes only while the epoch is unchanged, so a forced teardown that took
+#   the home's set at any moment since the spawn started is never missed, and
+#   it rechecks the away spend cap and the machine total against the records
+#   its home published meanwhile. A fresh secondmate, which may launch a remote
+#   home before it publishes, keeps the lock from its start through
+#   publication. Every task-set contention, at the start or at publication,
+#   prints `deferred:` naming the holder, closes any endpoint it opened, exits
+#   75, and leaves its backlog item queued; this also applies to scouts and
+#   batch entries. --relaunch is exempt because the existing task's control
+#   lock covers it.
 #   From the moment the launch file is staged, HUP, INT and TERM are deferred
 #   to the backlog commit: a worker may already be running, so an interrupted
 #   spawn still moves its item In flight, or reports what it could verify. A
@@ -2262,7 +2268,7 @@ fi
 if [ "$RELAUNCH" -ne 1 ]; then
   fm_lease_forbid_branch "new-task spawn (fm-spawn)" --away-relocated
 fi
-spawn_refuse_if_away_spend_cap() {
+spawn_refuse_if_away_spend_cap() {  # [publication]
   local cap live meta
   [ "$RELAUNCH" -ne 1 ] || return 0
   [ "$KIND" != secondmate ] || return 0
@@ -2279,10 +2285,13 @@ spawn_refuse_if_away_spend_cap() {
     [ "$(grep '^kind=' "$meta" 2>/dev/null | tail -1 | cut -d= -f2-)" != secondmate ] || continue
     live=$((live + 1))
   done
-  if [ "$live" -ge "$cap" ]; then
-    echo "error: spawn refused - the away-posture record caps concurrent workers at $cap and $live ordinary task(s) are live in this home; task $ID stays queued for the captain's return or for a worker to finish (spend cap: bin/fm-afk-contract.sh)" >&2
-    exit 1
+  [ "$live" -ge "$cap" ] || return 0
+  if [ "${1:-}" = publication ]; then
+    echo "deferred: the away-posture record caps concurrent workers at $cap and $live ordinary task(s) are live in this home, one of them published while task $ID was starting; task $ID was not launched and its backlog item stays queued for the captain's return or for a worker to finish (spend cap: bin/fm-afk-contract.sh)" >&2
+    exit "$SPAWN_DEFER_EXIT"
   fi
+  echo "error: spawn refused - the away-posture record caps concurrent workers at $cap and $live ordinary task(s) are live in this home; task $ID stays queued for the captain's return or for a worker to finish (spend cap: bin/fm-afk-contract.sh)" >&2
+  exit 1
 }
 # Spend cap (bin/fm-afk-contract.sh's spend_max_concurrent_workers): while an
 # away record exists (never a quiet-mode one, whose captain is present and
@@ -2292,8 +2301,9 @@ spawn_refuse_if_away_spend_cap() {
 # (every state/*.meta whose kind is not secondmate). A relaunch replaces a
 # worker that already counts, and a secondmate is a persistent home rather than
 # spend, so both are exempt. Checked before any endpoint, worktree, or record
-# exists, so a refusal costs nothing to unwind; rechecked after the task-set
-# lock so two fresh spawns cannot both publish from a stale count.
+# exists, so a refusal costs nothing to unwind; rechecked under the task-set
+# lock at publication so two fresh spawns cannot both publish from a stale
+# count, where losing that race defers with 75 and unwinds what was created.
 spawn_refuse_if_away_spend_cap
 spawn_require_relocated_queued_work() {
   local actor
@@ -2327,6 +2337,60 @@ if [ "$RELAUNCH" -eq 1 ]; then
     exit 1
   fi
 fi
+# A FRESH spawn changes which tasks this home has, so it must not interleave
+# with a forced teardown that has already enumerated that set: a record
+# published inside the enumerate-then-remove window is invisible to the
+# teardown's per-task preflight but visible to its cleanup, and gets mutated
+# while never lifecycle-locked (bin/fm-wake-lib.sh's fm_task_set_lock_path
+# owns the evidence and the epoch; bin/fm-teardown.sh holds the same lock from
+# enumeration through cleanup).
+#
+# A relaunch is exempt: it republishes a task that already exists, so it is
+# already covered by that task's control lock, which the teardown preflight
+# tests.
+#
+# One try, never a wait: a held lock defers with 75 naming the recorded holder.
+# Nothing is launched yet, the abort cleanup closes any endpoint this spawn
+# opened, and the backlog item stays queued for the next dispatch. A ship or
+# scout takes it while already holding its own task and project locks; the
+# single try is what keeps that from closing a cycle with a teardown that
+# holds the set and tries the project lock.
+spawn_take_task_set() {
+  local holder
+  if ! fm_lock_try_acquire "$SPAWN_TASK_SET_LOCK"; then
+    case "$(fm_lock_role "$SPAWN_TASK_SET_LOCK" 2>/dev/null || true)" in
+      task-spawn) holder="another spawn" ;;
+      forced-teardown) holder="a forced teardown" ;;
+      *) holder="another operation" ;;
+    esac
+    echo "deferred: this home's task set is locked by $holder; task $ID was not launched and its backlog item stays queued - start it again once that holder finishes" >&2
+    exit "$SPAWN_DEFER_EXIT"
+  fi
+  SPAWN_TASK_SET_LOCK_HELD=1
+  if ! fm_lock_set_role "$SPAWN_TASK_SET_LOCK" task-spawn; then
+    echo "deferred: could not record task-set lock holder for spawn of $ID; task $ID was not launched and its backlog item stays queued" >&2
+    exit "$SPAWN_DEFER_EXIT"
+  fi
+}
+
+# A ship or scout's publication hold, taken just before its record is
+# published and released right after (the release below the publication). It
+# publishes only while the epoch read at its start is unchanged: a changed or
+# missing epoch means a forced teardown took this home's set since then, and
+# may have removed the home. Under the same hold it rechecks the two counts
+# that other spawns in this home can have changed meanwhile.
+spawn_publish_task_set() {
+  [ "$RELAUNCH" -eq 0 ] && [ "$SPAWN_TASK_SET_LOCK_HELD" != 1 ] || return 0
+  spawn_take_task_set
+  if [ "$(fm_task_set_epoch_current "$STATE")" != "$SPAWN_TASK_SET_EPOCH" ]; then
+    echo "deferred: a forced teardown took this home's task set while task $ID was starting; task $ID was not launched and its backlog item stays queued - start it again if its home is still wanted" >&2
+    exit "$SPAWN_DEFER_EXIT"
+  fi
+  spawn_refuse_if_away_spend_cap publication
+  spawn_recheck_machine_total
+}
+
+SPAWN_TASK_SET_EPOCH=
 if [ "$RELAUNCH" -eq 0 ]; then
   mkdir -p "$STATE" || {
     echo "error: could not create parent state directory" >&2
@@ -2336,50 +2400,30 @@ if [ "$RELAUNCH" -eq 0 ]; then
     echo "error: spawn refused: $FM_BACKLOG_TRANSITION_ERROR" >&2
     exit 1
   }
-  # A FRESH spawn changes which tasks this home has, so it must not interleave
-  # with a forced teardown that has already enumerated that set: a record
-  # published inside the enumerate-then-remove window is invisible to the
-  # teardown's per-task preflight but visible to its cleanup, and gets mutated
-  # while never lifecycle-locked (bin/fm-wake-lib.sh's fm_task_set_lock_path
-  # owns the evidence; bin/fm-teardown.sh holds the same lock from enumeration
-  # through cleanup). Taken before this task's own locks, matching the
-  # acquisition order documented there, and held through publication.
-  #
-  # A relaunch is exempt: it republishes a task that already exists, so it is
-  # already covered by that task's control lock, which the teardown preflight
-  # tests.
-  #
-  # Refusing rather than waiting is the fail-closed direction: the home may be
-  # moments from removal, so there is nothing worth waiting for.
   SPAWN_TASK_SET_LOCK=$(fm_task_set_lock_path "$STATE") || {
     echo "error: could not resolve the task-set lock for $STATE" >&2
     exit 1
   }
-  if ! fm_lock_try_acquire "$SPAWN_TASK_SET_LOCK"; then
-    case "$(fm_lock_role "$SPAWN_TASK_SET_LOCK" 2>/dev/null || true)" in
-      task-spawn-reading)
-        echo "deferred: this home's task set is held by a spawn running a headroom reading; task $ID was not launched and its backlog item stays queued" >&2
-        exit "$SPAWN_DEFER_EXIT"
-        ;;
-      task-spawn)
-        echo "error: this home's task set is locked by another spawn; refusing to create task $ID rather than racing it" >&2
-        ;;
-      forced-teardown)
-        echo "error: this home's task set is locked by a forced teardown; refusing to create task $ID rather than racing it" >&2
-        ;;
-      *)
-        echo "error: this home's task set is locked by another operation; refusing to create task $ID rather than racing it" >&2
-        ;;
-    esac
-    exit 1
+  if [ "$KIND" = secondmate ]; then
+    # A secondmate keeps the set from here through publication: the remote
+    # path launches its home before it publishes, so a deferral there could
+    # not be unwound. Taken before this task's own locks, matching the
+    # acquisition order bin/fm-teardown.sh documents. Secondmates are rare, so
+    # the long hold costs other spawns little.
+    spawn_take_task_set
+  else
+    # The epoch is read first, so a teardown whose epoch this spawn missed has
+    # already recorded its role on the lock read next.
+    SPAWN_TASK_SET_EPOCH=$(fm_task_set_epoch_read "$STATE") || {
+      echo "error: could not read the task-set epoch in $STATE" >&2
+      exit 1
+    }
+    if [ "$(fm_lock_role "$SPAWN_TASK_SET_LOCK" 2>/dev/null || true)" = forced-teardown ] &&
+      fm_pid_alive "$(cat "$SPAWN_TASK_SET_LOCK/pid" 2>/dev/null || true)"; then
+      echo "deferred: this home's task set is locked by a forced teardown; task $ID was not launched and its backlog item stays queued - start it again once that holder finishes" >&2
+      exit "$SPAWN_DEFER_EXIT"
+    fi
   fi
-  if ! fm_lock_set_role "$SPAWN_TASK_SET_LOCK" task-spawn; then
-    fm_lock_release "$SPAWN_TASK_SET_LOCK" || true
-    echo "error: could not record task-set lock holder for spawn of $ID" >&2
-    exit 1
-  fi
-  SPAWN_TASK_SET_LOCK_HELD=1
-  spawn_refuse_if_away_spend_cap
   spawn_require_relocated_queued_work
 fi
 if [ "$KIND" = secondmate ]; then
@@ -4209,6 +4253,50 @@ spawn_machine_total_defer() {
   exit "$SPAWN_DEFER_EXIT"
 }
 
+# This home's ordinary task records, one id per line, for the machine-total
+# recheck below.
+spawn_home_worker_ids() {
+  local meta id
+  for meta in "$STATE"/*.meta; do
+    [ -f "$meta" ] && [ ! -L "$meta" ] || continue
+    [ "$(fm_meta_get "$meta" kind)" != secondmate ] || continue
+    id=${meta##*/}
+    id=${id%.meta}
+    [ "$id" = "$ID" ] || printf '%s\n' "$id"
+  done
+}
+
+# The admission count, noting first which ordinary records this home held, so
+# a record published during the walk is counted again at publication rather
+# than missed.
+SPAWN_HOME_WORKERS_COUNTED=
+spawn_count_occupants() {
+  [ -z "$SPAWN_MACHINE_CAPACITY" ] || SPAWN_HOME_WORKERS_COUNTED=$'\n'"$(spawn_home_worker_ids)"$'\n'
+  fm_project_capacity_occupants "$SPAWN_TREEHOUSE_PROJECT_LOCK" "$PROJ_ABS" "$STATE" "$ID"
+}
+
+# The machine total within this home, at publication. Spawns for different
+# projects hold different project locks, so another spawn in this home may
+# have published since admission counted; each ordinary record this home holds
+# now and did not hold then takes one more place. Two homes starting in the
+# same moment can still each pass, as bin/fm-project-capacity-lib.sh says.
+spawn_recheck_machine_total() {
+  local id ids='' new=0
+  [ -n "$SPAWN_MACHINE_CAPACITY" ] || return 0
+  while IFS= read -r id; do
+    [ -n "$id" ] || continue
+    case "$SPAWN_HOME_WORKERS_COUNTED" in *$'\n'"$id"$'\n'*) continue ;; esac
+    new=$((new + 1))
+    ids="${ids:+$ids, }$id"
+  done <<EOF
+$(spawn_home_worker_ids)
+EOF
+  [ "$new" -gt 0 ] || return 0
+  FM_PROJECT_CAPACITY_TOTAL_OCCUPANTS=$((FM_PROJECT_CAPACITY_TOTAL_OCCUPANTS + new))
+  FM_PROJECT_CAPACITY_TOTAL_OCCUPANT_IDS="${FM_PROJECT_CAPACITY_TOTAL_OCCUPANT_IDS:+$FM_PROJECT_CAPACITY_TOTAL_OCCUPANT_IDS, }$ids"
+  spawn_machine_total_defer
+}
+
 # Project capacity admission (bin/fm-project-capacity-lib.sh owns the
 # declaration, what holds a place, the optional headroom command, and why this
 # is race-safe). A fresh worker for a project whose declared capacity is
@@ -4265,7 +4353,7 @@ if [ "$KIND" != secondmate ] &&
   fi
 fi
 if [ -n "$SPAWN_PROJECT_CAPACITY" ] || [ -n "$SPAWN_MACHINE_CAPACITY" ]; then
-  if ! fm_project_capacity_occupants "$SPAWN_TREEHOUSE_PROJECT_LOCK" "$PROJ_ABS" "$STATE" "$ID"; then
+  if ! spawn_count_occupants; then
     echo "error: spawn refused: the capacity declarations for project $(basename "$PROJ_ABS") on this machine cannot be counted because this machine's task records cannot all be read ($FM_PROJECT_CAPACITY_ERROR)" >&2
     exit 1
   fi
@@ -4279,10 +4367,6 @@ if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
       fm_project_capacity_overshare_prepare "$SPAWN_CAPACITY_CONFIG" "$SPAWN_TREEHOUSE_PROJECT_LOCK" ||
         FM_PROJECT_CAPACITY_OVERSHARE=no
       if [ "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" = open ]; then
-        if ! fm_lock_set_role "$SPAWN_TASK_SET_LOCK" task-spawn-reading; then
-          echo "error: could not record task-set lock holder for headroom reading of $ID" >&2
-          exit 1
-        fi
         if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" = 1 ]; then
           # A slow reading must not hold up project allocation or return.
           # Its verdict stays provisional until the retake and recount below.
@@ -4293,7 +4377,7 @@ if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
             FM_PROJECT_CAPACITY_OVERSHARE=retake
           else
             SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=1
-            if ! fm_project_capacity_occupants "$SPAWN_TREEHOUSE_PROJECT_LOCK" "$PROJ_ABS" "$STATE" "$ID"; then
+            if ! spawn_count_occupants; then
               echo "error: spawn refused: the capacity declarations for project $(basename "$PROJ_ABS") on this machine cannot be counted because this machine's task records cannot all be read ($FM_PROJECT_CAPACITY_ERROR)" >&2
               exit 1
             fi
@@ -4314,10 +4398,6 @@ if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
           SPAWN_OVERSHARE_IDENTITY=$FM_PROJECT_CAPACITY_OVERSHARE_IDENTITY
           SPAWN_OVERSHARE_AT=$FM_PROJECT_CAPACITY_OVERSHARE_AT
           SPAWN_OVERSHARE_PENDING=1
-        fi
-        if ! fm_lock_set_role "$SPAWN_TASK_SET_LOCK" task-spawn; then
-          echo "error: could not record task-set lock holder for spawn of $ID" >&2
-          exit 1
         fi
       fi
     fi
@@ -6832,6 +6912,9 @@ META_WINDOW=$T
 [ "$BACKEND" = orca ] && META_WINDOW=$W
 SPAWN_GEN="s$(date +%s).${BASHPID:-$$}.$RANDOM"
 SPAWN_META_PATH="$STATE/$ID.meta"
+# The task-set lock comes before this task's metadata lock, as every holder of
+# both takes them.
+spawn_publish_task_set
 if [ "$SPAWN_META_LOCK_HELD" != 1 ]; then
   SPAWN_META_LOCK=$(fm_meta_lock_path "$STATE/$ID.meta") || exit 1
   fm_lock_acquire_wait "$SPAWN_META_LOCK"
