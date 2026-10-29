@@ -1,0 +1,89 @@
+# S4 (fixed code, live tmux lab): same task, same declining store, no --note - codex reaches the note check, claude refuses on trust first
+
+== scenario s4-codex-nonote: 2026-10-29T13:06:32Z
+fm-root: /Users/dalecarman/.agent-scratch-vol/nm-runs/a5e67f4ea77f/01M63P8YJPACWKA94YA6HJ399V
+tmux socket from $TMUX: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/tmux/tmux-501/fm-lab
+CLAUDE_CONFIG_DIR for fm-control: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/store-codexcase
+-- trust store before:
+{"projects":{"/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj":{"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}}}
+
+-- before: pane_current_command=2.1.312 agent_pid=5760
+-- before: meta=129360e4721a946d brief=3e4cc4a581995994 store=285fe223442dade9 journal=absent
+$ fm-control.sh rl-codex relaunch --harness codex   (no --note)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ
+error: relaunch of a ship task requires --note (or --note-file): the replacement worker inherits the local copy but none of the conversation, so it must be told what happened
+-- exit code: 1 (after 584s)
+-- after: pane_current_command=2.1.312 agent_pid=5760
+-- after: meta=129360e4721a946d brief=3e4cc4a581995994 store=285fe223442dade9 journal=absent
+-- trust store after:
+{"projects":{"/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj":{"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}}}
+
+-- task record after:
+window=fmlab:fm-rl-codex
+endpoint_task_id=rl-codex
+worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/wt/rl-codex
+project=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj
+harness=claude
+kind=ship
+mode=local-only
+yolo=off
+branch=fm/rl-codex
+tasktmp=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/tasktmp/rl-codex
+model=default
+effort=default
+-- old agent's pane after:
+claude
+Dales-MacBook-Pro-M4-7% claude
+ ▐▛███▛█   Claude Code v2.1.312
+▝▜██████▀  Opus 5.5 · API Usage Billing
+ ▝▝   ▝▝   /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/wt/rl-codex
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle)                                                                                                                                      Not logged in · Run /login
+                                                                                                                                                                          feed clean · /feed to switch
+
+
+== scenario s4b-claude-nonote-control: 2026-10-29T13:16:55Z
+fm-root: /Users/dalecarman/.agent-scratch-vol/nm-runs/a5e67f4ea77f/01M63P8YJPACWKA94YA6HJ399V
+tmux socket from $TMUX: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/tmux/tmux-501/fm-lab
+CLAUDE_CONFIG_DIR for fm-control: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/store-codexcase
+-- trust store before:
+{"projects":{"/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj":{"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}}}
+
+-- before: pane_current_command=2.1.312 agent_pid=5760
+-- before: meta=129360e4721a946d brief=3e4cc4a581995994 store=285fe223442dade9 journal=absent
+$ fm-control.sh rl-codex relaunch --harness claude   (no --note)
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ
+error: project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/store-codexcase/.claude.json already declined external CLAUDE.md imports; refusing to override that consent. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/wt/rl-codex' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/store-codexcase/.claude.json' (check only; nothing was written)
+-- exit code: 1 (after 16s)
+-- after: pane_current_command=2.1.312 agent_pid=5760
+-- after: meta=129360e4721a946d brief=3e4cc4a581995994 store=285fe223442dade9 journal=absent
+-- trust store after:
+{"projects":{"/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj":{"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}}}
+
+-- task record after:
+window=fmlab:fm-rl-codex
+endpoint_task_id=rl-codex
+worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/wt/rl-codex
+project=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj
+harness=claude
+kind=ship
+mode=local-only
+yolo=off
+branch=fm/rl-codex
+tasktmp=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/tasktmp/rl-codex
+model=default
+effort=default
+-- old agent's pane after:
+claude
+Dales-MacBook-Pro-M4-7% claude
+ ▐▛███▛█   Claude Code v2.1.312
+▝▜██████▀  Opus 5.5 · API Usage Billing
+ ▝▝   ▝▝   /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/wt/rl-codex
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle)                                                                                                                                      Not logged in · Run /login
+                                                                                                                                                                          feed clean · /feed to switch

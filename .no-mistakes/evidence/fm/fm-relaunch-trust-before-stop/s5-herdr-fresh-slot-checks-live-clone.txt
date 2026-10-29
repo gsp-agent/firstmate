@@ -1,0 +1,67 @@
+# S5 (fixed code, live Herdr lab session): old-clone ship relaunch checks this home's live clone, not the old clone
+
+== scenario s5-fs-live-decline: 2026-10-29T13:30:34Z
+herdr lab session: fm-lab-trust-41739-6069   pane: w1:p1
+recorded project (old clone): /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/fs/old/fsproj
+this home's live clone: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/fsproj
+old copy: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/fs/oldpool/fs-live/fsproj
+CLAUDE_CONFIG_DIR for fm-control: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/store-fs-live
+-- trust store before:
+{"projects":{"/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/fsproj":{"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}}}
+
+-- before: herdr agent_status=idle meta=cbd9f5eed2b1c1f7 brief=239157041f5645c0 store=61847b1015ecf894 journal=absent
+-- before: old copy status: ?? wip.txt 
+$ fm-control.sh fs-live relaunch --harness claude --note "lab: s5-fs-live-decline"
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ
+error: project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/fsproj in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/store-fs-live/.claude.json already declined external CLAUDE.md imports; refusing to override that consent. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/fsproj' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/store-fs-live/.claude.json' (check only; nothing was written)
+-- exit code: 1 (after 14s)
+-- after: herdr agent_status=idle meta=cbd9f5eed2b1c1f7 brief=239157041f5645c0 store=61847b1015ecf894 journal=absent
+-- after: old copy status: ?? wip.txt 
+-- after: live clone worktrees:
+/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/fsproj 59bf44e [main]
+-- trust store after:
+{"projects":{"/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/fsproj":{"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}}}
+
+-- old agent's herdr pane after:
+carman/.agent-config/tools-bin/shims/claude
+ ▐▛███▛█   Claude Code v2.1.312
+▝▜██████▀  Opus 5.5 · API Usage Billing
+ ▝▝   ▝▝   /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/fs/oldpool/fs-live/fsproj
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle)                                                     Not logged in · Run /login
+
+
+== scenario s5b-fs-old-decline-only: 2026-10-29T13:31:13Z
+herdr lab session: fm-lab-trust-41739-6069   pane: w2:p1
+recorded project (old clone): /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/fs/old/fsproj
+this home's live clone: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/fsproj
+old copy: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/fs/oldpool/fs-old/fsproj
+CLAUDE_CONFIG_DIR for fm-control: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/store-fs-old
+-- trust store before:
+{"projects":{"/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/fs/old/fsproj":{"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}}}
+
+-- before: herdr agent_status=idle meta=2237e4cf5302f755 brief=62cde44b00b114bd store=a6fdaf30a5facf5a journal=absent
+-- before: old copy status: ?? wip.txt 
+$ fm-control.sh fs-old relaunch --harness claude --note "lab: s5b-fs-old-decline-only"
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ
+error: task fs-old lives in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/fs/old/fsproj, not this home's clone /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/fsproj, so its relaunch starts in a fresh slot there, and it cannot: its copy /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/fs/oldpool/fs-old/fsproj has uncommitted or untracked changes (?? wip.txt;); commit them on fm/fs-old first. Its agent was not stopped
+-- exit code: 1 (after 12s)
+-- after: herdr agent_status=idle meta=2237e4cf5302f755 brief=62cde44b00b114bd store=a6fdaf30a5facf5a journal=absent
+-- after: old copy status: ?? wip.txt 
+-- after: live clone worktrees:
+/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/fsproj 59bf44e [main]
+-- trust store after:
+{"projects":{"/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/fs/old/fsproj":{"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}}}
+
+-- old agent's herdr pane after:
+arman/.agent-config/tools-bin/shims/claude
+ ▐▛███▛█   Claude Code v2.1.312
+▝▜██████▀  Opus 5.5 · API Usage Billing
+ ▝▝   ▝▝   /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/fs/oldpool/fs-old/fsproj
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle)                                                      Not logged in · Run /login

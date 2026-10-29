@@ -1,0 +1,45 @@
+# Targeted automated tests: the change's new tests and neighbours on the fixed code, then on the base commit (failing-first)
+
+## [target] fm-claude-trust.test.sh test_project_root_entry_declined_external_imports_is_not_overridden test_check_mode_reports_a_decline_without_writing test_check_mode_accepts_a_fresh_worktree_without_writing test_project_root_entry_default_import_flags_are_not_a_decline
+ok - fm-claude-trust.sh: refuses to override a project's declined external-imports consent
+ok - fm-claude-trust.sh --check: reports a decline without writing
+ok - fm-claude-trust.sh --check: accepts a fresh worktree without writing
+ok - fm-claude-trust.sh: a never-asked default external-imports pair is not treated as a decline
+## [target] exit code: 0
+
+## [target] fm-control-relaunch.test.sh test_declined_claude_trust_refuses_before_stop test_signed_out_worker_account_pin_refuses_before_stop test_worker_account_pin_follows_the_relaunch test_same_harness_relaunch_keeps_the_profile_axes
+ok - fm-control relaunch: a same-harness relaunch keeps the profile axes it was running with
+ok - fm-control relaunch: a signed-out worker account pin refuses before the old agent stops
+ok - fm-control relaunch: declined Claude trust refuses before the old agent stops
+ok - fm-control relaunch: the replacement follows the home's current worker account pin
+## [target] exit code: 0
+
+## [target] fm-relaunch-fresh-slot.test.sh test_control_checks_the_live_clones_trust_before_stopping_the_agent test_control_defers_on_a_full_live_pool_before_stopping_the_agent
+ok - fm-control defers an old-clone relaunch on a full live pool before stopping the agent
+ok - fm-control checks the live clone's Claude trust, not the old clone's, before stopping the agent
+## [target] exit code: 0
+
+
+=================== base commit 810d6ae3 with the new tests ===================
+
+## [base] fm-claude-trust.test.sh test_project_root_entry_declined_external_imports_is_not_overridden test_check_mode_reports_a_decline_without_writing test_check_mode_accepts_a_fresh_worktree_without_writing test_project_root_entry_default_import_flags_are_not_a_decline
+ok - fm-claude-trust.sh: refuses to override a project's declined external-imports consent
+not ok - a check against a declined project must refuse: usage: fm-claude-trust.sh <worktree> <project>
+       fm-claude-trust.sh --secondmate-home <home> <id>
+       fm-claude-trust.sh --lab-home <home>: expected exit 1, got 2
+## [base] exit code: 1
+
+## [base] fm-control-relaunch.test.sh test_declined_claude_trust_refuses_before_stop test_signed_out_worker_account_pin_refuses_before_stop test_worker_account_pin_follows_the_relaunch test_same_harness_relaunch_keeps_the_profile_axes
+ok - fm-control relaunch: a same-harness relaunch keeps the profile axes it was running with
+ok - fm-control relaunch: a signed-out worker account pin refuses before the old agent stops
+not ok - a declined-trust relaunch must refuse before the running agent stops
+## [base] exit code: 1
+
+## [base] fm-relaunch-fresh-slot.test.sh test_control_checks_the_live_clones_trust_before_stopping_the_agent test_control_defers_on_a_full_live_pool_before_stopping_the_agent
+ok - fm-control defers an old-clone relaunch on a full live pool before stopping the agent
+not ok - trust: the refusal did not name the declined trust (missing: 'declined external CLAUDE.md imports')
+--- output ---
+error: task trust-a1's composer state is 'unknown', not proven empty; refusing to type the /exit exit command because it could concatenate onto existing text. Clear the composer, then retry 'relaunch'
+error: relaunch of trust-a1 failed while stopping the old agent, which is still running; its original instructions were restored
+## [base] exit code: 1
+

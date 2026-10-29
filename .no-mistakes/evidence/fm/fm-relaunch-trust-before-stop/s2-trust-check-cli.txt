@@ -1,0 +1,97 @@
+# S2 (fixed code): bin/fm-claude-trust.sh --check against the lab project, beside the real registration
+
+== a. --check, project declined imports
+$ CLAUDE_CONFIG_DIR=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/s2/decline fm-claude-trust.sh --check /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/wt/rl-decline /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj
+   store before: 285fe223442dade9  config dir exists: yes
+   | error: project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/s2/decline/.claude.json already declined external CLAUDE.md imports; refusing to override that consent. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+   | error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/wt/rl-decline' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/s2/decline/.claude.json' (check only; nothing was written)
+   exit code: 1
+   store after:  285fe223442dade9  config dir exists: yes
+== b. --check, config dir does not exist yet
+$ CLAUDE_CONFIG_DIR=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/s2/missing fm-claude-trust.sh --check /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/wt/rl-decline /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj
+   store before: absent  config dir exists: no
+   | check: trust can be recorded for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/wt/rl-decline
+   exit code: 0
+   store after:  absent  config dir exists: no
+== c1. --check --project, project declined imports
+$ CLAUDE_CONFIG_DIR=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/s2/decline fm-claude-trust.sh --check --project /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj
+   store before: 285fe223442dade9  config dir exists: yes
+   | error: project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/s2/decline/.claude.json already declined external CLAUDE.md imports; refusing to override that consent. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+   | error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/s2/decline/.claude.json' (check only; nothing was written)
+   exit code: 1
+   store after:  285fe223442dade9  config dir exists: yes
+== c2. --check --project, config dir does not exist yet
+$ CLAUDE_CONFIG_DIR=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/s2/missing fm-claude-trust.sh --check --project /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj
+   store before: absent  config dir exists: no
+   | check: trust can be recorded for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj
+   exit code: 0
+   store after:  absent  config dir exists: no
+== d. parity: the real registration in the same stores
+== d1. registration, project declined imports
+$ CLAUDE_CONFIG_DIR=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/s2/decline fm-claude-trust.sh /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/wt/rl-decline /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj
+   store before: 285fe223442dade9  config dir exists: yes
+   | error: project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/s2/decline/.claude.json already declined external CLAUDE.md imports; refusing to override that consent. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+   | error: refusing to pre-register Claude trust: could not record trust for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/wt/rl-decline' and project '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/s2/decline/.claude.json'
+   exit code: 1
+   store after:  285fe223442dade9  config dir exists: yes
+== d2. registration, fresh config dir
+$ CLAUDE_CONFIG_DIR=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/s2/fresh fm-claude-trust.sh /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/wt/rl-decline /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj
+   store before: absent  config dir exists: no
+   | trusted: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/wt/rl-decline
+   | trusted (project root): /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj
+   exit code: 0
+   store after:  4bd28fd410a4c446  config dir exists: yes
+   fresh store written by registration:
+   | {
+   |   "projects": {
+   |     "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/wt/rl-decline": {
+   |       "hasTrustDialogAccepted": true
+   |     },
+   |     "/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj": {
+   |       "hasTrustDialogAccepted": true
+   |     }
+   |   }
+   | }
+
+== d3. --check after a successful registration (idempotent)
+$ CLAUDE_CONFIG_DIR=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/s2/fresh fm-claude-trust.sh --check /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/wt/rl-decline /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj
+   store before: 4bd28fd410a4c446  config dir exists: yes
+   | check: trust can be recorded for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/wt/rl-decline
+   exit code: 0
+   store after:  4bd28fd410a4c446  config dir exists: yes
+== e. adversarial
+== e1. --check on the primary checkout (scope test still enforced)
+$ CLAUDE_CONFIG_DIR=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/s2/missing fm-claude-trust.sh --check /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj
+   store before: absent  config dir exists: no
+   | error: refusing to pre-register Claude trust: '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj' is a primary checkout, not an isolated worktree
+   exit code: 1
+   store after:  absent  config dir exists: no
+== e2. --project without --check is refused as usage
+$ CLAUDE_CONFIG_DIR=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/s2/missing fm-claude-trust.sh --project /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj
+   store before: absent  config dir exists: no
+   | usage: fm-claude-trust.sh [--check] <worktree> <project>
+   |        fm-claude-trust.sh [--check] --secondmate-home <home> <id>
+   |        fm-claude-trust.sh [--check] --lab-home <home>
+   |        fm-claude-trust.sh --check --project <project>
+   exit code: 2
+   store after:  absent  config dir exists: no
+== e3. --check, project entry false/false (never asked, not a decline)
+$ CLAUDE_CONFIG_DIR=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/s2/decline-wt fm-claude-trust.sh --check /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/wt/rl-decline /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj
+   store before: 0556e1a19a4783e5  config dir exists: yes
+   | check: trust can be recorded for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/wt/rl-decline
+   exit code: 0
+   store after:  0556e1a19a4783e5  config dir exists: yes
+== e4. --check, store whose projects is not an object
+$ CLAUDE_CONFIG_DIR=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/s2/bad fm-claude-trust.sh --check /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/wt/rl-decline /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj
+   store before: 1886f40046efb19f  config dir exists: yes
+   | error: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/s2/bad/.claude.json has a non-object "projects" value
+   | error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/wt/rl-decline' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/s2/bad/.claude.json' (check only; nothing was written)
+   exit code: 1
+   store after:  1886f40046efb19f  config dir exists: yes
+== e5. registration, same malformed store (parity)
+$ CLAUDE_CONFIG_DIR=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/s2/bad fm-claude-trust.sh /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/wt/rl-decline /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj
+   store before: 1886f40046efb19f  config dir exists: yes
+   | error: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/s2/bad/.claude.json has a non-object "projects" value
+   | error: refusing to pre-register Claude trust: could not record trust for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/wt/rl-decline' and project '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.LjvkZZ/projects/proj' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-trustwork.QOHGqp/s2/bad/.claude.json'
+   exit code: 1
+   store after:  1886f40046efb19f  config dir exists: yes
