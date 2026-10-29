@@ -2717,8 +2717,8 @@ EOF
   pass "forced teardown refuses while a fresh task is being published in the home"
 }
 
-test_fresh_spawn_refuses_while_a_forced_teardown_owns_the_task_set() {
-  local home subhome err rec held holder lock
+test_fresh_spawn_defers_while_a_forced_teardown_owns_the_task_set() {
+  local home subhome err rec held holder lock rc=0
   rec=$(seed_task_set_lock_home taskset-spawn)
   IFS='|' read -r home subhome <<EOF
 $rec
@@ -2729,44 +2729,82 @@ EOF
     || fail "could not stage a held task-set lock"
   holder=${held%% *}
   lock=${held#* }
-  if FM_HOME="$subhome" FM_SPAWN_NO_GUARD=1 \
-    "$ROOT/bin/fm-spawn.sh" newtask "$subhome/projects/alpha" --scout >/dev/null 2>"$err"; then
+  FM_HOME="$subhome" FM_SPAWN_NO_GUARD=1 \
+    "$ROOT/bin/fm-spawn.sh" newtask "$subhome/projects/alpha" --scout >/dev/null 2>"$err" || rc=$?
+  [ "$rc" -eq 75 ] || {
     kill "$holder" 2>/dev/null || true
-    fail "a fresh spawn published a task while a forced teardown owned the set"
-  fi
+    fail "a fresh spawn did not defer with 75 while a forced teardown owned the set (exit $rc): $(cat "$err")"
+  }
   [ ! -e "$subhome/state/newtask.meta" ] \
-    || fail "a refused spawn still published a durable record"
-  [ -e "$lock" ] || fail "a refused spawn removed the teardown's task-set lock"
-  grep -F "task set is locked by a forced teardown" "$err" >/dev/null \
-    || fail "the spawn refusal did not name the task-set contention: $(cat "$err")"
+    || fail "a deferred spawn still published a durable record"
+  [ -e "$lock" ] || fail "a deferred spawn removed the teardown's task-set lock"
+  grep -F "deferred: this home's task set is locked by a forced teardown" "$err" >/dev/null \
+    || fail "the spawn deferral did not name the task-set contention: $(cat "$err")"
   [ ! -e "$subhome/state/.spawn-newtask.lock" ] \
-    || fail "a refused spawn left its own task lock behind"
+    || fail "a deferred spawn left its own task lock behind"
   kill "$holder" 2>/dev/null || true
   wait "$holder" 2>/dev/null || true
-  pass "a fresh spawn refuses to publish while a forced teardown owns the task set"
+  pass "a fresh spawn defers with 75, creating nothing, while a forced teardown owns the task set"
 }
 
-test_fresh_spawn_names_another_spawn_as_task_set_holder() {
-  local home subhome err rec held holder
-  rec=$(seed_task_set_lock_home taskset-two-spawns)
+# The teardown's half of a spawn's publication check, which
+# tests/fm-project-capacity.test.sh drives from the spawn's side: a real forced
+# teardown writes a fresh epoch into each home whose set it takes, before it
+# enumerates, so a spawn that read the home's epoch earlier cannot publish
+# afterwards.
+test_force_teardown_replaces_the_task_set_epoch_before_enumerating() {
+  local home subhome fakebin err log rec claim_root ready release pid before during i=0
+  rec=$(seed_empty_task_set_home taskset-epoch)
   IFS='|' read -r home subhome <<EOF
 $rec
 EOF
-  err="$TMP_ROOT/taskset-two-spawns.err"
-  held=$(hold_task_set_lock "$subhome/state" task-spawn) \
-    || fail "could not stage a fresh spawn holding the task-set lock"
-  holder=${held%% *}
-  if FM_HOME="$subhome" FM_SPAWN_NO_GUARD=1 \
-    "$ROOT/bin/fm-spawn.sh" newtask "$subhome/projects/alpha" --scout >/dev/null 2>"$err"; then
-    kill "$holder" 2>/dev/null || true
-    fail "a fresh spawn published while another spawn owned the task set"
-  fi
-  grep -F "task set is locked by another spawn" "$err" >/dev/null \
-    || fail "the refusal did not name the other spawn: $(cat "$err")"
-  [ ! -e "$subhome/state/newtask.meta" ] || fail "a refused spawn published a task"
-  kill "$holder" 2>/dev/null || true
-  wait "$holder" 2>/dev/null || true
-  pass "a fresh spawn refusal identifies another spawn as the task-set holder"
+  mkdir -p "$subhome/state"
+  # shellcheck disable=SC2016 # expanded by the reader's own shell
+  before=$(FM_HOME="$subhome" FM_STATE_OVERRIDE="$subhome/state" bash -c \
+    '. "$1/bin/fm-wake-lib.sh"; fm_task_set_epoch_read "$2"' _ "$ROOT" "$subhome/state") \
+    || fail "a spawn's start could not read the home's epoch"
+  claim_root="$TMP_ROOT/taskset-epoch-xdg/firstmate/procevent-claims"
+  ready="$TMP_ROOT/taskset-epoch.ready"
+  release="$TMP_ROOT/taskset-epoch.release"
+  mkdir -p "$claim_root" "$subhome/bin"
+  printf '%s\n' "$subhome" > "$claim_root/held.claim"
+  cat > "$subhome/bin/fm-procevent.sh" <<'SH'
+#!/usr/bin/env bash
+set -u
+if [ "${1:-}" = sweep-home ] && [ "${2:-}" = --preflight ]; then
+  : > "$FM_TASK_SET_TEST_READY"
+  while [ ! -e "$FM_TASK_SET_TEST_RELEASE" ]; do sleep 0.05; done
+  exit 1
+fi
+exit 1
+SH
+  chmod +x "$subhome/bin/fm-procevent.sh"
+  err="$TMP_ROOT/taskset-epoch.err"
+  fakebin=$(make_fake_tmux "$TMP_ROOT/taskset-epoch-fake")
+  log="$TMP_ROOT/taskset-epoch-fake/tmux.log"
+  PATH="$fakebin:$PATH" FM_HOME="$home" FM_FAKE_TMUX_LOG="$log" \
+    FM_FAKE_TMUX_CAPTURE="$TMP_ROOT/taskset-epoch-fake/pane.txt" \
+    XDG_STATE_HOME="$TMP_ROOT/taskset-epoch-xdg" \
+    FM_TASK_SET_TEST_READY="$ready" FM_TASK_SET_TEST_RELEASE="$release" \
+    "$ROOT/bin/fm-teardown.sh" domain --force >/dev/null 2>"$err" &
+  # shellcheck disable=SC2031 # The background PID is captured immediately in this shell.
+  pid=$!
+  while [ ! -e "$ready" ] && kill -0 "$pid" 2>/dev/null && [ "$i" -lt 200 ]; do
+    sleep 0.05
+    i=$((i + 1))
+  done
+  [ -e "$ready" ] || {
+    : > "$release"
+    wait "$pid" 2>/dev/null || true
+    fail "forced teardown did not reach the post-lock preflight: $(cat "$err")"
+  }
+  during=$(cat "$subhome/state/.task-set.epoch" 2>/dev/null || true)
+  : > "$release"
+  wait "$pid" 2>/dev/null || true
+  [ -n "$during" ] || fail "forced teardown left no task-set epoch while it held the set"
+  [ "$during" != "$before" ] \
+    || fail "forced teardown kept the epoch a spawn read before it began, so that spawn could still publish"
+  pass "forced teardown replaces the home's task-set epoch before it enumerates the set"
 }
 
 test_fresh_remote_secondmate_spawn_refuses_while_task_set_is_owned() {
@@ -3184,8 +3222,8 @@ test_force_teardown_refuses_non_directory_descendant_state
 test_force_teardown_refuses_symlinked_descendant_state
 test_force_teardown_locks_descendant_with_absent_state
 test_force_teardown_refuses_while_a_task_is_being_published
-test_fresh_spawn_refuses_while_a_forced_teardown_owns_the_task_set
-test_fresh_spawn_names_another_spawn_as_task_set_holder
+test_fresh_spawn_defers_while_a_forced_teardown_owns_the_task_set
+test_force_teardown_replaces_the_task_set_epoch_before_enumerating
 test_fresh_remote_secondmate_spawn_refuses_while_task_set_is_owned
 test_secondmate_force_teardown_refuses_child_active_home_descendant
 test_secondmate_force_teardown_refuses_child_repo_descendant

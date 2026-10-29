@@ -261,6 +261,52 @@ spawn_ship() {  # <case-dir> <id> [pane-path]
   run_spawn "$case_dir" "$case_dir/home" "$pane" "$id" "$case_dir/project" --mode no-mistakes --yolo off
 }
 
+# The same for the case's second project, which has its own origin and so its
+# own shared project lock: two such spawns share only their home.
+spawn_other_ship() {  # <case-dir> <id>
+  local case_dir=$1 id=$2
+  git -C "$case_dir/other-project" worktree add --quiet -b "wt-$id" "$case_dir/wt-$id"
+  run_spawn "$case_dir" "$case_dir/home" "$case_dir/wt-$id" "$id" "$case_dir/other-project" --mode no-mistakes --yolo off
+}
+
+# A live stand-in that holds <state>'s task-set lock as <role> until
+# <flag>.release exists, or for at most 60 s; <flag>.held appears once it
+# holds the lock. Its output is detached so a failing case never waits on it.
+hold_task_set() {  # <state> <role> <flag>
+  # shellcheck disable=SC2016 # expanded by the holder's own shell
+  FM_HOME="${1%/state}" FM_STATE_OVERRIDE="$1" bash -c '
+    . "$1/bin/fm-wake-lib.sh"
+    lock=$(fm_task_set_lock_path "$2") || exit 1
+    fm_lock_try_acquire "$lock" || exit 1
+    fm_lock_set_role "$lock" "$3" || exit 1
+    : > "$4.held"
+    i=0
+    while [ ! -f "$4.release" ] && [ "$i" -lt 1200 ]; do i=$((i + 1)); sleep 0.05; done
+    fm_lock_release "$lock"
+  ' _ "$ROOT" "$1" "$2" "$3" >/dev/null 2>&1 &
+}
+
+# A forced teardown's hold on <state>'s task set, as bin/fm-teardown.sh takes
+# it before enumerating: the lock, its role, a fresh epoch, then release.
+# Returns 3 when the set is held by someone else.
+take_task_set_as_teardown() {  # <state>
+  # shellcheck disable=SC2016 # expanded by the taker's own shell
+  FM_HOME="${1%/state}" FM_STATE_OVERRIDE="$1" bash -c '
+    . "$1/bin/fm-wake-lib.sh"
+    lock=$(fm_task_set_lock_path "$2") || exit 1
+    fm_lock_try_acquire "$lock" || exit 3
+    fm_lock_set_role "$lock" forced-teardown || exit 1
+    fm_task_set_epoch_new "$2" || exit 1
+    fm_lock_release "$lock"
+  ' _ "$ROOT" "$1"
+}
+
+# Whether the endpoint a spawn created for <id> was closed again.
+endpoint_closed() {  # <case-dir> <id>
+  grep -E "^new-window .*fm-$2( |$)" "$1/calls.log" >/dev/null &&
+    grep -E "^kill-window .*fm-$2( |$)" "$1/calls.log" >/dev/null
+}
+
 # Everything a deferred spawn must not have created for <id>; <worktrees-before>
 # is worktree_list taken before the spawn.
 assert_nothing_created() {  # <case-dir> <home> <id> <calls-before> <worktrees-before>
@@ -1548,74 +1594,48 @@ EOF
   pass "a failed retake after a headroom reading defers with 75 and consumes no window"
 }
 
-test_same_home_spawns_during_headroom_reading_defer() {
-  local case_dir home wt_a pid_a rc_a=0 checks_rc=0 before worktrees kind out rc
+# A same-home spawn started while a headroom reading runs is not held off by
+# the task set, which the reading spawn no longer holds. Like another home's
+# spawn, it takes the window's one extra start, and the first spawn,
+# recounting after its own reading, finds the window spent and defers with 75.
+test_same_home_spawn_during_headroom_reading_takes_the_extra_start() {
+  local case_dir home out_b rc_b=0 pid_a rc_a=0 wt_a wt_b
   case_dir=$(make_case reading-same-home task-a task-b)
   home="$case_dir/home"
   declare_capacity "$home" "project 1"
   write_live "$home" live-a "$case_dir/project"
-  install_reading "$case_dir/reading" <<EOF
+  install_reading "$case_dir/reading" <<EOS
 printf 'ran\n' >> $(printf '%q' "$case_dir/reading.log")
-: > $(printf '%q' "$case_dir/reading.started")
-i=0
-while [ ! -f $(printf '%q' "$case_dir/reading.release") ]; do
-  i=\$((i + 1))
-  [ "\$i" -lt 400 ] || exit 1
-  sleep 0.05
-done
+runs=\$(wc -l < $(printf '%q' "$case_dir/reading.log") | tr -d ' ')
+if [ "\$runs" = 1 ]; then
+  : > $(printf '%q' "$case_dir/reading.started")
+  i=0
+  while [ ! -f $(printf '%q' "$case_dir/reading.release") ]; do
+    i=\$((i + 1))
+    [ "\$i" -lt 400 ] || exit 1
+    sleep 0.05
+  done
+fi
 printf '%s\n' 'cpu_idle_pct=40 load1=12 disk_free_gb=80'
-EOF
+EOS
   write_headroom "$home" "$case_dir/reading"
   wt_a=$(new_worktree "$case_dir" task-a)
-  FM_FAKE_HOLD="$case_dir/publication" spawn_ship "$case_dir" task-a "$wt_a" > "$case_dir/a.out" 2>&1 &
+  wt_b=$(new_worktree "$case_dir" task-b)
+  spawn_ship "$case_dir" task-a "$wt_a" > "$case_dir/a.out" 2>&1 &
   pid_a=$!
-  wait_for_file "$case_dir/reading.started" "the same-home reading never started: $(cat "$case_dir/a.out")"
-  before=$(call_count "$case_dir")
-  worktrees=$(worktree_list "$case_dir")
-  (
-    for kind in ship scout batch-ship batch-scout; do
-      rc=0
-      case "$kind" in
-        ship)
-          out=$(run_spawn "$case_dir" "$home" "$case_dir/unused" task-b "$case_dir/project" --mode no-mistakes --yolo off) || rc=$?
-          ;;
-        scout)
-          out=$(run_spawn "$case_dir" "$home" "$case_dir/unused" task-b "$case_dir/project" --scout) || rc=$?
-          ;;
-        batch-ship)
-          out=$(run_spawn "$case_dir" "$home" "$case_dir/unused" "task-b=$case_dir/project" --mode no-mistakes --yolo off) || rc=$?
-          ;;
-        batch-scout)
-          out=$(run_spawn "$case_dir" "$home" "$case_dir/unused" "task-b=$case_dir/project" --scout) || rc=$?
-          ;;
-      esac
-      expect_code "$DEFER_EXIT" "$rc" "a same-home $kind started during a reading did not defer: $out"
-      assert_nothing_created "$case_dir" "$home" task-b "$before" "$worktrees"
-      case "$kind" in batch-*) assert_contains "$out" "batch: DEFERRED task-b" "the $kind did not report its queued entry" ;; esac
-    done
-    [ "$(reading_runs "$case_dir/reading.log")" = 1 ] || fail "same-home contenders ran another reading"
-    [ "$(overshare_count "$home")" = 0 ] || fail "same-home contenders consumed the extra-start window"
-  ) || checks_rc=$?
+  wait_for_file "$case_dir/reading.started" "the first headroom reading never started: $(cat "$case_dir/a.out")"
+  out_b=$(spawn_ship "$case_dir" task-b "$wt_b") || rc_b=$?
   : > "$case_dir/reading.release"
-  if [ "$checks_rc" = 0 ]; then
-    (
-      wait_for_file "$case_dir/publication.reached" "the first spawn never reached publication: $(cat "$case_dir/a.out")"
-      before=$(call_count "$case_dir")
-      worktrees=$(worktree_list "$case_dir")
-      rc=0
-      out=$(run_spawn "$case_dir" "$home" "$case_dir/unused" task-b "$case_dir/project" --mode no-mistakes --yolo off) || rc=$?
-      expect_code 1 "$rc" "ordinary publication contention changed after the reading: $out"
-      assert_nothing_created "$case_dir" "$home" task-b "$before" "$worktrees"
-    ) || checks_rc=$?
-  fi
-  : > "$case_dir/publication.release"
   wait "$pid_a" || rc_a=$?
-  expect_code 0 "$checks_rc" "same-home contention checks failed"
-  expect_code 0 "$rc_a" "the reading spawn did not launch: $(cat "$case_dir/a.out")"
-  assert_present "$home/state/task-a.meta" "the reading spawn published no record"
-  assert_absent "$home/state/task-b.meta" "the contending task published a record"
-  [ "$(overshare_count "$home")" = 1 ] || fail "the reading spawn did not take exactly one extra start"
-  pass "same-home ships, scouts, and batch entries defer during a reading and retain publication protection"
+  expect_code 0 "$rc_b" "a same-home spawn started during a headroom reading did not launch: $out_b"
+  assert_contains "$out_b" "spawned task-b" "the same-home spawn started during a reading did not launch"
+  expect_code "$DEFER_EXIT" "$rc_a" "the first spawn was not deferred after the recount: $(cat "$case_dir/a.out")"
+  assert_contains "$(cat "$case_dir/a.out")" "already started one worker past that count in the current window" \
+    "the first spawn did not find the window spent after its recount"
+  assert_absent "$home/state/task-a.meta" "the deferred first spawn published a record"
+  [ "$(overshare_count "$home")" = 1 ] ||
+    fail "the window did not hold exactly one extra start after the recount: $(overshare_records "$home")"
+  pass "a same-home spawn started during a headroom reading takes the extra start, and the first spawn defers on the spent window"
 }
 
 # A record whose crew state cannot be read - the reader runs past
@@ -1786,6 +1806,189 @@ EOF
   pass "a headroom extra start still needs a free machine place"
 }
 
+# --- the per-home task set ---------------------------------------------------
+#
+# A fresh ship or scout holds its home's task-set lock only across publishing
+# its record (bin/fm-spawn.sh's header owns the contract). A spawn still
+# starting, here held at its worktree read with its endpoint already open, does
+# not keep another spawn in the same home from starting or publishing.
+
+# agent-config .agent-config-1ep1j: spawns held the lock from their start to
+# publication, 20-78 s each and 70% of the time, so every other spawn in the
+# home exited 1 "task set is locked by another spawn".
+test_two_fresh_spawns_in_one_home_both_publish() {
+  local case_dir home hold wt_a pid_a rc_a=0 rc_b=0 out_b
+  case_dir=$(make_case taskset-two task-a task-b)
+  home="$case_dir/home"
+  hold="$case_dir/hold"
+  wt_a=$(new_worktree "$case_dir" task-a)
+  FM_FAKE_HOLD="$hold" spawn_ship "$case_dir" task-a "$wt_a" > "$case_dir/a.out" 2>&1 &
+  pid_a=$!
+  wait_for_file "$hold.reached" "the first spawn never reached its worktree read: $(cat "$case_dir/a.out")"
+  out_b=$(spawn_other_ship "$case_dir" task-b) || rc_b=$?
+  : > "$hold.release"
+  wait "$pid_a" || rc_a=$?
+  expect_code 0 "$rc_b" "a fresh spawn was refused while another spawn in its home was still starting: $out_b"
+  assert_contains "$out_b" "spawned task-b" "the second spawn did not launch"
+  expect_code 0 "$rc_a" "the first spawn did not launch after the second published: $(cat "$case_dir/a.out")"
+  assert_present "$home/state/task-a.meta" "the first spawn published no record"
+  assert_present "$home/state/task-b.meta" "the second spawn published no record"
+  pass "two fresh spawns in one home both get past the task set and publish"
+}
+
+# The lock is still exclusive across publication. A spawn that finds it held
+# there defers with 75 rather than refusing with 1, closes the endpoint it
+# opened, publishes nothing, leaves its backlog item queued, and starts once
+# the holder lets go. The same holds for scouts and batch entries.
+test_task_set_held_at_publication_defers_every_kind() {
+  local case_dir home flag kind id rc out
+  case_dir=$(make_case taskset-held t-ship t-scout t-bship t-bscout)
+  home="$case_dir/home"
+  flag="$case_dir/publisher"
+  hold_task_set "$home/state" task-spawn "$flag"
+  wait_for_file "$flag.held" "the stand-in publisher never took the task set"
+  for kind in ship scout batch-ship batch-scout; do
+    case "$kind" in
+      ship) id=t-ship ;;
+      scout) id=t-scout ;;
+      batch-ship) id=t-bship ;;
+      batch-scout) id=t-bscout ;;
+    esac
+    new_worktree "$case_dir" "$id" >/dev/null
+    rc=0
+    case "$kind" in
+      ship) out=$(run_spawn "$case_dir" "$home" "$case_dir/wt-$id" "$id" "$case_dir/project" --mode no-mistakes --yolo off) || rc=$? ;;
+      scout) out=$(run_spawn "$case_dir" "$home" "$case_dir/wt-$id" "$id" "$case_dir/project" --scout) || rc=$? ;;
+      batch-ship) out=$(run_spawn "$case_dir" "$home" "$case_dir/wt-$id" "$id=$case_dir/project" --mode no-mistakes --yolo off) || rc=$? ;;
+      batch-scout) out=$(run_spawn "$case_dir" "$home" "$case_dir/wt-$id" "$id=$case_dir/project" --scout) || rc=$? ;;
+    esac
+    expect_code "$DEFER_EXIT" "$rc" "a $kind that met a held task set at publication did not defer: $out"
+    assert_contains "$out" "deferred: this home's task set is locked by another spawn" \
+      "the $kind deferral did not name the task-set holder"
+    case "$kind" in batch-*) assert_contains "$out" "batch: DEFERRED $id" "the $kind did not report its queued entry" ;; esac
+    assert_absent "$home/state/$id.meta" "a $kind deferred at publication published a record"
+    endpoint_closed "$case_dir" "$id" || fail "a $kind deferred at publication left its endpoint open: $(cat "$case_dir/calls.log")"
+    if [ "$HAVE_TASKS_AXI" = 1 ]; then
+      [ "$(row_state "$home" "$id")" = queued ] || fail "a deferred $kind moved its backlog item: $(row_state "$home" "$id")"
+    fi
+  done
+  : > "$flag.release"
+  wait || true
+  rc=0
+  out=$(run_spawn "$case_dir" "$home" "$case_dir/wt-t-ship" t-ship "$case_dir/project" --mode no-mistakes --yolo off) || rc=$?
+  expect_code 0 "$rc" "the deferred ship did not start once the task set was free: $out"
+  pass "a held task set at publication defers ships, scouts and batch entries with 75 and leaves nothing behind"
+}
+
+# The case that decides how narrow the hold can be. A forced teardown that
+# takes the home's task set while a spawn is still starting, and lets it go
+# before that spawn publishes, would otherwise never see the spawn: no record
+# when it enumerated, no lock when the spawn published. The teardown's epoch
+# tells the spawn, which defers with 75 and leaves nothing behind.
+test_forced_teardown_during_a_spawns_start_is_never_missed() {
+  local case_dir home hold wt_a pid_a rc_a=0 rc_td=0 out
+  case_dir=$(make_case taskset-teardown task-a)
+  home="$case_dir/home"
+  hold="$case_dir/hold"
+  wt_a=$(new_worktree "$case_dir" task-a)
+  FM_FAKE_HOLD="$hold" spawn_ship "$case_dir" task-a "$wt_a" > "$case_dir/a.out" 2>&1 &
+  pid_a=$!
+  wait_for_file "$hold.reached" "the spawn never reached its worktree read: $(cat "$case_dir/a.out")"
+  take_task_set_as_teardown "$home/state" || rc_td=$?
+  : > "$hold.release"
+  wait "$pid_a" || rc_a=$?
+  expect_code 0 "$rc_td" "a forced teardown could not take the task set while a spawn was only starting"
+  expect_code "$DEFER_EXIT" "$rc_a" "a spawn published after a forced teardown took its home's task set: $(cat "$case_dir/a.out")"
+  assert_contains "$(cat "$case_dir/a.out")" "deferred: a forced teardown took this home's task set while task task-a was starting" \
+    "the deferral did not name the teardown"
+  assert_absent "$home/state/task-a.meta" "the spawn published a record into a home a teardown took"
+  endpoint_closed "$case_dir" task-a || fail "the deferred spawn left its endpoint open: $(cat "$case_dir/calls.log")"
+  rc_a=0
+  out=$(spawn_ship "$case_dir" task-a "$wt_a") || rc_a=$?
+  expect_code 0 "$rc_a" "a spawn started after the teardown let go did not launch: $out"
+  pass "a forced teardown during a spawn's start is never missed: the spawn defers at publication"
+}
+
+# Within one home, the machine total stays exact without the long hold: a
+# spawn rechecks, inside its publication hold, the records its home published
+# after it counted.
+test_machine_total_is_rechecked_at_publication_in_one_home() {
+  local case_dir home hold wt_a pid_a rc_a=0 rc_b=0 out_b
+  case_dir=$(make_case taskset-machine task-a task-b)
+  home="$case_dir/home"
+  declare_machine_capacity "$home" "1"
+  hold="$case_dir/hold"
+  wt_a=$(new_worktree "$case_dir" task-a)
+  FM_FAKE_HOLD="$hold" spawn_ship "$case_dir" task-a "$wt_a" > "$case_dir/a.out" 2>&1 &
+  pid_a=$!
+  wait_for_file "$hold.reached" "the first spawn never got past admission: $(cat "$case_dir/a.out")"
+  out_b=$(spawn_other_ship "$case_dir" task-b) || rc_b=$?
+  : > "$hold.release"
+  wait "$pid_a" || rc_a=$?
+  expect_code 0 "$rc_b" "the second project's spawn did not take the one machine place: $out_b"
+  expect_code "$DEFER_EXIT" "$rc_a" "the first spawn published past the machine total: $(cat "$case_dir/a.out")"
+  assert_contains "$(cat "$case_dir/a.out")" "deferred: this machine admits 1 worker(s) at once across every project ($home/config/machine-capacity) and 1 already hold a place (task-b)" \
+    "the deferral at publication did not name the machine total and the record that filled it"
+  assert_absent "$home/state/task-a.meta" "the first spawn published past the machine total"
+  endpoint_closed "$case_dir" task-a || fail "the deferred spawn left its endpoint open: $(cat "$case_dir/calls.log")"
+  pass "the machine total is rechecked at publication, so two spawns in one home cannot both take its last place"
+}
+
+# The recheck tells a same-id replacement from the record admission counted
+# (chip, PR 195 review 5705538165): task-b's earlier record holds no place (its
+# PR is recorded), so the first spawn's admission counts 0, and a fresh restart
+# of task-b that publishes meanwhile takes the one place.
+test_machine_total_recheck_sees_a_same_id_replacement() {
+  local case_dir home hold wt_a pid_a rc_a=0 rc_b=0 out_b
+  case_dir=$(make_case taskset-machine-restart task-a task-b)
+  home="$case_dir/home"
+  declare_machine_capacity "$home" "1"
+  fm_write_meta "$home/state/task-b.meta" \
+    "window=firstmate:fm-task-b" \
+    "project=$case_dir/other-project" \
+    "kind=ship" \
+    "spawn_gen=s-earlier" \
+    "pr=https://github.com/o/r/pull/7"
+  hold="$case_dir/hold"
+  wt_a=$(new_worktree "$case_dir" task-a)
+  FM_FAKE_HOLD="$hold" spawn_ship "$case_dir" task-a "$wt_a" > "$case_dir/a.out" 2>&1 &
+  pid_a=$!
+  wait_for_file "$hold.reached" "the first spawn never got past admission: $(cat "$case_dir/a.out")"
+  out_b=$(spawn_other_ship "$case_dir" task-b) || rc_b=$?
+  : > "$hold.release"
+  wait "$pid_a" || rc_a=$?
+  expect_code 0 "$rc_b" "the restarted task did not take the one machine place: $out_b"
+  expect_code "$DEFER_EXIT" "$rc_a" "the first spawn published past the machine total beside a same-id replacement: $(cat "$case_dir/a.out")"
+  assert_contains "$(cat "$case_dir/a.out")" "and 1 already hold a place (task-b)" \
+    "the deferral did not name the replacement record that filled the total"
+  assert_absent "$home/state/task-a.meta" "the first spawn published past the machine total"
+  pass "the machine-total recheck counts a same-id replacement published after admission"
+}
+
+# The away spend cap counts this home's records, and is rechecked inside the
+# publication hold the same way.
+test_away_spend_cap_is_rechecked_at_publication() {
+  local case_dir home hold wt_a pid_a rc_a=0 rc_b=0 out_b
+  case_dir=$(make_case taskset-spend task-a task-b)
+  home="$case_dir/home"
+  FM_HOME="$home" "$ROOT/bin/fm-afk-contract.sh" enter --spend 1 >/dev/null || fail "away entry failed"
+  hold="$case_dir/hold"
+  wt_a=$(new_worktree "$case_dir" task-a)
+  FM_FAKE_HOLD="$hold" spawn_ship "$case_dir" task-a "$wt_a" > "$case_dir/a.out" 2>&1 &
+  pid_a=$!
+  wait_for_file "$hold.reached" "the first spawn never got past its early spend check: $(cat "$case_dir/a.out")"
+  out_b=$(spawn_other_ship "$case_dir" task-b) || rc_b=$?
+  : > "$hold.release"
+  wait "$pid_a" || rc_a=$?
+  expect_code 0 "$rc_b" "the second spawn did not take the one spend place: $out_b"
+  expect_code "$DEFER_EXIT" "$rc_a" "the first spawn published past the away spend cap: $(cat "$case_dir/a.out")"
+  assert_contains "$(cat "$case_dir/a.out")" "caps concurrent workers at 1 and 1 ordinary task(s) are live" \
+    "the deferral did not name the spend cap"
+  assert_absent "$home/state/task-a.meta" "the first spawn published past the spend cap"
+  endpoint_closed "$case_dir" task-a || fail "the deferred spawn left its endpoint open: $(cat "$case_dir/calls.log")"
+  pass "the away spend cap is rechecked at publication, so concurrent spawns cannot both publish"
+}
+
 # A machine-capacity file that cannot be read as one total refuses every
 # fresh spawn rather than guessing, exactly like project-capacity.
 test_unreadable_machine_total_refuses_every_spawn() {
@@ -1853,9 +2056,15 @@ test_local_homes_share_one_extra_start
 test_teardown_during_headroom_reading_is_not_refused
 test_spawn_during_headroom_reading_takes_the_extra_start
 test_failed_retake_after_headroom_reading_defers
-test_same_home_spawns_during_headroom_reading_defer
+test_same_home_spawn_during_headroom_reading_takes_the_extra_start
 test_machine_total_defers_across_projects
 test_machine_total_room_keeps_the_project_bound
 test_machine_total_zero_admits_no_worker
 test_machine_total_bounds_a_headroom_extra_start
 test_unreadable_machine_total_refuses_every_spawn
+test_two_fresh_spawns_in_one_home_both_publish
+test_task_set_held_at_publication_defers_every_kind
+test_forced_teardown_during_a_spawns_start_is_never_missed
+test_machine_total_is_rechecked_at_publication_in_one_home
+test_machine_total_recheck_sees_a_same_id_replacement
+test_away_spend_cap_is_rechecked_at_publication

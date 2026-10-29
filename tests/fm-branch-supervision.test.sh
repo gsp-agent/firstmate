@@ -1485,61 +1485,6 @@ test_quiet_record_never_caps_a_present_captains_spawn() {
   pass "a quiet-mode record never caps a present captain's spawn, while the away record's cap still binds"
 }
 
-test_away_spend_cap_is_rechecked_under_the_task_set_lock() {
-  local home root out i
-  home="$TMP_ROOT/away-cap-lock-home"
-  root="$TMP_ROOT/away-cap-lock-root"
-  mkdir -p "$home/state" "$home/data" "$home/config" "$root/bin"
-  git init -q -b main "$root"
-  git -C "$root" commit -q --allow-empty -m init
-  for f in "$ROOT/bin"/*; do
-    ln -s "$f" "$root/bin/${f##*/}"
-  done
-  rm -f "$root/bin/fm-afk-contract.sh"
-  cat > "$root/bin/fm-afk-contract.sh" <<WRAPPER
-#!/usr/bin/env bash
-set -eu
-REAL="$ROOT/bin/fm-afk-contract.sh"
-COUNT="$home/contract-field-count"
-if [ "\${1:-}" = field ]; then
-  n=0
-  [ -f "\$COUNT" ] && n=\$(cat "\$COUNT")
-  n=\$((n + 1))
-  printf '%s\n' "\$n" > "\$COUNT"
-  if [ "\$n" -eq 1 ]; then
-    : > "$home/early-cap-passed"
-    i=0
-    while [ ! -f "$home/competitor-published" ]; do
-      i=\$((i + 1))
-      [ "\$i" -lt 200 ] || exit 1
-      sleep 0.05
-    done
-  fi
-fi
-exec "\$REAL" "\$@"
-WRAPPER
-  chmod +x "$root/bin/fm-afk-contract.sh"
-  FM_HOME="$home" "$ROOT/bin/fm-afk-contract.sh" enter --spend 1 >/dev/null || fail "away entry failed"
-
-  FM_HOME="$home" FM_ROOT_OVERRIDE="$root" \
-    "$root/bin/fm-spawn.sh" task-q1 --mode no-mistakes --yolo off \
-    > "$home/q1.out" 2>&1 &
-  i=0
-  while [ ! -f "$home/early-cap-passed" ]; do
-    i=$((i + 1))
-    [ "$i" -lt 200 ] || fail "spawn never reached the early spend-cap check: $(cat "$home/q1.out" 2>/dev/null || true)"
-    sleep 0.05
-  done
-  fm_write_meta "$home/state/task-live.meta" "window=fm-task-live" "kind=ship"
-  : > "$home/competitor-published"
-  wait || true
-  out=$(cat "$home/q1.out" 2>/dev/null || true)
-  assert_contains "$out" "caps concurrent workers at 1 and 1 ordinary task(s) are live" \
-    "the paused spawn did not recheck the cap after the competitor published: $out"
-  [ ! -f "$home/state/task-q1.meta" ] || fail "the stale-count spawn published after a competitor landed"
-  pass "the away spend cap is rechecked under the task-set lock so concurrent spawns cannot both publish"
-}
-
 test_branch_prompt_is_byte_stable_and_above_cache_floor
 test_outcome_store_is_append_only_with_cursor_reads
 test_outcome_append_keeps_a_bounded_display_tail
@@ -1572,5 +1517,4 @@ test_release_actor_drops_only_that_actors_leases
 test_branch_cannot_force_teardown_or_directly_relaunch
 test_away_record_relocates_main_owned_actions_to_the_branch
 test_away_branch_spawn_requires_queued_dispatchable_work
-test_away_spend_cap_is_rechecked_under_the_task_set_lock
 test_quiet_record_never_caps_a_present_captains_spawn

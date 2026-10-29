@@ -438,16 +438,16 @@ spawn_task() {  # <id> <home> <project> [extra fm-spawn args...]; SPAWN_DEADLINE
 finish_concurrent_spawn() {  # <id> <status> <stdout> <stderr>
   local id=$1 status=$2 out=$3 err=$4
   [ "$status" -ne 0 ] || return 0
-  grep -F "task set is locked" "$err" >/dev/null 2>&1 \
+  [ "$status" -eq 75 ] \
     || fail "concurrent projected spawn $id failed unexpectedly: $(cat "$err")"
   spawn_task "$id" "$HOME_DIR" "$PROJECT_DIR" > "$out" 2> "$err" \
-    || fail "projected spawn $id retry failed after task-set publication completed: $(cat "$err")"
+    || fail "projected spawn $id retry failed after the other spawn's publication completed: $(cat "$err")"
 }
 
 finish_concurrent_expected_abort() {  # <id> <status> <stdout> <stderr>
   local id=$1 status=$2 out=$3 err=$4
   [ "$status" -ne 0 ] || fail "post-create abort fixture $id unexpectedly succeeded"
-  if grep -F "task set is locked" "$err" >/dev/null 2>&1; then
+  if [ "$status" -eq 75 ]; then
     if spawn_task "$id" "$HOME_DIR" "$PROJECT_DIR" > "$out" 2> "$err"; then
       fail "post-create abort fixture $id unexpectedly succeeded after task-set publication completed"
     fi
@@ -807,8 +807,9 @@ cmp -s "$TMP_ROOT/off.meta.normalized" "$TMP_ROOT/on.meta.normalized" \
   || fail "metadata changed beyond Herdr container IDs between opted-out and projected paths"
 
 # Two real primary spawns begin concurrently.
-# The fresh-spawn task-set lock may fail closed for one while the other
-# publishes, in which case retry it only after the lock owner has completed.
+# One may defer with 75 while the other holds a lock they share (the project
+# lock, or the task-set lock across publication), in which case retry it only
+# after that holder has completed.
 # Their final relative order must match Herdr's actual serialized create order,
 # rather than a task-name or priority guess.
 CONCURRENT_FOCUS_AUDIT_START=$(focus_audit_line_count)

@@ -73,7 +73,8 @@
 # project lock and keeps holding it until the new task record is published, so
 # two concurrent spawns for one project can never both publish from the same
 # count. A headroom reading reserves no place; bin/fm-spawn.sh's header owns
-# its unlocked reading, locked recount, and per-home task-set serialization.
+# its unlocked reading, locked recount, and the per-home task-set hold around
+# publication.
 # A spawn on an uncapped project can still publish a holder for a capped
 # same-origin clone, so every backend takes that lock whenever the declaration
 # caps any project; Orca, which otherwise never takes it, is included.
@@ -140,12 +141,14 @@
 # project's count still needs a free machine place, and a declared total of
 # 0 admits no worker and is not raised either. The total is counted under
 # the same shared project lock, so spawns for one project cannot race it.
-# Spawns for different projects hold different project locks (one home's
-# spawns are still serialized by its task-set lock through publication, as
-# bin/fm-spawn.sh's header owns), so two homes starting different projects
-# in the same moment can each pass a count taken before the other's record
-# exists: the total can be overshot by at most the spawns racing in that
-# moment, and every later spawn counts the published records and defers.
+# Spawns for different projects hold different project locks. Within one
+# home, a spawn rechecks the total at publication under that home's task-set
+# lock, counting each record its home published after admission counted
+# (bin/fm-spawn.sh's header owns that hold), so one home never overshoots.
+# Two homes starting different projects in the same moment can each pass a
+# count taken before the other's record exists: the total can be overshot by
+# at most the spawns racing in that moment, and every later spawn counts the
+# published records and defers.
 #
 # The pool-tree limit beside places is fm_project_capacity_pool below.
 #

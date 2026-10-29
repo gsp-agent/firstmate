@@ -588,7 +588,7 @@ fm_lock_clean_known_files() {
 fm_lock_set_role() {
   local lockdir=$1 role=$2 current pid back
   case "$role" in
-    autoarm|terminal-check|task-spawn|task-spawn-reading|forced-teardown) : ;;
+    autoarm|terminal-check|task-spawn|forced-teardown) : ;;
     *) return 1 ;;
   esac
   fm_current_pid current || return 1
@@ -1549,13 +1549,76 @@ fm_meta_lock_path() {
 # and its worktree returned to the pool, with both commands reporting success).
 # Holding this lock from enumeration through cleanup makes the two operations
 # serialize: either the spawn publishes first and the teardown's preflight
-# covers it, or the teardown owns the set and the spawn refuses. Both directions
+# covers it, or the teardown owns the set and the spawn defers. Both directions
 # fail closed.
+#
+# A fresh ship or scout holds this lock only across publishing its record
+# (bin/fm-spawn.sh), not across its slow start, so a teardown can take and
+# release the set entirely inside one spawn's start. The lock alone would then
+# never show the teardown that spawn: no record when it enumerated, no lock
+# when the spawn published, and the spawn's helpers recreate the removed state
+# directory (`mkdir -p "$STATE"` above). The epoch below closes that window: a
+# forced teardown writes a fresh one under this lock before it enumerates, and
+# a spawn publishes only when the epoch it read at its start is still there.
 fm_task_set_lock_path() {  # <state-dir>
   local state=$1
   [ -n "$state" ] || return 1
   case "$state" in *[$'\n\r\t']*) return 1 ;; esac
   printf '%s/.task-set.lock\n' "$state"
+}
+
+fm_task_set_epoch_path() {  # <state-dir>
+  local state=$1
+  [ -n "$state" ] || return 1
+  case "$state" in *[$'\n\r\t']*) return 1 ;; esac
+  printf '%s/.task-set.epoch\n' "$state"
+}
+
+# A fresh epoch, written whole to <path>.new.<pid> before either caller below
+# makes it the home's epoch.
+_fm_task_set_epoch_stage() {  # <epoch-path> -> staged path on stdout
+  local tmp="$1.new.${BASHPID:-$$}"
+  printf '%s.%s.%s%s\n' "$(date +%s)" "${BASHPID:-$$}" "$RANDOM" "$RANDOM" > "$tmp" || {
+    rm -f -- "$tmp"
+    return 1
+  }
+  printf '%s\n' "$tmp"
+}
+
+# A forced teardown, holding the task-set lock, marks that it took this home's
+# set. The new epoch replaces the old one in one rename.
+fm_task_set_epoch_new() {  # <state-dir>
+  local path tmp
+  path=$(fm_task_set_epoch_path "$1") || return 1
+  tmp=$(_fm_task_set_epoch_stage "$path") || return 1
+  mv -f -- "$tmp" "$path" || {
+    rm -f -- "$tmp"
+    return 1
+  }
+}
+
+# The home's current epoch on stdout, empty when it has none or it cannot be
+# read. A spawn compares this at publication with what it read at its start.
+fm_task_set_epoch_current() {  # <state-dir>
+  local path
+  path=$(fm_task_set_epoch_path "$1") || return 1
+  cat -- "$path" 2>/dev/null || true
+}
+
+# A spawn's start: the home's epoch, creating one first when the home has none,
+# so a home whose state directory is removed and recreated later reads as
+# changed. The hard link publishes a complete file and the first creator wins.
+fm_task_set_epoch_read() {  # <state-dir> -> epoch on stdout
+  local path tmp epoch
+  path=$(fm_task_set_epoch_path "$1") || return 1
+  if [ ! -s "$path" ]; then
+    tmp=$(_fm_task_set_epoch_stage "$path") || return 1
+    ln -- "$tmp" "$path" 2>/dev/null || true
+    rm -f -- "$tmp"
+  fi
+  epoch=$(fm_task_set_epoch_current "$1")
+  [ -n "$epoch" ] || return 1
+  printf '%s\n' "$epoch"
 }
 
 # The top-most firstmate home reachable from this one on THIS machine, used as
