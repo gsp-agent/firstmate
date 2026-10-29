@@ -170,10 +170,10 @@ or its database's config table. While any home's record cannot be read, every
 bead-like string holds the task rather than count as ordinary text.
 A task with no backlog row of its own takes the date from the nearest parent
 task's backlog row (an open parent row holds it instead); a task whose rows
-or parent rows give no single date takes the folder's newest write, which is
-also when its cleanup record was last written. The offload's own writes do
-not count: while its journal exists, the journal, its archive copies, its
-pointers and the directories those writes change are left out, so a run that
+or parent rows give no single date takes the folder's newest write, its
+cleanup record's last write included. The offload's own writes do not count:
+while its journal exists, the journal, its archive copies, its pointers and
+the directories those writes change are left out, so a run that
 fails or stops partway retries on the next pass. Only a folder that cannot be
 read at all is kept for a missing date.
 Bead-owner prints which of several homes' DATABASEs owns BEAD when more than
@@ -1205,10 +1205,10 @@ def offload_closed(data, state, task_id, rows):
     closed, chosen = offload_closed_date(candidates)
     # A task with no backlog row of its own takes the nearest parent task's
     # rows: the first ancestor with rows decides, and an open one holds it.
-    # Rows that give no single date fall to the folder's newest write, which
-    # is also the date its cleanup record was last written; the offload's own
-    # writes do not count. Only a task folder that cannot be read at all
-    # keeps the missing-date reason.
+    # Rows that give no single date fall to the folder's newest write, its
+    # cleanup record's last write included; the offload's own writes do not
+    # count. Only a task folder that cannot be read at all keeps the
+    # missing-date reason.
     parent = task_id
     while not candidates and "-" in parent:
         parent = parent.rsplit("-", 1)[0]
