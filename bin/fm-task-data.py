@@ -63,11 +63,11 @@ Read the recorded GitHub, GitLab, Forgejo or Gerrit request and its discussion,
 the owning task's full backlog row, and named beads through fm-task-data-lib.sh.
 Backlog sources retain their home addressing in the cleanup record.
 A named bead is read from the one database that owns its prefix, whatever
-project the task recorded; fm-task-data-lib.sh keeps that prefix map, and an
-id whose prefix is not in it is read from the owning Firstmate backlog,
+project the task recorded; fm-task-data-lib.sh discovers that prefix map, and
+an id whose prefix is not in it is read from the owning Firstmate backlog,
 including its configured archive.
-A bead its owner reports not found links nothing and is not unread; only an
-owner that cannot be read, or a read that times out, leaves it unread.
+A bead its owner reports not found links nothing and is not unread; only bead
+homes or an owner that cannot be read, or a read that times out, leave it unread.
 These br reads clear BEADS_DIR, BEADS_DB, and BR_DB so inherited addressing
 cannot select a different database.
 Only strings shaped like real bead ids count as bead references, in new
@@ -156,19 +156,23 @@ and allocated bytes (neither is a promise of APFS free space).
 A closed backlog row and saved cleanup sources can identify relevant beads;
 their path mentions, and those in briefs, logs or other incidental files, do not
 authorize offload.
-A current unchecked row overrides archived completion. Missing/ambiguous dates,
-live metadata, pending closes, a task folder that is itself a repository and
-repository work in the scratch recovery hold keep the whole task.
+A current unchecked row overrides archived completion. Live metadata, pending
+closes, a task folder that is itself a repository and repository work in the
+scratch recovery hold keep the whole task.
 A string counts as a bead reference for offload only when its prefix is a bead
 home this machine knows, with an id after that prefix; anything else the bead
-pattern catches is ordinary text and does not hold the task, and an id whose
-known home cannot be read is the only bead hold. Bead homes are discovered,
-not listed: every .beads/beads.db under dev/, dev/_archived/ and
-.agent-config-beads, with each home's prefix from its own config or issues.
-A task with no close date of its own takes the date from the nearest parent
-task's backlog row (an open parent row holds it instead), then from the
-folder's newest write, which is also when its cleanup record was last
-written; only a folder that cannot be read at all is kept for a missing date.
+pattern catches is ordinary text and does not hold the task. An id whose
+known home cannot be read holds the task. Bead homes are discovered, not
+listed: every .beads/beads.db under dev/, dev/_archived/ and
+.agent-config-beads, with each home's prefix from its own .beads/config.yaml
+or its database's config table. While any home's record cannot be read, every
+bead-like string holds the task rather than count as ordinary text.
+A task with no backlog row of its own takes the date from the nearest parent
+task's backlog row (an open parent row holds it instead); a task whose rows
+or parent rows give no single date takes the folder's newest write, which is
+also when its cleanup record was last written. An offload's own writes during
+its run do not move that date. Only a folder that cannot be read at all is
+kept for a missing date.
 Date-only completion waits through seven complete local calendar days.
 Small text and root brief/report files stay. Referenced directories or larger
 files may move, but symlink and hardlink evidence stays pending alias ownership.
@@ -1148,16 +1152,15 @@ OFFLOAD_POINTER = "firstmate-task-evidence-v1"
 
 
 def offload_closed_date(candidates):
-    """Return the one definite close date in a task's backlog rows, or None."""
-    if any(row[1] is None for row in candidates):
-        return None
+    """Return a task's one definite close date, or None, and the rows it reads."""
     candidates = [row for row in candidates if row[0]] or candidates
     if not candidates or any(not row[1] for row in candidates):
-        return None
-    return max(row[1] for row in candidates)
+        return None, candidates
+    closed = max(row[1] for row in candidates)
+    return closed, [row for row in candidates if row[1] == closed]
 
 
-def offload_closed(data, state, task_id, rows):
+def offload_closed(data, state, task_id, rows, written=None):
     if not TASK_ID.fullmatch(task_id):
         raise ValueError("invalid task id")
     for suffix in ("meta", "backlog-close"):
@@ -1167,35 +1170,34 @@ def offload_closed(data, state, task_id, rows):
     candidates = rows.get(task_id, [])
     if any(row[1] is None for row in candidates):
         raise ValueError("task still has an open or in-progress backlog row")
-    closed = offload_closed_date(candidates)
-    row = "\n".join(item[3] for item in candidates if item[1] == closed)
+    closed, chosen = offload_closed_date(candidates)
+    # A task with no backlog row of its own takes the nearest parent task's
+    # rows: the first ancestor with rows decides, and an open one holds it.
+    # Rows that give no single date fall to the folder's newest write, which
+    # is also the date its cleanup record was last written; a run's re-check
+    # passes the date it started with, so its own writes do not move it. Only
+    # a task folder that cannot be read at all keeps the missing-date reason.
+    parent = task_id
+    while not candidates and "-" in parent:
+        parent = parent.rsplit("-", 1)[0]
+        if rows.get(parent):
+            if any(item[1] is None for item in rows[parent]):
+                raise ValueError("task still has an open or in-progress backlog row")
+            closed, chosen = offload_closed_date(rows[parent])
+            break
+    row = "\n".join(item[3] for item in chosen)
     if closed is None:
-        # An ended task with no close date of its own takes the date from the
-        # authoritative record of its end: the nearest parent task's backlog
-        # row (an ancestor with rows decides; an open or ambiguous one stops
-        # the walk), then the folder's newest write, which is also the date
-        # its cleanup record was last written. Only a task folder that
-        # cannot be read at all keeps the missing-date reason.
-        parent = task_id
-        while closed is None and "-" in parent:
-            parent = parent.rsplit("-", 1)[0]
-            if rows.get(parent):
-                if any(item[1] is None for item in rows[parent]):
-                    raise ValueError("task still has an open or in-progress backlog row")
-                closed = offload_closed_date(rows[parent])
-                if closed is not None:
-                    row = "\n".join(item[3] for item in rows[parent] if item[1] == closed)
-                break
-        if closed is None:
-            try:
-                root = data / task_id
-                newest = root.lstat().st_mtime
-                for directory, names, leaves in os.walk(root, followlinks=False):
-                    for name in (*names, *leaves):
-                        newest = max(newest, os.lstat(os.path.join(directory, name)).st_mtime)
-                closed = date.fromtimestamp(newest).isoformat()
-            except OSError:
-                closed = None
+        closed = written
+    if closed is None:
+        try:
+            root = data / task_id
+            newest = root.lstat().st_mtime
+            for directory, names, leaves in os.walk(root, followlinks=False):
+                for name in (*names, *leaves):
+                    newest = max(newest, os.lstat(os.path.join(directory, name)).st_mtime)
+            closed = date.fromtimestamp(newest).isoformat()
+        except OSError:
+            closed = None
     if closed is None:
         raise ValueError("closed date is missing or ambiguous")
     # Dates have no time of day: wait through the whole seventh local day.
@@ -1207,7 +1209,9 @@ def offload_closed(data, state, task_id, rows):
 def offload_bead_text(bead, locations, cache):
     if bead in cache:
         return cache[bead]
-    owners = [(prefix, home) for home, prefix in locations if bead.startswith(prefix + "-")]
+    if locations is None:
+        raise ValueError(f"unread bead {bead}: the bead homes on this machine could not be read")
+    owners = [(prefix, home) for prefix, home in locations if bead.startswith(prefix + "-")]
     if not owners:
         # A bead-like string whose prefix is no bead home this machine knows,
         # with an id after it, is ordinary text, not a bead reference.
@@ -1712,9 +1716,11 @@ def offload_context(data, state):
     try:
         found = read_command(["bash", str(Path(__file__).absolute().with_name("fm-task-data-lib.sh")),
                               "bead-locations"], str(data.parent))
+        locations = [line.split(" ", 1) for line in found.splitlines() if line.strip()]
     except ValueError:
-        found = ""
-    locations = [line.split() for line in found.splitlines() if line.strip()]
+        locations = []
+    except (OSError, subprocess.SubprocessError):
+        locations = None
     return data, state, completed_row_index(data), locations, {}
 
 
@@ -1897,7 +1903,7 @@ def offload(data, state, task_id):
     for name in list(record.get("archives", [])):
         with contextlib.suppress(OSError, ValueError, subprocess.SubprocessError):
             release(name)
-    offload_closed(data, state, task_id, rows)
+    closed, _ = offload_closed(data, state, task_id, rows)
     candidates = {item["path"]: item for item in offload_candidates(data, state, task_id, rows, locations, cache)[0]}
     # A crash after Trash but before pointer publication leaves this journal.
     # Complete the pointer only after both copies are freshly verified again.
@@ -1965,7 +1971,7 @@ def offload(data, state, task_id):
                 if offload_remote("verify", destination) != expected:
                     raise ValueError("remote copy checksum or size mismatch; original retained")
                 pointer["backup"] = offload_backup(command, pointer)
-                offload_closed(data, state, task_id, completed_row_index(data))
+                offload_closed(data, state, task_id, completed_row_index(data), closed)
                 if not recovery:
                     if (offload_tree_state(source) != before) if archive else (offload_manifest(source) != expected):
                         raise ValueError("local evidence changed after copy; original retained")

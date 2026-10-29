@@ -190,7 +190,8 @@ def run(home, action, *, fault="", ok=True, real_rsync=False, raw=False, task=("
     env = dict(os.environ, HOME=str(home / "user"), FM_HOME=str(home), PATH=str(fake) + os.pathsep + os.environ["PATH"],
                OFFLOAD_HELPER=str(code / "bin/fm-task-data.py"), OFFLOAD_FAULT=fault, FM_TASK_DATA_SWEEP="off",
                OFFLOAD_REAL_RSYNC="1" if real_rsync else "0", FM_TASK_DATA_TRASH=str(fake / "safe/trash"))
-    for name in ("TASKS_AXI_BACKEND", "TASKS_AXI_FILE", "TASKS_AXI_ROOT", "BEADS_DIR", "BEADS_DB", "BR_DB"):
+    for name in ("TASKS_AXI_BACKEND", "TASKS_AXI_FILE", "TASKS_AXI_ROOT", "BEADS_DIR", "BEADS_DB", "BR_DB",
+                 "FM_TASK_DATA_BEAD_LOCATIONS"):
         env.pop(name, None)
     command = ["bash", str(code / "bin/fm-task-data-lib.sh"), action, str(home / "data"), str(home / "state"), *task]
     active = subprocess.Popen(command, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -690,6 +691,8 @@ def check_added_bead_homes_resolve():
     database = home / "user/dev/PfizerOutDoCancerV3/.beads/beads.db"
     database.parent.mkdir(parents=True)
     with sqlite3.connect(database) as db:
+        db.execute("CREATE TABLE config(key TEXT NOT NULL, value TEXT NOT NULL)")
+        db.execute("INSERT INTO config VALUES ('issue_prefix', 'pfizer')")
         db.execute("CREATE TABLE issues(id TEXT, description TEXT)")
         db.execute("CREATE TABLE comments(issue_id TEXT, text TEXT)")
         db.execute("INSERT INTO issues VALUES (?, ?)", ("pfizer-fixture", "Report archived."))
@@ -713,11 +716,22 @@ def check_sub_attempt_uses_parent_date():
     (lonely / "report.md").write_text("Evidence: [build](build/).\n")
     plan = run(home, "offload-plan", task=("lonely-task",))
     assert plan["moves"] == [] and plan["retained"], plan
+    # Its own checked row with two dates decides, not the older parent row.
+    own = home / "data/task-one-own"
+    (own / "build").mkdir(parents=True)
+    (own / "build/evidence.bin").write_bytes(b"original-evidence" * 256)
+    (own / "report.md").write_text("Evidence: [build](build/).\n")
+    recent = date.today() - timedelta(days=2)
+    with (home / "data/backlog.md").open("a") as stream:
+        stream.write(f"- [x] task-one-own - retry (merged {recent - timedelta(days=1)}) (closed {recent})\n")
+    plan = run(home, "offload-plan", task=("task-one-own",))
+    assert plan["moves"] == [] and "seven complete days" in plan["retained"][0]["reason"], plan
 
 def check_discovered_bead_home_resolves():
     home = fixture("bead-discovered-home")
     database = home / "user/dev/operator-proj/.beads/beads.db"
     database.parent.mkdir(parents=True)
+    (database.parent / "config.yaml").write_text("# issue_prefix: operator\n")
     with sqlite3.connect(database) as db:
         db.execute("CREATE TABLE issues(id TEXT, description TEXT)")
         db.execute("CREATE TABLE comments(issue_id TEXT, text TEXT)")
@@ -744,6 +758,30 @@ def check_orphan_newest_write():
     (recent / "report.md").write_text("Evidence: [build](build/).\n")
     plan = run(home, "offload-plan", task=("orphan-recent",))
     assert plan["moves"] == [] and "seven complete days" in plan["retained"][0]["reason"], plan
+
+def age(path, days):
+    past = time.time() - days * 86400
+    for item in [*path.rglob("*"), path]:
+        os.utime(item, (past, past), follow_symlinks=False)
+
+def check_orphan_repository_offloads():
+    home, clone = repo_fixture("orphan-repository")
+    (home / "data/backlog.md").write_text("")
+    age(home / "data/task-one", 20)
+    result = run(home, "offload")
+    assert [(item["path"], item.get("archive")) for item in result["offloaded"]] == [("clone", "tar")], result
+    assert json.loads(clone.read_text())["format"] == "firstmate-task-evidence-v1"
+
+def check_orphan_offloads_every_unit():
+    home = fixture("orphan-two-units")
+    task = home / "data/task-one"
+    (task / "more").mkdir()
+    (task / "more/evidence.bin").write_bytes(b"more-evidence" * 256)
+    (task / "report.md").write_text("Evidence: [build](build/) and [more](more/).\n")
+    (home / "data/backlog.md").write_text("")
+    age(task, 20)
+    result = run(home, "offload")
+    assert sorted(item["path"] for item in result["offloaded"]) == ["build", "more"], result
 
 def check_outside_links_carried():
     home, clone = repo_fixture("repo-outside-links")
@@ -793,7 +831,9 @@ regressions.extend([("verified existing payload is reused", check_verified_reuse
                     ("newly mapped bead homes resolve", check_added_bead_homes_resolve),
                     ("a sub-attempt takes its parent task's close date", check_sub_attempt_uses_parent_date),
                     ("a bead home absent from the old typed table resolves by discovery", check_discovered_bead_home_resolves),
-                    ("an orphan task takes its folder's newest write as its close date", check_orphan_newest_write)])
+                    ("an orphan task takes its folder's newest write as its close date", check_orphan_newest_write),
+                    ("an old orphan's repository offloads despite the offload's own writes", check_orphan_repository_offloads),
+                    ("an old orphan offloads every referenced directory in one run", check_orphan_offloads_every_unit)])
 if sys.platform == "darwin":
     regressions.extend([("a repository archive keeps resource forks and other extended attributes",
                          check_archive_keeps_extended_attributes),
@@ -921,6 +961,8 @@ for locator in ("report", "row", "saved"):
     database = home / "user/.agent-config-beads/.beads/beads.db"
     database.parent.mkdir(parents=True)
     with sqlite3.connect(database) as db:
+        db.execute("CREATE TABLE config(key TEXT NOT NULL, value TEXT NOT NULL)")
+        db.execute("INSERT INTO config VALUES ('issue_prefix', '.agent-config')")
         db.execute("CREATE TABLE issues(id TEXT, description TEXT)")
         db.execute("CREATE TABLE comments(issue_id TEXT, text TEXT)")
         db.execute("INSERT INTO issues VALUES (?, ?)", (".agent-config-fixture", "Report archived."))
@@ -951,6 +993,15 @@ assert [item["path"] for item in run(home, "offload-plan")["moves"]] == ["build"
 run(home, "offload")
 assert (home / "Trash/build/evidence.bin").is_file()
 print("PASS: a bead-like string with no known home is ordinary text and does not hold the task", flush=True)
+
+home = fixture("unreadable-bead-home")
+broken = home / "user/dev/broken-home/.beads"
+broken.mkdir(parents=True)
+(broken / "beads.db").write_bytes(b"not a database")
+(home / "data/task-one/report.md").write_text("Evidence: [build](build/). Bead: unknown-prefix\n")
+plan = run(home, "offload-plan")
+assert plan["moves"] == [] and "bead homes on this machine could not be read" in plan["retained"][0]["reason"], plan
+print("PASS: a bead home whose record cannot be read holds bead-like text instead of making it ordinary", flush=True)
 PY
 test_pid=$!
 wait "$test_pid"
