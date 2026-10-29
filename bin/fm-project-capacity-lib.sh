@@ -556,6 +556,147 @@ _fm_project_capacity_require_timeout() {
 }
 
 # Directory of per-project extra-start records for the home that owns <config-dir>.
+# The waiting line for a project's next free tree (agent-config
+# .agent-config-wnvf0). Without it a freed tree went to whichever deferred
+# start retried first, so a P0 waiting since morning lost trees to P1 starts
+# whose callers retried sooner. A start that bin/fm-spawn.sh defers on a full
+# pool joins the line, and a start that finds a free tree goes ahead only
+# while fewer live waiters are ahead of it than there are free trees. Ahead
+# means a lower priority number (the backlog item's tasks-axi priority, 0-4),
+# then, at the same priority, an earlier first wait, then the task id. A start
+# not yet in the line counts as arriving now, so a later arrival never passes
+# an earlier one of the same priority. A start without a priority sorts after
+# every declared one.
+#
+# One entry per task, <dir>/<id>, where <dir> is project-tree-wait/<identity>
+# beside the shared project lock and <identity> names that lock, so clones of
+# one origin share a line exactly as they share a pool. Every function here
+# runs while the caller holds that lock, except a waiter's own removal and
+# fm_tree_wait_wake, which a returner sends after releasing the lock so the
+# woken start can take it at once; a wake that races a change in the line
+# costs one fallback retry, never a place.
+#
+# The line is moved by events. Whatever returns a tree to the pool calls
+# fm_tree_wait_wake, which writes the head live waiter's wake file,
+# <dir>/.wake-<id>; a caller's retry loop blocks on that file
+# (bin/fm-watch-statewait.py), so the head starts at once and its retries are
+# only the fallback. An entry is live while the process that retries it, named
+# by the caller as FM_TREE_WAIT_OWNER_PID, is alive with the identity it had
+# when it joined; that process removes the entry when it exits. An entry
+# leaves the line when its task's record publishes or exists in its home. Only
+# an entry with no owner falls back to FM_TREE_WAIT_STALE: no deferral
+# refreshed it in that many seconds, so no one is retrying it. The default is
+# just over two of Firstmate's starter passes, the slowest retrier.
+FM_TREE_WAIT_STALE=${FM_TREE_WAIT_STALE:-900}
+
+fm_tree_wait_dir() {  # <project-lock>
+  local identity
+  identity=$(fm_project_capacity_overshare_identity "$1") || return 1
+  printf '%s\n' "${1%/*}/project-tree-wait/$identity"
+}
+
+# The sort key for <priority>: 0-4 as given, anything else after them.
+fm_tree_wait_rank() {  # <priority>
+  case "$1" in
+    [0-4]) printf '%s\n' "$1" ;;
+    *) printf '5\n' ;;
+  esac
+}
+
+fm_tree_wait_field() {  # <entry> <key>
+  sed -n "s/^$2=//p" "$1" 2>/dev/null | head -n 1
+}
+
+# Join the line, or refresh this task's entry, keeping its first wait. A live
+# <owner-pid> is recorded with its identity, so the entry lives exactly as long
+# as that process.
+fm_tree_wait_join() {  # <dir> <id> <priority> <state-dir> <now> [owner-pid]
+  local dir=$1 id=$2 since owner=${6:-} owner_identity='' tmp
+  mkdir -p -- "$dir" || return 1
+  # A wake written before this deferral is spent: any wake file from here on
+  # is a tree freed while this task waited.
+  rm -f -- "${dir:?}/.wake-${id:?}"
+  since=$(fm_tree_wait_field "$dir/$id" since)
+  case "$since" in '' | *[!0-9]*) since=$5 ;; esac
+  if [ -n "$owner" ] && fm_pid_alive "$owner"; then
+    owner_identity=$(fm_pid_identity "$owner" 2>/dev/null) || owner_identity=
+  else
+    owner=
+  fi
+  tmp="$dir/.$id.${BASHPID:-$$}"
+  printf 'priority=%s\nsince=%s\nseen=%s\nstate=%s\nowner=%s\nowner_identity=%s\n' \
+    "$3" "$since" "$5" "$4" "$owner" "$owner_identity" > "$tmp" &&
+    mv -f -- "$tmp" "$dir/$id"
+}
+
+fm_tree_wait_leave() {  # <dir> <id>
+  rm -f -- "${1:?}/${2:?}" "${1:?}/.wake-${2:?}"
+}
+
+# Whether <entry> has left the line: its task started, its owner is gone, or,
+# with no owner, nothing refreshed it within FM_TREE_WAIT_STALE seconds.
+fm_tree_wait_gone() {  # <entry> <id> <now>
+  local since seen state owner owner_identity
+  since=$(fm_tree_wait_field "$1" since)
+  seen=$(fm_tree_wait_field "$1" seen)
+  state=$(fm_tree_wait_field "$1" state)
+  owner=$(fm_tree_wait_field "$1" owner)
+  owner_identity=$(fm_tree_wait_field "$1" owner_identity)
+  case "$since$seen" in '' | *[!0-9]*) return 0 ;; esac
+  [ -z "$state" ] || [ ! -e "$state/$2.meta" ] || return 0
+  if [ -n "$owner" ]; then
+    fm_pid_alive "$owner" || return 0
+    [ -z "$owner_identity" ] || [ "$(fm_pid_identity "$owner" 2>/dev/null || true)" = "$owner_identity" ] || return 0
+    return 1
+  fi
+  [ $(($3 - seen)) -gt "$FM_TREE_WAIT_STALE" ]
+}
+
+# The live waiters, one "<rank> <since> <id>" per line in line order, after
+# removing every entry that has left the line.
+fm_tree_wait_order() {  # <dir> <now>
+  local dir=$1 now=$2 entry id
+  [ -d "$dir" ] || return 0
+  for entry in "$dir"/*; do
+    [ -f "$entry" ] || continue
+    id=${entry##*/}
+    if fm_tree_wait_gone "$entry" "$id" "$now"; then
+      fm_tree_wait_leave "$dir" "$id"
+      continue
+    fi
+    printf '%s %s %s\n' "$(fm_tree_wait_rank "$(fm_tree_wait_field "$entry" priority)")" \
+      "$(fm_tree_wait_field "$entry" since)" "$id"
+  done | LC_ALL=C sort -n -k1,1 -k2,2 -k3,3
+}
+
+# Count the live waiters ahead of <id> at <priority>. Sets FM_TREE_WAIT_AHEAD
+# and FM_TREE_WAIT_AHEAD_IDS ("<id> (P<n>, waiting since <epoch>)",
+# comma-separated, in line order).
+fm_tree_wait_ahead() {  # <dir> <id> <priority> <now>
+  local dir=$1 self=$2 now=$4 own_rank own_since ahead
+  FM_TREE_WAIT_AHEAD=0
+  FM_TREE_WAIT_AHEAD_IDS=
+  own_rank=$(fm_tree_wait_rank "$3")
+  own_since=$(fm_tree_wait_field "$dir/$self" since)
+  case "$own_since" in '' | *[!0-9]*) own_since=$now ;; esac
+  ahead=$(fm_tree_wait_order "$dir" "$now" | awk -v self="$self" -v r="$own_rank" -v s="$own_since" '
+    $3 != self && ($1 < r || ($1 == r && ($2 < s || ($2 == s && $3 < self))))')
+  [ -n "$ahead" ] || return 0
+  FM_TREE_WAIT_AHEAD=$(printf '%s\n' "$ahead" | wc -l | tr -d ' ')
+  FM_TREE_WAIT_AHEAD_IDS=$(printf '%s\n' "$ahead" | awk '
+    { printf "%s%s (%s, waiting since %s)", sep, $3, ($1 == 5 ? "no priority" : "P" $1), $2; sep = ", " }')
+}
+
+# A tree went back to the pool: wake the head live waiter by writing its wake
+# file. Prints the woken id, or nothing when the line is empty.
+fm_tree_wait_wake() {  # <dir> <now>
+  local dir=$1 now=$2 head
+  head=$(fm_tree_wait_order "$dir" "$now" | awk 'NR == 1 { print $3 }')
+  [ -n "$head" ] || return 0
+  printf '%s\n' "$now" >> "$dir/.wake-$head" || return 1
+  printf '%s\n' "$head"
+}
+
 fm_project_capacity_overshare_dir() {  # <config-dir>
   local config=$1 parent
   parent=${config%/*}

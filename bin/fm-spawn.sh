@@ -312,6 +312,12 @@
 #   endpoint it opened is confirmed closed, since that count reads Treehouse's
 #   status rather than its reuse test; an endpoint whose close is not confirmed
 #   keeps that refusal an exit 1, because a deferral promises nothing is left.
+#   Either deferral joins the project's waiting line for its next tree, and a
+#   fresh start that finds a free tree also defers with 75, naming who is ahead,
+#   while as many waiters as there are free trees are ahead of it by backlog
+#   priority, then first wait (bin/fm-project-capacity-lib.sh's
+#   fm_tree_wait_dir owns the line), so a freed tree goes to the highest-priority
+#   waiter rather than to whichever caller retries first.
 #   Regression coverage: tests/fm-project-capacity.test.sh.
 #   Live sessions: when this machine has a live-session detector
 #   (bin/fm-live-session-lib.sh owns which detector, the folder name it is
@@ -1611,6 +1617,10 @@ SPAWN_OVERSHARE_DIR=
 SPAWN_OVERSHARE_IDENTITY=
 SPAWN_OVERSHARE_AT=
 SPAWN_SLOT_CLAIMED=0
+# The project's waiting line for its next tree, once the pool check below
+# finds one (bin/fm-project-capacity-lib.sh's fm_tree_wait_dir).
+SPAWN_TREE_WAIT_DIR=
+SPAWN_TREE_WAKE_PENDING=0
 SPAWN_SLOT_REFUSAL=0
 SPAWN_SKIP_LEASES=
 SPAWN_TARGET_LEASE=
@@ -1884,6 +1894,12 @@ EOF
   SPAWN_SKIP_LEASES=
 }
 
+# A tree this spawn took goes back to the pool, so the line's head is woken.
+spawn_tree_wait_wake() {
+  [ -n "$SPAWN_TREE_WAIT_DIR" ] || return 0
+  fm_tree_wait_wake "$SPAWN_TREE_WAIT_DIR" "$(date +%s)" >/dev/null || true
+}
+
 spawn_abort_cleanup() {
   local status=$?
   spawn_release_skip_leases
@@ -2046,6 +2062,7 @@ spawn_abort_cleanup() {
     spawn_lease_return_safe "$SPAWN_TARGET_LEASE"; then
     (cd "$PROJ_ABS" 2>/dev/null && treehouse return "$SPAWN_TARGET_LEASE" >/dev/null 2>&1 </dev/null) || true
     SPAWN_TARGET_LEASE=
+    SPAWN_TREE_WAKE_PENDING=1
   fi
   # An admitted extra start past project capacity that launched no worker
   # gives its window back (bin/fm-project-capacity-lib.sh owns the record).
@@ -2065,6 +2082,12 @@ spawn_abort_cleanup() {
   if [ "$SPAWN_TREEHOUSE_PROJECT_LOCK_HELD" = 1 ]; then
     SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=0
     fm_lock_release "$SPAWN_TREEHOUSE_PROJECT_LOCK" || true
+  fi
+  # The returned tree's wake goes out once the project lock is free, since the
+  # woken start takes that lock at once.
+  if [ "$SPAWN_TREE_WAKE_PENDING" = 1 ]; then
+    SPAWN_TREE_WAKE_PENDING=0
+    spawn_tree_wait_wake
   fi
   if [ "$SPAWN_META_LOCK_HELD" = 1 ]; then
     SPAWN_META_LOCK_HELD=0
@@ -4444,12 +4467,54 @@ spawn_machine_total_defer
 # from a fresh read, right before it would ask (the steering below). The
 # moment between that read and the allocator's own choice is Treehouse's; it
 # cannot be closed from here without a way to lease a tree by name.
+#
+# A fresh start that meets a full pool also joins the project's waiting line
+# for its next tree, and one that finds a free tree still defers while as many
+# waiters are ahead of it as there are free trees (bin/fm-project-capacity-lib.sh's
+# fm_tree_wait_dir owns the order), so a freed tree goes by priority and wait,
+# not to whichever caller retries first. A relaunch replaces a running task
+# and is never in the line.
 SPAWN_POOL_EXPOSED=
+SPAWN_TREE_PRIORITY=
+SPAWN_TREE_PRIORITY_READ=0
+# This task's own backlog priority, read once, only when the line needs it.
+spawn_tree_priority() {
+  [ "$SPAWN_TREE_PRIORITY_READ" = 0 ] || return 0
+  SPAWN_TREE_PRIORITY_READ=1
+  if fm_backlog_transition_applies "$CONFIG" "$DATA" "$KIND" && fm_backlog_row_probe "$DATA" "$ID"; then
+    SPAWN_TREE_PRIORITY=$FM_BACKLOG_ROW_PRIORITY
+  fi
+}
+# A caller whose retry loop outlives this spawn names itself as
+# FM_TREE_WAIT_OWNER_PID, so its entry lives as long as that loop, and blocks
+# on the wake file printed here until a freed tree is its turn.
+spawn_tree_wait_join() {
+  [ -n "$SPAWN_TREE_WAIT_DIR" ] || return 0
+  spawn_tree_priority
+  if fm_tree_wait_join "$SPAWN_TREE_WAIT_DIR" "$ID" "$SPAWN_TREE_PRIORITY" "$STATE" "$(date +%s)" "${FM_TREE_WAIT_OWNER_PID:-}"; then
+    echo "tree-wait: $SPAWN_TREE_WAIT_DIR/.wake-$ID" >&2
+  else
+    echo "warning: task $ID could not join project $(basename "$PROJ_ABS")'s waiting line for its next tree" >&2
+  fi
+}
 if { [ "$RELAUNCH" -eq 0 ] || [ "$RELAUNCH_FRESH" = 1 ]; } && [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   fm_project_capacity_pool "$PROJ_ABS"
+  if [ "$RELAUNCH" -eq 0 ] && [ "$FM_PROJECT_CAPACITY_POOL_KNOWN" = 1 ]; then
+    SPAWN_TREE_WAIT_DIR=$(fm_tree_wait_dir "$SPAWN_TREEHOUSE_PROJECT_LOCK") || SPAWN_TREE_WAIT_DIR=
+  fi
   if [ "$FM_PROJECT_CAPACITY_POOL_KNOWN" = 1 ] && [ "$FM_PROJECT_CAPACITY_POOL_FREE" -le 0 ]; then
+    spawn_tree_wait_join
     echo "deferred: project $(basename "$PROJ_ABS")'s worktree pool is full: max_trees $FM_PROJECT_CAPACITY_POOL_MAX in $PROJ_ABS/treehouse.toml and every tree is held (${FM_PROJECT_CAPACITY_POOL_HELD:-none listed}); task $ID was not launched and its backlog item stays queued - dispatch it again once a tree is returned" >&2
     exit "$SPAWN_DEFER_EXIT"
+  fi
+  if [ -n "$SPAWN_TREE_WAIT_DIR" ] && [ -d "$SPAWN_TREE_WAIT_DIR" ]; then
+    spawn_tree_priority
+    fm_tree_wait_ahead "$SPAWN_TREE_WAIT_DIR" "$ID" "$SPAWN_TREE_PRIORITY" "$(date +%s)"
+    if [ "$FM_TREE_WAIT_AHEAD" -ge "$FM_PROJECT_CAPACITY_POOL_FREE" ]; then
+      spawn_tree_wait_join
+      echo "deferred: project $(basename "$PROJ_ABS")'s $FM_PROJECT_CAPACITY_POOL_FREE free tree(s) go first to the start(s) waiting ahead of task $ID in its line: $FM_TREE_WAIT_AHEAD_IDS; task $ID was not launched, it keeps its place in the line, and its backlog item stays queued - dispatch it again once a tree is returned" >&2
+      exit "$SPAWN_DEFER_EXIT"
+    fi
   fi
   # The pool count already read the claimed idle trees; with no declared
   # size it read nothing, and the fresh read before steering decides alone.
@@ -6202,6 +6267,7 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
           1:*"worktrees are in use or dirty"*)
             # The confirmed close already ran; the abort trap must not repeat it.
             SPAWN_CREATED_ENDPOINT=
+            spawn_tree_wait_join
             echo "deferred: the worktree pool of project '$PROJ_ABS' is full by treehouse's own allocation; task $ID was not launched and its backlog item stays queued - dispatch it again once a tree is returned; $treehouse_cleanup; treehouse said:"$'\n'"$treehouse_said" >&2
             exit "$SPAWN_DEFER_EXIT"
             ;;
@@ -7023,6 +7089,9 @@ if [ "$RELAUNCH" -eq 0 ]; then
     exit 1
   fi
   SPAWN_META_TMP=
+  # The tree is this task's now, so it leaves the project's waiting line,
+  # still under the project lock that ordered it.
+  [ -z "$SPAWN_TREE_WAIT_DIR" ] || fm_tree_wait_leave "$SPAWN_TREE_WAIT_DIR" "$ID"
 fi
 
 # Fuse the backlog In-flight transition into the publication that just created

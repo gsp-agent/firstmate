@@ -545,6 +545,9 @@ teardown_release_locks() {
     fm_lock_release "$TREEHOUSE_PROJECT_LOCK" || true
     TREEHOUSE_PROJECT_LOCK_HELD=0
   fi
+  if declare -F teardown_send_tree_wakes >/dev/null 2>&1; then
+    teardown_send_tree_wakes || true
+  fi
   fm_lease_guard_release || true
   return "$status"
 }
@@ -1940,6 +1943,32 @@ teardown_destroy_out_of_root_slot() {  # <worktree> <project-dir>
   return 0
 }
 
+# A pool tree went back to <project-dir>'s pool, so that project's waiting
+# line for its next tree moves: its head live waiter is woken through its wake
+# file instead of at its next retry (bin/fm-project-capacity-lib.sh's
+# fm_tree_wait_dir owns the line). The wake is sent once this teardown has
+# released its locks (teardown_release_locks), because the woken start takes
+# the project lock at once. Best effort: a wake that cannot be written leaves
+# the waiter's own retry as the fallback.
+TEARDOWN_TREE_WAKES=()
+teardown_wake_tree_line() {  # <project-dir>
+  TEARDOWN_TREE_WAKES+=("$1")
+}
+teardown_send_tree_wakes() {
+  local project lock dir
+  [ "${#TEARDOWN_TREE_WAKES[@]}" -gt 0 ] || return 0
+  if ! command -v fm_tree_wait_wake >/dev/null 2>&1; then
+    # shellcheck source=bin/fm-project-capacity-lib.sh
+    . "$SCRIPT_DIR/fm-project-capacity-lib.sh" || return 0
+  fi
+  for project in "${TEARDOWN_TREE_WAKES[@]}"; do
+    lock=$(fm_treehouse_project_lock_path "$project") || continue
+    dir=$(fm_tree_wait_dir "$lock") || continue
+    fm_tree_wait_wake "$dir" "$(date +%s)" >/dev/null || true
+  done
+  TEARDOWN_TREE_WAKES=()
+}
+
 # Return a worktree/home via `treehouse return --force`, tolerating a transient or
 # stale git index.lock left by a killed crew process. See the script header.
 teardown_treehouse_return() {
@@ -3292,6 +3321,7 @@ cleanup_firstmate_home_children() {
           if teardown_treehouse_return "$child_wt" "$child_proj" "child worktree"; then
             [ "$child_pool_slot" = 0 ] || teardown_note_dirty_return "$child_wt"
             fm_treehouse_slot_owner_release "$child_wt" "$child_id"
+            [ "$child_pool_slot" = 0 ] || teardown_wake_tree_line "$child_proj"
           else
             child_return_rc=$?
             if [ "$child_return_rc" -eq "$TEARDOWN_TREEHOUSE_LOCK_REFUSED" ]; then
@@ -3685,6 +3715,7 @@ elif [ -d "$WT" ] && [ "$KIND" != secondmate ]; then
   # unclaimed until its next holder claims it, and leaves the claim in place
   # whenever the return did not actually happen.
   fm_treehouse_slot_owner_release "$WT" "$ID"
+  [ "$wt_pool_slot" = 0 ] || teardown_wake_tree_line "$PROJ"
   # A slot left in a pool the project no longer uses (a treehouse root switch)
   # is never entered again: the spawn takes slots only from the configured pool
   # (fm_treehouse_free_own_slot). Returning it there would keep its disk for
