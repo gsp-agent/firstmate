@@ -1,0 +1,28 @@
+### --check <worktree> <project> against a declined project entry
+project entry: {"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}
+error: project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/home/projects/notes in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/check-declined/.claude.json already declined external CLAUDE.md imports; refusing to override that consent. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse/.treehouse/notes-0d9f34/1/notes' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/check-declined/.claude.json' (check only; nothing was written)
+exit code: 1
+store: byte-identical
+config dir: no new files
+
+### --check --project <project> against the same declined entry (fresh-slot form)
+error: project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/home/projects/notes in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/check-declined/.claude.json already declined external CLAUDE.md imports; refusing to override that consent. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/home/projects/notes' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/check-declined/.claude.json' (check only; nothing was written)
+exit code: 1
+store: byte-identical
+
+### --check <worktree> <project> against the approved lab store
+check: trust can be recorded for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse/.treehouse/notes-0d9f34/1/notes
+exit code: 0
+store: byte-identical
+
+### --check <worktree> <project> with a config dir that does not exist
+check: trust can be recorded for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse/.treehouse/notes-0d9f34/1/notes
+exit code: 0
+config dir: still absent
+
+### registration (no --check) against the declined copy
+error: project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/home/projects/notes in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/check-declined/.claude.json already declined external CLAUDE.md imports; refusing to override that consent. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+error: refusing to pre-register Claude trust: could not record trust for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse/.treehouse/notes-0d9f34/1/notes' and project '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/home/projects/notes' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/check-declined/.claude.json'
+exit code: 1

@@ -1,0 +1,30 @@
+### head-livedecline: relaunch of old-clone Herdr ship lab191e onto claude
+product bin: /Users/dalecarman/.agent-scratch-vol/nm-runs/a5e67f4ea77f/01M6413W6VCJCCTNCB7W8QFV54/bin
+recorded project: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/oldclone/notes
+recorded worktree: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse-h/.treehouse/notes-0d9f34/2/notes
+this home's live clone: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/hhome/projects/notes
+old clone entry:  {"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}
+live clone entry: {"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}
+before: pane=w2:p2 agent=claude/done claude_pid=36571
+
+$ fm-control.sh lab191e relaunch --harness claude --note 'fresh-slot trust check'
+error: project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/hhome/projects/notes in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/claude-cfg-h/.claude.json already declined external CLAUDE.md imports; refusing to override that consent. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/hhome/projects/notes' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/claude-cfg-h/.claude.json' (check only; nothing was written)
+exit code: 1
+
+after: recorded pane=w2:p2 recorded project=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/oldclone/notes
+after: recorded worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse-h/.treehouse/notes-0d9f34/2/notes
+old pane w2:p2: agent=claude/done claude_pid=36571
+old agent: STILL RUNNING (same claude pid 36571)
+task record: unchanged
+trust store: byte-identical
+journal: absent
+old clone entry after:  {"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}
+live clone entry after: {"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}
+recorded pane tail:
+  Sessions are slightly more expensive. Claude can make mistakes that allow harmful commands to run, it's
+  recommended to only use in isolated environments. Shift+Tab to change mode.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle)                                                      Not logged in · Run /login

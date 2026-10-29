@@ -1,0 +1,28 @@
+### recovery step named by the refusal (remove the two import flags)
+project entry now: {"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":null,"hasClaudeMdExternalIncludesWarningShown":null}
+
+### head-ok: relaunch of lab191a (--harness claude --note decline cleared: ordinary relaunch)
+project entry before: {"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":null,"hasClaudeMdExternalIncludesWarningShown":null}
+recorded harness before: claude
+before: window=firstmate:fm-lab191a pane_command=2.1.312 agent_pid=2406
+
+$ fm-control.sh lab191a relaunch --harness claude --note decline cleared: ordinary relaunch
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+relaunched lab191a harness=claude from=claude model=sonnet effort=low backend=tmux endpoint=firstmate:fm-lab191a worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse/.treehouse/notes-0d9f34/1/notes
+exit code: 0
+
+after: window=firstmate:fm-lab191a pane_command=2.1.312 agent_pid=39841
+agent: replaced by a new process (pid 2406 -> 39841)
+recorded harness after: claude
+journal after: complete
+worktree trust entry after: {"hasTrustDialogAccepted":true}
+project entry after: {"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":null,"hasClaudeMdExternalIncludesWarningShown":null}
+pane tail:
+  Allow external CLAUDE.md file imports?
+  This project's CLAUDE.md or .claude/rules imports files outside the current working directory. Never allow this for third-party repositories.
+  External imports:
+    /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/external/shared.md
+  Important: Only use Claude Code with files you trust. Accessing untrusted files may pose security risks https://code.claude.com/docs/en/security
+  ❯ No, disable external imports
+    Yes, allow external imports
+  Enter to confirm · Esc to cancel

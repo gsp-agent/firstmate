@@ -1,0 +1,35 @@
+### base-livedecline: relaunch of old-clone Herdr ship lab191e onto claude
+product bin: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/base/bin
+recorded project: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/oldclone/notes
+recorded worktree: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse-h/.treehouse/notes-0d9f34/2/notes
+this home's live clone: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/hhome/projects/notes
+old clone entry:  {"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}
+live clone entry: {"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}
+before: pane=w2:p2 agent=claude/done claude_pid=36571
+
+$ fm-control.sh lab191e relaunch --harness claude --note 'fresh-slot trust check'
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+relaunch: task lab191e starts in a fresh slot /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse-h/.treehouse/notes-0d9f34/4/notes of this home's clone, on fm/lab191e at 7259d8259f03; its old copy was /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse-h/.treehouse/notes-0d9f34/2/notes
+error: project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/hhome/projects/notes in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/claude-cfg-h/.claude.json already declined external CLAUDE.md imports; refusing to override that consent. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+error: refusing to pre-register Claude trust: could not record trust for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse-h/.treehouse/notes-0d9f34/4/notes' and project '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/hhome/projects/notes' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/claude-cfg-h/.claude.json'
+error: could not pre-register Claude workspace trust for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse-h/.treehouse/notes-0d9f34/4/notes; refusing to launch a claude worker that would wedge on the trust dialog; inspect window fm-lab-relaunch191-53663-14022:w1:p4
+error: the replacement agent for lab191e could not be launched on claude
+error: lab191e's agent was stopped but the replacement did not launch; no agent is running, and its work plus the recorded progress note are preserved at /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse-h/.treehouse/notes-0d9f34/2/notes
+exit code: 1
+
+after: recorded pane=w2:p2 recorded project=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/oldclone/notes
+after: recorded worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse-h/.treehouse/notes-0d9f34/2/notes
+old pane w2:p2: agent=none/unknown claude_pid=none
+old agent: STOPPED, and no replacement agent is running
+task record: changed
+trust store: changed
+journal: failed:launching
+old clone entry after:  {"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}
+live clone entry after: {"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}
+recorded pane tail:
+╭─notes on 🌱 fm/lab191e
+╰─❯
+╭─notes on 🌱 fm/lab191e
+╰─❯
+╭─notes on 🌱 fm/lab191e
+╰─❯

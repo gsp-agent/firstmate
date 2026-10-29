@@ -1,0 +1,25 @@
+### head: relaunch of lab191a onto claude with a declined project entry
+product bin: /Users/dalecarman/.agent-scratch-vol/nm-runs/a5e67f4ea77f/01M6413W6VCJCCTNCB7W8QFV54/bin
+project entry before: {"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}
+before: window=firstmate:fm-lab191a pane_command=2.1.312 pane_pid=76374 agent_pid=2406
+journal before: absent
+
+$ fm-control.sh lab191a relaunch --harness claude --note 'trust declined: relaunch check'
+error: project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/home/projects/notes in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/claude-cfg/.claude.json already declined external CLAUDE.md imports; refusing to override that consent. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse/.treehouse/notes-0d9f34/1/notes' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/claude-cfg/.claude.json' (check only; nothing was written)
+exit code: 1
+
+after: window=firstmate:fm-lab191a pane_command=2.1.312 pane_pid=76374 agent_pid=2406
+old agent: STILL RUNNING (same claude pid 2406)
+task record: unchanged
+instructions: unchanged
+trust store: byte-identical
+journal after: absent
+project entry after: {"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}
+pane tail:
+  actions Claude identifies as risky are blocked and Claude may try a different approach. Ideal for long-running tasks. Sessions are slightly more expensive. Claude can make mistakes that allow harmful commands
+  to run, it's recommended to only use in isolated environments. Shift+Tab to change mode.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle)                                                                                                                                                          Not logged in · Run /login

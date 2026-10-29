@@ -1,0 +1,29 @@
+### the captain approves the imports question once in the relaunched worker
+lab191a: approved in Claude's own dialog; project entry now: {"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":true,"hasClaudeMdExternalIncludesWarningShown":true}
+
+### head-approved: relaunch of lab191a (--harness claude --note imports approved: relaunch carries consent)
+project entry before: {"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":true,"hasClaudeMdExternalIncludesWarningShown":true}
+recorded harness before: claude
+before: window=firstmate:fm-lab191a pane_command=2.1.312 agent_pid=16544
+
+$ fm-control.sh lab191a relaunch --harness claude --note imports approved: relaunch carries consent
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+relaunched lab191a harness=claude from=claude model=sonnet effort=low backend=tmux endpoint=firstmate:fm-lab191a worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse/.treehouse/notes-0d9f34/1/notes
+exit code: 0
+
+after: window=firstmate:fm-lab191a pane_command=2.1.312 agent_pid=52051
+agent: replaced by a new process (pid 16544 -> 52051)
+recorded harness after: claude
+journal after: complete
+worktree trust entry after: {"hasTrustDialogAccepted":true}
+project entry after: {"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":true,"hasClaudeMdExternalIncludesWarningShown":true}
+pane tail:
+  operational input.
+  ⎿  Not logged in · Please run /login
+✻ Churned for 1s · done 11:13 AM
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← for agents                                                                                                                                           Not logged in · Run /login
+                                                                                                                                                                                                           ○ low · /effort
+worktree entry import flags after: {"hasClaudeMdExternalIncludesApproved":true,"hasClaudeMdExternalIncludesWarningShown":true}

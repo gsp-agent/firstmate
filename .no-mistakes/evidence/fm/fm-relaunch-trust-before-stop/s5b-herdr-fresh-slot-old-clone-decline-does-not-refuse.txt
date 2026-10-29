@@ -1,0 +1,37 @@
+### head-oldonly: relaunch of old-clone Herdr ship lab191d onto claude
+product bin: /Users/dalecarman/.agent-scratch-vol/nm-runs/a5e67f4ea77f/01M6413W6VCJCCTNCB7W8QFV54/bin
+recorded project: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/oldclone/notes
+recorded worktree: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse-h/.treehouse/notes-0d9f34/1/notes
+this home's live clone: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/hhome/projects/notes
+old clone entry:  {"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}
+live clone entry: {"hasTrustDialogAccepted":null,"hasClaudeMdExternalIncludesApproved":null,"hasClaudeMdExternalIncludesWarningShown":null}
+before: pane=w1:p2 agent=claude/idle claude_pid=none
+
+$ fm-control.sh lab191d relaunch --harness claude --note 'fresh-slot trust check'
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+relaunch: task lab191d starts in a fresh slot /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse-h/.treehouse/notes-0d9f34/3/notes of this home's clone, on fm/lab191d at 7259d8259f03; its old copy was /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse-h/.treehouse/notes-0d9f34/1/notes
+relaunch: closed task lab191d's old endpoint fm-lab-relaunch191-53663-14022:w1:p2; its old copy /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse-h/.treehouse/notes-0d9f34/1/notes stays for its clone's retirement
+relaunched lab191d harness=claude from=claude model=sonnet effort=low backend=herdr endpoint=fm-lab-relaunch191-53663-14022:w1:p3 worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse-h/.treehouse/notes-0d9f34/3/notes
+exit code: 0
+
+after: recorded pane=w1:p3 recorded project=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/hhome/projects/notes
+after: recorded worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse-h/.treehouse/notes-0d9f34/3/notes
+old pane w1:p2: agent= claude_pid=none (pane closed)
+new pane w1:p3: agent=claude/blocked (pid read failed in driver; see below)
+[driver summary line removed: its pid filter matched no process because Claude's process name is its version string; corrected read appended below]
+task record: changed
+trust store: changed
+journal: complete
+old clone entry after:  {"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}
+live clone entry after: {"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":null,"hasClaudeMdExternalIncludesWarningShown":null}
+recorded pane tail:
+    /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/external/shared.md
+  Important: Only use Claude Code with files you trust. Accessing untrusted files may pose security risks
+  https://code.claude.com/docs/en/security
+  ❯ No, disable external imports
+    Yes, allow external imports
+  Enter to confirm · Esc to cancel
+
+### corrected post-run read (fixed pid filter), taken right after the run
+recorded pane w1:p3: herdr agent=claude/blocked claude_pid=85922
+earlier pane w1:p2: herdr agent= claude_pid=

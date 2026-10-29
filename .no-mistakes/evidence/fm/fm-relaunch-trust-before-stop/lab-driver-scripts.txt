@@ -1,0 +1,511 @@
+
+===== driver/lib.sh =====
+# Shared lab definitions for the PR 191 live relaunch-trust validation.
+# ROOT is the disposable lab root; SRC is the gate worktree whose bin/ is the
+# product under test.
+ROOT=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu
+SRC=/Users/dalecarman/.agent-scratch-vol/nm-runs/a5e67f4ea77f/01M6413W6VCJCCTNCB7W8QFV54
+BIN="$SRC/bin"
+LAB="$ROOT/home"
+CFG="$ROOT/claude-cfg"
+STORE="$CFG/.claude.json"
+PROJ="$LAB/projects/notes"
+A_ID=lab191a
+B_ID=lab191b
+TMUXD_FILE="$ROOT/tmux-dir.txt"
+TMUXD=$(cat "$TMUXD_FILE" 2>/dev/null || true)
+
+# Every lab process starts from an empty environment: no inherited gate,
+# fleet-path override, TMUX or Herdr variable, the lab's private tmux socket
+# directory, a lab treehouse root, and the disposable Claude config dir.
+lab_run() {
+  env -i HOME="$HOME" USER="${USER:-$(id -un)}" LOGNAME="${USER:-$(id -un)}" PATH="$PATH" \
+    SHELL=/bin/zsh TERM=xterm-256color LANG=en_US.UTF-8 \
+    TMUX_TMPDIR="$TMUXD" TREEHOUSE_ROOT="$ROOT/treehouse" FM_BACKEND=tmux \
+    DISABLE_AUTOUPDATER=1 CLAUDE_CONFIG_DIR="$CFG" FM_HOME="$LAB" "$@"
+}
+lab_tmux() { env -u TMUX TMUX_TMPDIR="$TMUXD" tmux "$@"; }
+
+meta_get() { sed -n "s/^$2=//p" "$LAB/state/$1.meta" | tail -1; }
+window_of() { meta_get "$1" window; }
+pane_cmd() { lab_tmux display-message -p -t "$(window_of "$1")" '#{pane_current_command}'; }
+pane_pid() { lab_tmux display-message -p -t "$(window_of "$1")" '#{pane_pid}'; }
+# The agent is the pane terminal's foreground process that is not a shell
+# (pane_current_command shows Claude Code as its version string).
+agent_pid() {
+  local tty
+  tty=$(lab_tmux display-message -p -t "$(window_of "$1")" '#{pane_tty}')
+  ps -t "${tty#/dev/}" -o pid=,stat=,comm= | awk '$2 ~ /\+/ && $3 !~ /(^|\/|-)zsh$/ { print $1; exit }'
+}
+screen() { lab_tmux capture-pane -p -t "$(window_of "$1")" | sed -e '/^[[:space:]]*$/d' | tail -"${2:-12}"; }
+sum() { [ -e "$1" ] && shasum -a 256 "$1" | awk '{print $1}' || echo absent; }
+proj_flags() {
+  jq -c --arg p "$(cd -P "$PROJ" && pwd -P)" \
+    '.projects[$p] // {} | {hasTrustDialogAccepted, hasClaudeMdExternalIncludesApproved, hasClaudeMdExternalIncludesWarningShown}' "$STORE"
+}
+# wait_screen <id> <text> <seconds>
+wait_screen() {
+  local i
+  for ((i = 0; i < $3; i += 2)); do
+    lab_tmux capture-pane -p -t "$(window_of "$1")" 2>/dev/null | grep -qF "$2" && return 0
+    sleep 2
+  done
+  return 1
+}
+
+===== driver/up.sh =====
+#!/usr/bin/env bash
+# Build the lab and spawn two real Claude ships (A and B) on the lab's private
+# tmux server through the product's own fm-spawn.sh.
+set -u
+. "$(dirname "$0")/lib.sh"
+
+"$BIN/fm-lab-home.sh" create "$LAB" >/dev/null || { echo "lab home create failed"; exit 1; }
+"$BIN/fm-lab-home.sh" tmux-dir "$LAB" > "$TMUXD_FILE" || { echo "tmux-dir failed"; exit 1; }
+TMUXD=$(cat "$TMUXD_FILE")
+echo "lab home: $LAB"
+echo "tmux dir: $TMUXD"
+
+mkdir -p "$CFG" "$ROOT/treehouse" "$ROOT/origins" "$ROOT/external"
+printf '{"hasCompletedOnboarding":true,"theme":"dark"}\n' > "$STORE"
+printf 'tmux\n' > "$LAB/config/backend"
+printf 'claude\n' > "$LAB/config/crew-harness"
+printf 'auto\n' > "$LAB/config/claude-permission-mode"
+
+# A lab project whose CLAUDE.md imports a file outside the repository, so the
+# real Claude worker asks the external-imports question.
+printf 'Lab-only shared guidance for the notes project.\n' > "$ROOT/external/shared.md"
+seed="$ROOT/origins/notes-seed"
+mkdir -p "$seed/notes"
+git init -q -b main "$seed"
+printf '"""Lab notes library."""\n\nNOTES = []\n' > "$seed/notes/__init__.py"
+printf '# notes\n\nLab project.\n\n@%s/external/shared.md\n' "$ROOT" > "$seed/CLAUDE.md"
+git -C "$seed" add -A
+git -C "$seed" -c user.name=lab -c user.email=lab@example.invalid commit -q -m "seed notes"
+git clone -q --bare "$seed" "$ROOT/origins/notes.git"
+git clone -q "$ROOT/origins/notes.git" "$PROJ"
+printf '# Projects\n\n- notes [local-only +yolo] - tiny lab notes library\n' > "$LAB/data/projects.md"
+
+lab_run tmux -f /dev/null new-session -d -s firstmate -n lab -x 220 -y 60 -c "$ROOT" || { echo "tmux start failed"; exit 1; }
+
+for id in "$A_ID" "$B_ID"; do
+  (cd "$LAB" && lab_run "$BIN/fm-brief.sh" "$id" notes --mode local-only) >/dev/null || { echo "brief $id failed"; exit 1; }
+  TASK_TEXT="Lab ship $id for a live relaunch validation. Do nothing beyond reading this brief." \
+  SPEC_TEXT="Nothing is in scope; stay idle." \
+    python3 - "$LAB/data/$id/brief.md" <<'PY' || exit 1
+import os, sys
+p = sys.argv[1]
+t = open(p, encoding="utf-8").read()
+t = t.replace("{TASK}", os.environ["TASK_TEXT"], 1).replace("{FIRSTMATE_SPEC}", os.environ["SPEC_TEXT"], 1)
+open(p, "w", encoding="utf-8").write(t)
+PY
+  (cd "$LAB" && lab_run "$BIN/fm-tasks-axi.sh" add "$id" "lab ship $id" --kind ship --repo notes) >/dev/null || { echo "backlog $id failed"; exit 1; }
+  echo "== spawn $id"
+  (cd "$LAB" && lab_run "$BIN/fm-spawn.sh" "$id" "$PROJ" --mode local-only --yolo on --harness claude --model sonnet --effort low) 2>&1 | tail -5
+  echo "spawn $id rc=${PIPESTATUS[0]}"
+done
+
+===== driver/spawn-one.sh =====
+#!/usr/bin/env bash
+# Spawn one more real Claude ship on the lab project through fm-spawn.sh.
+set -u
+. "$(dirname "$0")/lib.sh"
+id=$1
+(cd "$LAB" && lab_run "$BIN/fm-brief.sh" "$id" notes --mode local-only) >/dev/null || { echo "brief $id failed"; exit 1; }
+TASK_TEXT="Lab ship $id for a live relaunch validation. Do nothing beyond reading this brief." \
+SPEC_TEXT="Nothing is in scope; stay idle." \
+  python3 - "$LAB/data/$id/brief.md" <<'PY' || exit 1
+import os, sys
+p = sys.argv[1]
+t = open(p, encoding="utf-8").read()
+t = t.replace("{TASK}", os.environ["TASK_TEXT"], 1).replace("{FIRSTMATE_SPEC}", os.environ["SPEC_TEXT"], 1)
+open(p, "w", encoding="utf-8").write(t)
+PY
+(cd "$LAB" && lab_run "$BIN/fm-tasks-axi.sh" add "$id" "lab ship $id" --kind ship --repo notes) >/dev/null || { echo "backlog $id failed"; exit 1; }
+(cd "$LAB" && lab_run "$BIN/fm-spawn.sh" "$id" "$PROJ" --mode local-only --yolo on --harness claude --model sonnet --effort low) 2>&1 | grep -E '^(spawned|error)'
+echo "spawn $id rc=${PIPESTATUS[0]}"
+# Decline the imports question in this worker's real Claude pane, the way the
+# captain did.
+if wait_screen "$id" "Allow external CLAUDE.md file imports?" 90 &&
+  lab_tmux capture-pane -p -t "$(window_of "$id")" | grep -q '❯ No, disable external imports'; then
+  lab_tmux send-keys -t "$(window_of "$id")" Enter
+  sleep 10
+  echo "$id: declined in Claude's own dialog; project entry now: $(proj_flags)"
+else
+  echo "$id: imports dialog not seen"
+fi
+
+===== driver/decline.sh =====
+#!/usr/bin/env bash
+# Answer "No, disable external imports" (the dialog's default row) in each
+# ship's real Claude pane, then show what Claude recorded in the store.
+set -u
+. "$(dirname "$0")/lib.sh"
+for id in "$A_ID" "$B_ID"; do
+  wait_screen "$id" "Allow external CLAUDE.md file imports?" 60 || { echo "$id: dialog not on screen"; continue; }
+  lab_tmux capture-pane -p -t "$(window_of "$id")" | grep -q '❯ No, disable external imports' || { echo "$id: No row not selected"; continue; }
+  lab_tmux send-keys -t "$(window_of "$id")" Enter
+  echo "$id: declined"
+done
+sleep 12
+jq --arg root "$ROOT" '.projects | with_entries(select(.key | startswith($root))) | map_values({hasTrustDialogAccepted, hasClaudeMdExternalIncludesApproved, hasClaudeMdExternalIncludesWarningShown})' "$STORE"
+
+===== driver/approve.sh =====
+#!/usr/bin/env bash
+# Answer "Yes, allow external imports" in a ship's real Claude pane.
+set -u
+. "$(dirname "$0")/lib.sh"
+id=$1
+wait_screen "$id" "Allow external CLAUDE.md file imports?" 90 || { echo "$id: dialog not on screen"; exit 1; }
+lab_tmux send-keys -t "$(window_of "$id")" Down
+sleep 1
+lab_tmux capture-pane -p -t "$(window_of "$id")" | grep -q '❯ Yes, allow external imports' || { echo "$id: Yes row not selected"; exit 1; }
+lab_tmux send-keys -t "$(window_of "$id")" Enter
+sleep 10
+echo "$id: approved in Claude's own dialog; project entry now: $(proj_flags)"
+
+===== driver/recover-decline.sh =====
+#!/usr/bin/env bash
+# Follow the refusal's own recovery step on the disposable store: remove
+# hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown
+# from the project entry (compare-and-swap replace).
+set -u
+. "$(dirname "$0")/lib.sh"
+p=$(cd -P "$PROJ" && pwd -P)
+before=$(sum "$STORE")
+jq --arg p "$p" '.projects[$p] |= del(.hasClaudeMdExternalIncludesApproved, .hasClaudeMdExternalIncludesWarningShown)' "$STORE" > "$STORE.lab-tmp" || exit 1
+[ "$(sum "$STORE")" = "$before" ] || { echo "store moved; retry"; exit 1; }
+mv -f "$STORE.lab-tmp" "$STORE"
+echo "project entry now: $(proj_flags)"
+
+===== driver/relaunch-declined.sh =====
+#!/usr/bin/env bash
+# Scenario: relaunch a running Claude ship onto claude while its project entry
+# holds Claude's own recorded external-imports decline.
+# Usage: relaunch-declined.sh <id> <bin-dir> <label>
+# <bin-dir> is the product's bin/ (the change under test, or the base tree for
+# the failing-first comparison).
+set -u
+. "$(dirname "$0")/lib.sh"
+id=$1 bin=$2 label=$3
+proof="$ROOT/proof-$label"
+mkdir -p "$proof"
+cp -p "$LAB/state/$id.meta" "$proof/meta-before"
+cp -p "$LAB/data/$id/brief.md" "$proof/brief-before"
+cp -p "$STORE" "$proof/store-before"
+before_pane=$(pane_pid "$id") before_agent=$(agent_pid "$id") before_cmd=$(pane_cmd "$id")
+echo "### $label: relaunch of $id onto claude with a declined project entry"
+echo "product bin: $bin"
+echo "project entry before: $(proj_flags)"
+echo "before: window=$(window_of "$id") pane_command=$before_cmd pane_pid=$before_pane agent_pid=$before_agent"
+echo "journal before: $([ -e "$LAB/state/$id.control-relaunch" ] && echo present || echo absent)"
+echo
+echo "\$ fm-control.sh $id relaunch --harness claude --note 'trust declined: relaunch check'"
+out=$(cd "$LAB" && lab_run FM_CONTROL_EXIT_WAIT=60 FM_CONTROL_LAUNCH_WAIT=90 \
+  "$bin/fm-control.sh" "$id" relaunch --harness claude --note "trust declined: relaunch check" 2>&1)
+rc=$?
+printf '%s\n' "$out"
+echo "exit code: $rc"
+echo
+sleep 3
+after_cmd=$(pane_cmd "$id") after_pane=$(pane_pid "$id") after_agent=$(agent_pid "$id")
+echo "after: window=$(window_of "$id") pane_command=$after_cmd pane_pid=$after_pane agent_pid=${after_agent:-none}"
+if [ -n "$after_agent" ] && [ "$after_agent" = "$before_agent" ]; then
+  echo "old agent: STILL RUNNING (same claude pid $before_agent)"
+elif [ -z "$after_agent" ]; then
+  echo "old agent: STOPPED, and no agent is running in the pane"
+else
+  echo "old agent: replaced (claude pid $before_agent -> $after_agent)"
+fi
+cmp -s "$proof/meta-before" "$LAB/state/$id.meta" && echo "task record: unchanged" || echo "task record: CHANGED"
+cmp -s "$proof/brief-before" "$LAB/data/$id/brief.md" && echo "instructions: unchanged" || echo "instructions: CHANGED"
+cmp -s "$proof/store-before" "$STORE" && echo "trust store: byte-identical" || echo "trust store: CHANGED"
+echo "journal after: $([ -e "$LAB/state/$id.control-relaunch" ] && echo present || echo absent)"
+echo "project entry after: $(proj_flags)"
+echo "pane tail:"
+screen "$id" 6
+
+===== driver/relaunch-ok.sh =====
+#!/usr/bin/env bash
+# Scenario: relaunch a running Claude ship whose project entry carries no
+# decline; the pre-stop check passes and the ordinary relaunch completes.
+# Usage: relaunch-ok.sh <id> <label> [fm-control relaunch args...]
+set -u
+. "$(dirname "$0")/lib.sh"
+id=$1 label=$2
+shift 2
+proof="$ROOT/proof-$label"
+mkdir -p "$proof"
+cp -p "$LAB/state/$id.meta" "$proof/meta-before"
+cp -p "$STORE" "$proof/store-before"
+wt=$(meta_get "$id" worktree)
+wt_real=$(cd -P "$wt" && pwd -P)
+before_agent=$(agent_pid "$id")
+echo "### $label: relaunch of $id ($*)"
+echo "project entry before: $(proj_flags)"
+echo "recorded harness before: $(meta_get "$id" harness)"
+echo "before: window=$(window_of "$id") pane_command=$(pane_cmd "$id") agent_pid=$before_agent"
+echo
+echo "\$ fm-control.sh $id relaunch $*"
+out=$(cd "$LAB" && lab_run FM_CONTROL_EXIT_WAIT=60 FM_CONTROL_LAUNCH_WAIT=120 \
+  "$BIN/fm-control.sh" "$id" relaunch "$@" 2>&1)
+rc=$?
+printf '%s\n' "$out"
+echo "exit code: $rc"
+echo
+sleep 5
+after_agent=$(agent_pid "$id")
+echo "after: window=$(window_of "$id") pane_command=$(pane_cmd "$id") agent_pid=${after_agent:-none}"
+if [ -n "$after_agent" ] && [ "$after_agent" != "$before_agent" ]; then
+  echo "agent: replaced by a new process (pid $before_agent -> $after_agent)"
+elif [ -z "$after_agent" ]; then
+  echo "agent: NONE RUNNING"
+else
+  echo "agent: same process as before (pid $before_agent)"
+fi
+echo "recorded harness after: $(meta_get "$id" harness)"
+echo "journal after: $([ -e "$LAB/state/$id.control-relaunch" ] && sed -n 's/^phase=//p' "$LAB/state/$id.control-relaunch" | tail -1 || echo absent)"
+echo "worktree trust entry after: $(jq -c --arg p "$wt_real" '.projects[$p] // {} | {hasTrustDialogAccepted}' "$STORE")"
+echo "project entry after: $(proj_flags)"
+echo "pane tail:"
+screen "$id" 8
+
+===== driver/check-cli.sh =====
+#!/usr/bin/env bash
+# Scenario: bin/fm-claude-trust.sh --check is read-only and answers exactly
+# what a registration would, on the lab's real worktree and project.
+set -u
+. "$(dirname "$0")/lib.sh"
+wt=$(cd -P "$(meta_get "$A_ID" worktree)" && pwd -P)
+p=$(cd -P "$PROJ" && pwd -P)
+run_check() {  # <config-dir> <args...>
+  local cfg=$1 out rc
+  shift
+  out=$(cd "$LAB" && lab_run CLAUDE_CONFIG_DIR="$cfg" "$BIN/fm-claude-trust.sh" --check "$@" 2>&1)
+  rc=$?
+  printf '%s\n' "$out"
+  echo "exit code: $rc"
+}
+
+# 1. A declined copy of the lab store (the shape real Claude wrote above).
+dcfg="$ROOT/check-declined"
+mkdir -p "$dcfg"
+jq --arg p "$p" '.projects[$p].hasClaudeMdExternalIncludesApproved = false | .projects[$p].hasClaudeMdExternalIncludesWarningShown = true' "$STORE" > "$dcfg/.claude.json"
+before=$(sum "$dcfg/.claude.json")
+echo "### --check <worktree> <project> against a declined project entry"
+echo "project entry: $(jq -c --arg p "$p" '.projects[$p] | {hasClaudeMdExternalIncludesApproved, hasClaudeMdExternalIncludesWarningShown}' "$dcfg/.claude.json")"
+run_check "$dcfg" "$wt" "$PROJ"
+[ "$(sum "$dcfg/.claude.json")" = "$before" ] && echo "store: byte-identical" || echo "store: CHANGED"
+ls -A "$dcfg" | grep -v '^\.claude\.json$' | grep -q . && echo "config dir: gained files" || echo "config dir: no new files"
+echo
+
+echo "### --check --project <project> against the same declined entry (fresh-slot form)"
+run_check "$dcfg" --project "$PROJ"
+[ "$(sum "$dcfg/.claude.json")" = "$before" ] && echo "store: byte-identical" || echo "store: CHANGED"
+echo
+
+# 2. The live lab store, whose project entry is approved.
+before=$(sum "$STORE")
+echo "### --check <worktree> <project> against the approved lab store"
+run_check "$CFG" "$wt" "$PROJ"
+[ "$(sum "$STORE")" = "$before" ] && echo "store: byte-identical" || echo "store: CHANGED"
+echo
+
+# 3. A Claude config dir that does not exist yet.
+ncfg="$ROOT/check-missing/cfg"
+echo "### --check <worktree> <project> with a config dir that does not exist"
+run_check "$ncfg" "$wt" "$PROJ"
+[ -e "$ncfg" ] && echo "config dir: CREATED" || echo "config dir: still absent"
+echo
+
+# 4. The registration (no --check) against the declined copy still refuses,
+# so the check and the write path agree.
+echo "### registration (no --check) against the declined copy"
+out=$(cd "$LAB" && lab_run CLAUDE_CONFIG_DIR="$dcfg" "$BIN/fm-claude-trust.sh" "$wt" "$PROJ" 2>&1); rc=$?
+printf '%s\n' "$out"
+echo "exit code: $rc"
+
+===== driver/hlib.sh =====
+# Herdr fresh-slot lab definitions (PR 191 live validation).
+ROOT=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu
+SRC=/Users/dalecarman/.agent-scratch-vol/nm-runs/a5e67f4ea77f/01M6413W6VCJCCTNCB7W8QFV54
+BIN="$SRC/bin"
+HLAB="$ROOT/hhome"
+HCFG="$ROOT/claude-cfg-h"
+HSTORE="$HCFG/.claude.json"
+OLD="$ROOT/oldclone/notes"
+LIVE="$HLAB/projects/notes"
+D_ID=lab191d
+E_ID=lab191e
+HSESSION=$(cat "$ROOT/herdr-session.txt" 2>/dev/null || true)
+LABHELPER="$BIN/fm-herdr-lab.sh"
+
+hlab_env() {
+  env -i HOME="$HOME" USER="${USER:-$(id -un)}" LOGNAME="${USER:-$(id -un)}" PATH="$PATH" \
+    SHELL=/bin/zsh TERM=xterm-256color LANG=en_US.UTF-8 \
+    TREEHOUSE_ROOT="$ROOT/treehouse-h" DISABLE_AUTOUPDATER=1 CLAUDE_CONFIG_DIR="$HCFG" \
+    FM_HOME="$HLAB" HERDR_SESSION="$HSESSION" FM_BACKEND=herdr "$@"
+}
+hrun() { hlab_env "$LABHELPER" run "$HSESSION" "$@"; }
+
+hmeta() { sed -n "s/^$2=//p" "$HLAB/state/$1.meta" | tail -1; }
+hpane() { hmeta "$1" herdr_pane_id; }
+hscreen() { hrun pane read "$(hpane "$1")" --source visible 2>/dev/null | sed -e '/^[[:space:]]*$/d' | tail -"${2:-10}"; }
+hagent() { hrun pane process-info --pane "$(hpane "$1")" 2>/dev/null | jq -c '{foreground: (.result.process_info // .process_info // .result // .) | (.foreground_process // .foreground // .)}' 2>/dev/null; }
+hwait() {  # <id> <text> <seconds>
+  local i
+  for ((i = 0; i < $3; i += 2)); do
+    hrun pane read "$(hpane "$1")" --source visible 2>/dev/null | grep -qF "$2" && return 0
+    sleep 2
+  done
+  return 1
+}
+hflags() {  # <project-dir>
+  jq -c --arg p "$(cd -P "$1" && pwd -P)" \
+    '.projects[$p] // {} | {hasTrustDialogAccepted, hasClaudeMdExternalIncludesApproved, hasClaudeMdExternalIncludesWarningShown}' "$HSTORE"
+}
+hsum() { [ -e "$1" ] && shasum -a 256 "$1" | awk '{print $1}' || echo absent; }
+
+===== driver/hup.sh =====
+#!/usr/bin/env bash
+# Provision a named Herdr lab session and a Herdr lab home with an old clone
+# and this home's live clone of the same origin; spawn two old-clone ships.
+set -u
+. "$(dirname "$0")/hlib.sh"
+
+if [ -z "$HSESSION" ]; then
+  HSESSION=$("$LABHELPER" name relaunch191) || { echo "name failed"; exit 1; }
+  printf '%s\n' "$HSESSION" > "$ROOT/herdr-session.txt"
+fi
+echo "herdr lab session: $HSESSION"
+hlab_env "$LABHELPER" provision "$HSESSION" || { echo "provision failed"; exit 1; }
+echo "provisioned"
+
+"$BIN/fm-lab-home.sh" create "$HLAB" >/dev/null || { echo "lab home create failed"; exit 1; }
+mkdir -p "$HCFG" "$ROOT/treehouse-h" "$ROOT/oldclone"
+printf '{"hasCompletedOnboarding":true,"theme":"dark"}\n' > "$HSTORE"
+printf 'herdr\n' > "$HLAB/config/backend"
+printf 'claude\n' > "$HLAB/config/crew-harness"
+printf 'auto\n' > "$HLAB/config/claude-permission-mode"
+git clone -q "$ROOT/origins/notes.git" "$OLD"
+git clone -q "$ROOT/origins/notes.git" "$LIVE"
+printf '# Projects\n\n- notes [local-only +yolo] - tiny lab notes library\n' > "$HLAB/data/projects.md"
+
+for id in "$D_ID" "$E_ID"; do
+  (cd "$HLAB" && hlab_env "$BIN/fm-brief.sh" "$id" notes --mode local-only) >/dev/null || { echo "brief $id failed"; exit 1; }
+  TASK_TEXT="Lab ship $id for a live relaunch validation. Do nothing beyond reading this brief." \
+  SPEC_TEXT="Nothing is in scope; stay idle." \
+    python3 - "$HLAB/data/$id/brief.md" <<'PY' || exit 1
+import os, sys
+p = sys.argv[1]
+t = open(p, encoding="utf-8").read()
+t = t.replace("{TASK}", os.environ["TASK_TEXT"], 1).replace("{FIRSTMATE_SPEC}", os.environ["SPEC_TEXT"], 1)
+open(p, "w", encoding="utf-8").write(t)
+PY
+  (cd "$HLAB" && hlab_env "$BIN/fm-tasks-axi.sh" add "$id" "lab ship $id" --kind ship --repo notes) >/dev/null || { echo "backlog $id failed"; exit 1; }
+  echo "== spawn $id against the old clone $OLD"
+  (cd "$HLAB" && hlab_env "$BIN/fm-spawn.sh" "$id" "$OLD" --mode local-only --yolo on --harness claude --model sonnet --effort low) 2>&1 | grep -E '^(spawned|error|warning)'
+  echo "spawn $id rc=${PIPESTATUS[0]}"
+done
+
+===== driver/hdecline.sh =====
+#!/usr/bin/env bash
+# Answer the imports question in a Herdr lab ship's real Claude pane.
+# Usage: hdecline.sh <no|yes> <id>...
+set -u
+. "$(dirname "$0")/hlib.sh"
+answer=$1
+shift
+for id in "$@"; do
+  hwait "$id" "Allow external CLAUDE.md file imports?" 120 || { echo "$id: dialog not on screen"; hscreen "$id" 8; continue; }
+  if [ "$answer" = yes ]; then
+    hrun pane send-keys "$(hpane "$id")" down >/dev/null
+    sleep 1
+    hrun pane read "$(hpane "$id")" --source visible | grep -q '❯ Yes, allow external imports' || { echo "$id: Yes row not selected"; continue; }
+  else
+    hrun pane read "$(hpane "$id")" --source visible | grep -q '❯ No, disable external imports' || { echo "$id: No row not selected"; continue; }
+  fi
+  hrun pane send-keys "$(hpane "$id")" enter >/dev/null
+  echo "$id: answered $answer in Claude's own dialog"
+done
+sleep 10
+echo "old clone entry:  $(hflags "$OLD")"
+echo "live clone entry: $(hflags "$LIVE")"
+
+===== driver/hrelaunch.sh =====
+#!/usr/bin/env bash
+# Relaunch an old-clone Herdr ship onto claude and report what happened to its
+# agent, record, and trust store.
+# Usage: hrelaunch.sh <id> <bin-dir> <label>
+set -u
+. "$(dirname "$0")/hlib.sh"
+id=$1 bin=$2 label=$3
+proof="$ROOT/hproof-$label"
+mkdir -p "$proof"
+claude_pid() {  # <pane>
+  hrun pane process-info --pane "$1" 2>/dev/null |
+    jq -r '[.result.process_info.foreground_processes[]? | select(.argv0 == "claude" or ((.argv[0] // "") | endswith("/claude")))][0].pid // empty'
+}
+pane_agent() { hrun pane get "$1" 2>/dev/null | jq -r '.result.pane | "\(.agent // "none")/\(.agent_status // "none")"'; }
+cp -p "$HLAB/state/$id.meta" "$proof/meta-before"
+cp -p "$HSTORE" "$proof/store-before"
+pane=$(hpane "$id")
+before_pid=$(claude_pid "$pane")
+echo "### $label: relaunch of old-clone Herdr ship $id onto claude"
+echo "product bin: $bin"
+echo "recorded project: $(hmeta "$id" project)"
+echo "recorded worktree: $(hmeta "$id" worktree)"
+echo "this home's live clone: $LIVE"
+echo "old clone entry:  $(hflags "$OLD")"
+echo "live clone entry: $(hflags "$LIVE")"
+echo "before: pane=$pane agent=$(pane_agent "$pane") claude_pid=${before_pid:-none}"
+echo
+echo "\$ fm-control.sh $id relaunch --harness claude --note 'fresh-slot trust check'"
+out=$(cd "$HLAB" && hlab_env FM_CONTROL_EXIT_WAIT=60 FM_CONTROL_LAUNCH_WAIT=120 \
+  "$bin/fm-control.sh" "$id" relaunch --harness claude --note "fresh-slot trust check" 2>&1)
+rc=$?
+printf '%s\n' "$out"
+echo "exit code: $rc"
+echo
+sleep 5
+new_pane=$(hpane "$id")
+old_pid_now=$(claude_pid "$pane")
+echo "after: recorded pane=$new_pane recorded project=$(hmeta "$id" project)"
+echo "after: recorded worktree=$(hmeta "$id" worktree)"
+echo "old pane $pane: agent=$(pane_agent "$pane" || echo gone) claude_pid=${old_pid_now:-none}"
+if [ "$new_pane" != "$pane" ]; then
+  echo "new pane $new_pane: agent=$(pane_agent "$new_pane") claude_pid=$(claude_pid "$new_pane")"
+fi
+if [ -n "$old_pid_now" ] && [ "$old_pid_now" = "$before_pid" ] && [ "$new_pane" = "$pane" ]; then
+  echo "old agent: STILL RUNNING (same claude pid $before_pid)"
+elif [ "$new_pane" != "$pane" ] && [ -n "$(claude_pid "$new_pane")" ]; then
+  echo "agent: relaunched in a fresh slot (new pane $new_pane)"
+else
+  echo "old agent: STOPPED, and no replacement agent is running"
+fi
+cmp -s "$proof/meta-before" "$HLAB/state/$id.meta" && echo "task record: unchanged" || echo "task record: changed"
+cmp -s "$proof/store-before" "$HSTORE" && echo "trust store: byte-identical" || echo "trust store: changed"
+echo "journal: $([ -e "$HLAB/state/$id.control-relaunch" ] && sed -n 's/^phase=//p' "$HLAB/state/$id.control-relaunch" | tail -1 || echo absent)"
+echo "old clone entry after:  $(hflags "$OLD")"
+echo "live clone entry after: $(hflags "$LIVE")"
+echo "recorded pane tail:"
+hscreen "$id" 6
+
+===== driver/hstate.sh =====
+#!/usr/bin/env bash
+# Read a Herdr lab ship's current endpoint: Herdr's agent state and the
+# Claude pid in its pane (and optionally an earlier pane).
+# Usage: hstate.sh <id> [<earlier-pane>]
+set -u
+. "$(dirname "$0")/hlib.sh"
+claude_pid() {
+  hrun pane process-info --pane "$1" 2>/dev/null |
+    jq -r '[.result.process_info.foreground_processes[]? | select(.argv0 == "claude" or ((.argv[0] // "") | endswith("/claude")))][0].pid // empty'
+}
+pane_agent() { hrun pane get "$1" 2>/dev/null | jq -r '.result.pane | "\(.agent // "none")/\(.agent_status // "none")"'; }
+id=$1
+p=$(hpane "$id")
+echo "recorded pane $p: herdr agent=$(pane_agent "$p") claude_pid=$(claude_pid "$p")"
+if [ -n "${2:-}" ]; then
+  echo "earlier pane $2: herdr agent=$(pane_agent "$2" || true) claude_pid=$(claude_pid "$2")"
+fi

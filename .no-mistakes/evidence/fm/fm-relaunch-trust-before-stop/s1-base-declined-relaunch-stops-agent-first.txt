@@ -1,0 +1,29 @@
+### base: relaunch of lab191c onto claude with a declined project entry
+product bin: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/base/bin
+project entry before: {"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}
+before: window=firstmate:fm-lab191c pane_command=2.1.312 pane_pid=38283 agent_pid=56379
+journal before: absent
+
+$ fm-control.sh lab191c relaunch --harness claude --note 'trust declined: relaunch check'
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+error: project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/home/projects/notes in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/claude-cfg/.claude.json already declined external CLAUDE.md imports; refusing to override that consent. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+error: refusing to pre-register Claude trust: could not record trust for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse/.treehouse/notes-0d9f34/3/notes' and project '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/home/projects/notes' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/claude-cfg/.claude.json'
+error: could not pre-register Claude workspace trust for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse/.treehouse/notes-0d9f34/3/notes; refusing to launch a claude worker that would wedge on the trust dialog; inspect window firstmate:fm-lab191c
+error: the replacement agent for lab191c could not be launched on claude
+error: lab191c's agent was stopped but the replacement did not launch; no agent is running, and its work plus the recorded progress note are preserved at /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse/.treehouse/notes-0d9f34/3/notes
+exit code: 1
+
+after: window=firstmate:fm-lab191c pane_command=zsh pane_pid=38283 agent_pid=none
+old agent: STOPPED, and no agent is running in the pane
+task record: CHANGED
+instructions: CHANGED
+trust store: CHANGED
+journal after: present
+project entry after: {"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}
+pane tail:
+Resume this session with:
+claude --resume 18f5faed-ce02-4df8-8f32-7f01124d2b50
+╭─notes on 🌱 fm/lab191c
+╰─❯ cd -- '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.oVQ3uu/treehouse/.treehouse/notes-0d9f34/3/notes'
+╭─notes on 🌱 fm/lab191c
+╰─❯
