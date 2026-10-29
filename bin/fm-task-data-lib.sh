@@ -253,36 +253,69 @@ fm_task_data_sweep_start() { # <data> <state>
   [ "$monitor_was_on" -eq 1 ] || set +m
 }
 
-# The bead-prefix map: each home, under HOME, whose .beads/beads.db owns
-# the prefix after it. The longest matching prefix wins.
+# The bead-prefix map is discovered, not typed: every home on this machine
+# with a .beads/beads.db under dev/, dev/_archived/, or .agent-config-beads.
+# Each home's prefix comes from its own record: issue_prefix in its
+# .beads/config.yaml when set, otherwise the id prefix its issues table uses.
+# The map is computed once per process and cached in the environment.
+fm_task_data_bead_locations_discover() {
+  local db home_dir config prefix
+  for db in "$HOME"/dev/*/.beads/beads.db "$HOME"/dev/_archived/*/.beads/beads.db "$HOME/.agent-config-beads/.beads/beads.db"; do
+    [ -f "$db" ] || continue
+    home_dir=${db%/.beads/beads.db}
+    home_dir=${home_dir#"$HOME"/}
+    prefix=''
+    config=${db%/*}/config.yaml
+    if [ -f "$config" ]; then
+      prefix=$(sed -n 's/^#*[[:space:]]*issue_prefix:[[:space:]]*\([^[:space:]#]*\).*/\1/p' "$config" | head -n 1)
+    fi
+    if [ -n "$prefix" ]; then
+      printf '%s %s\n' "$home_dir" "$prefix"
+      continue
+    fi
+    BEAD_DB=$db BEAD_HOME=$home_dir python3 - <<'PY'
+import os, sqlite3
+try:
+    db = sqlite3.connect("file:" + os.environ["BEAD_DB"] + "?mode=ro", uri=True, timeout=5)
+    prefixes = sorted({row[0].rsplit("-", 1)[0] for row in db.execute("SELECT id FROM issues")
+                       if isinstance(row[0], str) and "-" in row[0]})
+except (OSError, sqlite3.Error):
+    prefixes = []
+for prefix in prefixes:
+    print(os.environ["BEAD_HOME"], prefix)
+PY
+  done
+}
+
 fm_task_data_bead_locations() {
-  cat <<'MAP'
-.agent-config-beads .agent-config
-dev/be-still bd
-dev/carman-compound carmanco
-dev/pfizer-clickless clickless
-dev/PfizerOutDoCancerV3 pfizer
-dev/_archived/groove-flow gflow
-dev/claude-usage cusage
-dev/dale dale
-dev/gj-tool gj
-dev/gj-gitlab-config gj-gitlab-config
-dev/gj-magic-mirror gjmm
-dev/groove-jones-ops gjops
-dev/gsp-beads gsp
-dev/heru-vr-vision-sim heru
-dev/agent-observer obs
-MAP
+  if [ -z "${FM_TASK_DATA_BEAD_LOCATIONS:-}" ]; then
+    FM_TASK_DATA_BEAD_LOCATIONS=$(fm_task_data_bead_locations_discover)
+    export FM_TASK_DATA_BEAD_LOCATIONS
+  fi
+  [ -n "$FM_TASK_DATA_BEAD_LOCATIONS" ] && printf '%s\n' "$FM_TASK_DATA_BEAD_LOCATIONS"
+  return 0
 }
 
 fm_task_data_bead_database() { # <bead>
-  local bead=$1 prefix home best='' owner=''
+  local bead=$1 prefix home best='' owner='' candidate escaped
   while read -r home prefix; do
     case "$bead" in
-      "$prefix"-*) [ "${#prefix}" -le "${#best}" ] || { best=$prefix; owner=$home; } ;;
+      "$prefix"-*) [ "${#prefix}" -lt "${#best}" ] || { best=$prefix; owner=$home; } ;;
     esac
   done < <(fm_task_data_bead_locations)
-  [ -n "$owner" ] && printf '%s\n' "$HOME/$owner/.beads/beads.db"
+  [ -n "$owner" ] || return 0
+  # When two homes claim the longest prefix, the home whose database holds
+  # the id owns it.
+  while read -r home prefix; do
+    [ "$prefix" = "$best" ] || continue
+    candidate=$HOME/$home/.beads/beads.db
+    escaped=${bead//\'/\'\'}
+    if [ "$("/usr/bin/sqlite3" -readonly "$candidate" "SELECT 1 FROM issues WHERE id = '$escaped' LIMIT 1" 2>/dev/null)" = 1 ]; then
+      owner=$home
+      break
+    fi
+  done < <(fm_task_data_bead_locations)
+  printf '%s\n' "$HOME/$owner/.beads/beads.db"
 }
 
 fm_task_data_bead_id_matches() { # <asked-id> <canonical-id> <database>

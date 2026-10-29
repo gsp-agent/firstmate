@@ -714,6 +714,37 @@ def check_sub_attempt_uses_parent_date():
     plan = run(home, "offload-plan", task=("lonely-task",))
     assert plan["moves"] == [] and plan["retained"], plan
 
+def check_discovered_bead_home_resolves():
+    home = fixture("bead-discovered-home")
+    database = home / "user/dev/operator-proj/.beads/beads.db"
+    database.parent.mkdir(parents=True)
+    with sqlite3.connect(database) as db:
+        db.execute("CREATE TABLE issues(id TEXT, description TEXT)")
+        db.execute("CREATE TABLE comments(issue_id TEXT, text TEXT)")
+        db.execute("INSERT INTO issues VALUES (?, ?)", ("operator-fixture", "Report archived."))
+        db.execute("INSERT INTO comments VALUES (?, ?)", ("operator-fixture", "Evidence: [build](build/)."))
+    (home / "data/task-one/report.md").write_text("Evidence: none. Bead: operator-fixture\n")
+    assert [item["path"] for item in run(home, "offload-plan")["moves"]] == ["build"]
+
+def check_orphan_newest_write():
+    home = fixture("orphan-newest-write")
+    old = home / "data/orphan-old"
+    (old / "build").mkdir(parents=True)
+    (old / "build/evidence.bin").write_bytes(b"original-evidence" * 256)
+    (old / "report.md").write_text("Evidence: [build](build/).\n")
+    past = time.time() - 20 * 86400
+    for path in sorted(old.rglob("*"), reverse=True):
+        os.utime(path, (past, past))
+    os.utime(old, (past, past))
+    plan = run(home, "offload-plan", task=("orphan-old",))
+    assert [(item["task"], item["path"]) for item in plan["moves"]] == [("orphan-old", "build")], plan
+    recent = home / "data/orphan-recent"
+    (recent / "build").mkdir(parents=True)
+    (recent / "build/evidence.bin").write_bytes(b"original-evidence" * 256)
+    (recent / "report.md").write_text("Evidence: [build](build/).\n")
+    plan = run(home, "offload-plan", task=("orphan-recent",))
+    assert plan["moves"] == [] and "seven complete days" in plan["retained"][0]["reason"], plan
+
 def check_outside_links_carried():
     home, clone = repo_fixture("repo-outside-links")
     (home / "user/shared.bin").write_bytes(b"shared by a hard link")
@@ -760,7 +791,9 @@ regressions.extend([("verified existing payload is reused", check_verified_reuse
                     ("a repository borrowing objects from outside its unit stays", check_borrowing_repository_kept),
                     ("bead-like ordinary text does not hold a task", check_unknown_bead_text_ignored),
                     ("newly mapped bead homes resolve", check_added_bead_homes_resolve),
-                    ("a sub-attempt takes its parent task's close date", check_sub_attempt_uses_parent_date)])
+                    ("a sub-attempt takes its parent task's close date", check_sub_attempt_uses_parent_date),
+                    ("a bead home absent from the old typed table resolves by discovery", check_discovered_bead_home_resolves),
+                    ("an orphan task takes its folder's newest write as its close date", check_orphan_newest_write)])
 if sys.platform == "darwin":
     regressions.extend([("a repository archive keeps resource forks and other extended attributes",
                          check_archive_keeps_extended_attributes),
@@ -900,6 +933,10 @@ for locator in ("report", "row", "saved"):
 print("PASS: report/row/saved-source bead IDs resolve local bead comments, while saved-source prose is not move authority", flush=True)
 
 home = fixture("unresolved-.agent-config-unread")
+unread_home = home / "user/.agent-config-beads/.beads"
+unread_home.mkdir(parents=True)
+(unread_home / "beads.db").write_bytes(b"not a database")
+(unread_home / "config.yaml").write_text("# issue_prefix: .agent-config\n")
 (home / "data/task-one/report.md").write_text("Evidence: [build](build/). Bead: .agent-config-unread\n")
 plan = run(home, "offload-plan")
 assert plan["moves"] == [] and plan["retained"]
