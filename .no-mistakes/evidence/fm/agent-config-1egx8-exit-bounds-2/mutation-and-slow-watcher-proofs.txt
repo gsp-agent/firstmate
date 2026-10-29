@@ -1,0 +1,60 @@
+### M1 control: wake-queue test_signal_catchup_without_running_watcher, real fm-watch.sh, target commit (expect ok)
+== label=m1 case=test_signal_catchup_without_running_watcher watch=real
+== load before: { 108.65 120.04 112.56 }
+ok - signal written while no watcher runs is caught on next run
+== rc=0 wall=45s
+== load after: { 91.17 113.77 110.64 }
+
+### M2 mutation: wake-queue test_signal_catchup_without_running_watcher, never-exiting watcher, target commit (expect not ok after 300 polls)
+== label=m2 case=test_signal_catchup_without_running_watcher watch=never-exit-watch.sh
+== load before: { 91.17 113.77 110.64 }
+wait_for_exit: owned pid 45580 exceeded 300 polls; sending TERM
+45580 40840 sleep            01:50
+not ok - watcher did not exit for first signal
+== rc=1 wall=117s
+== load after: { 81.91 106.32 108.31 }
+
+### M3 mutation: wake-queue test_stale_enqueue_before_suppressor, never-exiting watcher, target commit (expect not ok after 300 polls)
+== label=m3 case=test_stale_enqueue_before_suppressor watch=never-exit-watch.sh
+== load before: { 81.91 106.32 108.31 }
+wait_for_exit: owned pid 9292 exceeded 300 polls; sending TERM
+ 9292  8332 sleep            01:34
+not ok - watcher did not exit for stale pane
+== rc=1 wall=96s
+== load after: { 68.23 94.04 103.28 }
+
+### M4 control: watch-triage test_turn_ended_mixed_positive_evidence_batch_default_off, real fm-watch.sh, target commit (expect ok)
+== label=m4 case=test_turn_ended_mixed_positive_evidence_batch_default_off watch=real
+== load before: { 68.53 93.67 103.09 }
+ok - per-task evidence composition stays off until the home opts in
+== rc=0 wall=9s
+== load after: { 66.80 92.90 102.77 }
+
+### M5 mutation: watch-triage test_turn_ended_mixed_positive_evidence_batch_default_off, never-exiting watcher, target commit (expect not ok after 300 polls)
+== label=m5 case=test_turn_ended_mixed_positive_evidence_batch_default_off watch=never-exit-watch.sh
+== load before: { 66.80 92.90 102.77 }
+wait_for_exit: owned pid 79250 exceeded 300 polls; sending TERM
+79250 78643 sleep            01:31
+not ok - watcher absorbed a mixed-evidence batch without the opt-in flag
+== rc=1 wall=94s
+== load after: { 51.09 79.69 96.55 }
+
+### S1 slow-not-stuck: wake-queue test_signal_catchup_without_running_watcher, watcher delayed 15 s, BASE 810d6ae3 test (40 polls; expect not ok)
+== label=s1 case=test_signal_catchup_without_running_watcher watch=slow-watch.sh
+== load before: { 51.09 79.69 96.55 }
+wait_for_exit: owned pid 45077 exceeded 40 polls; sending TERM
+45077 42662 bash             00:12
+not ok - watcher did not exit for first signal
+== rc=1 wall=18s
+== load after: { 51.48 78.00 95.56 }
+
+### S2 slow-not-stuck: wake-queue test_signal_catchup_without_running_watcher, watcher delayed 15 s, TARGET test (300 polls; expect ok)
+== label=s2 case=test_signal_catchup_without_running_watcher watch=slow-watch.sh
+== load before: { 51.48 78.00 95.56 }
+ok - signal written while no watcher runs is caught on next run
+== rc=0 wall=58s
+== load after: { 43.97 71.60 92.08 }
+
+### leftover check: test-spawned watcher processes from this worktree
+none
+96010 (false match, argv withheld: the evaluator's own completion monitor, whose command names this evidence file "mutation-and-slow-watcher-proofs.txt"; no never-exit or slow-watch stand-in survived)

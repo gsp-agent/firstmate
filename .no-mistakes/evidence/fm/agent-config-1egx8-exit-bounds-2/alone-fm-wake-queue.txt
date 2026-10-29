@@ -1,0 +1,45 @@
+=== suite: tests/fm-wake-queue.test.sh (alone, via bin/fm-test-run.sh)
+start: 2026-10-29 06:51:54 CDT  commit: 63e11a18
+pre-run: load1=38.35 swap_used=1191.38M test-spawned watcher procs from this worktree=1
+end: 2026-10-29 07:09:35 CDT  wall=1055s  runner rc=1
+(1) load1 pre=38.35 peak=120.11 post=118.76  peak-minus-pre=81.76  suite process tree peak=91 procs
+(2) swap_used pre=1191.38M peak=1191.38M post=1191.38M  post-minus-pre=0.00M
+(3) ~/.claude.json hash 750f18697633fdbf -> 750f18697633fdbf; new keys=0, fixture-looking new keys=0
+    $CLAUDE_CONFIG_DIR/.claude.json hash 5e550e465a108141 -> 61159312e9c7fa9e; new keys=0, fixture-looking new keys=0
+(4) test-spawned survivors (watch-arm/watch/teardown/home-summary/fleet-snapshot from this worktree)=1, reparented to launchd=1
+      85634     1 bash S   
+(5) memory watch: 125 samples every 5 s; suite tree RSS peak=386M; min free pages=102M (samples below)
+(6) runner rc=1; ok lines=59; not-ok lines=1; "Killed: 9" lines=3; "exceeded N polls" lines=0
+    failure lines:
+      tests/wake-helpers.sh: line 340: 47978 Killed: 9                  PATH="$dir/fakebin:$PATH" FM_FAKE_NOW_FILE="$dir/now" FM_HOME="$dir" FM_ROOT_OVERRIDE="$ROOT" FM_STATE_OVERRIDE="$dir/state" FM_FAKE_TMUX_WINDOW='firstmate:fm-mate' FM_SECONDMATE_WAKE_STALL_SECS=1 FM_SECONDMATE_LIVENESS_SECS=99999999 FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 "$WATCH" > "$dir/watch-$leg.out" 2> "$dir/watch-$leg.err"
+      tests/wake-helpers.sh: line 340: 49330 Killed: 9                  PATH="$dir/fakebin:$PATH" FM_FAKE_NOW_FILE="$dir/now" FM_HOME="$dir" FM_ROOT_OVERRIDE="$ROOT" FM_STATE_OVERRIDE="$dir/state" FM_FAKE_TMUX_WINDOW='firstmate:fm-mate' FM_SECONDMATE_WAKE_STALL_SECS=1 FM_SECONDMATE_LIVENESS_SECS=99999999 FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 "$WATCH" > "$dir/watch-$leg.out" 2> "$dir/watch-$leg.err"
+      tests/wake-helpers.sh: line 340: 58911 Killed: 9                  PATH="$dir/fakebin:$PATH" FM_FAKE_NOW_FILE="$dir/now" FM_HOME="$dir" FM_ROOT_OVERRIDE="$ROOT" FM_STATE_OVERRIDE="$dir/state" FM_FAKE_TMUX_WINDOW='firstmate:fm-mate' FM_SECONDMATE_WAKE_STALL_SECS=1 FM_SECONDMATE_LIVENESS_SECS=99999999 FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 "$WATCH" > "$dir/watch-$leg.out" 2> "$dir/watch-$leg.err"
+      not ok - the ambiguous probe did not land in the triage log: 
+--- runner summary (tail of fm-test-run.sh output)
+ok - fm_wake_queue_prune_task: prunes wakes for target task without touching other tasks
+ok - drain rotates scratch files an interrupted drain left under the queue lock
+ok - watch liveness: a dead secondmate is relaunched once, ledgered, and quiet afterwards
+ok - watch liveness: a missing secondmate endpoint is relaunched without a pre-kill
+ok - watch liveness: one tick relaunches every dead mate, queues a row each, and wakes once
+grep: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-wake-tests.FCg4f1/liveness-quiet/state/.watch-triage.log: No such file or directory
+not ok - the ambiguous probe did not land in the triage log: 
+FM_TEST_END 2026-10-29T12:09:22Z tests/fm-wake-queue.test.sh exit=1 duration_ms=1041282 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=1 skipped_gate=0 duration_ms=1048225
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=1 duration_ms=1041282 failed=1
+FM_TEST_SLOWEST rank=1 script=tests/fm-wake-queue.test.sh duration_ms=1041282
+fm-test-run: wrote timing artifact: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-1egx8-scratch.kqpI0g/fm-wake-queue.test.sh.json
+--- memory/load samples (every 5 s; at most first 6 and last 6 shown, peaks above)
+06:51:54 load1=38.35 swap=1191.38M tree=1 tree_rss=1M free=5256M compressor=30168M
+06:52:00 load1=37.60 swap=1191.38M tree=6 tree_rss=40M free=5290M compressor=30154M
+06:52:06 load1=36.83 swap=1191.38M tree=16 tree_rss=94M free=5164M compressor=30152M
+06:52:12 load1=35.24 swap=1191.38M tree=17 tree_rss=81M free=5471M compressor=30147M
+06:52:18 load1=33.64 swap=1191.38M tree=15 tree_rss=96M free=5528M compressor=30131M
+06:52:24 load1=34.95 swap=1191.38M tree=14 tree_rss=80M free=5425M compressor=30129M
+      ... 113 samples elided ...
+07:08:47 load1=118.02 swap=1191.38M tree=19 tree_rss=115M free=105M compressor=29737M
+07:08:54 load1=116.11 swap=1191.38M tree=18 tree_rss=107M free=182M compressor=29737M
+07:09:01 load1=116.42 swap=1191.38M tree=14 tree_rss=81M free=628M compressor=29734M
+07:09:09 load1=118.71 swap=1191.38M tree=13 tree_rss=82M free=695M compressor=29730M
+07:09:18 load1=120.11 swap=1191.38M tree=12 tree_rss=77M free=207M compressor=29766M
+07:09:24 load1=119.17 swap=1191.38M tree=1 tree_rss=0M free=102M compressor=29821M
+

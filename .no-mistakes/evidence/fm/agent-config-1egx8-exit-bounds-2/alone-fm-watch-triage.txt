@@ -1,0 +1,42 @@
+=== suite: tests/fm-watch-triage.test.sh (alone, via bin/fm-test-run.sh)
+start: 2026-10-29 07:09:58 CDT  commit: 63e11a18
+pre-run: load1=114.13 swap_used=1191.38M test-spawned watcher procs from this worktree=1
+end: 2026-10-29 07:33:49 CDT  wall=1425s  runner rc=1
+(1) load1 pre=114.13 peak=120.84 post=107.93  peak-minus-pre=6.71  suite process tree peak=21 procs
+(2) swap_used pre=1191.38M peak=1191.38M post=1191.38M  post-minus-pre=0.00M
+(3) ~/.claude.json hash 750f18697633fdbf -> 750f18697633fdbf; new keys=0, fixture-looking new keys=0
+    $CLAUDE_CONFIG_DIR/.claude.json hash 61159312e9c7fa9e -> 5603f081d5189d02; new keys=0, fixture-looking new keys=0
+(4) test-spawned survivors (watch-arm/watch/teardown/home-summary/fleet-snapshot from this worktree)=1, reparented to launchd=1
+      85634     1 bash S   
+(5) memory watch: 177 samples every 5 s; suite tree RSS peak=119M; min free pages=73M (samples below)
+(6) runner rc=1; ok lines=75; not-ok lines=1; "Killed: 9" lines=0; "exceeded N polls" lines=0
+    failure lines:
+      not ok - cleanup lock bound 08 gave up before the marker lock freed
+--- runner summary (tail of fm-test-run.sh output)
+ok - a second death after a same-window relaunch reports in full without a live probe, and an unchanged dead pane stays silent
+ok - a successor's byte-identical dead display reports in full, and the same incarnation still absorbs
+ok - TERM stops a watcher blocked inside a poll and still runs its cleanup
+watcher: recovery state could not be persisted; retaining stale lock evidence
+ok - TERM stops a watcher whose downtime-marker lock is held, retaining stale evidence
+watcher: recovery state could not be persisted; retaining stale lock evidence
+not ok - cleanup lock bound 08 gave up before the marker lock freed
+FM_TEST_END 2026-10-29T12:33:38Z tests/fm-watch-triage.test.sh exit=1 duration_ms=1400983 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=1 skipped_gate=0 duration_ms=1419021
+FM_TEST_SUMMARY_FAMILY family=watcher-wake-lock count=1 duration_ms=1400983 failed=1
+FM_TEST_SLOWEST rank=1 script=tests/fm-watch-triage.test.sh duration_ms=1400983
+fm-test-run: wrote timing artifact: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-1egx8-scratch.kqpI0g/fm-watch-triage.test.sh.json
+--- memory/load samples (every 5 s; at most first 6 and last 6 shown, peaks above)
+07:09:59 load1=112.84 swap=1191.38M tree=1 tree_rss=7M free=741M compressor=29830M
+07:10:08 load1=109.57 swap=1191.38M tree=6 tree_rss=37M free=367M compressor=29819M
+07:10:17 load1=110.46 swap=1191.38M tree=5 tree_rss=30M free=1024M compressor=29815M
+07:10:24 load1=107.66 swap=1191.38M tree=11 tree_rss=70M free=290M compressor=29813M
+07:10:32 load1=105.68 swap=1191.38M tree=12 tree_rss=70M free=500M compressor=29812M
+07:10:40 load1=119.70 swap=1191.38M tree=12 tree_rss=70M free=186M compressor=29827M
+      ... 165 samples elided ...
+07:32:57 load1=105.86 swap=1191.38M tree=20 tree_rss=91M free=224M compressor=30033M
+07:33:06 load1=110.17 swap=1191.38M tree=13 tree_rss=53M free=928M compressor=30030M
+07:33:15 load1=111.68 swap=1191.38M tree=11 tree_rss=43M free=175M compressor=30346M
+07:33:23 load1=115.12 swap=1191.38M tree=21 tree_rss=57M free=396M compressor=30379M
+07:33:31 load1=112.16 swap=1191.38M tree=16 tree_rss=65M free=369M compressor=30344M
+07:33:39 load1=110.23 swap=1191.38M tree=11 tree_rss=29M free=583M compressor=30330M
+

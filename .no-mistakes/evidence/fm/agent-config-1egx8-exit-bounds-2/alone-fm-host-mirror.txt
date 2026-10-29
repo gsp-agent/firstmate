@@ -1,0 +1,40 @@
+=== suite: tests/fm-host-mirror.test.sh (alone, via bin/fm-test-run.sh)
+start: 2026-10-29 07:34:11 CDT  commit: 63e11a18
+pre-run: load1=101.08 swap_used=1191.38M test-spawned watcher procs from this worktree=1
+end: 2026-10-29 07:38:41 CDT  wall=263s  runner rc=0
+(1) load1 pre=101.08 peak=101.08 post=59.13  peak-minus-pre=0.00  suite process tree peak=16 procs
+(2) swap_used pre=1191.38M peak=1191.38M post=1191.38M  post-minus-pre=0.00M
+(3) ~/.claude.json hash 750f18697633fdbf -> 750f18697633fdbf; new keys=0, fixture-looking new keys=0
+    $CLAUDE_CONFIG_DIR/.claude.json hash 5603f081d5189d02 -> 89f4de80a1146e77; new keys=0, fixture-looking new keys=0
+(4) test-spawned survivors (watch-arm/watch/teardown/home-summary/fleet-snapshot from this worktree)=1, reparented to launchd=1
+      85634     1 bash S   
+(5) memory watch: 26 samples every 5 s; suite tree RSS peak=82M; min free pages=118M (samples below)
+(6) runner rc=0; ok lines=18; not-ok lines=0; "Killed: 9" lines=0; "exceeded N polls" lines=0
+--- runner summary (tail of fm-test-run.sh output)
+ok - mirror: the captain's dialog lands only in an owner-only mirror, even when the file already existed readable by others
+ok - mirror: captain prompts and main replies reach the mirror without ever entering a process argument list
+ok - mirror: the feed resumes from its committed cursor, re-anchors on a new conversation or session, and is bounded
+ok - mirror: the feed's bound includes the note naming how many earlier entries it left out
+ok - mirror: a later lock holder with a recycled pid is a new main session
+ok - mirror: the feed refuses a mirror with a zero, fractional, or non-rising sequence, or an unterminated final record
+ok - mirror: a recreated mirror continues past the committed and staged cursors, so a resumed conversation still gets new dialog
+FM_TEST_END 2026-10-29T12:38:30Z tests/fm-host-mirror.test.sh exit=0 duration_ms=241644 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=258903
+FM_TEST_SUMMARY_FAMILY family=afk count=1 duration_ms=241644 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-host-mirror.test.sh duration_ms=241644
+fm-test-run: wrote timing artifact: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-1egx8-scratch.kqpI0g/fm-host-mirror.test.sh.json
+--- memory/load samples (every 5 s; at most first 6 and last 6 shown, peaks above)
+07:34:12 load1=101.08 swap=1191.38M tree=1 tree_rss=7M free=1908M compressor=30277M
+07:34:20 load1=95.59 swap=1191.38M tree=8 tree_rss=37M free=1343M compressor=30275M
+07:34:28 load1=93.38 swap=1191.38M tree=3 tree_rss=25M free=848M compressor=30235M
+07:34:37 load1=87.89 swap=1191.38M tree=13 tree_rss=79M free=1001M compressor=30232M
+07:34:45 load1=84.27 swap=1191.38M tree=15 tree_rss=79M free=339M compressor=30229M
+07:34:54 load1=82.01 swap=1191.38M tree=15 tree_rss=79M free=189M compressor=30224M
+      ... 14 samples elided ...
+07:37:24 load1=69.24 swap=1191.38M tree=14 tree_rss=80M free=603M compressor=30159M
+07:37:38 load1=65.80 swap=1191.38M tree=13 tree_rss=72M free=1336M compressor=30165M
+07:37:47 load1=63.74 swap=1191.38M tree=15 tree_rss=80M free=220M compressor=30164M
+07:37:59 load1=62.01 swap=1191.38M tree=13 tree_rss=72M free=219M compressor=30256M
+07:38:14 load1=59.69 swap=1191.38M tree=14 tree_rss=80M free=284M compressor=30251M
+07:38:28 load1=57.48 swap=1191.38M tree=12 tree_rss=80M free=1131M compressor=30245M
+
