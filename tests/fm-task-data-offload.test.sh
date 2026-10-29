@@ -190,7 +190,8 @@ def run(home, action, *, fault="", ok=True, real_rsync=False, raw=False, task=("
     env = dict(os.environ, HOME=str(home / "user"), FM_HOME=str(home), PATH=str(fake) + os.pathsep + os.environ["PATH"],
                OFFLOAD_HELPER=str(code / "bin/fm-task-data.py"), OFFLOAD_FAULT=fault, FM_TASK_DATA_SWEEP="off",
                OFFLOAD_REAL_RSYNC="1" if real_rsync else "0", FM_TASK_DATA_TRASH=str(fake / "safe/trash"))
-    for name in ("TASKS_AXI_BACKEND", "TASKS_AXI_FILE", "TASKS_AXI_ROOT", "BEADS_DIR", "BEADS_DB", "BR_DB"):
+    for name in ("TASKS_AXI_BACKEND", "TASKS_AXI_FILE", "TASKS_AXI_ROOT", "BEADS_DIR", "BEADS_DB", "BR_DB",
+                 "FM_TASK_DATA_BEAD_LOCATIONS"):
         env.pop(name, None)
     command = ["bash", str(code / "bin/fm-task-data-lib.sh"), action, str(home / "data"), str(home / "state"), *task]
     active = subprocess.Popen(command, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -676,6 +677,148 @@ def check_borrowing_repository_kept():
     assert snapshot(clone) == before
     git("-C", clone, "log", "-1", "--format=%s")
 
+def check_unknown_bead_text_ignored():
+    home = fixture("bead-ordinary-text")
+    (home / "data/task-one/report.md").write_text(
+        "Evidence: [build](build/). Bead: be-still and Bead: .agent-config and Beads: no-mistakes\n")
+    plan = run(home, "offload-plan")
+    assert [item["path"] for item in plan["moves"]] == ["build"], plan
+    run(home, "offload")
+    assert (home / "Trash/build/evidence.bin").is_file()
+
+def check_added_bead_homes_resolve():
+    home = fixture("bead-added-homes")
+    database = home / "user/dev/PfizerOutDoCancerV3/.beads/beads.db"
+    database.parent.mkdir(parents=True)
+    with sqlite3.connect(database) as db:
+        db.execute("CREATE TABLE config(key TEXT NOT NULL, value TEXT NOT NULL)")
+        db.execute("INSERT INTO config VALUES ('issue_prefix', 'pfizer')")
+        db.execute("CREATE TABLE issues(id TEXT, description TEXT)")
+        db.execute("CREATE TABLE comments(issue_id TEXT, text TEXT)")
+        db.execute("INSERT INTO issues VALUES (?, ?)", ("pfizer-fixture", "Report archived."))
+        db.execute("INSERT INTO comments VALUES (?, ?)", ("pfizer-fixture", "Evidence: [build](build/)."))
+    (home / "data/task-one/report.md").write_text("Evidence: none. Bead: pfizer-fixture\n")
+    assert [item["path"] for item in run(home, "offload-plan")["moves"]] == ["build"]
+
+def check_sub_attempt_uses_parent_date():
+    home = fixture("sub-attempt-date")
+    sub = home / "data/task-one-sub"
+    (sub / "build").mkdir(parents=True)
+    (sub / "build/evidence.bin").write_bytes(b"original-evidence" * 256)
+    (sub / "report.md").write_text("Evidence: [build](build/).\n")
+    plan = run(home, "offload-plan", task=("task-one-sub",))
+    assert [(item["task"], item["path"]) for item in plan["moves"]] == [("task-one-sub", "build")], plan
+    run(home, "offload", task=("task-one-sub",))
+    assert (home / "Trash/build/evidence.bin").is_file()
+    lonely = home / "data/lonely-task"
+    (lonely / "build").mkdir(parents=True)
+    (lonely / "build/evidence.bin").write_bytes(b"original-evidence" * 256)
+    (lonely / "report.md").write_text("Evidence: [build](build/).\n")
+    plan = run(home, "offload-plan", task=("lonely-task",))
+    assert plan["moves"] == [] and plan["retained"], plan
+    # Its own checked row with two dates decides, not the older parent row.
+    own = home / "data/task-one-own"
+    (own / "build").mkdir(parents=True)
+    (own / "build/evidence.bin").write_bytes(b"original-evidence" * 256)
+    (own / "report.md").write_text("Evidence: [build](build/).\n")
+    recent = date.today() - timedelta(days=2)
+    with (home / "data/backlog.md").open("a") as stream:
+        stream.write(f"- [x] task-one-own - retry (merged {recent - timedelta(days=1)}) (closed {recent})\n")
+    plan = run(home, "offload-plan", task=("task-one-own",))
+    assert plan["moves"] == [] and "seven complete days" in plan["retained"][0]["reason"], plan
+
+def check_discovered_bead_home_resolves():
+    home = fixture("bead-discovered-home")
+    database = home / "user/dev/operator-proj/.beads/beads.db"
+    database.parent.mkdir(parents=True)
+    (database.parent / "config.yaml").write_text("# issue_prefix: operator\n")
+    with sqlite3.connect(database) as db:
+        db.execute("CREATE TABLE issues(id TEXT, description TEXT)")
+        db.execute("CREATE TABLE comments(issue_id TEXT, text TEXT)")
+        db.execute("INSERT INTO issues VALUES (?, ?)", ("operator-fixture", "Report archived."))
+        db.execute("INSERT INTO comments VALUES (?, ?)", ("operator-fixture", "Evidence: [build](build/)."))
+    (home / "data/task-one/report.md").write_text("Evidence: none. Bead: operator-fixture\n")
+    assert [item["path"] for item in run(home, "offload-plan")["moves"]] == ["build"]
+
+def check_orphan_newest_write():
+    home = fixture("orphan-newest-write")
+    old = home / "data/orphan-old"
+    (old / "build").mkdir(parents=True)
+    (old / "build/evidence.bin").write_bytes(b"original-evidence" * 256)
+    (old / "report.md").write_text("Evidence: [build](build/).\n")
+    past = time.time() - 20 * 86400
+    for path in sorted(old.rglob("*"), reverse=True):
+        os.utime(path, (past, past))
+    os.utime(old, (past, past))
+    plan = run(home, "offload-plan", task=("orphan-old",))
+    assert [(item["task"], item["path"]) for item in plan["moves"]] == [("orphan-old", "build")], plan
+    recent = home / "data/orphan-recent"
+    (recent / "build").mkdir(parents=True)
+    (recent / "build/evidence.bin").write_bytes(b"original-evidence" * 256)
+    (recent / "report.md").write_text("Evidence: [build](build/).\n")
+    plan = run(home, "offload-plan", task=("orphan-recent",))
+    assert plan["moves"] == [] and "seven complete days" in plan["retained"][0]["reason"], plan
+
+def age(path, days):
+    past = time.time() - days * 86400
+    for item in [*path.rglob("*"), path]:
+        os.utime(item, (past, past), follow_symlinks=False)
+
+def check_orphan_repository_offloads():
+    home, clone = repo_fixture("orphan-repository")
+    (home / "data/backlog.md").write_text("")
+    age(home / "data/task-one", 20)
+    result = run(home, "offload")
+    assert [(item["path"], item.get("archive")) for item in result["offloaded"]] == [("clone", "tar")], result
+    assert json.loads(clone.read_text())["format"] == "firstmate-task-evidence-v1"
+
+def check_orphan_retries_after_failed_run():
+    home, clone = repo_fixture("orphan-retry")
+    (home / "data/backlog.md").write_text("")
+    age(home / "data/task-one", 20)
+    run(home, "offload", fault="backup-failed", ok=False)
+    assert (clone / ".git").is_dir() and (home / "data/task-one/record/data-offload.json").is_file()
+    result = run(home, "offload")
+    assert [(item["path"], item.get("archive")) for item in result["offloaded"]] == [("clone", "tar")], result
+
+def bead_store(beads, rows, comments):
+    beads.mkdir(parents=True)
+    (beads / "config.yaml").write_text("# issue_prefix: obs\n")
+    with sqlite3.connect(beads / "beads.db") as db:
+        db.execute("CREATE TABLE issues(id TEXT, description TEXT, created_at TEXT, updated_at TEXT)")
+        db.execute("CREATE TABLE comments(issue_id TEXT, text TEXT)")
+        db.executemany("INSERT INTO issues VALUES (?, '', ?, ?)", rows)
+        db.executemany("INSERT INTO comments VALUES (?, ?)", comments)
+
+def check_tied_bead_homes():
+    home = fixture("bead-tied-homes")
+    created = "2026-10-13T05:09:57.644071+00:00"
+    # A stale worktree copy sorts before the live home and holds the same bead.
+    bead_store(home / "user/dev/agent-observer-beads/.beads",
+               [("obs-copy", created, "2026-10-14T04:52:51.023697+00:00"),
+                ("obs-split", "2026-10-01T00:00:00+00:00", "2026-10-01T00:00:00+00:00")],
+               [("obs-copy", "Evidence: none yet.")])
+    bead_store(home / "user/dev/agent-observer/.beads",
+               [("obs-copy", created, "2026-10-14T08:58:30.436810+00:00"),
+                ("obs-split", "2026-10-02T00:00:00+00:00", "2026-10-02T00:00:00+00:00")],
+               [("obs-copy", "Evidence: [build](build/).")])
+    (home / "data/task-one/report.md").write_text("Evidence: none. Bead: obs-copy\n")
+    assert [item["path"] for item in run(home, "offload-plan")["moves"]] == ["build"]
+    (home / "data/task-one/report.md").write_text("Evidence: [build](build/). Bead: obs-split\n")
+    plan = run(home, "offload-plan")
+    assert plan["moves"] == [] and "different beads share its id" in plan["retained"][0]["reason"], plan
+
+def check_orphan_offloads_every_unit():
+    home = fixture("orphan-two-units")
+    task = home / "data/task-one"
+    (task / "more").mkdir()
+    (task / "more/evidence.bin").write_bytes(b"more-evidence" * 256)
+    (task / "report.md").write_text("Evidence: [build](build/) and [more](more/).\n")
+    (home / "data/backlog.md").write_text("")
+    age(task, 20)
+    result = run(home, "offload")
+    assert sorted(item["path"] for item in result["offloaded"]) == ["build", "more"], result
+
 def check_outside_links_carried():
     home, clone = repo_fixture("repo-outside-links")
     (home / "user/shared.bin").write_bytes(b"shared by a hard link")
@@ -719,7 +862,18 @@ regressions.extend([("verified existing payload is reused", check_verified_reuse
                     ("a by-hand offload waits for the offload another run holds", check_offloads_take_one_lock),
                     ("a reopened task's journaled archive copy is still removed", check_reopened_task_leftover_removed),
                     ("a separated git directory stays while a bare one is archived", check_separated_git_dir_kept),
-                    ("a repository borrowing objects from outside its unit stays", check_borrowing_repository_kept)])
+                    ("a repository borrowing objects from outside its unit stays", check_borrowing_repository_kept),
+                    ("bead-like ordinary text does not hold a task", check_unknown_bead_text_ignored),
+                    ("newly mapped bead homes resolve", check_added_bead_homes_resolve),
+                    ("a sub-attempt takes its parent task's close date", check_sub_attempt_uses_parent_date),
+                    ("a bead home absent from the old typed table resolves by discovery", check_discovered_bead_home_resolves),
+                    ("an orphan task takes its folder's newest write as its close date", check_orphan_newest_write),
+                    ("an old orphan's repository offloads despite the offload's own writes", check_orphan_repository_offloads),
+                    ("an old orphan offloads every referenced directory in one run", check_orphan_offloads_every_unit),
+                    ("an old orphan whose repository offload failed retries on the next pass",
+                     check_orphan_retries_after_failed_run),
+                    ("tied bead homes resolve by br's record, and different beads under one id hold the task",
+                     check_tied_bead_homes)])
 if sys.platform == "darwin":
     regressions.extend([("a repository archive keeps resource forks and other extended attributes",
                          check_archive_keeps_extended_attributes),
@@ -847,6 +1001,8 @@ for locator in ("report", "row", "saved"):
     database = home / "user/.agent-config-beads/.beads/beads.db"
     database.parent.mkdir(parents=True)
     with sqlite3.connect(database) as db:
+        db.execute("CREATE TABLE config(key TEXT NOT NULL, value TEXT NOT NULL)")
+        db.execute("INSERT INTO config VALUES ('issue_prefix', '.agent-config')")
         db.execute("CREATE TABLE issues(id TEXT, description TEXT)")
         db.execute("CREATE TABLE comments(issue_id TEXT, text TEXT)")
         db.execute("INSERT INTO issues VALUES (?, ?)", (".agent-config-fixture", "Report archived."))
@@ -858,15 +1014,34 @@ for locator in ("report", "row", "saved"):
         assert (home / "data/task-one/unrelated/keep.bin").read_bytes() == b"must stay"
 print("PASS: report/row/saved-source bead IDs resolve local bead comments, while saved-source prose is not move authority", flush=True)
 
-for bead in (".agent-config-unread", "unknown-prefix"):
-    home = fixture("unresolved-" + bead)
-    (home / "data/task-one/report.md").write_text(f"Evidence: [build](build/). Bead: {bead}\n")
-    plan = run(home, "offload-plan")
-    assert plan["moves"] == [] and plan["retained"]
-    run(home, "offload", ok=False)
-    assert (home / "data/task-one/build/evidence.bin").is_file()
-    assert not (home / "calls").exists()
-print("PASS: unread or unknown named bead sources retain the original without remote calls", flush=True)
+home = fixture("unresolved-.agent-config-unread")
+unread_home = home / "user/.agent-config-beads/.beads"
+unread_home.mkdir(parents=True)
+(unread_home / "beads.db").write_bytes(b"not a database")
+(unread_home / "config.yaml").write_text("# issue_prefix: .agent-config\n")
+(home / "data/task-one/report.md").write_text("Evidence: [build](build/). Bead: .agent-config-unread\n")
+plan = run(home, "offload-plan")
+assert plan["moves"] == [] and plan["retained"]
+run(home, "offload", ok=False)
+assert (home / "data/task-one/build/evidence.bin").is_file()
+assert not (home / "calls").exists()
+print("PASS: an unread bead source with a known home retains the original without remote calls", flush=True)
+
+home = fixture("unresolved-unknown-prefix")
+(home / "data/task-one/report.md").write_text("Evidence: [build](build/). Bead: unknown-prefix\n")
+assert [item["path"] for item in run(home, "offload-plan")["moves"]] == ["build"]
+run(home, "offload")
+assert (home / "Trash/build/evidence.bin").is_file()
+print("PASS: a bead-like string with no known home is ordinary text and does not hold the task", flush=True)
+
+home = fixture("unreadable-bead-home")
+broken = home / "user/dev/broken-home/.beads"
+broken.mkdir(parents=True)
+(broken / "beads.db").write_bytes(b"not a database")
+(home / "data/task-one/report.md").write_text("Evidence: [build](build/). Bead: unknown-prefix\n")
+plan = run(home, "offload-plan")
+assert plan["moves"] == [] and "bead homes on this machine could not be read" in plan["retained"][0]["reason"], plan
+print("PASS: a bead home whose record cannot be read holds bead-like text instead of making it ordinary", flush=True)
 PY
 test_pid=$!
 wait "$test_pid"

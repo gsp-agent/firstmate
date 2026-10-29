@@ -264,6 +264,7 @@ new_registration() {
   new_case "$1" codex default $'Description.\n<!-- no-mistakes attestation fixture -->\nMade-with: codex\n'
   mkdir -p "$CASE/user/dev/agent-observer/.beads" "$CASE/root/bin" "$CASE/home/config" "$CASE/wt"
   : > "$CASE/user/dev/agent-observer/.beads/beads.db"
+  printf '# issue_prefix: obs\n' > "$CASE/user/dev/agent-observer/.beads/config.yaml"
   printf '#!/usr/bin/env bash\nexit 0\n' > "$CASE/root/bin/fm-guard.sh"
   chmod +x "$CASE/root/bin/fm-guard.sh"
   fm_write_meta "$CASE/home/state/obs-example.meta" kind=ship mode=no-mistakes \

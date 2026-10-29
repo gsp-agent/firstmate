@@ -114,6 +114,11 @@ FM_TEARDOWN_DATA_STAGE_TIMEOUT=${FM_TEARDOWN_DATA_STAGE_TIMEOUT:-600}
 export FM_TEARDOWN_DATA_STAGE_TIMEOUT
 FM_TASK_DATA_SWEEP=off
 export FM_TASK_DATA_SWEEP
+# Bead homes are discovered under HOME, which most cases share with this
+# machine. Those cases read this cached map of the fixture prefixes instead;
+# the bead-gate cases discover the homes their own HOME holds.
+FM_TASK_DATA_BEAD_LOCATIONS=$'.agent-config .agent-config-beads\nbd dev/be-still\ngsp dev/gsp-beads\nheru dev/heru-vr-vision-sim\nobs dev/agent-observer'
+export FM_TASK_DATA_BEAD_LOCATIONS
 
 # Build a fresh sandbox for one test case. Sets up:
 #   $CASE/state/        - firstmate state dir (with a fresh watcher beacon)
@@ -5532,11 +5537,13 @@ PY
   : > "$1/br.log"
 }
 
-# set_bead_status <case-dir> <home-relative-db-dir> <bead> <status>
+# set_bead_status <case-dir> <home-relative-db-dir> <bead> <status>: the
+# home's config.yaml records the bead's prefix, all before its last hyphen.
 set_bead_status() {
   local db="$1/home/$2/.beads/beads.db"
   mkdir -p "${db%/*}"
   [ -f "$db" ] || printf '{}\n' > "$db"
+  [ -f "${db%/*}/config.yaml" ] || printf '# issue_prefix: %s\n' "${3%-*}" > "${db%/*}/config.yaml"
   jq --arg id "$3" --arg status "$4" '.[$id] = $status' "$db" > "$db.next" && mv "$db.next" "$db"
 }
 
@@ -5576,6 +5583,9 @@ make_bead_case() {
 run_bead_teardown() {  # <case-dir> <task-id> [teardown args...]
   local case_dir=$1 id=$2
   shift 2
+  # The case's HOME holds its bead homes, so teardown discovers them unless
+  # BEAD_CACHED_MAP stands in for a map an earlier process cached.
+  env -u FM_TASK_DATA_BEAD_LOCATIONS ${BEAD_CACHED_MAP+"FM_TASK_DATA_BEAD_LOCATIONS=$BEAD_CACHED_MAP"} \
   HOME="$case_dir/home" BEAD_FAKE_LOG="$case_dir/br.log" \
   FM_ROOT_OVERRIDE="$ROOT" \
   FM_STATE_OVERRIDE="$case_dir/state" \
@@ -5691,6 +5701,43 @@ test_unreadable_task_bead_refuses_cleanup() {
   pass "fm-teardown: a bead database that does not answer refuses cleanup rather than guessing"
 }
 
+test_discovered_bead_home_gates_cleanup() {
+  local case_dir id=operator-gate10 out rc=0
+  case_dir=$(make_bead_case bead-discovered "$id")
+  set_bead_status "$case_dir" dev/operator "$id" open
+  out=$(run_bead_teardown "$case_dir" "$id" 2>&1) || rc=$?
+  expect_code 1 "$rc" "a merged task whose discovered bead is open was cleaned up"$'\n'"$out"
+  assert_contains "$out" "bead $id, which is open" "the refusal did not name the discovered bead"
+  assert_bead_refusal_kept_everything "$case_dir" "$id" "discovered bead open"
+  assert_grep "--db $case_dir/home/dev/operator/.beads/beads.db show $id --json" "$case_dir/br.log" \
+    "the bead was not read from the home that records its prefix"
+  set_bead_status "$case_dir" dev/operator "$id" closed
+  out=$(run_bead_teardown "$case_dir" "$id" 2>&1) || fail "a task whose discovered bead closed could not be cleaned up: $out"
+  assert_absent "$case_dir/state/$id.meta" "a task whose discovered bead closed kept its record"
+  pass "fm-teardown: a bead home the old typed table lacked is discovered, and its bead's done decides cleanup"
+}
+
+test_unreadable_bead_home_refuses_cleanup() {
+  local case_dir id=operator-gate11 out rc=0
+  case_dir=$(make_bead_case bead-home-unreadable "$id")
+  set_bead_status "$case_dir" dev/operator "$id" closed
+  # Its config.yaml records no prefix, and its stand-in database is not one
+  # sqlite can read, so its own record cannot be read.
+  printf '# issue-prefix: ""\n' > "$case_dir/home/dev/operator/.beads/config.yaml"
+  out=$(run_bead_teardown "$case_dir" "$id" 2>&1) || rc=$?
+  expect_code 1 "$rc" "a teardown whose bead home could not be read cleaned up"$'\n'"$out"
+  assert_contains "$out" "bead homes on this machine could not be read" "the refusal did not say the bead homes were unreadable"
+  assert_contains "$out" "$case_dir/home/dev/operator/.beads/beads.db" "the refusal did not name the unreadable home"
+  assert_bead_refusal_kept_everything "$case_dir" "$id" "unreadable bead home"
+  [ ! -s "$case_dir/br.log" ] || fail "br ran although the bead homes could not be read: $(cat "$case_dir/br.log")"
+  out=$(BEAD_CACHED_MAP='operator dev/operator' run_bead_teardown "$case_dir" "$id" 2>&1) \
+    || fail "a task whose bead home's prefix was cached could not be cleaned up: $out"
+  assert_grep "--db $case_dir/home/dev/operator/.beads/beads.db show $id --json" "$case_dir/br.log" \
+    "the cached prefix did not resolve the bead to its home"
+  assert_absent "$case_dir/state/$id.meta" "a task whose cached bead closed kept its record"
+  pass "fm-teardown: an unreadable bead home refuses cleanup, and a cached prefix still resolves its bead"
+}
+
 test_task_with_no_bead_is_cleaned_up_as_before_and_archived() {
   local case_dir id out archive
   for id in gsp-gate5-fix1 bd-gate6 fixround-gate7; do
@@ -5736,7 +5783,7 @@ export BEAD_RESPONSE
   . "$ROOT/bin/fm-timeout-lib.sh"
   . "$ROOT/bin/fm-task-data-lib.sh"
   . "$ROOT/bin/fm-task-bead-lib.sh"
-  fm_task_data_bead_locations() { printf 'fixture sample\nother sample-other\n'; }
+  FM_TASK_DATA_BEAD_LOCATIONS=$'sample fixture\nsample-other other'
   for variant in exact expanded unrelated suffix prefix owner multiple; do
     case "$variant" in
       exact) BEAD_RESPONSE='[{"id":"sample-demo","status":"open"}]' ;;
@@ -5767,18 +5814,79 @@ SH
   HOME="$case_dir/home" PATH="$case_dir/fakebin:$PATH" bash "$case_dir/check.sh" "$ROOT"
 }
 
+test_tied_bead_homes_resolve_by_their_record() {
+  local case_dir
+  case_dir="$TMP_ROOT/bead-ties"
+  mkdir -p "$case_dir/home/dev"
+  python3 - "$case_dir/home/dev" <<'PY'
+import sqlite3
+import sys
+from pathlib import Path
+
+dev = Path(sys.argv[1])
+created = "2026-10-13T05:09:57.644071+00:00"
+# A stale worktree copy sorts before the live home and holds the same bead.
+for name, updated, split in (("agent-observer-beads", "2026-10-14T04:52:51.023697+00:00", "2026-10-01T00:00:00+00:00"),
+                             ("agent-observer", "2026-10-14T08:58:30.436810+00:00", "2026-10-02T00:00:00+00:00")):
+    beads = dev / name / ".beads"
+    beads.mkdir(parents=True)
+    (beads / "config.yaml").write_text("# issue_prefix: obs\n")
+    with sqlite3.connect(beads / "beads.db") as db:
+        db.execute("CREATE TABLE issues(id TEXT PRIMARY KEY, created_at TEXT, updated_at TEXT)")
+        db.executemany("INSERT INTO issues VALUES (?, ?, ?)", [("obs-copy", created, updated), ("obs-split", split, split)])
+(dev / "agent-observer-link").mkdir()
+(dev / "agent-observer-link/.beads").symlink_to("../agent-observer/.beads")
+PY
+  cat > "$case_dir/check.sh" <<'SH'
+#!/usr/bin/env bash
+set -u
+. "$1/tests/lib.sh"
+. "$ROOT/bin/fm-timeout-lib.sh"
+. "$ROOT/bin/fm-task-data-lib.sh"
+. "$ROOT/bin/fm-task-bead-lib.sh"
+fm_task_data_bead_locations || fail "bead-ties: discovery failed"
+[ "$(printf '%s\n' "$FM_TASK_DATA_BEAD_LOCATIONS" | grep -c '^obs ')" = 2 ] \
+  || fail "bead-ties: one database reached by two paths was two homes: $FM_TASK_DATA_BEAD_LOCATIONS"
+[ "$(fm_task_data_bead_database obs-copy)" = "$HOME/dev/agent-observer/.beads/beads.db" ] \
+  || fail "bead-ties: a stale copy that sorts first owned the bead"
+rc=0
+fm_task_data_bead_database obs-split >/dev/null 2>&1 || rc=$?
+expect_code 2 "$rc" "bead-ties: two different beads under one id did not fail closed"
+rc=0
+fm_task_bead_read obs-split 2>/dev/null || rc=$?
+expect_code 1 "$rc" "bead-ties: the bead gate did not refuse an id two homes hold as different beads"
+mkdir -p "$HOME/dev/agent-observer-lane/.beads"
+printf '# issue_prefix: obs\n' > "$HOME/dev/agent-observer-lane/.beads/config.yaml"
+printf 'not a database\n' > "$HOME/dev/agent-observer-lane/.beads/beads.db"
+unset FM_TASK_DATA_BEAD_LOCATIONS
+fm_task_data_bead_locations || fail "bead-ties: discovery opened a database whose config.yaml names its prefix"
+rc=0
+fm_task_data_bead_database obs-copy >/dev/null 2>&1 || rc=$?
+expect_code 2 "$rc" "bead-ties: an unreadable tied home let another home own the bead"
+rc=0
+fm_task_bead_read obs-copy 2>/dev/null || rc=$?
+expect_code 1 "$rc" "bead-ties: the bead gate did not refuse while a tied home was unreadable"
+pass "fm-teardown: tied bead homes resolve by br's own record; one database is one home; ambiguity or an unreadable tie refuses"
+SH
+  env -u FM_TASK_DATA_BEAD_LOCATIONS HOME="$case_dir/home" bash "$case_dir/check.sh" "$ROOT"
+}
+
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = bead-resolution ]; then
   test_task_bead_resolves_canonical_id || exit 1
+  test_tied_bead_homes_resolve_by_their_record || exit 1
   exit 0
 fi
 
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = bead-gate ]; then
   test_task_bead_resolves_canonical_id || exit 1
+  test_tied_bead_homes_resolve_by_their_record || exit 1
   test_merged_task_with_an_open_bead_is_not_cleaned_up
   test_green_unmerged_task_with_an_open_bead_is_not_cleaned_up
   test_agent_config_task_answers_to_its_dotted_bead
   test_merge_handoff_pending_keeps_a_task_whose_bead_closed
   test_unreadable_task_bead_refuses_cleanup
+  test_discovered_bead_home_gates_cleanup
+  test_unreadable_bead_home_refuses_cleanup
   test_task_with_no_bead_is_cleaned_up_as_before_and_archived
   exit 0
 fi
@@ -10243,11 +10351,14 @@ test_held_meta_lock_teardown_gives_up_within_bound
 test_local_only_fork_remote_allows
 test_teardown_closes_the_backlog_item_itself
 test_task_bead_resolves_canonical_id || exit 1
+test_tied_bead_homes_resolve_by_their_record || exit 1
 test_merged_task_with_an_open_bead_is_not_cleaned_up
 test_green_unmerged_task_with_an_open_bead_is_not_cleaned_up
 test_agent_config_task_answers_to_its_dotted_bead
 test_merge_handoff_pending_keeps_a_task_whose_bead_closed
 test_unreadable_task_bead_refuses_cleanup
+test_discovered_bead_home_gates_cleanup
+test_unreadable_bead_home_refuses_cleanup
 test_task_with_no_bead_is_cleaned_up_as_before_and_archived
 test_teardown_closes_a_gerrit_task_with_its_change_url_as_a_note
 test_teardown_manual_backend_leaves_the_backlog_to_the_operator

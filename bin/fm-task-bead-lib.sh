@@ -11,10 +11,10 @@
 # `.agent-config-<x>`, and any other task id is its bead id with a leading dot
 # dropped, so `<id>` answers to bead `<id>`, or to `.<id>` when only a dotted
 # prefix owns it. That bead is read from the one database its prefix owns
-# (fm-task-data-lib.sh's fm_task_data_bead_database keeps that map). An id no
-# database owns, a database file this machine does not have, and a bead its
-# owner reports not found all mean the task has no bead, and the caller keeps
-# its old behavior.
+# (fm-task-data-lib.sh discovers that map from the bead homes on this machine).
+# An id no database owns, a database file this machine does not have, and a
+# bead its owner reports not found all mean the task has no bead, and the
+# caller keeps its old behavior.
 # The read is the native `br --db <db> show <bead> --json`, run from / with
 # BEADS_DIR, BEADS_DB and BR_DB cleared, bounded by FM_TASK_BEAD_TIMEOUT_SECS
 # (default 10). A unique short id that br expands to its canonical id is that
@@ -24,8 +24,10 @@
 #   0  the task has a bead: FM_TASK_BEAD_ID (the id asked for, never the
 #      expanded canonical id) and FM_TASK_BEAD_STATUS are set.
 #   3  the task has no bead.
-#   1  the owning database exists but did not answer; FM_TASK_BEAD_ERROR says
-#      why. A caller deciding to close must refuse rather than guess.
+#   1  the owning database exists but did not answer, a bead home's record
+#      could not be read, or several homes hold different beads under the id;
+#      FM_TASK_BEAD_ERROR says why. A caller deciding to close must refuse
+#      rather than guess.
 # fm_task_bead_open <status>
 #   0 for every status except closed and tombstone.
 # fm_task_merge_handoff_pending <status-file> <task-id>
@@ -47,20 +49,30 @@ fm_task_bead_candidate() {  # <task-id>
 
 # shellcheck disable=SC2034 # FM_TASK_BEAD_* are results for sourcing callers.
 fm_task_bead_read() {  # <task-id>
-  local bead db out canonical status=0 secs=${FM_TASK_BEAD_TIMEOUT_SECS:-10} code
+  local bead db out canonical status=0 owned=0 secs=${FM_TASK_BEAD_TIMEOUT_SECS:-10} code
   FM_TASK_BEAD_ID=
   FM_TASK_BEAD_STATUS=
   FM_TASK_BEAD_ERROR=
   case "$secs" in ''|*[!0-9]*) secs=10 ;; esac
   [ "$secs" -gt 0 ] 2>/dev/null || secs=10
   bead=$(fm_task_bead_candidate "$1")
-  if ! db=$(fm_task_data_bead_database "$bead") || [ -z "$db" ]; then
+  if ! fm_task_data_bead_locations; then
+    FM_TASK_BEAD_ERROR="the bead homes on this machine could not be read"
+    return 1
+  fi
+  db=$(fm_task_data_bead_database "$bead") || owned=$?
+  if [ "$owned" = 1 ]; then
     case "$bead" in
       .*) return 3 ;;
     esac
     bead=".$bead"
-    db=$(fm_task_data_bead_database "$bead") || return 3
-    [ -n "$db" ] || return 3
+    owned=0
+    db=$(fm_task_data_bead_database "$bead") || owned=$?
+    [ "$owned" != 1 ] || return 3
+  fi
+  if [ "$owned" != 0 ]; then
+    FM_TASK_BEAD_ERROR="no one readable home owns bead $bead"
+    return 1
   fi
   if [ ! -e "$db" ] && [ ! -L "$db" ]; then
     return 3
