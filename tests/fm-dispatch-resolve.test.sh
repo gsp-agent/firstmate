@@ -1308,10 +1308,10 @@ write_cusage() {  # <dale five_hour used> <dale seven_day used> [dale read secon
   now=$(date +%s)
   cat > "$CUSAGE" <<JSON
 {"schema_version": 5, "accounts": [
-  {"label": "faith", "measured": true, "error": null, "fetched_at": $((now - 750)), "windows": [
+  {"label": "faith", "measured": true, "error": null, "fetched_at": $((now - 720)), "windows": [
     {"key": "five_hour", "used_percentage": 90.0, "resets_at": $((now + 3600)), "reliable": true},
     {"key": "seven_day", "used_percentage": 95.0, "resets_at": $((now + 432000)), "reliable": true}]},
-  {"label": "dale", "measured": true, "error": null, "fetched_at": $((now - ${3:-750})), "windows": [
+  {"label": "dale", "measured": true, "error": null, "fetched_at": $((now - ${3:-720})), "windows": [
     {"key": "five_hour", "used_percentage": $1, "resets_at": $((now + ${4:-18000})), "reliable": true},
     {"key": "seven_day", "used_percentage": $2, "resets_at": $((now + 432000)), "reliable": true},
     {"key": "extra_usage", "used_percentage": 100.0, "resets_at": null, "reliable": true}]}]}
@@ -1356,14 +1356,14 @@ assert_contains "$out" "  route: default (no label matched); claude 0% left, lim
   "the route names the spent Claude figure and the rung it fell to"
 
 reset_log
-write_cusage 100.0 22.0 750 -300
+write_cusage 100.0 22.0 720 -300
 CUSAGE_FIXTURE=$CUSAGE run_claude "$DALE_ROOT" --labels ""
 assert_contains "$out" "profile: --harness 'claude'" "a spent five_hour window whose reset passed never blocks the Claude rung"
 assert_contains "$out" "  route: default (no label matched); claude 78% left, limited by seven_day (seven_day 22% used; cusage account dale, as of 12m ago)" \
   "a five_hour window whose reset passed is dropped from the figure"
 
 reset_log
-write_cusage 3.0 100.0 7530
+write_cusage 3.0 100.0 7500
 CUSAGE_FIXTURE=$CUSAGE run_claude "$DALE_ROOT" --labels ""
 expect_code 0 "$code" "a stale Claude read exits 0"
 assert_contains "$out" "profile: --harness 'claude'" "a stale Claude read never blocks the Claude rung"

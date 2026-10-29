@@ -3,9 +3,11 @@
 # from this home would launch on, with no macOS Keychain prompt.
 #
 # Usage:
-#   fm-claude-quota.sh           print one reading as a JSON object
 #   fm-claude-quota.sh --fill    read a quota-axi --json snapshot on stdin and
 #                                print it with that reading filled in
+#
+# To see the reading alone:
+#   quota-axi --json | bin/fm-claude-quota.sh --fill | jq .claudeQuota
 #
 # Claude Code's Keychain item opens silently only for the claude binary, so
 # quota-axi withholds the value read (attention keychain_prompt_required)
@@ -22,8 +24,8 @@
 # cusage names an account by its directory ~/.claude-accounts/<label>, so
 # only a root there has a reading and cusage is not run for any other.
 #
-# Reading, one JSON object, exit 0 whether known or unknown:
-#   known:   {"provider":"claude","source":"cusage","account":"<label>",
+# Reading, one JSON object, known or unknown:
+#   known:  {"provider":"claude","source":"cusage","account":"<label>",
 #             "status":"known","effectivePercentRemaining":N,
 #             "limitedBy":"<window>","windows":[{"key":..,"usedPercent":..,
 #             "resetsAt":..}],"summary":"claude N% left, limited by ..."}
@@ -37,10 +39,13 @@
 # account's fetched_at), and any reliable, unreset model-scoped window
 # (seven_day_opus, seven_day_sonnet, or limit:...) more used than the
 # limiting window, which never changes effectivePercentRemaining or limitedBy.
+# Only an account cusage marks measured false is unmeasured: one with no
+# measured mark, as cusage leaves its replay of a last good reading, is read.
 #
 # --fill leaves a snapshot whose claude row quota-axi measured (status known
 # or partial) unchanged and runs nothing. Otherwise it adds the reading as
-# top-level claudeQuota, and a known reading replaces the claude row that
+# top-level claudeQuota and exits 0 whether the reading is known or unknown,
+# and a known reading replaces the claude row that
 # quota_row (bin/fm-quota-axi-lib.sh) binds for an unqualified Claude
 # candidate with one all_models availability carrying its
 # effectivePercentRemaining, runway exhausted_now at 0 and unknown otherwise,
@@ -51,7 +56,8 @@
 # cusage, a run past FM_CLAUDE_QUOTA_SECONDS (default 5, a guard on a file
 # read), no readable snapshot, an account the snapshot has no reading time
 # for, a reading more than 3600 seconds old (two poller runs, so the poller
-# has stopped), an account cusage cannot measure, or no unreset five_hour or
+# has stopped; cusage's own warning for the account is added when it gives
+# one), an account cusage cannot measure, or no unreset five_hour or
 # seven_day window is an unknown reading with its cause.
 set -u
 
@@ -131,9 +137,11 @@ reading() {
       unknown("cusage snapshot has no reading for \($l); \($poller)")
     else
       ([now - $a.fetched_at, 0] | max) as $age |
-      if $age > 3600 then unknown("cusage snapshot for \($l) is \($age | age) old; \($poller)")
+      if $age > 3600 then
+        unknown("cusage snapshot for \($l) is \($age | age) old; \($poller)" +
+          (if ($a.warning | type) == "string" and $a.warning != "" then "; cusage warns: \($a.warning)" else "" end))
       elif ($a.error // null) != null then unknown("cusage could not measure \($l): \($a.error)")
-      elif $a.measured != true then unknown("cusage has not measured \($l)")
+      elif $a.measured == false then unknown("cusage has not measured \($l)")
       else
         [$a.windows[]? | select(.key == "five_hour" or .key == "seven_day")] as $all |
         [$all[] | select(current) |
@@ -185,8 +193,7 @@ fill() {
 }
 
 case "${1:-}" in
-'') [ "$#" -eq 0 ] || die "unexpected argument: $1"; reading ;;
 --fill) [ "$#" -eq 1 ] || die "--fill takes no argument"; fill ;;
 -h | --help | help) usage ;;
-*) die "unknown option: $1" ;;
+*) die "usage: fm-claude-quota.sh --fill (see --help)" ;;
 esac

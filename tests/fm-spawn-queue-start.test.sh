@@ -191,17 +191,17 @@ test_queue_start_records_its_route_and_claude_figure() {
 {"schemaVersion": 5, "providers": [
   {"provider": "claude", "quotaSemantics": {"status": "unknown", "effectiveAvailability": []}}]}
 JSON
-  now=$(date +%s)
-  cat > "$case_dir/cusage.json" <<JSON
-{"schema_version": 5, "accounts": [{"label": "dale", "measured": true, "error": null, "fetched_at": $((now - 750)), "windows": [
-  {"key": "five_hour", "used_percentage": 2.0, "resets_at": $((now + 18000)), "reliable": true},
-  {"key": "seven_day", "used_percentage": 22.0, "resets_at": $((now + 432000)), "reliable": true}]}]}
-JSON
   printf '#!/usr/bin/env bash\ncat %q\n' "$case_dir/quota.json" > "$case_dir/fakebin/quota-axi"
   printf '#!/usr/bin/env bash\n[ "$*" = "-c -j" ] || exit 64\ncat %q\n' "$case_dir/cusage.json" > "$case_dir/fakebin/cusage"
   chmod +x "$case_dir/fakebin/quota-axi" "$case_dir/fakebin/cusage"
   add_item "$case_dir" "$id" "$TEMPLATE_NOTE"
 
+  now=$(date +%s)
+  cat > "$case_dir/cusage.json" <<JSON
+{"schema_version": 5, "accounts": [{"label": "dale", "measured": true, "error": null, "fetched_at": $((now - 720)), "windows": [
+  {"key": "five_hour", "used_percentage": 2.0, "resets_at": $((now + 18000)), "reliable": true},
+  {"key": "seven_day", "used_percentage": 22.0, "resets_at": $((now + 432000)), "reliable": true}]}]}
+JSON
   out=$(spawn_env "$case_dir" env CLAUDE_CONFIG_DIR="$dale" "$SPAWN" "$id" "$case_dir/project" --queue-start 2>&1) || rc=$?
   expect_code 0 "$rc" "a queue start with a keychain-withheld Claude did not start: $out"
   meta="$(home_of "$case_dir")/state/$id.meta"

@@ -870,7 +870,7 @@ cat > "$LAB/claude-withheld.json" <<'JSON'
 JSON
 now=$(date +%s)
 cat > "$CLAUDE_LAB/cusage.json" <<JSON
-{"schema_version": 5, "accounts": [{"label": "dale", "measured": true, "error": null, "fetched_at": $((now - 750)), "windows": [
+{"schema_version": 5, "accounts": [{"label": "dale", "measured": true, "error": null, "fetched_at": $((now - 720)), "windows": [
   {"key": "five_hour", "used_percentage": 2.0, "resets_at": $((now + 18000)), "reliable": true},
   {"key": "seven_day", "used_percentage": 22.0, "resets_at": $((now + 432000)), "reliable": true}]}]}
 JSON
