@@ -1919,6 +1919,70 @@ test_completion_fails_loudly_and_records_the_close_it_still_owes() {
   pass "completion refuses to report success while its item is still open, and records what it owes"
 }
 
+# Places are bin/fm-spawn.sh's own count: a surviving task record whose crew
+# state reads working holds one. The fixture reader reports that for every
+# record still present, which is what keeps a cleaned-up task with no backlog
+# row in the count until its record is retired.
+places_held() {  # <case-dir> <project-dir>
+  local case_dir=$1 project=$2
+  cat > "$case_dir/fakebin/fm-crew-state-working" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' 'state: working · source: fixture'
+SH
+  chmod +x "$case_dir/fakebin/fm-crew-state-working"
+  FM_HOME="$(home_of "$case_dir")" \
+    FM_STATE_OVERRIDE="$(home_of "$case_dir")/state" \
+    FM_PROJECT_CAPACITY_CREW_STATE="$case_dir/fakebin/fm-crew-state-working" \
+    bash -c '
+      set -u
+      root=$1 project=$2 state=$3
+      . "$root/bin/fm-wake-lib.sh"
+      . "$root/bin/fm-secondmate-registry-lib.sh"
+      . "$root/bin/fm-backend.sh"
+      . "$root/bin/fm-project-capacity-lib.sh"
+      lock=$(fm_treehouse_project_lock_path "$project") || exit 1
+      fm_project_capacity_occupants "$lock" "$project" "$state" "" || exit 1
+      printf "%s\n" "$FM_PROJECT_CAPACITY_OCCUPANT_IDS"
+    ' _ "$ROOT" "$project" "$(home_of "$case_dir")/state"
+}
+
+test_completion_retires_a_record_when_its_backlog_row_is_missing() {
+  local case_dir id home out rc=0 held show
+  id=atomic-close-missing-row
+  case_dir=$(make_home close-missing-row)
+  home=$(home_of "$case_dir")
+  # The backlog file exists, so completion applies, but this task has no row.
+  # One project line, naming the real clone, so the place count can match it.
+  # A second project line is an ambiguous identity and teardown refuses.
+  fm_write_meta "$home/state/$id.meta" \
+    "window=firstmate:fm-$id" \
+    "endpoint_task_id=$id" \
+    "worktree=$case_dir/absent-worktree" \
+    "project=$case_dir/project" \
+    "harness=claude" \
+    "kind=ship" \
+    "mode=local-only" \
+    "yolo=off" \
+    "spawn_gen=spawn-close-missing"
+  printf 'working [at=1790000000]: fixture worker\n' > "$home/state/$id.status"
+
+  out=$(run_teardown "$case_dir" "$id") || rc=$?
+  [ "$rc" -eq 0 ] || fail "teardown failed when the backlog row was already gone: $out"
+  assert_absent "$home/state/$id.meta" \
+    "teardown left the task record after the backlog row was already gone"
+  assert_absent "$home/state/$id.backlog-close" \
+    "teardown left the pending close after the backlog row was already gone"
+  show=$(tasks-axi show "$id" --file "$(backlog_of "$case_dir")" 2>&1) || true
+  printf '%s\n' "$show" | grep -q '^code: NOT_FOUND$' \
+    || fail "teardown created a backlog row for a task that had none: $show"
+  held=$(places_held "$case_dir" "$case_dir/project") \
+    || fail "could not count places after retiring the missing row: $held"
+  case ", $held," in
+    *", $id,"*) fail "the retired record still holds a place ($held)" ;;
+  esac
+  pass "completion retires a task record when its backlog row is already gone, and frees its place"
+}
+
 test_interrupted_destructive_cleanup_leaves_a_recoverable_close() {
   local case_dir home id marker out rc=0
   id=atomic-close-destructive-interrupt-b8
@@ -3212,6 +3276,7 @@ test_trailing_newline_data_path_fails_closed
 test_control_character_data_path_is_refused_before_cleanup
 test_completion_preserves_records_when_meta_removal_fails
 test_completion_fails_loudly_and_records_the_close_it_still_owes
+test_completion_retires_a_record_when_its_backlog_row_is_missing
 test_interrupted_destructive_cleanup_leaves_a_recoverable_close
 test_completion_refuses_a_close_target_symlinked_to_a_directory
 test_completion_fails_when_its_close_marker_cannot_be_removed

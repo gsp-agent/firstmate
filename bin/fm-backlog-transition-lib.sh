@@ -878,7 +878,7 @@ fm_backlog_retain_transition() {
 # failure leaves that protection in place so an older sweep cannot expire it.
 # FM_BACKLOG_RETIRE_LABEL names the record in a removal error; it defaults to "task record".
 fm_backlog_retire_task_record() {
-  local meta=$1 data=$2 id=$3 state=$4 helper kind='' pr='' prepare=0 transition=retire
+  local meta=$1 data=$2 id=$3 state=$4 helper kind='' pr='' prepare=0 transition=retire row_missing=0
   shift 4
   case "${1:-}" in --close|--retain) transition=${1#--}; shift ;; esac
   if [ "${1:-}" = --pr ]; then pr=${2:-}; fi
@@ -897,10 +897,27 @@ fm_backlog_retire_task_record() {
       return 1
     fi
   fi
+  # A missing row owes no backlog mutation: retire the record the way
+  # fm_backlog_close_marker_replay's '' row_state case does. Any other probe
+  # failure is a real close failure and still fails.
   case "$transition" in
-    close) fm_backlog_done "$data" "$id" "$@" || return 1 ;;
-    retain) fm_backlog_retain "$data" "$id" "$@" || return 1 ;;
+    close|retain)
+      if ! fm_backlog_row_probe "$data" "$id"; then
+        if [ "$FM_BACKLOG_ROW_RESULT" = not_found ]; then
+          row_missing=1
+        else
+          FM_BACKLOG_TRANSITION_ERROR=$FM_BACKLOG_ROW_ERROR
+          return 1
+        fi
+      fi
+      ;;
   esac
+  if [ "$row_missing" = 0 ]; then
+    case "$transition" in
+      close) fm_backlog_done "$data" "$id" "$@" || return 1 ;;
+      retain) fm_backlog_retain "$data" "$id" "$@" || return 1 ;;
+    esac
+  fi
   if [ "$kind" != secondmate ]; then
     if [ -e "$data/$id" ] || [ -L "$data/$id" ]; then
       python3 "$helper" retire "$data" "$state" "$id" "$pr" \
