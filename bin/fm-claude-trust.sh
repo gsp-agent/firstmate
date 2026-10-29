@@ -15,7 +15,8 @@
 #        fm-claude-trust.sh --check --secondmate-home <home> <id>
 #        fm-claude-trust.sh --check --lab-home <home>
 #        fm-claude-trust.sh --check --project <project>
-#   --check  read-only: run every scope and store refusal above and report
+#   --check  read-only: run the same scope and store refusals as a
+#            registration (described below) and report
 #            whether a registration would be refused, without writing the
 #            store or creating the config directory. bin/fm-control.sh's
 #            relaunch uses it before the old agent stops; the registration

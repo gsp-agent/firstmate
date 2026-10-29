@@ -91,14 +91,14 @@
 #              worker account pin (bin/fm-worker-account-lib.sh) here, so a pin
 #              that no longer resolves or is signed out refuses before the old
 #              agent stops.
-#              A replacement Claude profile must also pass the read-only
-#              trust check (bin/fm-claude-trust.sh --check) here, in the
-#              store the pinned account selects, so a registration that
-#              would refuse - the recorded case is an explicit
-#              external-imports decline on the project entry - refuses at
-#              the same point, before the old agent stops and before the
-#              trust store is written. bin/fm-spawn.sh still performs the
-#              registration itself at launch.
+#              A ship or scout's replacement Claude profile must also pass
+#              the read-only trust check (bin/fm-claude-trust.sh --check)
+#              here, in the store the pinned account selects, so a
+#              registration that would refuse - the recorded case is an
+#              explicit external-imports decline on the project entry -
+#              refuses at the same point, before the old agent stops and
+#              before the trust store is written. bin/fm-spawn.sh still
+#              performs the registration itself at launch.
 #              The same pre-stop refusal applies to this home's worker tool
 #              exclusions (bin/fm-exclude-tools-lib.sh): a malformed list, or a
 #              replacement runtime that cannot hide the listed tools.

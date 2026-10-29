@@ -99,6 +99,7 @@ A relaunch does take one session reference when the endpoint's own runtime recor
    Ship and scout replacements resolve the [dispatch pair requirements](configuration.md#crew-dispatch-profiles-configcrew-dispatchjson) on that requested profile.
    Every ship or scout replacement then takes the [launch route](../bin/fm-cursor-guard.sh) before the old agent stops; [`bin/fm-control.sh`](../bin/fm-control.sh) owns the substituted profile when that route changes the harness.
    A Claude or Pi replacement must also pass the home's [worker account pin](configuration.md#worker-account-pin-configclaude-account-configpi-account), so a pin that no longer resolves or is signed out refuses before the old agent stops.
+   A Claude ship or scout replacement also runs the read-only workspace-trust check of [`bin/fm-claude-trust.sh`](../bin/fm-claude-trust.sh) in the store that pin selects, so a registration that would refuse, such as a project entry that already declined external CLAUDE.md imports, refuses here instead of after the stop.
    Ship and scout replacements also pass the [worker tool exclusion checks](configuration.md#worker-tool-exclusions-configcrew-exclude-tools) at this step.
    A ship or scout replacement onto Grok also refuses here on an unreadable [Grok worker skills file](configuration.md#grok-worker-skills-configgrok-worker-skills).
 2. **Safe checkpoint.**
