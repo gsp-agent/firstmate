@@ -1,0 +1,2 @@
+# Failing-first test test_held_project_lock_defers_the_spawn in tests/fm-project-capacity.test.sh: on kunchenguid/main (7bbf71b4) and on upstream-lean (810d6ae3) a spawn that loses the shared Treehouse project lock prints "error: another Treehouse slot allocation or return is in progress ...; refusing to race it" and exits 1, which pm-send.sh reports as refused (13 cases on agent-config .agent-config-pwmp9); after this change it prints a deferred: line naming the lock and exits 75 with nothing created, and the same spawn starts once the lock is free.
+pr: 192

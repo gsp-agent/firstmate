@@ -825,10 +825,10 @@ SH
     --backend orca --mode no-mistakes --yolo off) || rc2=$?
   : > "$case_dir/holder.release"
   wait "$holder" || true
-  expect_code 1 "$rc" "an Orca spawn ignored a held project lock: $out"
-  assert_contains "$out" "another spawn or cleanup holds the shared project lock for $case_dir/project; refusing to race its capacity admission" \
-    "the Orca spawn did not refuse on the shared project lock"
-  expect_code 1 "$rc2" "an Orca spawn from an uncapped same-origin clone ignored the held project lock: $out2"
+  expect_code "$DEFER_EXIT" "$rc" "an Orca spawn did not defer on a held project lock: $out"
+  assert_contains "$out" "deferred: another spawn or cleanup holds the shared project lock for $case_dir/project; refusing to race its capacity admission" \
+    "the Orca spawn did not defer on the shared project lock"
+  expect_code "$DEFER_EXIT" "$rc2" "an Orca spawn from an uncapped same-origin clone did not defer on the held project lock: $out2"
   assert_contains "$out2" "another spawn or cleanup holds the shared project lock for $case_dir/project-2" \
     "the uncapped same-origin clone's Orca spawn did not refuse on the shared project lock"
   assert_absent "$home/state/task-o.meta" "the uncapped clone's Orca spawn published a record while the lock was held"
@@ -842,6 +842,50 @@ SH
   assert_absent "$home/state/task-o.meta" "the deferred Orca spawn published a record"
   assert_no_grep "orca " "$case_dir/calls.log" "the deferred Orca spawn created an Orca worktree"
   pass "an Orca spawn takes the shared project lock whenever a same-origin clone is capped and defers before creating anything"
+}
+
+# The lock is held only while another spawn allocates or a cleanup returns a
+# slot, so losing it is a deferral every caller retries, not a refusal
+# (agent-config .agent-config-pwmp9: pm-send.sh reported "refused" on it 13
+# times in four days and PMs restarted the send by hand). The spawn exits 75
+# with nothing created, and the same spawn starts once the holder lets go.
+test_held_project_lock_defers_the_spawn() {
+  local case_dir home out rc=0 holder i before worktrees pane
+  case_dir=$(make_case held-lock task-h)
+  home="$case_dir/home"
+  pane=$(new_worktree "$case_dir" task-h)
+  # shellcheck disable=SC2016 # expanded by the holder's own shell
+  FM_HOME="$home" FM_STATE_OVERRIDE='' bash -c '
+    . "$1/bin/fm-wake-lib.sh"
+    lock=$(fm_treehouse_project_lock_path "$2") || exit 1
+    fm_lock_try_acquire "$lock" || exit 1
+    : > "$3.held"
+    while [ ! -f "$3.release" ]; do sleep 0.05; done
+    fm_lock_release "$lock"
+  ' _ "$ROOT" "$case_dir/project" "$case_dir/holder" &
+  holder=$!
+  i=0
+  while [ ! -f "$case_dir/holder.held" ]; do
+    i=$((i + 1))
+    [ "$i" -lt 200 ] || fail "the lock holder never took the project lock"
+    sleep 0.05
+  done
+  before=$(call_count "$case_dir")
+  worktrees=$(worktree_list "$case_dir")
+  out=$(spawn_ship "$case_dir" task-h "$pane") || rc=$?
+  : > "$case_dir/holder.release"
+  wait "$holder" || true
+  expect_code "$DEFER_EXIT" "$rc" "a spawn that lost the shared project lock was not deferred: $out"
+  assert_contains "$out" "deferred: another Treehouse slot allocation or return is in progress for $case_dir/project; refusing to race it" \
+    "the deferral did not name the shared project lock"
+  assert_not_contains "$out" "error: another Treehouse slot allocation" "the lost lock was still reported as an error"
+  assert_nothing_created "$case_dir" "$home" task-h "$before" "$worktrees"
+
+  rc=0
+  out=$(spawn_ship "$case_dir" task-h "$pane") || rc=$?
+  expect_code 0 "$rc" "the deferred spawn did not start once the project lock was free: $out"
+  assert_present "$home/state/task-h.meta" "the retried spawn published no task record"
+  pass "a spawn that loses the shared project lock defers with 75 and starts on retry once it is free"
 }
 
 # A denying reading does not apply while the project still has a free place,
@@ -1794,6 +1838,7 @@ test_failed_spawn_after_admission_holds_no_place
 test_unreadable_declaration_refuses_every_spawn
 test_batch_reports_a_deferred_pair
 test_orca_spawn_is_admitted_under_the_shared_project_lock
+test_held_project_lock_defers_the_spawn
 test_share_starts_without_reading_headroom
 test_headroom_admits_one_extra_start_per_window
 test_failed_extra_start_leaves_the_window_open
