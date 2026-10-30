@@ -1,0 +1,8 @@
+
+=== branch script (7b4ae830), test test_pending_pr_after_197_is_refused_and_at_197_stays_accepted, under /bin/bash
+ok - a pending-pr line after PR 197 is refused and the PR 197 boundary stays accepted
+[exit 0]
+
+=== base script (04b36d8f), test test_pending_pr_after_197_is_refused_and_at_197_stays_accepted, under /bin/bash
+not ok - a pending-pr line for PR 198 exits 2: expected exit 2, got 0
+[exit 1]

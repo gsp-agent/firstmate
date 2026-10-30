@@ -1,0 +1,172 @@
+
+=================== S1 tree proof: a later PR's own drift-proof/200.proof holds pending-pr
+fork commit: a4c8d5b add notes (#200)
+
+--- BRANCH 7b4ae830
+$ fm-drift-nightly.sh check --no-fetch --fork HEAD --upstream upstream 
+error: pending-pr entry for PR 200 is refused: pending proof closed after PR 197
+[exit 2]
+
+--- BASE 04b36d8f
+$ fm-drift-nightly.sh check --no-fetch --fork HEAD --upstream upstream 
+behind: 0
+ahead: 1
+path-ok: drift-proof/200.proof
+path-ok: notes.txt
+pending: a4c8d5b863493c0c2bd94100c765cad61abfda91 bead-200 add notes (#200)
+[exit 0]
+
+=================== S2 --proof file: pending-pr for PR 198
+fork commit: 5b63157 add notes (#198)
+
+--- BRANCH 7b4ae830
+$ fm-drift-nightly.sh check --no-fetch --fork HEAD --upstream upstream --proof /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//nm-drift-fx.A8wVRc/s2.proof
+error: pending-pr entry for PR 198 is refused: pending proof closed after PR 197
+[exit 2]
+
+--- BASE 04b36d8f
+$ fm-drift-nightly.sh check --no-fetch --fork HEAD --upstream upstream --proof /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//nm-drift-fx.A8wVRc/s2.proof
+behind: 0
+ahead: 1
+path-ok: notes.txt
+pending: 5b63157095e3494b6d1dd6433d26002f8eabdb68 bead-198 add notes (#198)
+[exit 0]
+
+=================== S3 boundary: PR 197's own tree proof holds pending-pr
+fork commit: 8696260 add notes (#197)
+
+--- BRANCH 7b4ae830
+$ fm-drift-nightly.sh check --no-fetch --fork HEAD --upstream upstream 
+behind: 0
+ahead: 1
+path-ok: drift-proof/197.proof
+path-ok: notes.txt
+pending: 869626009a267ca317ff8b55ecded5c49f69d0b2 bead-197 add notes (#197)
+[exit 0]
+
+--- BASE 04b36d8f
+$ fm-drift-nightly.sh check --no-fetch --fork HEAD --upstream upstream 
+behind: 0
+ahead: 1
+path-ok: drift-proof/197.proof
+path-ok: notes.txt
+pending: 869626009a267ca317ff8b55ecded5c49f69d0b2 bead-197 add notes (#197)
+[exit 0]
+
+=================== S4 later PR carries a pr: line
+fork commit: 4289f6d add notes (#200)
+
+--- BRANCH 7b4ae830
+$ fm-drift-nightly.sh check --no-fetch --fork HEAD --upstream upstream 
+behind: 0
+ahead: 1
+path-ok: drift-proof/200.proof
+path-ok: notes.txt
+keep: 4289f6d52507cf44d71b28284656539e8da703ab add notes (#200)
+[exit 0]
+
+--- BASE 04b36d8f
+$ fm-drift-nightly.sh check --no-fetch --fork HEAD --upstream upstream 
+behind: 0
+ahead: 1
+path-ok: drift-proof/200.proof
+path-ok: notes.txt
+keep: 4289f6d52507cf44d71b28284656539e8da703ab add notes (#200)
+[exit 0]
+
+=================== S5 adversarial: zero-padded pending-pr 0198
+fork commit: b24c9b3 add notes (#198)
+
+--- BRANCH 7b4ae830
+$ fm-drift-nightly.sh check --no-fetch --fork HEAD --upstream upstream --proof /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//nm-drift-fx.A8wVRc/s5.proof
+error: pending-pr entry for PR 0198 is refused: pending proof closed after PR 197
+[exit 2]
+
+--- BASE 04b36d8f
+$ fm-drift-nightly.sh check --no-fetch --fork HEAD --upstream upstream --proof /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//nm-drift-fx.A8wVRc/s5.proof
+behind: 0
+ahead: 1
+path-drift: notes.txt
+unproven: b24c9b3fbcd0dee9ff349a18156797751e699821 add notes (#198)
+error: missing manifest entry for PR 198
+unmatched: 0198
+[exit 1]
+
+=================== S6 adversarial: zero-padded pending-pr 00197 (boundary)
+fork commit: 3b9ff33 add notes (#197)
+
+--- BRANCH 7b4ae830
+$ fm-drift-nightly.sh check --no-fetch --fork HEAD --upstream upstream --proof /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//nm-drift-fx.A8wVRc/s6.proof
+behind: 0
+ahead: 1
+path-drift: notes.txt
+unproven: 3b9ff332d416c4685fe700922940e66e3d55339d add notes (#197)
+error: missing manifest entry for PR 197
+unmatched: 00197
+[exit 1]
+
+--- BASE 04b36d8f
+$ fm-drift-nightly.sh check --no-fetch --fork HEAD --upstream upstream --proof /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//nm-drift-fx.A8wVRc/s6.proof
+behind: 0
+ahead: 1
+path-drift: notes.txt
+unproven: 3b9ff332d416c4685fe700922940e66e3d55339d add notes (#197)
+error: missing manifest entry for PR 197
+unmatched: 00197
+[exit 1]
+
+=================== S7 adversarial: historic pending lines followed by one pending-pr 200
+fork commit: 64c44be add notes (#200)
+
+--- BRANCH 7b4ae830
+$ fm-drift-nightly.sh check --no-fetch --fork HEAD --upstream upstream --proof /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//nm-drift-fx.A8wVRc/s7.proof
+error: pending-pr entry for PR 200 is refused: pending proof closed after PR 197
+[exit 2]
+
+--- BASE 04b36d8f
+$ fm-drift-nightly.sh check --no-fetch --fork HEAD --upstream upstream --proof /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//nm-drift-fx.A8wVRc/s7.proof
+behind: 0
+ahead: 1
+path-ok: notes.txt
+pending: 64c44bef3a3751207668155c2ab3ee926456f66c bead-d add notes (#200)
+unmatched: 199
+unmatched: 8
+unmatched: 167
+unmatched: 197
+[exit 0]
+
+=================== S8 adversarial: pending-pr number beyond 64-bit
+fork commit: 0db5ace add notes (#198)
+
+--- BRANCH 7b4ae830
+$ fm-drift-nightly.sh check --no-fetch --fork HEAD --upstream upstream --proof /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//nm-drift-fx.A8wVRc/s8.proof
+error: pending-pr entry for PR 99999999999999999999 is refused: pending proof closed after PR 197
+[exit 2]
+
+--- BASE 04b36d8f
+$ fm-drift-nightly.sh check --no-fetch --fork HEAD --upstream upstream --proof /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//nm-drift-fx.A8wVRc/s8.proof
+behind: 0
+ahead: 1
+path-drift: notes.txt
+unproven: 0db5acec293a1ad1b051466db626e84ffa63bd19 add notes (#198)
+error: missing manifest entry for PR 198
+unmatched: 99999999999999999999
+[exit 1]
+
+=================== S9 adversarial: unmatched pending-pr 198 (no #198 commit in range)
+fork commit: 34e89c5 add notes (#200)
+
+--- BRANCH 7b4ae830
+$ fm-drift-nightly.sh check --no-fetch --fork HEAD --upstream upstream --proof /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//nm-drift-fx.A8wVRc/s9.proof
+error: pending-pr entry for PR 198 is refused: pending proof closed after PR 197
+[exit 2]
+
+--- BASE 04b36d8f
+$ fm-drift-nightly.sh check --no-fetch --fork HEAD --upstream upstream --proof /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//nm-drift-fx.A8wVRc/s9.proof
+behind: 0
+ahead: 1
+path-drift: notes.txt
+unproven: 34e89c51fdff2397b2e5aeac2fa0acdfeeb3e78f add notes (#200)
+error: missing manifest entry for PR 200
+unmatched: 198
+[exit 1]

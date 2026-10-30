@@ -1,0 +1,207 @@
+## setup (disposable clone of this repo's history + kunchenguid/firstmate main)
+upstream-lean:    04b36d8f fix(bin): retire a task record when its backlog row is already gone (#199)
+branch head:      7b4ae830 no-mistakes(review): Correct stale base SHA in drift-proof/198.proof comment
+kunchenguid/main: b83dc59e fix: preserve literal ampersands in spawn and supervision paths (#7906)
+historic pending-pr lines in the upstream-lean tree: 84 (highest PR 167)
+Squash commit -- not updating HEAD
+sim-as-is:        b3b3c0df fix(bin): refuse pending drift proof for PRs after 197 (#200)
+Squash commit -- not updating HEAD
+sim-renamed:      b28fe2b2 fix(bin): refuse pending drift proof for PRs after 197 (#200)
+  drift-proof/200.proof:
+    # Failing-first test: test_pending_pr_after_197_is_refused_and_at_197_stays_accepted in tests/fm-drift-nightly.test.sh. Red on base 04b36d8f, where a pending-pr line for PR 198 is accepted and the check exits 0; green here, where it is refused and the check exits 2, while a pending-pr line for PR 197 stays accepted.
+    pr: 200
+sim-next:         e26e58fa docs: a later change (#201)
+  drift-proof/201.proof:
+    # measurement owed
+    pending-pr: 201 next-bead
+clone HEAD:       sim-next
+
+=================== R1-branch: BRANCH script on real upstream-lean (every historic pending entry)
+behind: 157
+ahead: 244
+path-drift: bin/fm-backend.sh
+path-drift: bin/fm-claude-trust.sh
+path-drift: bin/fm-spawn.sh
+path-drift: bin/fm-task-bead-lib.sh
+path-drift: bin/fm-task-data-lib.sh
+path-drift: bin/fm-task-data.py
+path-drift: bin/fm-watch.sh
+path-drift: docs/configuration.md
+path-drift: tests/fm-claude-trust.test.sh
+path-drift: tests/fm-pr-made-with.test.sh
+path-drift: tests/fm-task-data-offload.test.sh
+path-drift: tests/fm-teardown.test.sh
+path-drift: tests/fm-wake-queue.test.sh
+path-drift: tests/fm-watch-triage.test.sh
+path-drift: tests/wake-helpers.sh
+unproven: e5520d68257060f9d9ed7c77864fae0c522ebfc7 fix(bin): name the recorded imports decline and who to tell in a refused Claude spawn (#198)
+unproven: 9b3b5b0a925f9272eac88da3d7d687a0b5e13fe6 fix(bin): discover bead homes and date ended tasks so offload stops keeping them forever (#194)
+unproven: 43045f59bbf1363dd4accb7b3344827838a0ff0b test: give watcher-exit waits one shared 300-poll bound (#193)
+unproven: 95fb0ba8f83d4c0f2b5c41b6ba88dc165d039020 fix: look up a window's meta once per watcher poll
+error: missing manifest entry for PR 193
+error: missing manifest entry for PR 194
+error: missing manifest entry for PR 198
+error: proof patch conflicts for PR 137: 446eb1e7f53f7d03dc580227a7488129263dadbf
+error: proof patch conflicts for PR 138: efbe1b61c798d790fe6f2cce77e3e90e8fab1034
+error: proof patch conflicts for PR 139: f96e6fa9d0be3d60c2aefb214674acb54b8425a3
+error: proof patch conflicts for PR 197: 2a33f467cdcf899cb16d5418a62f562cc7124acc
+(folded: 335 path-ok, 104 keep, 136 pending lines)
+  boundary commit: keep: 04b36d8f743438c1bc79a0ec542dabdadbf9b667 fix(bin): retire a task record when its backlog row is already gone (#199)
+  boundary commit: keep: 2a33f467cdcf899cb16d5418a62f562cc7124acc refactor(bin): cut the per-poll window index and add upstream-lean inflow rules (#197)
+[exit 1]
+
+=================== R1-base: BASE script on real upstream-lean
+behind: 157
+ahead: 244
+path-drift: bin/fm-backend.sh
+path-drift: bin/fm-claude-trust.sh
+path-drift: bin/fm-spawn.sh
+path-drift: bin/fm-task-bead-lib.sh
+path-drift: bin/fm-task-data-lib.sh
+path-drift: bin/fm-task-data.py
+path-drift: bin/fm-watch.sh
+path-drift: docs/configuration.md
+path-drift: tests/fm-claude-trust.test.sh
+path-drift: tests/fm-pr-made-with.test.sh
+path-drift: tests/fm-task-data-offload.test.sh
+path-drift: tests/fm-teardown.test.sh
+path-drift: tests/fm-wake-queue.test.sh
+path-drift: tests/fm-watch-triage.test.sh
+path-drift: tests/wake-helpers.sh
+unproven: e5520d68257060f9d9ed7c77864fae0c522ebfc7 fix(bin): name the recorded imports decline and who to tell in a refused Claude spawn (#198)
+unproven: 9b3b5b0a925f9272eac88da3d7d687a0b5e13fe6 fix(bin): discover bead homes and date ended tasks so offload stops keeping them forever (#194)
+unproven: 43045f59bbf1363dd4accb7b3344827838a0ff0b test: give watcher-exit waits one shared 300-poll bound (#193)
+unproven: 95fb0ba8f83d4c0f2b5c41b6ba88dc165d039020 fix: look up a window's meta once per watcher poll
+error: missing manifest entry for PR 193
+error: missing manifest entry for PR 194
+error: missing manifest entry for PR 198
+error: proof patch conflicts for PR 137: 446eb1e7f53f7d03dc580227a7488129263dadbf
+error: proof patch conflicts for PR 138: efbe1b61c798d790fe6f2cce77e3e90e8fab1034
+error: proof patch conflicts for PR 139: f96e6fa9d0be3d60c2aefb214674acb54b8425a3
+error: proof patch conflicts for PR 197: 2a33f467cdcf899cb16d5418a62f562cc7124acc
+(folded: 335 path-ok, 104 keep, 136 pending lines)
+  boundary commit: keep: 04b36d8f743438c1bc79a0ec542dabdadbf9b667 fix(bin): retire a task record when its backlog row is already gone (#199)
+  boundary commit: keep: 2a33f467cdcf899cb16d5418a62f562cc7124acc refactor(bin): cut the per-poll window index and add upstream-lean inflow rules (#197)
+[exit 1]
+R1: branch and base outputs are byte-identical
+
+=================== R2-branch: BRANCH script, this branch squashed as #200 with drift-proof/198.proof unchanged
+behind: 157
+ahead: 245
+path-drift: .agents/skills/firstmate-self-repo/SKILL.md
+path-drift: CONTRIBUTING.md
+path-drift: bin/fm-backend.sh
+path-drift: bin/fm-drift-nightly.sh
+path-drift: bin/fm-task-bead-lib.sh
+path-drift: bin/fm-task-data-lib.sh
+path-drift: bin/fm-task-data.py
+path-drift: bin/fm-watch.sh
+path-drift: drift-proof/198.proof
+path-drift: tests/fm-drift-nightly.test.sh
+path-drift: tests/fm-pr-made-with.test.sh
+path-drift: tests/fm-task-data-offload.test.sh
+path-drift: tests/fm-teardown.test.sh
+path-drift: tests/fm-wake-queue.test.sh
+path-drift: tests/fm-watch-triage.test.sh
+path-drift: tests/wake-helpers.sh
+unproven: b3b3c0df65e431ccbd8c003843f6fca6f72d1a45 fix(bin): refuse pending drift proof for PRs after 197 (#200)
+unproven: 9b3b5b0a925f9272eac88da3d7d687a0b5e13fe6 fix(bin): discover bead homes and date ended tasks so offload stops keeping them forever (#194)
+unproven: 43045f59bbf1363dd4accb7b3344827838a0ff0b test: give watcher-exit waits one shared 300-poll bound (#193)
+unproven: 95fb0ba8f83d4c0f2b5c41b6ba88dc165d039020 fix: look up a window's meta once per watcher poll
+error: missing manifest entry for PR 193
+error: missing manifest entry for PR 194
+error: missing manifest entry for PR 200
+error: proof patch conflicts for PR 137: 446eb1e7f53f7d03dc580227a7488129263dadbf
+error: proof patch conflicts for PR 138: efbe1b61c798d790fe6f2cce77e3e90e8fab1034
+error: proof patch conflicts for PR 139: f96e6fa9d0be3d60c2aefb214674acb54b8425a3
+error: proof patch conflicts for PR 197: 2a33f467cdcf899cb16d5418a62f562cc7124acc
+(folded: 335 path-ok, 105 keep, 136 pending lines)
+  boundary commit: keep: 04b36d8f743438c1bc79a0ec542dabdadbf9b667 fix(bin): retire a task record when its backlog row is already gone (#199)
+  boundary commit: keep: e5520d68257060f9d9ed7c77864fae0c522ebfc7 fix(bin): name the recorded imports decline and who to tell in a refused Claude spawn (#198)
+  boundary commit: keep: 2a33f467cdcf899cb16d5418a62f562cc7124acc refactor(bin): cut the per-poll window index and add upstream-lean inflow rules (#197)
+[exit 1]
+
+=================== R3-branch: BRANCH script, this branch squashed as #200 after renaming to drift-proof/200.proof
+behind: 157
+ahead: 245
+path-drift: bin/fm-backend.sh
+path-drift: bin/fm-claude-trust.sh
+path-drift: bin/fm-spawn.sh
+path-drift: bin/fm-task-bead-lib.sh
+path-drift: bin/fm-task-data-lib.sh
+path-drift: bin/fm-task-data.py
+path-drift: bin/fm-watch.sh
+path-drift: docs/configuration.md
+path-drift: tests/fm-claude-trust.test.sh
+path-drift: tests/fm-pr-made-with.test.sh
+path-drift: tests/fm-task-data-offload.test.sh
+path-drift: tests/fm-teardown.test.sh
+path-drift: tests/fm-wake-queue.test.sh
+path-drift: tests/fm-watch-triage.test.sh
+path-drift: tests/wake-helpers.sh
+unproven: e5520d68257060f9d9ed7c77864fae0c522ebfc7 fix(bin): name the recorded imports decline and who to tell in a refused Claude spawn (#198)
+unproven: 9b3b5b0a925f9272eac88da3d7d687a0b5e13fe6 fix(bin): discover bead homes and date ended tasks so offload stops keeping them forever (#194)
+unproven: 43045f59bbf1363dd4accb7b3344827838a0ff0b test: give watcher-exit waits one shared 300-poll bound (#193)
+unproven: 95fb0ba8f83d4c0f2b5c41b6ba88dc165d039020 fix: look up a window's meta once per watcher poll
+error: missing manifest entry for PR 193
+error: missing manifest entry for PR 194
+error: missing manifest entry for PR 198
+error: proof patch conflicts for PR 137: 446eb1e7f53f7d03dc580227a7488129263dadbf
+error: proof patch conflicts for PR 138: efbe1b61c798d790fe6f2cce77e3e90e8fab1034
+error: proof patch conflicts for PR 139: f96e6fa9d0be3d60c2aefb214674acb54b8425a3
+error: proof patch conflicts for PR 197: 2a33f467cdcf899cb16d5418a62f562cc7124acc
+(folded: 336 path-ok, 105 keep, 136 pending lines)
+  boundary commit: keep: b28fe2b2437872f63e6924418369beac59db6359 fix(bin): refuse pending drift proof for PRs after 197 (#200)
+  boundary commit: keep: 04b36d8f743438c1bc79a0ec542dabdadbf9b667 fix(bin): retire a task record when its backlog row is already gone (#199)
+  boundary commit: keep: 2a33f467cdcf899cb16d5418a62f562cc7124acc refactor(bin): cut the per-poll window index and add upstream-lean inflow rules (#197)
+[exit 1]
+
+=================== R4-branch: BRANCH script, next PR #201 lands drift-proof/201.proof with pending-pr: 201
+error: pending-pr entry for PR 201 is refused: pending proof closed after PR 197
+(folded: 0 path-ok, 0 keep, 0 pending lines)
+[exit 2]
+
+=================== R4-base: BASE script, same #201 landing
+behind: 157
+ahead: 246
+path-drift: bin/fm-backend.sh
+path-drift: bin/fm-claude-trust.sh
+path-drift: bin/fm-spawn.sh
+path-drift: bin/fm-task-bead-lib.sh
+path-drift: bin/fm-task-data-lib.sh
+path-drift: bin/fm-task-data.py
+path-drift: bin/fm-watch.sh
+path-drift: docs/configuration.md
+path-drift: tests/fm-claude-trust.test.sh
+path-drift: tests/fm-pr-made-with.test.sh
+path-drift: tests/fm-task-data-offload.test.sh
+path-drift: tests/fm-teardown.test.sh
+path-drift: tests/fm-wake-queue.test.sh
+path-drift: tests/fm-watch-triage.test.sh
+path-drift: tests/wake-helpers.sh
+unproven: e5520d68257060f9d9ed7c77864fae0c522ebfc7 fix(bin): name the recorded imports decline and who to tell in a refused Claude spawn (#198)
+unproven: 9b3b5b0a925f9272eac88da3d7d687a0b5e13fe6 fix(bin): discover bead homes and date ended tasks so offload stops keeping them forever (#194)
+unproven: 43045f59bbf1363dd4accb7b3344827838a0ff0b test: give watcher-exit waits one shared 300-poll bound (#193)
+unproven: 95fb0ba8f83d4c0f2b5c41b6ba88dc165d039020 fix: look up a window's meta once per watcher poll
+error: missing manifest entry for PR 193
+error: missing manifest entry for PR 194
+error: missing manifest entry for PR 198
+error: proof patch conflicts for PR 137: 446eb1e7f53f7d03dc580227a7488129263dadbf
+error: proof patch conflicts for PR 138: efbe1b61c798d790fe6f2cce77e3e90e8fab1034
+error: proof patch conflicts for PR 139: f96e6fa9d0be3d60c2aefb214674acb54b8425a3
+error: proof patch conflicts for PR 197: 2a33f467cdcf899cb16d5418a62f562cc7124acc
+(folded: 338 path-ok, 105 keep, 137 pending lines)
+  boundary commit: pending: e26e58fa08aeacab7d65ff41769e44b14706141e next-bead docs: a later change (#201)
+  boundary commit: keep: b28fe2b2437872f63e6924418369beac59db6359 fix(bin): refuse pending drift proof for PRs after 197 (#200)
+  boundary commit: keep: 04b36d8f743438c1bc79a0ec542dabdadbf9b667 fix(bin): retire a task record when its backlog row is already gone (#199)
+  boundary commit: keep: 2a33f467cdcf899cb16d5418a62f562cc7124acc refactor(bin): cut the per-poll window index and add upstream-lean inflow rules (#197)
+[exit 1]
+
+=================== R5-nightly: installed nightly job command (/bin/bash, default refs, live fetch) at sim-next
+run: 2026-10-30T04:19:48-0500
+From https://github.com/kunchenguid/firstmate
+ * branch              main       -> FETCH_HEAD
+error: pending-pr entry for PR 201 is refused: pending proof closed after PR 197
+exit: 2
+(folded: 0 path-ok, 0 keep, 0 pending lines)
+[exit 2]
