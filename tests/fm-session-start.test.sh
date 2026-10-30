@@ -1782,6 +1782,9 @@ SH
 # off-path. The slow read is held open by this case rather than by a fixed sleep,
 # so "the digest did not wait for it" is decided by what had happened when the
 # digest returned and not by how fast the host was.
+# The read answers failed because this task's newest status line says working,
+# and bin/fm-inactive-reconcile.sh records no outcome for a done answer behind
+# that line.
 test_inactive_reconcile_never_blocks_the_digest() {
   local rec root home fakebin world worktree crew_state calls out waited=0
   local release_gate read_finished
@@ -1830,7 +1833,7 @@ SH
 #!/usr/bin/env bash
 set -u
 no-mistakes axi status >/dev/null
-printf '%s\n' 'state: done · source: run-step · passed'
+printf '%s\n' 'state: failed · source: run-step · failed'
 SH
   chmod +x "$fakebin/no-mistakes" "$crew_state"
 

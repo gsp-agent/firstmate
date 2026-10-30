@@ -1,0 +1,2 @@
+# Failing-first test test_inactive_reconcile_never_blocks_the_digest in tests/fm-session-start.test.sh: on the base 04b36d8f its fake state read answers done behind a working status line, which bin/fm-inactive-reconcile.sh:661-662 has declined to record since #182, so the case fails on the missing wake and its exit hides every later case in the file; with the fixture answering failed the case passes and all 62 assertions run.
+pr: 201
