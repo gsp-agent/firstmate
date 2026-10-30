@@ -192,6 +192,46 @@ test_uncommitted_changes_run_as_a_commit_over_head() {
   pass "uncommitted and untracked changes run on the host as one commit over HEAD, leaving the checkout as it was"
 }
 
+test_the_host_copy_carries_this_checkouts_branch_remotes_and_tags() {
+  local head here_branch here_url here_origin_head tested
+  new_world refs
+  cat >"$REPO/tests/fm-remote-refs.test.sh" <<'EOF'
+#!/usr/bin/env bash
+printf 'branch=%s at=%s\n' "$(git symbolic-ref -q --short HEAD)" "$(git rev-parse HEAD)"
+printf 'origin=%s\n' "$(git remote get-url origin)"
+printf 'origin-head=%s\n' "$(git symbolic-ref -q refs/remotes/origin/HEAD)"
+printf 'origin-main=%s tag=%s\n' "$(git rev-parse -q --verify refs/remotes/origin/main)" "$(git rev-parse -q --verify refs/tags/fixture-tag)"
+EOF
+  chmod +x "$REPO/tests/fm-remote-refs.test.sh"
+  commit_all "a refs probe"
+  head=$(git -C "$REPO" rev-parse HEAD)
+  git -C "$REPO" remote add origin https://example.invalid/fixture.git
+  git -C "$REPO" update-ref refs/remotes/origin/main "$head"
+  git -C "$REPO" symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/main
+  git -C "$REPO" tag fixture-tag
+  git -C "$REPO" checkout -q -b fixture-feature
+  write_probe "$REPO/tests/fm-remote-probe.test.sh" edited-probe
+  here_branch=$(git -C "$REPO" symbolic-ref --short HEAD)
+  here_url=$(git -C "$REPO" config --get remote.origin.url)
+  here_origin_head=$(git -C "$REPO" symbolic-ref refs/remotes/origin/HEAD)
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-refs.test.sh
+  expect_code 0 "$RC" "a run that reads refs and remotes"$'\n'"$OUT"
+  tested=$(printf '%s\n' "$OUT" | sed -n "s/^branch=$here_branch at=\\([0-9a-f]*\\)\$/\\1/p")
+  [ -n "$tested" ] || fail "the host copy is not on branch $here_branch"$'\n'"$OUT"
+  [ "$(git -C "$REPO" rev-parse "$tested^")" = "$head" ] \
+    || fail "the host branch is at $tested, not the commit under test over HEAD $head"
+  assert_contains "$OUT" "origin=$here_url" "the host copy has this checkout's origin URL"
+  assert_contains "$OUT" "origin-head=$here_origin_head" "the host copy's origin/HEAD names the same branch"
+  assert_contains "$OUT" "origin-main=$head tag=$head" "the host copy has this checkout's remote-tracking refs and tags"
+
+  git -C "$REPO" checkout -q --detach
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-refs.test.sh
+  expect_code 0 "$RC" "a detached run that reads refs and remotes"$'\n'"$OUT"
+  printf '%s\n' "$OUT" | grep -q '^branch= at=[0-9a-f]*$' || fail "a detached HEAD here should run detached there"$'\n'"$OUT"
+  assert_scratch_empty "runs that read refs and remotes"
+  pass "a suite on the host sees this checkout's branch at the commit under test, origin URL, origin/HEAD, refs, and tags"
+}
+
 test_changed_base_and_json_cross_the_transport() {
   local json="$TMP_ROOT/changed-json/timing.json"
   new_world changed
@@ -483,6 +523,7 @@ test_a_remote_run_that_arrived_first_starts_before_a_later_plain_gated_run() {
 test_runs_the_suite_on_the_host_at_the_exact_head_and_cleans_up
 test_a_failing_suite_returns_its_exit_status
 test_uncommitted_changes_run_as_a_commit_over_head
+test_the_host_copy_carries_this_checkouts_branch_remotes_and_tags
 test_changed_base_and_json_cross_the_transport
 test_an_output_not_copied_back_fails_a_passing_run
 test_fm_test_only_reaches_the_host

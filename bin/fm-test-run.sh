@@ -2246,7 +2246,8 @@ fi
 # The host runs this same runner on this checkout's commit, so the arguments
 # go across unchanged except three: --remote is dropped; --json is written on
 # the host and copied back; and --changed's base is resolved here and sent as
-# a commit, because the host's copy has no refs of this checkout's.
+# a commit, because a relative base such as HEAD~1 names another commit there
+# when uncommitted changes add a commit over HEAD.
 run_remote() {
   local arg skip=0 rest=0 base_sha
   local -a forward=() pre=() opts=()

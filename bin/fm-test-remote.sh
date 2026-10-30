@@ -25,9 +25,13 @@
 #      host, holding an empty repo/, out/, and tmp/. The scratch root must
 #      already exist: this never creates it, so an unmounted volume refuses
 #      rather than putting the run on the host's system disk.
-#   3. pushes that commit, and --base's commit, into repo/ over ssh, checks the
-#      commit out detached, and stops before anything runs unless `git
-#      rev-parse HEAD` there prints that commit.
+#   3. pushes that commit, --base's commit, and this checkout's branches,
+#      remote-tracking refs, and tags into repo/ over ssh, and gives repo/ each
+#      of this checkout's remotes with the same URL, never fetched, and each
+#      remote's HEAD, so a suite there reads the refs and remotes it reads
+#      here. It checks the commit out on a branch named as HEAD's branch here,
+#      or detached when HEAD here is detached, and stops before anything runs
+#      unless `git rev-parse HEAD` there prints that commit.
 #   4. runs <script> under the host's ~/.agent-state/machine-gate.sh with
 #      --needs firstmate, so one Firstmate suite runs there at a time, with
 #      TMPDIR set to tmp/ so the suite's own temp files stay on the scratch
@@ -229,6 +233,7 @@ git -C "$ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
   || die "$ROOT is not a git checkout, so there is no commit to run; nothing ran"
 HEAD_SHA=$(git -C "$ROOT" rev-parse --verify 'HEAD^{commit}' 2>/dev/null) \
   || die "this checkout has no HEAD commit; nothing ran"
+BRANCH=$(git -C "$ROOT" symbolic-ref -q --short HEAD) || BRANCH=
 SHA=$HEAD_SHA
 CHANGES=$(git -C "$ROOT" status --porcelain --untracked-files=all) \
   || die "git status failed in $ROOT; nothing ran"
@@ -291,15 +296,15 @@ trap 'exit 129' HUP
 # shellcheck disable=SC2016 # The host's shell expands these.
 setup="root=$(quote_words "$SCRATCH_ROOT")"'
 [ -d "$root" ] || { printf "scratch root %s does not exist on this host\n" "$root" >&2; exit 3; }
-run=$(mktemp -d "$root/fm-test-remote.XXXXXX") && mkdir "$run/repo" "$run/out" "$run/tmp" && git init -q "$run/repo" && printf "%s\n" "$run"'
+run=$(mktemp -d "$root/fm-test-remote.XXXXXX") && mkdir "$run/repo" "$run/out" "$run/tmp" && git init -q "$run/repo" && git -C "$run/repo" config receive.denyCurrentBranch ignore && printf "%s\n" "$run"'
 remote_setup "$setup" || die "could not make a run directory under $SCRATCH_ROOT on $HOST (${SETUP_ERR:-no reason given}); nothing ran"
 case "$SETUP_OUT" in
   "$SCRATCH_ROOT"/fm-test-remote.*) RUN=$SETUP_OUT ;;
   *) die "$HOST printed '$SETUP_OUT' for its run directory, not one under $SCRATCH_ROOT; nothing ran" ;;
 esac
 
-refspecs=("$SHA:refs/heads/fm-test-remote-head")
-[ -z "$BASE_SHA" ] || refspecs+=("$BASE_SHA:refs/heads/fm-test-remote-base")
+refspecs=("$SHA:refs/fm-test-remote/head" 'refs/heads/*:refs/heads/*' 'refs/remotes/*:refs/remotes/*' 'refs/tags/*:refs/tags/*')
+[ -z "$BASE_SHA" ] || refspecs+=("$BASE_SHA:refs/fm-test-remote/base")
 if ! push_err=$(GIT_SSH_COMMAND="$(quote_words ssh "${SSH_OPTS[@]}")" \
   git -C "$ROOT" push --no-verify -q "$HOST:$RUN/repo" "${refspecs[@]}" 2>&1); then
   die "could not push $SHA to $HOST: $(printf '%s\n' "$push_err" | tail -n 1); nothing ran"
@@ -309,7 +314,20 @@ line_name=$(printf 'fm-test-remote-%s-%s-%s-%s' "$(basename "$SCRIPT" .sh)" "$(p
   "$(hostname -s 2>/dev/null || hostname)" "$$" | tr -c 'A-Za-z0-9._-' '_')
 host_env=()
 [ -z "${FM_TEST_ONLY+set}" ] || host_env=(env "FM_TEST_ONLY=$FM_TEST_ONLY")
-run_cmd="cd $(quote_words "$RUN/repo") && git -c advice.detachedHead=false checkout -q --detach $SHA && got=\$(git rev-parse HEAD) && [ \"\$got\" = $SHA ] || { printf 'fm-test-remote: the host copy is at %s, not %s; nothing ran\\n' \"\${got:-no commit}\" $SHA >&2; exit 2; }; exec $(quote_words ${host_env[@]+"${host_env[@]}"} "$REMOTE_BASH" "$RUN/repo/bin/fm-test-remote.sh" __host "$RUN" "$line_name" "$RETRY" -- "$@")"
+copy_setup=
+while IFS= read -r remote; do
+  url=$(git -C "$ROOT" config --get "remote.$remote.url") || continue
+  copy_setup="$copy_setup && git remote add $(quote_words "$remote" "$url")"
+  if remote_head=$(git -C "$ROOT" symbolic-ref -q "refs/remotes/$remote/HEAD"); then
+    copy_setup="$copy_setup && git symbolic-ref $(quote_words "refs/remotes/$remote/HEAD" "$remote_head")"
+  fi
+done < <(git -C "$ROOT" remote)
+if [ -n "$BRANCH" ]; then
+  checkout=(-B "$BRANCH")
+else
+  checkout=(--detach)
+fi
+run_cmd="cd $(quote_words "$RUN/repo")$copy_setup && git -c advice.detachedHead=false checkout -q -f $(quote_words "${checkout[@]}") $SHA && got=\$(git rev-parse HEAD) && [ \"\$got\" = $SHA ] || { printf 'fm-test-remote: the host copy is at %s, not %s; nothing ran\\n' \"\${got:-no commit}\" $SHA >&2; exit 2; }; exec $(quote_words ${host_env[@]+"${host_env[@]}"} "$REMOTE_BASH" "$RUN/repo/bin/fm-test-remote.sh" __host "$RUN" "$line_name" "$RETRY" -- "$@")"
 
 ssh -n "${SSH_OPTS[@]}" "$HOST" "$run_cmd" &
 SSH_PID=$!
