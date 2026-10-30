@@ -1399,6 +1399,8 @@ write_response "$RESPONSE" rule_4 0.9
 TYPESAFE_API_KEY=$KEY CUSAGE_FIXTURE=$CUSAGE run_claude "$DALE_ROOT" "$BRIEF" --project pager
 expect_code 0 "$code" "brief mode with a keychain-withheld Claude exits 0"
 assert_contains "$out" "candidate: claude:sonnet  provider=claude  scope=all_models  remaining=78%" "brief mode shows the measured Claude figure"
+assert_contains "$out" "  note: claude: claude 78% left, limited by seven_day (five_hour 2% used, seven_day 22% used; cusage account dale, as of 12m ago)" \
+  "brief mode names the limiting Claude window and percent"
 assert_not_contains "$out" "provider claude unmeasured" "brief mode no longer reads Claude as unmeasured"
 
 write_quota "$QUOTA" 0.7597
