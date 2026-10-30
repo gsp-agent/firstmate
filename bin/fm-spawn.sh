@@ -647,7 +647,8 @@
 # because Claude's interactive workspace-trust dialog gates a folder it has never
 # seen and firstmate cannot answer it. That helper's header owns the structural
 # scope test for both shapes and every refusal; a failed registration stops this
-# spawn rather than launching a worker that would wedge on the dialog.
+# spawn rather than launching a worker that would wedge on the dialog, and the
+# spawn's last error line carries that helper's refusal.
 # Unless config/keep-ai-trailers is present, every claude launch carries the
 # attribution-off policy in its per-launch --settings JSON, so a spawned worker
 # never writes a Co-Authored-By trailer, Claude-Session link, or generated-with
@@ -6295,8 +6296,11 @@ claude*)
   else
     spawn_trust_args=("$WT" "$PROJ_ABS")
   fi
-  if ! "$FM_ROOT/bin/fm-claude-trust.sh" "${spawn_trust_args[@]}" >/dev/null; then
-    echo "error: could not pre-register Claude workspace trust for $WT; refusing to launch a claude worker that would wedge on the trust dialog; inspect window $T" >&2
+  # A caller may keep only this script's last line, so that line carries the
+  # trust script's own refusal (which names a recorded decline and who to tell).
+  if ! spawn_trust_refusal=$("$FM_ROOT/bin/fm-claude-trust.sh" "${spawn_trust_args[@]}" 2>&1 >/dev/null); then
+    spawn_trust_refusal=$(printf '%s\n' "$spawn_trust_refusal" | awk 'NF { sub(/^error: /, ""); out = out (out == "" ? "" : "; ") $0 } END { printf "%s", out }')
+    echo "error: could not pre-register Claude workspace trust for $WT; refusing to launch a claude worker that would wedge on the trust dialog; inspect window $T${spawn_trust_refusal:+; $spawn_trust_refusal}" >&2
     exit 1
   fi
   ;;
