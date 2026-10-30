@@ -1,0 +1,48 @@
+--- lab rules ---
+{
+  "rules": [
+    { "when": "New feature work on the app.",
+      "use": { "harness": "claude", "model": "opus", "effort": "xhigh" } },
+    { "when": "A simple bug fix with a stated root cause.",
+      "use": [ { "harness": "claude", "model": "sonnet", "effort": "high" },
+               { "harness": "codex", "model": "gpt-5.5" } ] },
+    { "when": "The task generates images.",
+      "use": { "harness": "codex", "model": "gpt-5.5" } }
+  ],
+  "default": [ { "harness": "claude", "model": "opus" } ]
+}
+
+=== brief mode, Claude worker launches on ~/.claude-accounts/erika ===
+$ bin/fm-dispatch-resolve.sh <lab>/brief.md --project pager
+dispatch-resolve:
+  status: clear
+  model: jev-1.13.0   latency_ms: 80   tokens: 812/60
+  rule: rule_2 (A simple bug fix with a stated root cause.)   confidence: 0.9
+  probabilities: rule_1=0.02 rule_2=0.94 rule_3=0.02 default=0.02
+  note: rule matched
+  note: 1 eligible candidate(s) unranked (claude)
+  note: claude: claude 75% left, limited by five_hour (five_hour 25% used, seven_day 14% used; cusage account erika, as of 15m ago)
+  candidate: claude:sonnet  provider=claude  scope=all_models  remaining=75%  spendPriority=-  runway=unknown  -> eligible, unranked: spendPriority missing or non-numeric at all_models: not rankable: disclosed uncertainty
+  candidate: codex:gpt-5.5  provider=codex  scope=all_models  remaining=77%  spendPriority=-0.2284  runway=projected_exhaustion  -> eligible
+  profile: --harness 'codex' --model 'gpt-5.5'
+[exit 0]
+
+=== brief mode, Claude worker launches on ~/.claude-accounts/dale ===
+$ bin/fm-dispatch-resolve.sh <lab>/brief.md --project pager
+dispatch-resolve:
+  status: clear
+  model: jev-1.13.0   latency_ms: 231   tokens: 812/60
+  rule: rule_2 (A simple bug fix with a stated root cause.)   confidence: 0.9
+  probabilities: rule_1=0.02 rule_2=0.94 rule_3=0.02 default=0.02
+  note: rule matched
+  note: 1 eligible candidate(s) unranked (claude)
+  note: claude: claude 62% left, limited by seven_day (five_hour 1% used, seven_day 38% used; cusage account dale, as of 15m ago)
+  candidate: claude:sonnet  provider=claude  scope=all_models  remaining=62%  spendPriority=-  runway=unknown  -> eligible, unranked: spendPriority missing or non-numeric at all_models: not rankable: disclosed uncertainty
+  candidate: codex:gpt-5.5  provider=codex  scope=all_models  remaining=77%  spendPriority=-0.2282  runway=projected_exhaustion  -> eligible
+  profile: --harness 'codex' --model 'gpt-5.5'
+[exit 0]
+
+=== real dependency calls ===
+   2 cusage -c -j
+   2 quota-axi --json
+calls passing --allow-keychain-prompt (want 0): 0

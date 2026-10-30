@@ -1,0 +1,21 @@
+=== base 04b36d8f: bin/fm-dispatch-resolve.sh --labels 'pipeline,slate-2026-10-29' (worker on erika) ===
+dispatch-resolve:
+  status: clear
+  source: default (no label matched)
+  profile: --harness 'claude' --model 'claude-opus-5-5[1m]' --effort 'xhigh'
+[exit 0]
+
+=== HEAD 5b8bbabd: bin/fm-dispatch-resolve.sh --labels 'pipeline,slate-2026-10-29' (worker on erika) ===
+dispatch-resolve:
+  status: clear
+  source: default (no label matched)
+  route: default (no label matched); claude 68% left, limited by five_hour (five_hour 32% used, seven_day 15% used; cusage account erika, as of 4m ago)
+  profile: --harness 'claude' --model 'claude-opus-5-5[1m]' --effort 'xhigh'
+[exit 0]
+
+=== what the real quota-axi --json says about Claude (same input to both) ===
+{"provider":"claude","quotaStatus":"unknown","sourceError":{"status":"auth_required","stale":false,"error":"keychain_prompt_required","reason":"keychain_access_required","remedyCommand":"quota-axi --allow-keychain-prompt"}}
+
+=== quota-axi / cusage calls ===
+   1 cusage -c -j
+   2 quota-axi --json

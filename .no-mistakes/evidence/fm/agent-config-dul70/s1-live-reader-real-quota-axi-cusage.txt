@@ -1,0 +1,135 @@
+=== account a Claude worker launches on: ~/.claude-accounts/erika (CLAUDE_CONFIG_DIR, FM_HOME=lab) ===
+$ quota-axi --json | bin/fm-claude-quota.sh --fill | jq '{claudeQuota, claudeRow: (.providers[] | select(.provider=="claude"))}'
+fill exit: 0  (10s)
+{
+  "claudeQuota": {
+    "provider": "claude",
+    "source": "cusage",
+    "account": "erika",
+    "status": "known",
+    "effectivePercentRemaining": 75,
+    "limitedBy": "five_hour",
+    "windows": [
+      {
+        "key": "five_hour",
+        "usedPercent": 25,
+        "resetsAt": "2026-10-30T11:10:00Z"
+      },
+      {
+        "key": "seven_day",
+        "usedPercent": 14,
+        "resetsAt": "2026-11-06T02:00:00Z"
+      }
+    ],
+    "summary": "claude 75% left, limited by five_hour (five_hour 25% used, seven_day 14% used; cusage account erika, as of 7m ago)"
+  },
+  "claudeRow": {
+    "provider": "claude",
+    "source": "cusage",
+    "quotaSemantics": {
+      "status": "known",
+      "effectiveAvailability": [
+        {
+          "scope": "all_models",
+          "status": "known",
+          "effectivePercentRemaining": 75,
+          "boundedBy": [
+            "five_hour"
+          ],
+          "runway": {
+            "status": "unknown"
+          }
+        }
+      ]
+    }
+  }
+}
+=== account a Claude worker launches on: ~/.claude-accounts/dale (CLAUDE_CONFIG_DIR, FM_HOME=lab) ===
+$ quota-axi --json | bin/fm-claude-quota.sh --fill | jq '{claudeQuota, claudeRow: (.providers[] | select(.provider=="claude"))}'
+fill exit: 0  (7s)
+{
+  "claudeQuota": {
+    "provider": "claude",
+    "source": "cusage",
+    "account": "dale",
+    "status": "known",
+    "effectivePercentRemaining": 62,
+    "limitedBy": "seven_day",
+    "windows": [
+      {
+        "key": "five_hour",
+        "usedPercent": 1,
+        "resetsAt": "2026-10-30T12:40:00Z"
+      },
+      {
+        "key": "seven_day",
+        "usedPercent": 38,
+        "resetsAt": "2026-11-04T12:00:00Z"
+      }
+    ],
+    "summary": "claude 62% left, limited by seven_day (five_hour 1% used, seven_day 38% used; cusage account dale, as of 7m ago)"
+  },
+  "claudeRow": {
+    "provider": "claude",
+    "source": "cusage",
+    "quotaSemantics": {
+      "status": "known",
+      "effectiveAvailability": [
+        {
+          "scope": "all_models",
+          "status": "known",
+          "effectivePercentRemaining": 62,
+          "boundedBy": [
+            "seven_day"
+          ],
+          "runway": {
+            "status": "unknown"
+          }
+        }
+      ]
+    }
+  }
+}
+=== pinned home: config/claude-account names ~/.claude-accounts/dale, ambient CLAUDE_CONFIG_DIR is erika ===
+{"account":"dale","status":"known","summary":"claude 62% left, limited by seven_day (five_hour 1% used, seven_day 38% used; cusage account dale, as of 8m ago)","cause":null}
+=== every quota-axi / cusage / PATH-security call these runs made ===
+quota-axi --json
+security list-keychains
+security find-generic-password -a meta -s ai.meta.dev.credentials
+security dump-keychain /Users/dalecarman/Library/Keychains/login.keychain-db /Library/Keychains/System.keychain
+cusage -c -j
+security find-generic-password -s Claude Code-credentials-75f2c61a
+security find-generic-password -s Claude Code-credentials-7e8cf02c
+security find-generic-password -s Claude Code-credentials-865e020b
+security find-generic-password -s Claude Code-credentials-d606abda
+security find-generic-password -s Claude Code-credentials-3ca7f181
+security find-generic-password -s Claude Code-credentials-c844b24f
+security find-generic-password -s Claude Code-credentials-1caf0fa9
+quota-axi --json
+security list-keychains
+security dump-keychain /Users/dalecarman/Library/Keychains/login.keychain-db /Library/Keychains/System.keychain
+security find-generic-password -a meta -s ai.meta.dev.credentials
+cusage -c -j
+security find-generic-password -s Claude Code-credentials-75f2c61a
+security find-generic-password -s Claude Code-credentials-865e020b
+security find-generic-password -s Claude Code-credentials-3ca7f181
+security find-generic-password -s Claude Code-credentials-1caf0fa9
+security find-generic-password -s Claude Code-credentials-d606abda
+security find-generic-password -s Claude Code-credentials-c844b24f
+security find-generic-password -s Claude Code-credentials-7e8cf02c
+quota-axi --json
+security list-keychains
+security dump-keychain /Users/dalecarman/Library/Keychains/login.keychain-db /Library/Keychains/System.keychain
+security find-generic-password -a meta -s ai.meta.dev.credentials
+cusage -c -j
+security find-generic-password -s Claude Code-credentials-7e8cf02c
+security find-generic-password -s Claude Code-credentials-75f2c61a
+security find-generic-password -s Claude Code-credentials-865e020b
+security find-generic-password -s Claude Code-credentials-d606abda
+security find-generic-password -s Claude Code-credentials-1caf0fa9
+security find-generic-password -s Claude Code-credentials-c844b24f
+security find-generic-password -s Claude Code-credentials-3ca7f181
+=== calls passing --allow-keychain-prompt (want 0) ===
+0
+=== security calls that read a secret value, -w or -g (want 0; the rest are attribute-only lookups, which never prompt) ===
+0

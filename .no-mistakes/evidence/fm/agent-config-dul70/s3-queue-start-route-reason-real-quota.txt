@@ -1,0 +1,22 @@
+--- queued note ---
+pm-demo inbox 1793293292-xOtMFq; done on the bead. no-mistakes, yolo off; merge on the PM's word. Default route (labels pipeline, slate-2026-10-28, slate-2026-10-29).
+
+$ CLAUDE_CONFIG_DIR=<lab>/.claude-accounts/erika bin/fm-spawn.sh qs-claude-route-a1 <lab>/project --queue-start
+[exit 0]
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>/home
+spawned qs-claude-route-a1 harness=claude kind=ship mode=no-mistakes yolo=off window=firstmate:fm-qs-claude-route-a1 worktree=<lab>/wt
+
+--- recorded task meta (state/qs-claude-route-a1.meta): harness, model, effort, route_reason ---
+harness=claude
+model=claude-opus-5-5[1m]
+effort=xhigh
+route_reason=default (no label matched); claude 75% left, limited by five_hour (five_hour 25% used, seven_day 14% used; cusage account erika, as of 13m ago)
+
+--- worker windows the stub tmux was asked to open ---
+new-window -dP -F #{window_id} -t firstmate: -n fm-qs-claude-route-a1 -c /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab-qs.GzUqS7/project
+
+--- real dependency calls ---
+quota-axi --json
+cusage -c -j
+calls passing --allow-keychain-prompt (want 0): 0
+route_reason says 'unmeasurable' or 'keychain' (want 0): 0
