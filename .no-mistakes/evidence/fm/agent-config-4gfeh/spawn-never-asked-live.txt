@@ -1,0 +1,47 @@
+# Live: real bin/fm-spawn.sh in the never-asked state (approved=false, warningShown=false) gets past the trust step and launches a real claude
+$ fm-spawn.sh freshspawn <lab>/projects/demo --mode local-only --yolo off --harness claude
+exit=0
+--- combined output ---
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG
+notice: freshspawn ships mode=local-only while the standing posture for demo is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+spawned freshspawn harness=claude kind=ship mode=local-only yolo=off window=primary:fm-freshspawn worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/trees2/.treehouse/demo-5c2c2b/1/demo
+--- Claude store before ---
+{"projects":{"/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/projects/demo":{"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":false}}}
+--- Claude store after (trust registered on worktree and project, no import consent granted) ---
+  /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/projects/demo -> {"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":false,"hasTrustDialogAccepted":true}
+  /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/trees2/.treehouse/demo-5c2c2b/1/demo -> {"hasTrustDialogAccepted":true}
+--- lab windows ---
+  primary:0 bash cmd=bash cwd=/Users/dalecarman/.agent-scratch-vol/nm-runs/a5e67f4ea77f/01M65BBQEEWW46WM73VST1QQ45
+  primary:1 fm-declinespawn cmd=zsh cwd=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/projects/demo
+  primary:2 fm-freshspawn cmd=2.1.314 cwd=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/trees2/.treehouse/demo-5c2c2b/1/demo
+--- task window pane: real claude running (first-run theme screen; the lab config dir holds no login) ---
+  |      Auto (match terminal)
+  |  ❯ ✔ Dark mode
+  |      Light mode
+  |      Dark mode (colorblind-friendly)
+  |      Light mode (colorblind-friendly)
+  |      Dark mode (ANSI colors only)
+  |      Light mode (ANSI colors only)
+  |  ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+  |   1  function greet() {
+  |   2 -  console.log("Hello, World!");
+  |   2 +  console.log("Hello, Claude!");
+  |   3  }
+  |  ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+  |   Syntax theme: Monokai Extended (ctrl+t to disable)
+--- task record ---
+  window=primary:fm-freshspawn
+  endpoint_task_id=freshspawn
+  worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/trees2/.treehouse/demo-5c2c2b/1/demo
+  project=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/projects/demo
+  harness=claude
+  kind=ship
+  decision_owner=captain
+  mode=local-only
+  yolo=off
+  branch=fm/freshspawn
+  tasktmp=/tmp/fm-freshspawn
+  model=default
+  effort=default
+  busy_gen=g1793337453.73346.18388
+  spawn_gen=s1793337453.68234.23746

@@ -1,0 +1,24 @@
+# Live: real bin/fm-control.sh relaunch of a running claude task after a decline was recorded on its project
+# (the task was spawned in the never-asked state; then hasClaudeMdExternalIncludesWarningShown was flipped to true with approved=false)
+$ fm-control.sh freshspawn relaunch --note 'lab relaunch after a recorded decline'
+exit=1
+--- full combined stdout+stderr ---
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG
+error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/trees2/.treehouse/demo-5c2c2b/1/demo' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/claude-config/.claude.json' (check only; nothing was written): project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/projects/demo in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/claude-config/.claude.json records declined external CLAUDE.md imports (hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternalIncludesWarningShown=true), a recorded decline this script will not override. Tell ops-desk about this refusal. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+--- last line (what a caller keeping only the last line reads) ---
+error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/trees2/.treehouse/demo-5c2c2b/1/demo' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/claude-config/.claude.json' (check only; nothing was written): project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/projects/demo in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/claude-config/.claude.json records declined external CLAUDE.md imports (hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternalIncludesWarningShown=true), a recorded decline this script will not override. Tell ops-desk about this refusal. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+--- checks ---
+Claude store unchanged by the relaunch: yes
+task record unchanged: yes
+relaunch journal written: no
+lab windows (old agent still running):
+  primary:0 bash cmd=bash
+  primary:1 fm-declinespawn cmd=zsh
+  primary:2 fm-freshspawn cmd=2.1.314
+task window pane:
+  |   1  function greet() {
+  |   2 -  console.log("Hello, World!");
+  |   2 +  console.log("Hello, Claude!");
+  |   3  }
+  |  ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+  |   Syntax theme: Monokai Extended (ctrl+t to disable)

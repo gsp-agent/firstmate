@@ -1,0 +1,18 @@
+# Live fault injection: real fm-spawn.sh; node shim SIGKILLs the trust script's writer subshell, so the trust script gets no node error text
+# Shows the trust script's own fallback: generic refusal with no dangling ': ' suffix, carried as spawn's last line
+exit=1
+fault log: fault-injected: SIGKILL trust script pid 24244
+--- combined output ---
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+notice: declinespawn ships mode=local-only while the standing posture for demo is no-mistakes - less rigor than the captain's standing posture; proceed only on a current explicit captain instruction or an intake judgment you can state
+error: could not pre-register Claude workspace trust for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/trees2/.treehouse/demo-5c2c2b/2/demo; refusing to launch a claude worker that would wedge on the trust dialog; inspect window primary:fm-declinespawn; refusing to pre-register Claude trust: could not record trust for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/trees2/.treehouse/demo-5c2c2b/2/demo' and project '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/projects/demo' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/claude-config/.claude.json'
+--- last line ---
+error: could not pre-register Claude workspace trust for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/trees2/.treehouse/demo-5c2c2b/2/demo; refusing to launch a claude worker that would wedge on the trust dialog; inspect window primary:fm-declinespawn; refusing to pre-register Claude trust: could not record trust for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/trees2/.treehouse/demo-5c2c2b/2/demo' and project '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/projects/demo' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/claude-config/.claude.json'
+store unchanged: yes

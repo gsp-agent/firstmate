@@ -1,0 +1,117 @@
+bash under test: 5.3.20(1)-release
+project=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj
+worktree=/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt
+store=/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.XPQzAG/direct-bash/claude-config/.claude.json
+
+== 1. recorded decline, contact file names a desk ==
+### registration (write mode)
+$ fm-claude-trust.sh /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj
+exit=1
+stdout:
+stderr (1 line(s)):
+  | error: refusing to pre-register Claude trust: could not record trust for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt' and project '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json': project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json records declined external CLAUDE.md imports (hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternalIncludesWarningShown=true), a recorded decline this script will not override. Tell ops-desk about this refusal. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+last stderr line:
+  > error: refusing to pre-register Claude trust: could not record trust for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt' and project '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json': project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json records declined external CLAUDE.md imports (hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternalIncludesWarningShown=true), a recorded decline this script will not override. Tell ops-desk about this refusal. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+
+store unchanged after refusal: yes
+### --check
+$ fm-claude-trust.sh --check /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj
+exit=1
+stdout:
+stderr (1 line(s)):
+  | error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json' (check only; nothing was written): project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json records declined external CLAUDE.md imports (hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternalIncludesWarningShown=true), a recorded decline this script will not override. Tell ops-desk about this refusal. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+last stderr line:
+  > error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json' (check only; nothing was written): project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json records declined external CLAUDE.md imports (hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternalIncludesWarningShown=true), a recorded decline this script will not override. Tell ops-desk about this refusal. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+
+### --check --project
+$ fm-claude-trust.sh --check --project /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj
+exit=1
+stdout:
+stderr (1 line(s)):
+  | error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json' (check only; nothing was written): project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json records declined external CLAUDE.md imports (hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternalIncludesWarningShown=true), a recorded decline this script will not override. Tell ops-desk about this refusal. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+last stderr line:
+  > error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json' (check only; nothing was written): project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json records declined external CLAUDE.md imports (hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternalIncludesWarningShown=true), a recorded decline this script will not override. Tell ops-desk about this refusal. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+
+store unchanged after checks: yes
+
+== 2. recorded decline, no contact file -> generic pointer ==
+### --check, no contact file
+$ fm-claude-trust.sh --check /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj
+exit=1
+stdout:
+stderr (1 line(s)):
+  | error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json' (check only; nothing was written): project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json records declined external CLAUDE.md imports (hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternalIncludesWarningShown=true), a recorded decline this script will not override. Tell whoever runs this Firstmate home (config/claude-decline-contact can name them) about this refusal. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+last stderr line:
+  > error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json' (check only; nothing was written): project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json records declined external CLAUDE.md imports (hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternalIncludesWarningShown=true), a recorded decline this script will not override. Tell whoever runs this Firstmate home (config/claude-decline-contact can name them) about this refusal. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+
+== 3. adversarial contact values -> generic pointer, value never echoed ==
+### --check, two-line contact
+$ fm-claude-trust.sh --check /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj
+exit=1
+stdout:
+stderr (1 line(s)):
+  | error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json' (check only; nothing was written): project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json records declined external CLAUDE.md imports (hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternalIncludesWarningShown=true), a recorded decline this script will not override. Tell whoever runs this Firstmate home (config/claude-decline-contact can name them) about this refusal. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+last stderr line:
+  > error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json' (check only; nothing was written): project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json records declined external CLAUDE.md imports (hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternalIncludesWarningShown=true), a recorded decline this script will not override. Tell whoever runs this Firstmate home (config/claude-decline-contact can name them) about this refusal. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+
+### --check, contact with an ANSI escape byte
+$ fm-claude-trust.sh --check /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj
+exit=1
+stdout:
+stderr (1 line(s)):
+  | error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json' (check only; nothing was written): project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json records declined external CLAUDE.md imports (hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternalIncludesWarningShown=true), a recorded decline this script will not override. Tell whoever runs this Firstmate home (config/claude-decline-contact can name them) about this refusal. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+last stderr line:
+  > error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json' (check only; nothing was written): project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json records declined external CLAUDE.md imports (hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternalIncludesWarningShown=true), a recorded decline this script will not override. Tell whoever runs this Firstmate home (config/claude-decline-contact can name them) about this refusal. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+
+### --check, contact with a tab
+$ fm-claude-trust.sh --check /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj
+exit=1
+stdout:
+stderr (1 line(s)):
+  | error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json' (check only; nothing was written): project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json records declined external CLAUDE.md imports (hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternalIncludesWarningShown=true), a recorded decline this script will not override. Tell whoever runs this Firstmate home (config/claude-decline-contact can name them) about this refusal. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+last stderr line:
+  > error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json' (check only; nothing was written): project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json records declined external CLAUDE.md imports (hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternalIncludesWarningShown=true), a recorded decline this script will not override. Tell whoever runs this Firstmate home (config/claude-decline-contact can name them) about this refusal. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+
+### --check, empty contact file
+$ fm-claude-trust.sh --check /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj
+exit=1
+stdout:
+stderr (1 line(s)):
+  | error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json' (check only; nothing was written): project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json records declined external CLAUDE.md imports (hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternalIncludesWarningShown=true), a recorded decline this script will not override. Tell whoever runs this Firstmate home (config/claude-decline-contact can name them) about this refusal. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+last stderr line:
+  > error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json' (check only; nothing was written): project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json records declined external CLAUDE.md imports (hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternalIncludesWarningShown=true), a recorded decline this script will not override. Tell whoever runs this Firstmate home (config/claude-decline-contact can name them) about this refusal. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+
+### --check, contact path is a directory
+$ fm-claude-trust.sh --check /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj
+exit=1
+stdout:
+stderr (1 line(s)):
+  | error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json' (check only; nothing was written): project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json records declined external CLAUDE.md imports (hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternalIncludesWarningShown=true), a recorded decline this script will not override. Tell whoever runs this Firstmate home (config/claude-decline-contact can name them) about this refusal. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+last stderr line:
+  > error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json' (check only; nothing was written): project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/claude-config/.claude.json records declined external CLAUDE.md imports (hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternalIncludesWarningShown=true), a recorded decline this script will not override. Tell whoever runs this Firstmate home (config/claude-decline-contact can name them) about this refusal. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+
+== 4. never-asked pair (false/false) still registers; contact never changes a verdict ==
+### --check, never asked
+$ fm-claude-trust.sh --check /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj
+exit=0
+stdout:
+  | check: trust can be recorded for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt
+stderr (0 line(s)):
+last stderr line:
+
+### registration, never asked
+$ fm-claude-trust.sh /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj
+exit=0
+stdout:
+  | trusted: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt
+  | trusted (project root): /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj
+stderr (0 line(s)):
+last stderr line:
+
+store after registration:
+  /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/proj -> {"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":false,"hasTrustDialogAccepted":true}
+  /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-lab.XPQzAG/direct-bash/wt -> {"hasTrustDialogAccepted":true}
+
+== 5. a non-decline refusal is also carried on the last line (relative CLAUDE_CONFIG_DIR) ==
+exit=1
+  > error: refusing to pre-register Claude trust: CLAUDE_CONFIG_DIR 'relative/dir' is a relative path, so the store the worker reads cannot be guaranteed to be the one written here; set it to an absolute path
