@@ -563,6 +563,31 @@ pending: $sha bead-7 add notes (#7)" "$CHECK_OUT" "a pending commit is printed w
   pass "a pending commit is accepted, printed with its bead on every run, and must name its bead"
 }
 
+test_pending_pr_after_197_is_refused_and_at_197_stays_accepted() {
+  local repo sha
+  repo=$(fm_test_tmproot drift-pending-closed)
+  fm_git_init_commit "$repo"
+  git -C "$repo" branch upstream
+  printf 'custom\n' > "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "add notes (#198)"
+  sha=$(git -C "$repo" rev-parse HEAD)
+  printf 'pending-pr: 198 bead-198\n' > "$repo/proof.txt"
+  run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
+  expect_code 2 "$CHECK_RC" "a pending-pr line for PR 198 exits 2"
+  assert_contains "$CHECK_ERR" "pending-pr entry for PR 198 is refused: pending proof closed after PR 197" "the refusal names the closed pending proof"
+  printf 'pending-pr: 197 bead-197\n' > "$repo/proof.txt"
+  git -C "$repo" update-ref refs/heads/upstream HEAD
+  printf 'next\n' > "$repo/notes.txt"
+  git -C "$repo" add notes.txt
+  fixture_commit "$repo" "add next (#197)"
+  sha=$(git -C "$repo" rev-parse HEAD)
+  run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
+  expect_code 0 "$CHECK_RC" "a pending-pr line for PR 197 stays accepted: $CHECK_ERR"
+  assert_contains "$CHECK_OUT" "pending: $sha bead-197 add next (#197)" "the PR 197 pending commit is printed with its bead"
+  pass "a pending-pr line after PR 197 is refused and the PR 197 boundary stays accepted"
+}
+
 test_merge_merged_branch_carries_its_own_pending_line() {
   local repo merge carried
   repo=$(fm_test_tmproot drift-merge-pending)
@@ -1084,6 +1109,7 @@ test_proven_change_can_also_cut_unproven_changes
 test_missing_proven_patch_is_drift
 test_unproven_mode_change_is_drift
 test_pending_commit_is_accepted_and_printed_with_its_bead
+test_pending_pr_after_197_is_refused_and_at_197_stays_accepted
 test_merge_merged_branch_carries_its_own_pending_line
 test_two_open_prs_with_their_own_proof_files_land_without_a_conflict
 test_repo_drift_proof_txt_takes_no_entry_after_pr_167
