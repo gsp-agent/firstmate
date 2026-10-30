@@ -9,7 +9,8 @@
 #
 # bin/fm-test-run.sh --remote and bin/fm-stock-bash-check.sh --remote hand
 # their run to this script, and a maintainer may call it directly. <host> is
-# an ssh destination, such as an ssh config alias, and <scratch-root> is an
+# an ssh destination, such as an ssh config alias, reached in ssh's batch
+# mode, so a missing key fails instead of prompting, and <scratch-root> is an
 # existing directory on that host. <script> is a repository-relative script,
 # run on the host as `<host bash> <script> [args...]` from the root of the
 # host's copy of the commit, with that bash's directory first on PATH.
@@ -45,9 +46,10 @@
 # falls back to a local run: a failure before or during the remote run is
 # reported and exits 2. The host run sees only the host's own environment,
 # plus FM_TEST_ONLY when it is set here, because that narrows which cases a
-# test file runs. The machine gate sees none of this machine's markers, such
-# as NO_MISTAKES_GATE, so a run here inside a no-mistakes gate still queues on
-# the host.
+# test file runs. Live opt-in variables, such as FM_LIVE or a suite's own,
+# do not cross, so a live check runs on the caller's machine. The machine gate
+# sees none of this machine's markers, such as NO_MISTAKES_GATE, so a run here
+# inside a no-mistakes gate still queues on the host.
 #
 # Exit status: the script's own; 2 when nothing ran (no ssh connection, an ssh
 # key the host refused, a missing scratch root, a failed push or checkout, a
@@ -56,9 +58,6 @@
 # --pull file was not copied back. A failing script keeps its own status.
 #
 # Environment:
-#   FM_TEST_REMOTE_SSH         ssh program (default ssh); it runs with
-#                              BatchMode, so a missing key fails instead of
-#                              prompting
 #   FM_TEST_REMOTE_BASH        bash on the host that runs <script> (default
 #                              /opt/homebrew/bin/bash)
 #   FM_TEST_REMOTE_RETRY_SECS  seconds between tries while the host's gate is
@@ -186,7 +185,6 @@ done
 [ $# -gt 0 ] || die "no script to run (see --help)"
 SCRIPT=$1
 
-SSH=${FM_TEST_REMOTE_SSH:-ssh}
 REMOTE_BASH=${FM_TEST_REMOTE_BASH:-/opt/homebrew/bin/bash}
 RETRY=${FM_TEST_REMOTE_RETRY_SECS:-15}
 if ! printf '%s' "$RETRY" | grep -Eq '^[0-9]+(\.[0-9]+)?$' \
@@ -213,7 +211,7 @@ remote_setup() {  # <command string>
   local out err rc
   out=$(mktemp "${TMPDIR:-/tmp}/fm-test-remote-out.XXXXXX") || die "mktemp failed"
   err=$(mktemp "${TMPDIR:-/tmp}/fm-test-remote-err.XXXXXX") || die "mktemp failed"
-  "$SSH" -n "${SSH_OPTS[@]}" "$HOST" "$1" >"$out" 2>"$err"
+  ssh -n "${SSH_OPTS[@]}" "$HOST" "$1" >"$out" 2>"$err"
   rc=$?
   SETUP_OUT=$(tail -n 1 "$out")
   SETUP_ERR=$(tail -n 1 "$err")
@@ -274,7 +272,7 @@ cleanup() {
   if [ -n "$RUN" ]; then
     case "$RUN" in
       "$SCRATCH_ROOT"/fm-test-remote.*)
-        if "$SSH" -n "${SSH_OPTS[@]}" "$HOST" "rm -rf -- $(quote_words "$RUN")" 2>/dev/null; then
+        if ssh -n "${SSH_OPTS[@]}" "$HOST" "rm -rf -- $(quote_words "$RUN")" 2>/dev/null; then
           say "removed $RUN on $HOST"
         else
           say "could not remove $RUN on $HOST; it is left there"
@@ -302,7 +300,7 @@ esac
 
 refspecs=("$SHA:refs/heads/fm-test-remote-head")
 [ -z "$BASE_SHA" ] || refspecs+=("$BASE_SHA:refs/heads/fm-test-remote-base")
-if ! push_err=$(GIT_SSH_COMMAND="$(quote_words "$SSH" "${SSH_OPTS[@]}")" \
+if ! push_err=$(GIT_SSH_COMMAND="$(quote_words ssh "${SSH_OPTS[@]}")" \
   git -C "$ROOT" push --no-verify -q "$HOST:$RUN/repo" "${refspecs[@]}" 2>&1); then
   die "could not push $SHA to $HOST: $(printf '%s\n' "$push_err" | tail -n 1); nothing ran"
 fi
@@ -313,7 +311,7 @@ host_env=()
 [ -z "${FM_TEST_ONLY+set}" ] || host_env=(env "FM_TEST_ONLY=$FM_TEST_ONLY")
 run_cmd="cd $(quote_words "$RUN/repo") && git -c advice.detachedHead=false checkout -q --detach $SHA && got=\$(git rev-parse HEAD) && [ \"\$got\" = $SHA ] || { printf 'fm-test-remote: the host copy is at %s, not %s; nothing ran\\n' \"\${got:-no commit}\" $SHA >&2; exit 2; }; exec $(quote_words ${host_env[@]+"${host_env[@]}"} "$REMOTE_BASH" "$RUN/repo/bin/fm-test-remote.sh" __host "$RUN" "$line_name" "$RETRY" -- "$@")"
 
-"$SSH" -n "${SSH_OPTS[@]}" "$HOST" "$run_cmd" &
+ssh -n "${SSH_OPTS[@]}" "$HOST" "$run_cmd" &
 SSH_PID=$!
 wait "$SSH_PID"
 rc=$?
@@ -330,7 +328,7 @@ for pull in ${PULLS[@]+"${PULLS[@]}"}; do
   if ! mkdir -p "$(dirname "$dest")"; then
     say "cannot make the directory for $dest, so it is not written"
   else
-    "$SSH" -n "${SSH_OPTS[@]}" "$HOST" "cat -- $(quote_words "$RUN/out/$name")" >"$dest.fm-test-remote" 2>/dev/null
+    ssh -n "${SSH_OPTS[@]}" "$HOST" "cat -- $(quote_words "$RUN/out/$name")" >"$dest.fm-test-remote" 2>/dev/null
     pull_rc=$?
     if [ "$pull_rc" -eq 0 ] && mv "$dest.fm-test-remote" "$dest"; then
       continue
