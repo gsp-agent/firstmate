@@ -1051,16 +1051,6 @@ SH
     || fail "summary must report failed=1 under fail-on-gate-skip: $(grep FM_TEST_SUMMARY "$out")"
   grep -q 'required gate skip token' "$tmp/err.txt" \
     || fail "runner must log the required gate skip token"
-  set +e
-  "$RUNNER" --fail-on-gate-skip 'herdr not found' --fail-on-gate-skip 'jq not found' "$skip_f" >"$out" 2>"$tmp/err.txt"
-  rc=$?
-  set -e
-  [ "$rc" -ne 0 ] || fail "an earlier --fail-on-gate-skip must still hold when another follows it"
-  set +e
-  "$RUNNER" --fail-on-gate-skip 'jq not found' "$skip_f" >"$out" 2>"$tmp/err.txt"
-  rc=$?
-  set -e
-  [ "$rc" -eq 0 ] || fail "a token the suite did not print must not fail it"
   rm -rf "$tmp"
   pass "fail-on-gate-skip converts herdr-not-found into a hard failure"
 }

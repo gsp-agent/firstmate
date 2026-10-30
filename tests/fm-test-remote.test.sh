@@ -17,7 +17,9 @@ set -u
 # shellcheck source=tests/lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
-unset FM_LIVE
+for var in $(compgen -e | grep -E '^FM_([A-Z0-9_]+_)?(LIVE|E2E|REAL)(_|$)'); do
+  unset "$var"
+done
 TMP_ROOT=$(fm_test_tmproot fm-test-remote)
 REAL_GATE="$HOME/.agent-state/machine-gate.sh"
 GIT_BIN_DIR=$(dirname "$(command -v git)")
@@ -364,10 +366,21 @@ EOF
   refuses_live_switch FM_LIVE=1 FM_LIVE bin/fm-stock-bash-check.sh --remote "fakehost:$SCRATCH"
   refuses_live_switch FM_CLAUDE_CALM_PLUGIN_TEST=0 FM_CLAUDE_CALM_PLUGIN_TEST \
     "$ROOT/bin/fm-test-remote.sh" "fakehost:$SCRATCH" -- tests/fm-remote-live.test.sh
-  run_remote env FM_NOT_A_LIVE_SWITCH=1 bin/fm-test-remote.sh "fakehost:$SCRATCH" -- tests/fm-remote-probe.test.sh
-  expect_code 0 "$RC" "a variable no fm_live_gate declares"$'\n'"$OUT"
+  refuses_live_switch FM_HERDR_SMOKE_REAL_CLAUDE=1 FM_HERDR_SMOKE_REAL_CLAUDE "${remote_args[@]}"
+  refuses_live_switch FM_UNDECLARED_SUITE_E2E=0 FM_UNDECLARED_SUITE_E2E "${remote_args[@]}"
+  run_remote env FM_UNRELATED_SETTING=1 FM_LIVENESS_NOTE=1 FM_FAKE_LIVE=1 FM_TEST_REAL_GIT=/fixture/git \
+    bin/fm-test-remote.sh "fakehost:$SCRATCH" -- tests/fm-remote-probe.test.sh
+  expect_code 0 "$RC" "variables that are not live switches"$'\n'"$OUT"
   assert_laptop_line_untouched "a refused live run"
-  pass "FM_LIVE and each suite's declared live switch, on or off, refuse the remote run by name before any ssh"
+  pass "FM_LIVE, each declared live switch, and any variable named as one, on or off, refuse the remote run by name before any ssh"
+}
+
+# write_skip_suite <file name> <line...>: a stand-in suite that prints the lines.
+write_skip_suite() {
+  local file="$REPO/tests/$1"
+  shift
+  { echo '#!/usr/bin/env bash'; printf 'echo %q\n' "$@"; } >"$file"
+  chmod +x "$file"
 }
 
 test_a_suite_skipping_for_a_missing_host_tool_fails_the_remote_run() {
@@ -377,7 +390,7 @@ test_a_suite_skipping_for_a_missing_host_tool_fails_the_remote_run() {
   mkdir -p "$tools"
   # Each suite looks only in the host's tool directory, so the case decides
   # what the host has wherever this test runs.
-  for tool in herdr jq zellij fixture-tool; do
+  for tool in herdr jq; do
     cat >"$REPO/tests/fm-remote-needs-$tool.test.sh" <<EOF
 #!/usr/bin/env bash
 PATH="$tools"
@@ -386,6 +399,7 @@ echo "ok - $tool is here"
 EOF
     chmod +x "$REPO/tests/fm-remote-needs-$tool.test.sh"
   done
+  write_skip_suite fm-remote-caller-token.test.sh 'skip: a reason the caller named'
   commit_all "suites that need a host tool"
 
   for tool in herdr jq; do
@@ -395,9 +409,9 @@ EOF
     assert_contains "$OUT" "skip: $tool not found" "the run names the missing $tool"
   done
 
-  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --fail-on-gate-skip 'fixture-tool not found' tests/fm-remote-needs-herdr.test.sh
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --fail-on-gate-skip 'a reason the caller named' tests/fm-remote-needs-herdr.test.sh
   expect_code 1 "$RC" "a caller's own --fail-on-gate-skip beside a missing herdr"$'\n'"$OUT"
-  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --fail-on-gate-skip 'fixture-tool not found' tests/fm-remote-needs-fixture-tool.test.sh
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --fail-on-gate-skip 'a reason the caller named' tests/fm-remote-caller-token.test.sh
   expect_code 1 "$RC" "a caller's own --fail-on-gate-skip token on the host"$'\n'"$OUT"
 
   printf '#!/bin/sh\nexit 0\n' >"$tools/herdr"
@@ -405,12 +419,52 @@ EOF
   run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-needs-herdr.test.sh
   expect_code 0 "$RC" "a host that has herdr"$'\n'"$OUT"
   assert_contains "$OUT" "ok - herdr is here" "the suite ran once the host has the tool"
-
-  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-needs-zellij.test.sh
-  expect_code 0 "$RC" "a suite skipping for the optional zellij backend"$'\n'"$OUT"
-  assert_contains "$OUT" "FM_TEST_SUMMARY total=1 failed=0 skipped_gate=1" "an optional backend's skip stays a counted skip"
   assert_scratch_empty "runs that skipped on the host"
-  pass "a suite that skips because the host lacks a required tool fails the remote run, a caller's own token still holds, and an optional backend stays a counted skip"
+  pass "a suite that skips because the host lacks a required tool fails the remote run, and a caller's own token still holds"
+}
+
+test_every_wording_of_a_missing_host_tool_fails_the_remote_run() {
+  local n=0 line
+  new_world wordings
+  while IFS= read -r line; do
+    n=$((n + 1))
+    write_skip_suite "fm-remote-wording-$n.test.sh" "$line"
+  done <<'EOF'
+skip: live: herdr absent
+skip: perl absent
+skip: node or npm not found for Pi calm renderer test
+skip: pi or tmux not found for Pi calm interactive E2E
+skip: jq not found (required by the herdr adapter)
+skip: tmux not found (concurrent start)
+skip: installed @earendil-works/pi-coding-agent package not found
+skip: Herdr lab helper not executable at /fixture/helper
+skip: live: no supported runner (claude, pi, pi-signed) installed
+skip: no C compiler, so the compiled stand-in cannot build
+skip: a-tool-no-suite-names-yet not installed
+EOF
+  write_skip_suite fm-remote-wording-mid-run.test.sh 'ok - a case ran' 'skip: node not found for one case' 'ok - another case ran'
+  commit_all "suites in each wording of a missing tool"
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --jobs 1 --family unclassified
+  expect_code 1 "$RC" "suites skipping for a missing tool in each wording"$'\n'"$OUT"
+  assert_contains "$OUT" "FM_TEST_SUMMARY total=$((n + 2)) failed=$((n + 1)) skipped_gate=0" "each wording, and only those, fails"
+  assert_contains "$OUT" "tests/fm-remote-wording-mid-run.test.sh exit=1" "a case-level skip mid-run fails the suite"
+  pass "every wording of a host lacking a tool fails the remote run, without enumerating tools"
+}
+
+test_a_skip_that_is_not_a_missing_required_tool_stays_a_counted_skip() {
+  new_world counted
+  write_skip_suite fm-remote-opt-in.test.sh 'skip: live: opt-in; set FM_FIXTURE=1 to run'
+  write_skip_suite fm-remote-platform.test.sh 'skip: fork counting requires BASHPID (Bash 4+)'
+  write_skip_suite fm-remote-harness-note.test.sh '# skip: agy is not installed on this machine, so its contract is unverified here' 'ok - the installed harnesses ran'
+  write_skip_suite fm-backend-zellij-smoke.test.sh 'skip: zellij not found'
+  write_skip_suite fm-backend-cmux-smoke.test.sh 'skip: cmux CLI not found on PATH'
+  write_skip_suite fm-pi-codex-native.test.sh 'skip: native Pi adapter not installed (PI_CODEX_NATIVE_PACKAGE to select it)'
+  commit_all "suites whose skips are not a missing required tool"
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --jobs 1 tests/fm-remote-opt-in.test.sh tests/fm-remote-platform.test.sh \
+    tests/fm-remote-harness-note.test.sh tests/fm-backend-zellij-smoke.test.sh tests/fm-backend-cmux-smoke.test.sh tests/fm-pi-codex-native.test.sh
+  expect_code 0 "$RC" "skips that are not a missing required tool"$'\n'"$OUT"
+  assert_contains "$OUT" "FM_TEST_SUMMARY total=6 failed=0 skipped_gate=5" "these stay counted skips, and a per-harness note is not one"
+  pass "a live opt-in, a platform skip, a per-harness note, and optional backends and adapters do not fail the remote run"
 }
 
 test_a_busy_host_gate_is_a_wait_not_a_failure() {
@@ -661,6 +715,8 @@ test_an_output_not_copied_back_fails_a_passing_run
 test_fm_test_only_reaches_the_host
 test_a_live_switch_set_here_refuses_the_remote_run
 test_a_suite_skipping_for_a_missing_host_tool_fails_the_remote_run
+test_every_wording_of_a_missing_host_tool_fails_the_remote_run
+test_a_skip_that_is_not_a_missing_required_tool_stays_a_counted_skip
 test_a_busy_host_gate_is_a_wait_not_a_failure
 test_transport_failures_stop_before_anything_runs
 test_a_host_copy_at_another_commit_runs_nothing

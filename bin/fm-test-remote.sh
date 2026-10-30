@@ -53,16 +53,17 @@
 # falls back to a local run: a failure before or during the remote run is
 # reported and exits 2. The host run sees only the host's own environment,
 # plus FM_TEST_ONLY when it is set here, because that narrows which cases a
-# test file runs. Live switches never cross: with FM_LIVE or a control variable
-# named by a suite's fm_live_gate declaration set to anything here, it refuses
-# before any ssh and names the variable, so a live check runs on the caller's
-# machine without --remote. The machine gate sees none of this machine's
+# test file runs. Live switches never cross: with a control variable named by a
+# suite's fm_live_gate declaration, or any FM_ variable named as a LIVE, E2E, or
+# REAL switch outside the FM_FAKE_ and FM_TEST_ fixtures, set to anything here,
+# it refuses before any ssh and names the variable, so a live check runs on the
+# caller's machine without --remote. The machine gate sees none of this machine's
 # markers, such as NO_MISTAKES_GATE, so a run here inside a no-mistakes gate
 # still queues on the host.
 #
 # The script's status is reported as it is. bin/fm-test-run.sh --remote is what
-# fails a suite that skips because the host lacks a tool; a script named here
-# directly gets no such check.
+# fails a suite that skips because the host lacks what it needs; a script named
+# here directly gets no such check.
 #
 # Exit status: the script's own; 2 when nothing ran (a live switch set here, no
 # ssh connection, an ssh key the host refused, a missing scratch root, a failed
@@ -213,11 +214,14 @@ for pull in ${PULLS[@]+"${PULLS[@]}"}; do
   rm -f -- "${pull#*=}" || die "cannot clear ${pull#*=} for this run's output; nothing ran"
 done
 
-# Print the live switches set here: FM_LIVE and each control variable the
-# suites' fm_live_gate declarations name.
+# Print the live switches set here: each exported FM_ variable named as one, and
+# each control variable the suites' fm_live_gate declarations name.
 live_switches_set() {
   local var
-  for var in FM_LIVE $(sed -nE 's/^[[:space:]]*fm_live_gate[[:space:]]+(default-on|opt-in)[[:space:]]+([A-Za-z0-9_,]+).*/\2/p' "$ROOT"/tests/*.sh 2>/dev/null | tr ',' '\n' | sort -u); do
+  for var in $({
+    compgen -e | grep -E '^FM_([A-Z0-9_]+_)?(LIVE|E2E|REAL)(_|$)' | grep -vE '^FM_(FAKE|TEST)_'
+    sed -nE 's/^[[:space:]]*fm_live_gate[[:space:]]+(default-on|opt-in)[[:space:]]+([A-Za-z0-9_,]+).*/\2/p' "$ROOT"/tests/*.sh 2>/dev/null | tr ',' '\n'
+  } | sort -u); do
     [ -z "${!var:-}" ] || printf '%s ' "$var"
   done
 }
