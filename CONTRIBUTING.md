@@ -126,6 +126,7 @@ bin/fm-test-run.sh --lane portable-serial   # portable serial remainder (watcher
 bin/fm-test-run.sh --list-lanes   # discover exact lane names, including the current CI serial shards
 bin/fm-test-run.sh --check-coverage   # prove portable shards + serial + serial shards + Herdr equal the scheduled inventory
 bin/fm-test-run.sh --all   # deliberate complete regression (optional local full walk; not no-mistakes Test)
+bin/fm-test-run.sh --remote <host>:<scratch-root> tests/<subject>.test.sh   # the same run on another Mac against this checkout's commit, as the no-mistakes Test step runs suites
 bin/fm-test-isolation-proof.sh --list   # proven portable parallel candidate set
 bin/fm-test-isolation-proof.sh --jobs 4 --json /tmp/fm-isolation-proof.json   # re-run the portable candidate proof
 bin/fm-test-isolation-proof.sh --pool watcher-wake-lock --jobs 4   # re-run an admitted family proof
@@ -143,7 +144,7 @@ Its header and `--help` own the flags, family labels, lanes, and changed-file ma
 Portable shard balance evidence lives in `docs/fm-test-portable-shards.md`.
 Family selection is the ordinary local path; `--all` is deliberate full regression only.
 CI owns broad regression across required portable parallel shards, the portable serial lane's separate-runner shards, the Herdr lane, lint, invariants, and the coverage guard in [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
-Stock macOS Bash 3.2 compatibility runs on the Mac before push as the `stock-macos-bash` no-mistakes gate, `bin/fm-stock-bash-check.sh`.
+Stock macOS Bash 3.2 compatibility runs before push as the `stock-macos-bash` no-mistakes gate, `bin/fm-stock-bash-check.sh`, on the Mac mini; [docs/configuration.md](docs/configuration.md#gate-defaults-no-mistakesyaml) owns why.
 The workflow owns branch filters, pull-request run cancellation, and branch-push concurrency behavior.
 Use `bin/fm-test-run.sh --list-lanes` for exact lane names and `--help` for `--jobs` rules and required gate-skip flags when reproducing a lane locally.
 Leave the `sleep 0.1` cadence in the suites' bounded condition waits alone.

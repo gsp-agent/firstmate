@@ -667,10 +667,12 @@ The [`firstmate-coding-guidelines` skill](../.agents/skills/firstmate-coding-gui
 
 `commands.test` executes code, so no-mistakes honors it only from the default-branch copy of `.no-mistakes.yaml`; a pushed branch cannot change what the gate runs.
 
-The same trusted copy declares one extra gate, `stock-macos-bash`, which runs `bin/fm-stock-bash-check.sh` after lint and before push, so a red parks the run before any push or PR.
+The same trusted copy declares one extra gate, `stock-macos-bash`, which runs `bin/fm-stock-bash-check.sh --remote <host>:<scratch-root>` after lint and before push, so a red parks the run before any push or PR.
 It is this fork's only stock macOS Bash 3.2 check: GitHub's hosted macOS runners for the fork queue for hours or are never acquired, and a cancelled check held every PR, so the fork removed the `macos-stock-bash` CI job (decided 2026-10-21).
-The check needs the Mac's own `/bin/bash` 3.2.57 and fails closed on any other host; it is a fixed compatibility check, not a suite walk, so it does not reopen `commands.test`.
-The script header owns what it runs, its counts, and its time and memory bounds; run it by hand with `bin/fm-stock-bash-check.sh`.
+The check needs that Mac's own `/bin/bash` 3.2.57 and fails closed on any other host; it is a fixed compatibility check, not a suite walk, so it does not reopen `commands.test`.
+The gate and the Test step's suites, which the trusted `test.instructions` send through `bin/fm-test-run.sh --remote`, run on the Mac mini instead of the machine running the pipeline, so a Firstmate PR's suites never queue behind that machine's one Firstmate suite line.
+[`bin/fm-test-remote.sh`](../bin/fm-test-remote.sh)'s header owns that transport, the host's one-suite-at-a-time gate, and its failure modes, each of which parks the run with no local fallback.
+The script header owns what it runs, its counts, and its time and memory bounds; run it by hand with `bin/fm-stock-bash-check.sh`, or with `--remote` to run it on another Mac.
 See [CONTRIBUTING.md](../CONTRIBUTING.md) for the firstmate-specific local test policy and entry points.
 
 Portable shard evidence and coverage rules are in [fm-test-portable-shards.md](fm-test-portable-shards.md); [herdr-backend.md](herdr-backend.md#destructive-lab-safety) owns the real-Herdr lane's isolation boundary, and [runtime-backends.md](verification/runtime-backends.md#herdr) owns active evidence.

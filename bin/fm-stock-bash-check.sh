@@ -44,8 +44,15 @@
 # cannot run the check (no Bash 3.2.57 interpreter, or jq or tasks-axi
 # missing), so the gate fails closed rather than passing unchecked.
 #
+# With --remote <host>:<scratch-root>, the whole check runs on that Mac
+# instead, under its own stock Bash and these defaults, against this
+# checkout's exact commit; bin/fm-test-remote.sh owns that transport and its
+# failure modes, every one of which exits 2 without a local fallback. The
+# trusted .no-mistakes.yaml gate runs it that way.
+#
 # Usage:
-#   fm-stock-bash-check.sh          run every step
+#   fm-stock-bash-check.sh                                  run every step here
+#   fm-stock-bash-check.sh --remote <host>:<scratch-root>   run every step on <host>
 #   fm-stock-bash-check.sh --help   print this usage
 # shellcheck disable=SC2016 # each `bash -c` script expands its own variables
 set -u
@@ -58,6 +65,13 @@ case "${1:-}" in
   -h | --help)
     sed -n '2,/--help   print this usage$/{s/^# \{0,1\}//;p;}' "$SELF"
     exit 0
+    ;;
+  --remote)
+    [ $# -eq 2 ] || {
+      printf 'fm-stock-bash-check.sh: --remote takes one <host>:<scratch-root> (see --help)\n' >&2
+      exit 2
+    }
+    exec "$BASH" "$SELF_DIR/fm-test-remote.sh" "$2" -- bin/fm-stock-bash-check.sh
     ;;
   '') ;;
   *)

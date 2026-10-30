@@ -39,18 +39,21 @@ document:
 commands:
   lint: 'bin/fm-lint.sh'
 
-# Stock macOS Bash 3.2 compatibility runs on the Mac after lint and before push,
-# because this fork's GitHub CI has no macOS job. A red parks the run.
+# Stock macOS Bash 3.2 compatibility runs after lint and before push, because
+# this fork's GitHub CI has no macOS job. It runs on the Mac mini (mini-ts),
+# off the laptop's suite lane, against the exact commit under test; a red,
+# including a mini that cannot be reached, parks the run.
 # docs/configuration.md "Gate defaults" owns why; the script header owns what it runs.
 gates:
   - name: stock-macos-bash
     after: lint
-    command: 'bin/fm-stock-bash-check.sh'
+    command: 'bin/fm-stock-bash-check.sh --remote mini-ts:/Volumes/GJ-DAC-001/scratch'
 
 # Publish each run's test evidence to the orphan no-mistakes/evidence branch linked from the PR.
 # The evidence is not committed to the feature or default branch.
 test:
   instructions: |
+    Run every Firstmate test suite on the Mac mini, never on this laptop: `bin/fm-test-run.sh --remote mini-ts:/Volumes/GJ-DAC-001/scratch <selection and flags>` takes the same selections and flags as a local run, runs them against this checkout's exact commit including uncommitted changes, waits for its turn there, and returns the suite's output and exit status; the bin/fm-test-remote.sh header owns the details. When it exits 2 saying nothing ran or the verdict is unknown (the mini unreachable, its ssh key refused, a failed push or checkout), report that as a failing check that names it, and never re-run the suite on this laptop instead. Live lab scenarios below are not suites and stay on this laptop.
     Run live Herdr scenarios only through bin/fm-herdr-lab.sh with a named non-default fm-lab-* session, following that helper's prepare, provision, run, and teardown contract exactly.
     Never touch the live default Herdr session or fleet panes.
     Prefer a throwaway lab for spawn, long-launch, and Claude-path proofs, and tear it down in the same evidence turn.

@@ -41,6 +41,14 @@
 #                   parallel hints, falling back to serial weights if missing.
 #                   Every other selection uses serial weights alone.
 #                   Equal weights are ordered by path under LC_ALL=C.
+#   --remote <host>:<scratch-root>
+#                   run the selection on another Mac instead of here, against
+#                   this checkout's exact commit and its uncommitted changes,
+#                   and exit with that run's status. bin/fm-test-remote.sh owns
+#                   the transport, its failure modes, and the host's
+#                   one-suite-at-a-time gate. It takes no machine line here and
+#                   never falls back to a local run. --json is written there and
+#                   copied back; the inspection modes run here and ignore it.
 #   --base <ref>    with --changed, compare against this ref (default: origin/main)
 #   --exclude-family <name>
 #                   drop scripts whose primary family matches <name> after selection
@@ -194,6 +202,7 @@ FAMILY=
 LANE=
 BASE_REF=origin/main
 JSON_PATH=
+REMOTE=
 SCRIPTS=()
 EXCLUDE_FAMILIES=()
 FAIL_ON_GATE_SKIP=
@@ -889,6 +898,7 @@ tests/fm-teardown.test.sh 202132
 tests/fm-test-fixture-cleanup.test.sh 866
 tests/fm-test-fixtures.test.sh 1802
 tests/fm-test-isolation-proof.test.sh 2866
+tests/fm-test-remote.test.sh 20000
 tests/fm-timeout-lib.test.sh 10750
 tests/fm-tmux-agent-liveness.test.sh 3770
 tests/fm-tool-update-check.test.sh 14383
@@ -2048,6 +2058,15 @@ while [ "$#" -gt 0 ]; do
       JSON_PATH=${1#--json=}
       shift
       ;;
+    --remote)
+      [ "$#" -gt 1 ] || die "--remote requires <host>:<scratch-root>"
+      REMOTE=$2
+      shift 2
+      ;;
+    --remote=*)
+      REMOTE=${1#--remote=}
+      shift
+      ;;
     --jobs)
       [ "$#" -gt 1 ] || die "--jobs requires a positive integer"
       JOBS=$2
@@ -2220,6 +2239,52 @@ PER_SCRIPT_TIMEOUT_SECS=$((10#$PER_SCRIPT_TIMEOUT_SECS))
 # who named no selection mode is told that rather than this.
 if [ -n "${MODE:-}" ] && [ "$LIST_ONLY" -eq 0 ] && [ "$LIST_SCHEDULED" -eq 0 ]; then
   refuse_primary_checkout_for_task
+fi
+
+# Hand an executing run to bin/fm-test-remote.sh, which owns the transport.
+# The host runs this same runner on this checkout's commit, so the arguments
+# go across unchanged except three: --remote is dropped; --json is written on
+# the host and copied back; and --changed's base is resolved here and sent as
+# a commit, because the host's copy has no refs of this checkout's.
+run_remote() {
+  local arg skip=0 rest=0 base_sha
+  local -a forward=() pre=() opts=()
+  for arg in ${ORIGINAL_ARGS[@]+"${ORIGINAL_ARGS[@]}"}; do
+    if [ "$skip" -eq 1 ]; then
+      skip=0
+      continue
+    fi
+    if [ "$rest" -eq 0 ]; then
+      case "$arg" in
+        --remote | --json | --base)
+          skip=1
+          continue
+          ;;
+        --remote=* | --json=* | --base=*) continue ;;
+        --) rest=1 ;;
+      esac
+    fi
+    # A script named by its path in this checkout is the same path there.
+    case "$arg" in "$ROOT"/*) arg=${arg#"$ROOT"/} ;; esac
+    forward+=("$arg")
+  done
+  if [ -n "$JSON_PATH" ]; then
+    # The host runs this from <run>/repo and resolves a relative --json
+    # against that root, so ../out is the directory the transport copies from.
+    pre+=(--json ../out/timing.json)
+    opts+=(--pull "timing.json=$JSON_PATH")
+  fi
+  if [ "$MODE" = changed ]; then
+    base_sha=$(git -C "$ROOT" rev-parse --verify --quiet "$BASE_REF^{commit}") \
+      || die "changed-file base ref not found: $BASE_REF (pass --base <ref>)"
+    pre+=(--base "$base_sha")
+    opts+=(--base "$base_sha")
+  fi
+  exec "$BASH" "$ROOT/bin/fm-test-remote.sh" "$REMOTE" ${opts[@]+"${opts[@]}"} -- \
+    bin/fm-test-run.sh ${pre[@]+"${pre[@]}"} ${forward[@]+"${forward[@]}"}
+}
+if [ -n "$REMOTE" ] && [ -n "${MODE:-}" ] && [ "$LIST_ONLY" -eq 0 ] && [ "$LIST_SCHEDULED" -eq 0 ]; then
+  run_remote
 fi
 
 case "${MODE:-}" in
