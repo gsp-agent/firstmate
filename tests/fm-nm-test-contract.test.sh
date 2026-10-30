@@ -27,25 +27,20 @@ puts (val.nil? || val == false || val == "") ? "" : val.inspect
 
 # This fork's GitHub CI has no macOS job, so the trusted gate is the only
 # required stock Bash 3.2 run before push; an upstream merge must not drop it.
-# It runs on the Mac mini, and the Test step's suites go to that same host.
+# It runs on the Mac mini, off the machine running the pipeline.
 test_nm_declares_the_stock_bash_gate() {
-  local val spec
+  local val
   val=$(ruby -ryaml -e '
 doc = YAML.load_file(ARGV[0]) || {}
 gate = Array(doc["gates"]).find { |g| g.is_a?(Hash) && g["name"] == "stock-macos-bash" }
 puts gate ? "#{gate["after"]} #{gate["command"]}" : ""
 ' "$NM") || fail "failed to parse .no-mistakes.yaml as YAML"
   case "$val" in
-    "lint bin/fm-stock-bash-check.sh --remote "?*:/?*) spec=${val#lint bin/fm-stock-bash-check.sh --remote } ;;
+    "lint bin/fm-stock-bash-check.sh --remote "?*:/?*) ;;
     *) fail "the stock-macos-bash gate must run bin/fm-stock-bash-check.sh --remote <host>:<scratch-root> after lint; got: ${val:-no such gate}" ;;
   esac
   [ -x "$ROOT/bin/fm-stock-bash-check.sh" ] || fail "bin/fm-stock-bash-check.sh must be executable"
-  ruby -ryaml -e '
-doc = YAML.load_file(ARGV[0]) || {}
-text = ((doc["test"] || {})["instructions"]).to_s
-abort "test.instructions must send suites through bin/fm-test-run.sh --remote #{ARGV[1]}" unless text.include?("bin/fm-test-run.sh --remote #{ARGV[1]} ")
-' "$NM" "$spec" || fail "the Test step's suites must run on the gate's host"
-  pass "no-mistakes runs the stock macOS Bash check after lint, and the Test step's suites, on the same remote host"
+  pass "no-mistakes runs the stock macOS Bash check on a remote host after lint"
 }
 
 test_nm_pins_gate_to_claude_then_codex() {

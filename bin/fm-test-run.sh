@@ -2059,12 +2059,13 @@ while [ "$#" -gt 0 ]; do
       shift
       ;;
     --remote)
-      [ "$#" -gt 1 ] || die "--remote requires <host>:<scratch-root>"
+      [ "$#" -gt 1 ] && [ -n "$2" ] || die "--remote requires <host>:<scratch-root>"
       REMOTE=$2
       shift 2
       ;;
     --remote=*)
       REMOTE=${1#--remote=}
+      [ -n "$REMOTE" ] || die "--remote requires <host>:<scratch-root>"
       shift
       ;;
     --jobs)

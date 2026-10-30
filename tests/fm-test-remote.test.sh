@@ -9,9 +9,9 @@
 # the caller's environment: only its own HOME, PATH, and TMPDIR. Each case
 # commits a fixture repository holding this checkout's runner files and
 # stand-in suites, so a case decides what the host runs. The host's machine
-# gate is a stand-in that records each try, except in the arrival-order case,
-# which runs the real ~/.agent-state/machine-gate.sh where this machine has
-# one and skips elsewhere.
+# gate is a stand-in that records each try, except in the two arrival-order
+# cases, which run the real ~/.agent-state/machine-gate.sh where this machine
+# has one and skip elsewhere.
 set -u
 
 # shellcheck source=tests/lib.sh
@@ -38,6 +38,7 @@ shift
 case "${FAKE_SSH_FAIL:-}" in
   unreachable) echo "ssh: connect to host $host port 22: Connection refused" >&2; exit 255 ;;
   key) echo "$host: Permission denied (publickey)." >&2; exit 255 ;;
+  pull) case "$*" in "cat -- "*) echo "Connection to $host closed by remote host." >&2; exit 255 ;; esac ;;
 esac
 shell=/bin/zsh
 [ -x "$shell" ] || shell=/bin/bash
@@ -206,6 +207,33 @@ test_changed_base_and_json_cross_the_transport() {
   pass "--changed's base and --json's artifact cross to the host and back"
 }
 
+test_an_output_not_copied_back_fails_a_passing_run() {
+  local json="$TMP_ROOT/pull-json/timing.json" absent="$TMP_ROOT/pull-json/absent.json"
+  new_world pull
+  mkdir -p "$TMP_ROOT/pull-json"
+  echo stale >"$json"
+  export FAKE_SSH_FAIL=pull
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --json "$json" tests/fm-remote-probe.test.sh
+  unset FAKE_SSH_FAIL
+  expect_code 2 "$RC" "a passing run whose artifact copy-back dropped"$'\n'"$OUT"
+  assert_contains "$OUT" "ok - probe at " "the suite ran on the host"
+  assert_contains "$OUT" "the ssh connection to fakehost failed while copying back timing.json" "the dropped copy-back is named"
+  assert_contains "$OUT" "came back: $json" "the missing artifact is named"
+  [ "$(cat "$json")" = stale ] || fail "a failed copy-back changed $json"
+
+  run_remote bin/fm-test-remote.sh "fakehost:$SCRATCH" --pull "absent.json=$absent" -- tests/fm-remote-probe.test.sh
+  expect_code 2 "$RC" "a passing run that wrote no requested output"$'\n'"$OUT"
+  assert_contains "$OUT" "the run on fakehost wrote no absent.json, so $absent is not written" "the unwritten output is named"
+  [ ! -e "$absent" ] || fail "an output the host never wrote exists at $absent"
+
+  : >"$REPO/tests/probe.fail"
+  commit_all "fail the probe"
+  run_remote bin/fm-test-remote.sh "fakehost:$SCRATCH" --pull "absent.json=$absent" -- tests/fm-remote-probe.test.sh
+  expect_code 1 "$RC" "a failing run that wrote no requested output"$'\n'"$OUT"
+  assert_scratch_empty "runs whose outputs did not come back"
+  pass "a passing run whose requested output does not come back exits 2 naming it, and a failing run keeps its status"
+}
+
 test_fm_test_only_reaches_the_host() {
   new_world only
   run_remote env FM_TEST_ONLY=test_one bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-probe.test.sh
@@ -230,6 +258,13 @@ test_a_busy_host_gate_is_a_wait_not_a_failure() {
 
 test_transport_failures_stop_before_anything_runs() {
   new_world refused
+  run_remote bin/fm-test-run.sh --remote "" tests/fm-remote-probe.test.sh
+  expect_code 2 "$RC" "an empty --remote"$'\n'"$OUT"
+  assert_not_contains "$OUT" "FM_TEST_BEGIN" "no suite ran anywhere for an empty --remote"
+  run_remote bin/fm-test-run.sh --remote= tests/fm-remote-probe.test.sh
+  expect_code 2 "$RC" "an empty --remote="$'\n'"$OUT"
+  assert_not_contains "$OUT" "FM_TEST_BEGIN" "no suite ran anywhere for an empty --remote="
+
   export FAKE_SSH_FAIL=unreachable
   run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-probe.test.sh
   expect_code 2 "$RC" "an unreachable host"$'\n'"$OUT"
@@ -257,7 +292,7 @@ test_transport_failures_stop_before_anything_runs() {
   assert_not_contains "$OUT" "FM_TEST_BEGIN" "no suite ran without the host's gate"
   assert_scratch_empty "a run refused for a missing gate"
   assert_laptop_line_untouched "a refused remote run"
-  pass "an unreachable host, a refused key, a missing scratch root, and a missing host gate each stop before any suite runs"
+  pass "an empty --remote, an unreachable host, a refused key, a missing scratch root, and a missing host gate each stop before any suite runs"
 }
 
 test_a_host_copy_at_another_commit_runs_nothing() {
@@ -331,66 +366,130 @@ EOF
   pass "fm-stock-bash-check.sh --remote runs the check on the host and returns its verdict"
 }
 
-# Two runs queue on the real gate's held firstmate line; the later arrival
-# retries far faster, and still the earlier arrival starts first.
-test_waiters_start_in_arrival_order_on_the_real_gate() {
-  local line_dir log pid_a pid_b first tries_a tries_b
-  if [ ! -x "$REAL_GATE" ] || [ ! -x /usr/bin/lockf ]; then
-    pass "waiters start in arrival order on the real gate (skipped: no ~/.agent-state/machine-gate.sh or lockf here)"
-    return 0
-  fi
-  new_world order
+# real_gate_world <name>: a world whose host gate is this machine's real
+# ~/.agent-state/machine-gate.sh with its line in the host home, an admission
+# read that always has room, and a firstmate.lock held until
+# TMP_ROOT/<name>/release exists. Sets LINE_LOG. Returns 1 where there is no
+# real gate to run.
+real_gate_world() {
+  local line_dir
+  [ -x "$REAL_GATE" ] && [ -x /usr/bin/lockf ] || return 1
+  new_world "$1"
   ln -sf "$REAL_GATE" "$FAKE_HOST_HOME/.agent-state/machine-gate.sh"
   line_dir="$FAKE_HOST_HOME/.agent-state/machine-line"
-  log="$line_dir/log.tsv"
+  LINE_LOG="$line_dir/log.tsv"
   mkdir -p "$line_dir"
-  printf '#!/bin/sh\necho "SLOT FREE = YES"\n' >"$TMP_ROOT/order/read.sh"
-  chmod +x "$TMP_ROOT/order/read.sh"
-  FAKE_HOST_ENV="MACHINE_GATE_READ=$TMP_ROOT/order/read.sh"
+  printf '#!/bin/sh\necho "SLOT FREE = YES"\n' >"$TMP_ROOT/$1/read.sh"
+  chmod +x "$TMP_ROOT/$1/read.sh"
+  FAKE_HOST_ENV="MACHINE_GATE_READ=$TMP_ROOT/$1/read.sh"
   /usr/bin/lockf -k "$line_dir/firstmate.lock" /bin/sh -c \
-    "while [ ! -e '$TMP_ROOT/order/release' ] && [ -d '$TMP_ROOT' ]; do sleep 0.1; done" &
+    "while [ ! -e '$TMP_ROOT/$1/release' ] && [ -d '$TMP_ROOT' ]; do sleep 0.1; done" &
   for _ in $(seq 1 100); do
     [ -e "$line_dir/firstmate.lock" ] && break
     sleep 0.1
   done
-  (cd "$REPO" && exec env PATH="$TMP_ROOT/bin:$PATH" FM_TEST_REMOTE_BASH="$BASH" FM_TEST_REMOTE_RETRY_SECS=2 \
-    bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-probe.test.sh) >"$TMP_ROOT/order/a.out" 2>&1 &
-  pid_a=$!
+}
+
+# start_remote_run <out> <retry seconds>: a remote run of the probe in the
+# background; sets REMOTE_PID, which ends its line name.
+start_remote_run() {
+  (cd "$REPO" && exec env PATH="$TMP_ROOT/bin:$PATH" FM_TEST_REMOTE_BASH="$BASH" FM_TEST_REMOTE_RETRY_SECS="$2" \
+    bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-probe.test.sh) >"$1" 2>&1 &
+  REMOTE_PID=$!
+}
+
+line_rows() {  # <name suffix> [kind]: count the line log's rows for that caller
+  awk -F '\t' -v n="$1" -v k="${2:-}" 'substr($3, length($3) - length(n) + 1) == n && (k == "" || $2 == k) { c++ } END { print c + 0 }' "$LINE_LOG"
+}
+
+wait_for_rows() {  # <name suffix> <count>
   for _ in $(seq 1 300); do
-    grep -q "fm-test-remote-fm-test-run-.*-$pid_a	on firstmate" "$log" 2>/dev/null && break
+    [ "$(line_rows "$1")" -ge "$2" ] && return 0
     sleep 0.1
   done
-  grep -q -- "-$pid_a	on firstmate" "$log" || fail "the first run never queued: $(cat "$log" 2>/dev/null)"
-  (cd "$REPO" && exec env PATH="$TMP_ROOT/bin:$PATH" FM_TEST_REMOTE_BASH="$BASH" FM_TEST_REMOTE_RETRY_SECS=0.3 \
-    bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-probe.test.sh) >"$TMP_ROOT/order/b.out" 2>&1 &
-  pid_b=$!
-  for _ in $(seq 1 300); do
-    [ "$(grep -c -- "-$pid_b	on firstmate" "$log")" -ge 3 ] && break
-    sleep 0.1
-  done
+  fail "$1 never logged $2 rows in the line: $(cat "$LINE_LOG" 2>/dev/null)"
+}
+
+# Two remote runs queue on the real gate's held firstmate line; the later
+# arrival retries far faster, and still the earlier arrival starts first.
+test_remote_runs_start_in_arrival_order_on_the_real_gate() {
+  local pid_a pid_b first tries_a tries_b
+  real_gate_world order || {
+    pass "remote runs start in arrival order on the real gate (skipped: no ~/.agent-state/machine-gate.sh or lockf here)"
+    return 0
+  }
+  start_remote_run "$TMP_ROOT/order/a.out" 2
+  pid_a=$REMOTE_PID
+  wait_for_rows "-$pid_a" 1
+  start_remote_run "$TMP_ROOT/order/b.out" 0.3
+  pid_b=$REMOTE_PID
+  wait_for_rows "-$pid_b" 3
   : >"$TMP_ROOT/order/release"
   wait "$pid_a" || fail "the first run failed: $(cat "$TMP_ROOT/order/a.out")"
   wait "$pid_b" || fail "the second run failed: $(cat "$TMP_ROOT/order/b.out")"
-  first=$(awk -F '\t' '$2 == "start" { print $3; exit }' "$log")
-  tries_a=$(grep -c -- "-$pid_a	" "$log")
-  tries_b=$(grep -c -- "-$pid_b	" "$log")
+  first=$(awk -F '\t' '$2 == "start" { print $3; exit }' "$LINE_LOG")
+  tries_a=$(line_rows "-$pid_a")
+  tries_b=$(line_rows "-$pid_b")
   [ "$tries_b" -gt "$tries_a" ] \
-    || fail "the later run should have asked more often ($tries_b tries against $tries_a), or order proves nothing: $(cat "$log")"
+    || fail "the later run should have asked more often ($tries_b tries against $tries_a), or order proves nothing: $(cat "$LINE_LOG")"
   case "$first" in
     *"-$pid_a") ;;
-    *) fail "the later arrival started first ($first): $(cat "$log")" ;;
+    *) fail "the later arrival started first ($first): $(cat "$LINE_LOG")" ;;
   esac
-  pass "on the real gate the earlier waiter starts first, though the later one asked $tries_b times to its $tries_a"
+  pass "on the real gate the earlier remote run starts first, though the later one asked $tries_b times to its $tries_a"
+}
+
+# A remote run waits on the held line; a plain gated run, as a long proof
+# takes it, arrives later and polls ten times as often. When the line frees,
+# the plain run reaches the lock first and the line sends it back, so the
+# remote run starts first and the plain run after it.
+test_a_remote_run_that_arrived_first_starts_before_a_later_plain_gated_run() {
+  local pid_a pid_p before first
+  real_gate_world plain || {
+    pass "a remote run that arrived first starts before a later plain gated run (skipped: no ~/.agent-state/machine-gate.sh or lockf here)"
+    return 0
+  }
+  start_remote_run "$TMP_ROOT/plain/a.out" 5
+  pid_a=$REMOTE_PID
+  wait_for_rows "-$pid_a" 1
+  (while :; do
+    env -i HOME="$FAKE_HOST_HOME" PATH="$FAKE_HOST_PATH" TMPDIR="$FAKE_HOST_TMP" \
+      MACHINE_GATE_READ="$TMP_ROOT/plain/read.sh" MACHINE_LINE_NAME=plain-gated-proof MACHINE_GATE_FIRSTMATE_POLL=0.5 \
+      "$BASH" "$FAKE_HOST_HOME/.agent-state/machine-gate.sh" run --needs firstmate -- \
+      /bin/sh -c "echo plain >>'$TMP_ROOT/plain/plain.ran'"
+    [ $? -eq 75 ] || exit 0
+    sleep 1
+  done) >"$TMP_ROOT/plain/p.out" 2>&1 &
+  pid_p=$!
+  sleep 2
+  # Free the line just after the remote run's latest try, so the plain run's
+  # next poll comes long before the remote run asks again.
+  before=$(line_rows "-$pid_a")
+  wait_for_rows "-$pid_a" $((before + 1))
+  : >"$TMP_ROOT/plain/release"
+  wait "$pid_a" || fail "the remote run failed: $(cat "$TMP_ROOT/plain/a.out")"
+  wait "$pid_p"
+  first=$(awk -F '\t' '$2 == "start" { print $3; exit }' "$LINE_LOG")
+  case "$first" in
+    *"-$pid_a") ;;
+    *) fail "the later plain gated run started first ($first): $(cat "$LINE_LOG")" ;;
+  esac
+  [ "$(line_rows plain-gated-proof queued)" -ge 1 ] \
+    || fail "the plain run never reached the lock ahead of the remote run, so order proves nothing: $(cat "$LINE_LOG")"
+  [ -s "$TMP_ROOT/plain/plain.ran" ] || fail "the plain gated run never ran after the remote run: $(cat "$TMP_ROOT/plain/p.out")"
+  pass "a remote run that arrived first starts before a later, faster-polling plain gated run, which runs after it"
 }
 
 test_runs_the_suite_on_the_host_at_the_exact_head_and_cleans_up
 test_a_failing_suite_returns_its_exit_status
 test_uncommitted_changes_run_as_a_commit_over_head
 test_changed_base_and_json_cross_the_transport
+test_an_output_not_copied_back_fails_a_passing_run
 test_fm_test_only_reaches_the_host
 test_a_busy_host_gate_is_a_wait_not_a_failure
 test_transport_failures_stop_before_anything_runs
 test_a_host_copy_at_another_commit_runs_nothing
 test_inspection_modes_run_here
 test_stock_bash_check_runs_on_the_host
-test_waiters_start_in_arrival_order_on_the_real_gate
+test_remote_runs_start_in_arrival_order_on_the_real_gate
+test_a_remote_run_that_arrived_first_starts_before_a_later_plain_gated_run

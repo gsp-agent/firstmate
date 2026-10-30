@@ -38,7 +38,8 @@
 #      arrival order. Only the caller's own time budget bounds the wait.
 #   5. streams the script's output back, copies each --pull <name> from out/
 #      to <path> here (a relative <path> is relative to this checkout's root),
-#      removes the run directory, and exits with the script's own status.
+#      removes the run directory, and exits with the script's own status, or
+#      2 when the script passed but a --pull file did not come back.
 #
 # It never runs a suite or takes a machine line on this machine, and it never
 # falls back to a local run: a failure before or during the remote run is
@@ -50,8 +51,9 @@
 #
 # Exit status: the script's own; 2 when nothing ran (no ssh connection, an ssh
 # key the host refused, a missing scratch root, a failed push or checkout, a
-# rev-parse mismatch, or no machine gate on the host) or when the connection
-# dropped mid-run, so the verdict is unknown.
+# rev-parse mismatch, or no machine gate on the host), when the connection
+# dropped mid-run, so the verdict is unknown, or when the script passed but a
+# --pull file was not copied back. A failing script keeps its own status.
 #
 # Environment:
 #   FM_TEST_REMOTE_SSH         ssh program (default ssh); it runs with
@@ -320,24 +322,30 @@ if [ "$rc" -eq 255 ]; then
   die "the ssh connection to $HOST failed during the run of $SCRIPT at $SHA (exit 255), so its verdict is unknown"
 fi
 
+undelivered=
 for pull in ${PULLS[@]+"${PULLS[@]}"}; do
   name=${pull%%=*}
   dest=${pull#*=}
   case "$dest" in /*) ;; *) dest="$ROOT/$dest" ;; esac
-  mkdir -p "$(dirname "$dest")" || die "cannot make the directory for $dest"
-  "$SSH" -n "${SSH_OPTS[@]}" "$HOST" "cat -- $(quote_words "$RUN/out/$name")" >"$dest.fm-test-remote" 2>/dev/null
-  pull_rc=$?
-  if [ "$pull_rc" -eq 0 ]; then
-    mv "$dest.fm-test-remote" "$dest" || die "cannot write $dest"
+  if ! mkdir -p "$(dirname "$dest")"; then
+    say "cannot make the directory for $dest, so it is not written"
   else
-    rm -f "$dest.fm-test-remote"
-    if [ "$pull_rc" -eq 255 ]; then
-      say "the ssh connection to $HOST failed while copying back $name, so $dest is not written"
-    else
-      say "the run on $HOST wrote no $name, so $dest is not written"
+    "$SSH" -n "${SSH_OPTS[@]}" "$HOST" "cat -- $(quote_words "$RUN/out/$name")" >"$dest.fm-test-remote" 2>/dev/null
+    pull_rc=$?
+    if [ "$pull_rc" -eq 0 ] && mv "$dest.fm-test-remote" "$dest"; then
+      continue
     fi
+    rm -f "$dest.fm-test-remote"
+    case "$pull_rc" in
+      0) say "cannot write $dest" ;;
+      255) say "the ssh connection to $HOST failed while copying back $name, so $dest is not written" ;;
+      *) say "the run on $HOST wrote no $name, so $dest is not written" ;;
+    esac
   fi
+  undelivered="$undelivered $dest"
 done
 
 say "$HOST finished $SCRIPT at $SHA: exit $rc"
+[ -z "$undelivered" ] || [ "$rc" -ne 0 ] \
+  || die "$SCRIPT passed on $HOST, but not every output it was asked for came back:$undelivered"
 exit "$rc"
