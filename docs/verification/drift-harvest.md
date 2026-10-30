@@ -2,7 +2,7 @@
 
 Audience: maintainer verification.
 
-This record holds the scripted harvest replay of every remove-verdict change that carries a test.
+This record holds the scripted harvest replay of the tests named in its table, which are not all the tests that remove-verdict changes carry.
 The pass ran on 2026-10-29.
 Red trees were built from kunchenguid/main at two commits because upstream moved during the pass: `7bbf71b4a702f0795941eaabd43f942bb9f42707` for the laptop batches and `05196e30ead54796dfbe986db61abe9d8df9e3d2` for the later mini batches.
 
@@ -125,9 +125,27 @@ Raw replay output stays out of this repository; this table names only the PR, th
 | 95fb0ba8 (direct push, no PR) | tests/fm-watch-window-fork-budget.test.sh | remove |
 
 The unnumbered window-index commit is a remove on measurement: 10 processes per window per poll with and without the index, and wall time of 19-21 seconds with it against 18-19 seconds without across two runs under Bash 5.3.
-No re-land follows it.
+The done criteria name a re-land of the window index; the index does not win on this measurement, so the re-land is held for a maintainer decision.
 
 Per-PR verdicts across 79 PRs: keep 27, keep-rebase 34, remove 18, unmeasured 0.
 
 Tests still unmeasured after the long retry sit on PRs: 12, 39, 43.
 Each of those PRs carries a deciding verdict from another of its tests.
+
+## Not yet measured: not cut until measured
+
+These PRs' own tests were never replayed.
+PRs 50 and 75 have no table row; the others hold a remove verdict from another test, which does not cover the tests listed here.
+
+- PR 30: `tests/fm-afk-inject-e2e.test.sh`, `tests/fm-wake-queue.test.sh`
+- PR 36: `tests/fm-gotmp.test.sh`
+- PR 50: `tests/fm-nm-run-lib.test.sh`
+- PR 75: `tests/fm-wake-queue.test.sh`
+- PR 101: `tests/fm-wake-queue.test.sh`
+- PR 103: `tests/fm-send-popup-settle.test.sh`
+- PR 104: `tests/fm-crew-state.test.sh`
+- PR 107: `tests/fm-watch-triage.test.sh`, `tests/fm-wake-queue.test.sh`, `tests/fm-wake-daemon-lifecycle-e2e.test.sh`
+- PR 126: `tests/fm-watch-triage.test.sh`, `tests/fm-wake-queue.test.sh`
+- PR 167: `tests/fm-pr-merge.test.sh`, `tests/fm-teardown.test.sh`
+
+A cut PR that would remove one of these first replays its tests red on upstream and green with the change, and a test that distinguishes makes it a keep.
