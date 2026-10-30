@@ -284,6 +284,65 @@ JSON
   pass "fm-claude-trust.sh --check: reports a decline without writing"
 }
 
+DECLINE_PAIR='hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternalIncludesWarningShown=true'
+
+# The seat that ran a refused spawn needs the whole story in the refusal: the
+# recorded flag pair, the store and project it sits in, that it stays, and who
+# this home sends it to.
+test_spawn_decline_refusal_names_the_pair_and_this_homes_contact() {
+  local case_dir home proj wt config fakebin launch_log out
+  case_dir="$TMP_ROOT/spawn-decline"
+  home="$case_dir/home"
+  proj="$case_dir/project"
+  wt="$case_dir/wt"
+  config="$case_dir/claude-config"
+  launch_log="$case_dir/launch.log"
+  mkdir -p "$config"
+  fakebin=$(make_spawn_fakebin "$case_dir/fake" claude)
+  fm_test_spawn_home "$home" claude
+  printf 'ops-desk\n' > "$home/config/claude-decline-contact"
+  fm_git_worktree "$proj" "$wt" wt-spawn-decline
+  cat > "$config/.claude.json" <<JSON
+{"projects":{"$proj":{"hasTrustDialogAccepted":true,"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}}}
+JSON
+  fm_test_spawn_brief "$home" declinespawn
+  out=$(FM_TEST_CLAUDE_CONFIG_DIR="$config" FM_FAKE_LAUNCH_LOG="$launch_log" \
+    fm_test_run_spawn "$home" "$wt" "$fakebin" declinespawn "$proj" claude \
+    --mode no-mistakes --yolo off)
+  expect_code 1 $? "a spawn into a project with a recorded decline must refuse: $out"
+  assert_contains "$out" "project entry for $proj in $config/.claude.json records declined external CLAUDE.md imports ($DECLINE_PAIR), a recorded decline this script will not override. Tell ops-desk about this refusal." \
+    "the spawn refusal did not name the pair, the store, the project and this home's contact"
+  assert_absent "$launch_log" "a claude worker was launched into a project with a recorded decline"
+  pass "fm-spawn.sh: a decline refusal names the recorded pair, store, project and this home's contact"
+}
+
+# Without a usable config/claude-decline-contact the refusal still says who to
+# tell, generically, and never echoes a value that is not one printable line.
+test_check_decline_refusal_falls_back_without_a_usable_contact() {
+  local rec store out home
+  rec=$(make_case check-decline-contact)
+  read_case "$rec"
+  store="$CONFIG/.claude.json"
+  home="$CASE_DIR/home"
+  mkdir -p "$home/config"
+  cat > "$store" <<JSON
+{"projects":{"$PROJ":{"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}}}
+JSON
+  out=$(env -u FM_CONFIG_OVERRIDE FM_HOME="$home" CLAUDE_CONFIG_DIR="$CONFIG" HOME="$CONFIG" \
+    "$TRUST" --check "$WT" "$PROJ" 2>&1)
+  expect_code 1 $? "a check against a recorded decline must refuse: $out"
+  assert_contains "$out" "($DECLINE_PAIR), a recorded decline this script will not override. Tell whoever runs this Firstmate home (config/claude-decline-contact can name them) about this refusal." \
+    "an absent contact file did not fall back to the generic pointer"
+  printf 'ops-desk\nsecond line\n' > "$home/config/claude-decline-contact"
+  out=$(env -u FM_CONFIG_OVERRIDE FM_HOME="$home" CLAUDE_CONFIG_DIR="$CONFIG" HOME="$CONFIG" \
+    "$TRUST" --check "$WT" "$PROJ" 2>&1)
+  expect_code 1 $? "a check against a recorded decline must refuse: $out"
+  assert_contains "$out" "Tell whoever runs this Firstmate home (config/claude-decline-contact can name them) about this refusal." \
+    "a two-line contact file did not fall back to the generic pointer"
+  assert_not_contains "$out" "second line" "a malformed contact file was echoed into the refusal"
+  pass "fm-claude-trust.sh --check: a decline refusal falls back to a generic contact without a usable config value"
+}
+
 test_check_mode_accepts_a_fresh_worktree_without_writing() {
   local rec out
   rec=$(make_case check-fresh)
@@ -874,6 +933,8 @@ test_registration_carries_forward_existing_import_consent
 test_project_root_entry_preserves_other_keys
 test_project_root_entry_declined_external_imports_is_not_overridden
 test_check_mode_reports_a_decline_without_writing
+test_spawn_decline_refusal_names_the_pair_and_this_homes_contact
+test_check_decline_refusal_falls_back_without_a_usable_contact
 test_check_mode_accepts_a_fresh_worktree_without_writing
 test_project_root_entry_default_import_flags_are_not_a_decline
 test_registration_is_idempotent
