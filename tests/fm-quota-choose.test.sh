@@ -857,4 +857,34 @@ fi
   || fail "missing Grok TOON row did not request JSON evidence: $err"
 ok "unknown Grok TOON eligibility requests prepaid evidence before selection"
 
+# quota-axi 0.1.61 withholds Claude's Keychain read, so its --json Claude row
+# is unmeasured; filled by bin/fm-claude-quota.sh from a fake cusage reading
+# of the launch account, the same snapshot makes Claude selectable.
+CLAUDE_LAB="$LAB/claude-fill"
+mkdir -p "$CLAUDE_LAB/home/.claude-accounts/dale" "$CLAUDE_LAB/fm-home/config" "$CLAUDE_LAB/bin"
+cat > "$LAB/claude-withheld.json" <<'JSON'
+{"schemaVersion": 5, "providers": [
+  {"provider": "claude", "state": {"status": "unknown"}, "quotaSemantics": {"status": "unknown", "effectiveAvailability": []}},
+  {"provider": "kimi", "quotaSemantics": {"status": "known", "effectiveAvailability": [
+    {"scope": "all_models", "status": "known", "effectivePercentRemaining": 0, "runway": {"status": "exhausted_now"}}]}}]}
+JSON
+now=$(date +%s)
+cat > "$CLAUDE_LAB/cusage.json" <<JSON
+{"schema_version": 5, "accounts": [{"label": "dale", "measured": true, "error": null, "fetched_at": $((now - 720)), "windows": [
+  {"key": "five_hour", "used_percentage": 2.0, "resets_at": $((now + 18000)), "reliable": true},
+  {"key": "seven_day", "used_percentage": 22.0, "resets_at": $((now + 432000)), "reliable": true}]}]}
+JSON
+printf '#!/usr/bin/env bash\n[ "$*" = "-c -j" ] || exit 64\ncat %q\n' "$CLAUDE_LAB/cusage.json" > "$CLAUDE_LAB/bin/cusage"
+chmod +x "$CLAUDE_LAB/bin/cusage"
+HOME="$CLAUDE_LAB/home" CLAUDE_CONFIG_DIR="$CLAUDE_LAB/home/.claude-accounts/dale" FM_HOME="$CLAUDE_LAB/fm-home" \
+  PATH="$CLAUDE_LAB/bin:$PATH" "$BIN/fm-claude-quota.sh" --fill < "$LAB/claude-withheld.json" > "$LAB/claude-filled.json" \
+  || fail "the Claude fill exited nonzero"
+if out=$(call_choose --snapshot "$LAB/claude-withheld.json" --candidate claude:opus); then
+  fail "an unmeasured Claude row was selected: $out"
+fi
+[ "$out" = none ] || fail "an unmeasured Claude row printed: $out"
+out=$(call_choose --snapshot "$LAB/claude-filled.json" --candidate claude:opus) || fail "a filled Claude row was not selected: $out"
+[ "$out" = 'claude opus' ] || fail "a filled Claude row selected: $out"
+ok "a keychain-withheld Claude row filled from cusage is selectable, and unfilled it is not"
+
 printf '# all fm-quota-choose tests passed\n'
