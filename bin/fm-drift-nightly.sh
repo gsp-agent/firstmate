@@ -53,7 +53,10 @@
 # line. A PR writes its own line before merging; the line lands inside its
 # squash or merge commit and matches afterward, so no SHA can dangle.
 # "pending-pr" accepts that PR with its proof still owed on <bead>; it is
-# accepted like a proven PR but never reported as keep. Duplicate entries
+# accepted like a proven PR but never reported as keep.
+# Pending proof closed after PR 197: a "pending-pr" line naming a later PR
+# is refused, while the historic entries at or before PR 197 stay accepted.
+# Duplicate entries
 # are errors. An entry whose PR has no first-parent commit in the captured
 # range proves nothing and prints "unmatched: <number>" without changing the
 # exit code: an open PR's own line stays unmatched until its squash or merge
@@ -168,6 +171,9 @@ load_proof() {
       *) die "proof line is not a PR entry: $line" ;;
     esac
     printf '%s\n' "$pr" | grep -Eq '^[0-9]+$' || die "proof line is not a PR number: $line"
+    if [ -n "$bead" ] && { [ "${#pr}" -gt 3 ] || [ "$((10#$pr))" -gt 197 ]; }; then
+      die "pending-pr entry for PR $pr is refused: pending proof closed after PR 197"
+    fi
     case "|$KEEP_PRS$PENDING_PRS" in *"|$pr|"*) die "duplicate proof entry for PR $pr" ;; esac
     if [ -n "$bead" ]; then
       PENDING_PRS="${PENDING_PRS}${pr}|"

@@ -105,6 +105,7 @@ Every PR to `upstream-lean` adds its own file `drift-proof/<N>.proof` holding a 
 A PR that adds or changes behavior names a failing-first test or measurement that loses on the current upstream main files and wins on the PR.
 A cut PR instead names its archive branch and the callers outside this repository of what it removes, keeps the suite green, and does not merge while one of those callers would break.
 No PR merges to `upstream-lean` while its proof is pending.
+Pending proof closed after PR 197, so a later PR carries a `pr:` line and never a `pending-pr:` line.
 No direct pushes to `upstream-lean` are allowed.
 `drift-proof.txt` closed at PR 167 and takes no new line, so two open PRs never edit the same file.
 
