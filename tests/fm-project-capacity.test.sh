@@ -2112,6 +2112,8 @@ test_same_second_arrivals_keep_their_order() {
 # teardown returning two trees) have no cheap end-to-end fixture here.
 tree_line_helpers() {  # <command...> -> runs it with the line's helpers loaded
   (
+    # shellcheck source=bin/fm-wake-lib.sh
+    . "$ROOT/bin/fm-wake-lib.sh" || exit 1
     # shellcheck source=bin/fm-project-capacity-lib.sh
     . "$ROOT/bin/fm-project-capacity-lib.sh" || exit 1
     "$@"
@@ -2170,6 +2172,67 @@ test_two_returned_trees_wake_two_waiters() {
     *) fail "a third tree woke a waiter that already holds a wake: $out" ;;
   esac
   pass "two returned trees wake the first two waiters, not the head twice"
+}
+
+# chip on PR 196 at da35c20b: the home's place was a git hash-object digest,
+# which follows the object format of whatever repository the caller stands
+# in, so one home retrying from a SHA-1 and then a SHA-256 checkout held two
+# places and could wait behind itself.
+one_home_two_object_formats() {  # <dir>
+  local dir=$1
+  (cd "$dir/sha1" && fm_tree_wait_join "$dir/line" task-x 1 "$dir/home/state" 1000) || return 1
+  (cd "$dir/sha256" && fm_tree_wait_join "$dir/line" task-x 1 "$dir/home/state" 1000) || return 1
+  printf 'waiters=%s\n' "$(fm_tree_wait_order "$dir/line" 1000 | wc -l | tr -d ' ')"
+  (cd "$dir/sha256" && fm_tree_wait_ahead "$dir/line" task-x 1 1000 "$dir/home/state" &&
+    printf 'ahead-of-itself=%s\n' "$FM_TREE_WAIT_AHEAD")
+}
+test_one_home_keeps_one_place_from_any_checkout() {
+  local dir out
+  dir="$TMP_ROOT/tree-line-object-formats"
+  mkdir -p "$dir/home/state"
+  git init -q --object-format=sha1 "$dir/sha1" || fail "could not make a SHA-1 repository"
+  if ! git init -q --object-format=sha256 "$dir/sha256" 2>/dev/null; then
+    pass "one home keeps one place from any checkout (skipped: this git makes no SHA-256 repository)"
+    return 0
+  fi
+  out=$(tree_line_helpers one_home_two_object_formats "$dir" 2>&1) || fail "the line's helpers failed: $out"
+  assert_contains "$out" "waiters=1" "one home's task held two places, one per object format: $out"
+  assert_contains "$out" "ahead-of-itself=0" "the task waits behind its own other place: $out"
+  pass "one home keeps one place in the line from any checkout"
+}
+
+# chip on PR 196 at da35c20b: the wake's choice and write ran after the
+# project lock was released, so two trees returned at once could both see
+# the head's wake file empty and both wake the head. A preemption held at the
+# write, after the choice, makes the two returners overlap every time.
+two_concurrent_wakes() {  # <dir>
+  local dir=$1 w1 w2
+  # Joined within FM_TREE_WAIT_STALE of the wakes' clock, so both are live.
+  fm_tree_wait_join "$dir/line" task-a 1 "$dir/home/state" 4000 || return 1
+  fm_tree_wait_join "$dir/line" task-b 1 "$dir/home/state" 4000 || return 1
+  # The wake's write is its only `printf '%s\n' 4242`; hold it there.
+  printf() {
+    if [ "$#" = 2 ] && [ "$2" = 4242 ]; then sleep 2; fi
+    builtin printf "$@"
+  }
+  fm_tree_wait_wake "$dir/line" 4242 > "$dir/wake-1" &
+  w1=$!
+  fm_tree_wait_wake "$dir/line" 4242 > "$dir/wake-2" &
+  w2=$!
+  wait "$w1"
+  wait "$w2"
+  unset -f printf
+  printf 'woken=%s\n' "$(cat "$dir/wake-1" "$dir/wake-2" | LC_ALL=C sort | tr '\n' ' ')"
+  printf 'task-b-wake=%s\n' "$(cat "$dir"/line/*/.wake-task-b 2>/dev/null | wc -l | tr -d ' ')"
+}
+test_two_concurrent_returns_wake_two_waiters() {
+  local dir out
+  dir="$TMP_ROOT/tree-line-concurrent-wakes"
+  mkdir -p "$dir/home/state"
+  out=$(tree_line_helpers two_concurrent_wakes "$dir" 2>&1) || fail "the line's helpers failed: $out"
+  assert_contains "$out" "woken=task-a task-b " "two trees returned at once did not wake the first two waiters: $out"
+  assert_contains "$out" "task-b-wake=1" "the second waiter got no wake: $out"
+  pass "two trees returned at once wake two waiters, never the head twice"
 }
 
 # A waiter that no deferral refreshed within FM_TREE_WAIT_STALE seconds has no
@@ -2361,6 +2424,8 @@ test_later_arrival_of_one_priority_waits_behind
 test_same_second_arrivals_keep_their_order
 test_one_task_id_in_two_homes_keeps_two_places
 test_two_returned_trees_wake_two_waiters
+test_one_home_keeps_one_place_from_any_checkout
+test_two_concurrent_returns_wake_two_waiters
 test_stale_waiter_stops_holding_the_line
 test_teardown_wakes_the_head_waiter_at_once
 test_waiter_lives_as_long_as_its_owner

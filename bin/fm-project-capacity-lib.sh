@@ -610,12 +610,17 @@ fm_tree_wait_rank() {  # <priority>
   esac
 }
 
-# The place in a line for the home whose state directory is <state-dir>.
+# The place in a line for the home whose state directory is <state-dir>: the
+# POSIX cksum of its physical path, which no caller's working directory or git
+# object format can change (chip on PR 196: git hash-object gave one home two
+# keys from a SHA-1 and a SHA-256 repository).
 fm_tree_wait_home() {  # <state-dir>
-  local path hash
+  local path sum
   path=$(cd -P -- "$1" 2>/dev/null && pwd -P) || path=$1
-  hash=$(printf '%s' "$path" | git hash-object --stdin 2>/dev/null) || return 1
-  printf '%s\n' "${hash:0:12}"
+  sum=$(printf '%s' "$path" | cksum) || return 1
+  sum=${sum%% *}
+  case "$sum" in '' | *[!0-9]*) return 1 ;; esac
+  printf '%s\n' "$sum"
 }
 
 fm_tree_wait_field() {  # <entry> <key>
@@ -738,15 +743,26 @@ fm_tree_wait_ahead() {  # <dir> <id> <priority> <now> <state-dir>
 # does not already hold an unconsumed wake, by writing its wake file. A waiter
 # holding one has a tree coming already, so the k-th returned tree wakes the
 # k-th waiter. Prints the woken id, or nothing when no waiter is left to wake.
+# Returners run this after releasing the project lock, so the choice and the
+# write are serialized by the line's own <dir>/.wake.lock (bin/fm-wake-lib.sh's
+# locks, which every caller loads): two trees returned at once wake two
+# waiters, never the head twice. Bounded: a wake that cannot take that lock
+# leaves the waiter's own retry as the fallback.
+FM_TREE_WAIT_WAKE_LOCK_WAIT=${FM_TREE_WAIT_WAKE_LOCK_WAIT:-10}
 fm_tree_wait_wake() {  # <dir> <now>
-  local dir=$1 now=$2 key wake
+  local dir=$1 now=$2 key wake woken='' rc=0
+  [ -d "$dir" ] || return 0
+  fm_lock_acquire_wait_max "$dir/.wake.lock" "$FM_TREE_WAIT_WAKE_LOCK_WAIT" || return 1
   while read -r _ _ _ key; do
     wake="$dir/${key%/*}/.wake-${key##*/}"
     [ ! -s "$wake" ] || continue
-    printf '%s\n' "$now" >> "$wake" || return 1
-    printf '%s\n' "${key##*/}"
-    return 0
+    printf '%s\n' "$now" >> "$wake" || rc=1
+    [ "$rc" -ne 0 ] || woken=${key##*/}
+    break
   done < <(fm_tree_wait_order "$dir" "$now")
+  fm_lock_release "$dir/.wake.lock" || true
+  [ -z "$woken" ] || printf '%s\n' "$woken"
+  return "$rc"
 }
 
 fm_project_capacity_overshare_dir() {  # <config-dir>
