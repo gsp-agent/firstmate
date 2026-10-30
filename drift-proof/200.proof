@@ -1,2 +1,0 @@
-# Adds PR 193's missing drift-proof/193.proof; bin/fm-drift-nightly.sh check on upstream-lean 04b36d8f prints 'missing manifest entry for PR 193' and no longer names PR 193 here.
-pr: 200
