@@ -55,11 +55,11 @@
 #
 # It never reads Claude Code's Keychain item and never blocks: a missing
 # cusage, a run past FM_CLAUDE_QUOTA_SECONDS (default 15, cusage's own bound
-# for building that document), no readable snapshot, an account the snapshot has no reading time
-# for, a reading more than 3600 seconds old (two poller runs, so the poller
-# has stopped; cusage's own warning for the account is added when it gives
-# one), an account cusage cannot measure, or no unreset five_hour or
-# seven_day window is an unknown reading with its cause.
+# for building that document), no readable snapshot, an account the snapshot
+# has no reading time for, a reading more than 3600 seconds old (two poller
+# runs, so the poller may have stopped; cusage's own warning for the account
+# is added when it gives one), an account cusage cannot measure, or no
+# unreset five_hour or seven_day window is an unknown reading with its cause.
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
