@@ -96,7 +96,9 @@
 # absent is NOT that decision: Claude Code's default project entry carries
 # both flags as false before the dialog was ever shown, so that pair means
 # "never asked" and is treated like an absent flag - trust registered, no
-# import consent.
+# import consent. The refusal names that pair, the store and the project, and
+# who to tell: this home's config/claude-decline-contact when it holds one
+# printable line (docs/configuration.md owns the file), else a generic pointer.
 #
 # THE SCOPE TEST IS THE SAFETY PROPERTY, and it is STRUCTURAL rather than a
 # path policy. Each mode has its own, because the two directories have entirely
@@ -261,8 +263,19 @@ esac
 
 refuse() { echo "error: refusing to pre-register Claude trust: $1" >&2; exit 1; }
 
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
 # shellcheck source=bin/fm-gate-refuse-lib.sh
-. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)/fm-gate-refuse-lib.sh"
+. "$SCRIPT_DIR/fm-gate-refuse-lib.sh"
+
+# Text for a recorded-decline refusal only; it never changes a verdict.
+DECLINE_CONTACT_FILE=${FM_CONFIG_OVERRIDE:-${FM_HOME:-$SCRIPT_DIR/..}/config}/claude-decline-contact
+DECLINE_CONTACT=
+if [ -f "$DECLINE_CONTACT_FILE" ] && [ -r "$DECLINE_CONTACT_FILE" ]; then
+  DECLINE_CONTACT=$(cat -- "$DECLINE_CONTACT_FILE" 2>/dev/null) || DECLINE_CONTACT=
+fi
+case $DECLINE_CONTACT in
+  '' | *[![:print:]]*) DECLINE_CONTACT="whoever runs this Firstmate home (config/claude-decline-contact can name them)" ;;
+esac
 
 real_dir() { (cd -P -- "$1" 2>/dev/null && pwd -P); }
 
@@ -497,15 +510,15 @@ fi
 TRUST_FLAG='hasTrustDialogAccepted'
 IMPORT_FLAGS='["hasClaudeMdExternalIncludesApproved","hasClaudeMdExternalIncludesWarningShown"]'
 if [ "$MODE" = worktree ]; then
-  WRITE_ARGS=("$STORE" "$MODE" "$TARGET_REAL" "$PROJ_CANON" "$TRUST_FLAG" "$IMPORT_FLAGS" "$CHECK_ONLY")
+  WRITE_ARGS=("$STORE" "$MODE" "$TARGET_REAL" "$PROJ_CANON" "$TRUST_FLAG" "$IMPORT_FLAGS" "$CHECK_ONLY" "$DECLINE_CONTACT")
 else
-  WRITE_ARGS=("$STORE" "$MODE" "$TARGET_REAL" "" "$TRUST_FLAG" "$IMPORT_FLAGS" "$CHECK_ONLY")
+  WRITE_ARGS=("$STORE" "$MODE" "$TARGET_REAL" "" "$TRUST_FLAG" "$IMPORT_FLAGS" "$CHECK_ONLY" "$DECLINE_CONTACT")
 fi
 if ! node - "${WRITE_ARGS[@]}" <<'NODE'
 const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
-const [store, mode, target, project, trustFlag, importFlagsJson, checkOnly] = process.argv.slice(2);
+const [store, mode, target, project, trustFlag, importFlagsJson, checkOnly, declineContact] = process.argv.slice(2);
 const importFlags = JSON.parse(importFlagsJson);
 const readStore = () => {
   try {
@@ -566,7 +579,7 @@ const attempt = () => {
   }
   if (mode === "worktree" && declinedExternalImports(projects, project)) {
     throw new Error(
-      `project entry for ${project} in ${store} already declined external CLAUDE.md imports; refusing to override that consent. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once`,
+      `project entry for ${project} in ${store} records declined external CLAUDE.md imports (hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternalIncludesWarningShown=true), a recorded decline this script will not override. Tell ${declineContact} about this refusal. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once`,
     );
   }
   if (checkOnly === "1") return "checked";
