@@ -98,7 +98,8 @@
 # "never asked" and is treated like an absent flag - trust registered, no
 # import consent. The refusal names that pair, the store and the project, and
 # who to tell: this home's config/claude-decline-contact when it holds one
-# printable line (docs/configuration.md owns the file), else a generic pointer.
+# printable line of at most 256 bytes (docs/configuration.md owns the file),
+# else a generic pointer.
 #
 # THE SCOPE TEST IS THE SAFETY PROPERTY, and it is STRUCTURAL rather than a
 # path policy. Each mode has its own, because the two directories have entirely
@@ -270,8 +271,11 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
 # Text for a recorded-decline refusal only; it never changes a verdict.
 DECLINE_CONTACT_FILE=${FM_CONFIG_OVERRIDE:-${FM_HOME:-$SCRIPT_DIR/..}/config}/claude-decline-contact
 DECLINE_CONTACT=
-if [ -f "$DECLINE_CONTACT_FILE" ] && [ -r "$DECLINE_CONTACT_FILE" ]; then
-  DECLINE_CONTACT=$(cat -- "$DECLINE_CONTACT_FILE" 2>/dev/null) || DECLINE_CONTACT=
+# Bounded because the value rides the writer's argv on every attempt, where an
+# oversized one would make the exec itself fail and so change the verdict.
+if [ -f "$DECLINE_CONTACT_FILE" ] && [ -r "$DECLINE_CONTACT_FILE" ] \
+  && [ "$(wc -c < "$DECLINE_CONTACT_FILE" 2>/dev/null | tr -d ' ')" -le 257 ] 2>/dev/null; then
+  DECLINE_CONTACT=$(head -c 257 -- "$DECLINE_CONTACT_FILE" 2>/dev/null) || DECLINE_CONTACT=
 fi
 case $DECLINE_CONTACT in
   '' | *[![:print:]]*) DECLINE_CONTACT="whoever runs this Firstmate home (config/claude-decline-contact can name them)" ;;
