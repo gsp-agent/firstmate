@@ -1,0 +1,4 @@
+# Cut of the unnumbered per-poll window-index commit, archived as archive/95fb0ba8-window-index before removal.
+# Measurement on the fork-budget fixture (four windows, four polls): with the index (base c8bc3334) and without it (this head) both measure 160 added processes, 10 per window per poll. Whole-fixture wall time was 19-21s with the index and 18-19s without it across two runs, so the index does not win on this fixture.
+# Kept lookup behavior after the cut: tests/fm-backend-meta-for-window.test.sh.
+pr: 197
