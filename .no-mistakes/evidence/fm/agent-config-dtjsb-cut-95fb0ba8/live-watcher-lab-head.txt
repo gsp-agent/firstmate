@@ -1,0 +1,13 @@
+watcher source: 7861bbd5 (change under test)
+lab tmux windows:
+  fm:fm-mate
+  fm:fm-ship
+  fm:watcher
+--- watcher stdout (wake reason) ---
+stale: fm:fm-ship
+watcher-exit=0
+--- watcher stderr ---
+--- per-window visit counters in state/ (.count-<key>) ---
+  .count-fm_fm-mate absent (never captured)
+  .count-fm_fm-ship = 2
+--- triage log ---

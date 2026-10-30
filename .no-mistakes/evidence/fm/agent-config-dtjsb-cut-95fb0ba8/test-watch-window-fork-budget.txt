@@ -1,0 +1,2 @@
+window budget: 8 fixed processes; 168 with four windows, over four polls; 160 added processes = 10 per window per poll
+ok - window preparation and fresh status reads use at most ten processes per failed capture

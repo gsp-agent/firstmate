@@ -1,0 +1,7 @@
+ok - first meta wins and a terminal alias resolves, printed or through the out-var
+ok - a missing target fails, clears the out-var, and prints nothing
+ok - window text stays data
+ok - first meta wins and a terminal alias resolves, printed or through the out-var
+ok - a missing target fails, clears the out-var, and prints nothing
+ok - window text stays data
+ok - meta-for-window contract matches under /bin/bash

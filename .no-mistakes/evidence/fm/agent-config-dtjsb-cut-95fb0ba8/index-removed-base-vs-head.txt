@@ -1,0 +1,15 @@
+== base c8bc3334 (before the cut) ==
+index loader: defined
+calling fm_backend_window_index_load -> exit 0
+lookup sess:one (a.meta on disk) with a stale index pointing at b.meta -> state/b.meta
+lookup sess:two with no index -> state/b.meta
+== head 7861bbd5 (after the cut) ==
+index loader: not defined
+calling fm_backend_window_index_load -> exit 127
+lookup sess:one (a.meta on disk) with a stale index pointing at b.meta -> state/a.meta
+lookup sess:two with no index -> state/b.meta
+== head 7861bbd5 under stock /bin/bash 3.2 ==
+index loader: not defined
+calling fm_backend_window_index_load -> exit 127
+lookup sess:one (a.meta on disk) with a stale index pointing at b.meta -> state/a.meta
+lookup sess:two with no index -> state/b.meta

@@ -1,0 +1,15 @@
+== archive branch on origin (git ls-remote) ==
+95fb0ba8f83d4c0f2b5c41b6ba88dc165d039020	refs/heads/archive/95fb0ba8-window-index
+== archived commit subject ==
+95fb0ba8f83d4c0f2b5c41b6ba88dc165d039020 fix: look up a window's meta once per watcher poll
+== archived tree still carries the removed loader ==
+2
+== archives/fork-cuts.bundle unchanged vs base ==
+       0
+== references to removed names in this tree (rg) ==
+none
+== references outside this repo: ~/.agent-config ==
+none
+== ~/agent-observer / ~/.agent-observer (if present) ==
+== Claude settings files ==
+(no settings file references)
