@@ -62,11 +62,11 @@
 #                   The required Herdr CI lane uses this so a missing pin cannot
 #                   silently pass as a gate skip.
 #   --fail-on-missing-tool-skip
-#                   after each script, fail the run if a line starting "skip:"
-#                   says this host lacks something the script needs, in any
-#                   suite's wording. The suites of an optional backend (cmux,
-#                   zellij, orca) and of the optional native Pi adapter may still
-#                   skip. --remote always sets this on the host.
+#                   after each script, fail the run if it reports skipping
+#                   anything because this host lacks a tool, package, or version
+#                   it needs, in any suite's wording, on a "skip:" or "# skip:"
+#                   line or a passing "ok - ... skipped ..." line. --remote
+#                   always sets this on the host.
 #   --jobs N        run the selected scripts with up to N concurrent workers.
 #                   Plain --changed and a plain list of script paths use
 #                   min(4, cpus) workers when multiple selected scripts are
@@ -1911,14 +1911,13 @@ detect_gate_skip_token() {
   grep -F -q "skip: $token" "$file" 2>/dev/null
 }
 
-# True when a line starting "skip:" says this host lacks something the script
-# needs, unless the script belongs to an optional backend or adapter. A "# skip:"
-# line is a per-harness note in a suite that goes on to run, so it is not one.
+# True when a skip line, or a passing line reporting a skip, says this host lacks
+# a tool, package, or version the script needs.
 detect_missing_tool_skip() {
-  local file=$1 base=$2 family=$3
-  case "$family" in cmux | zellij | orca) return 1 ;; esac
-  [ "$base" != fm-pi-codex-native.test.sh ] || return 1
-  grep -Eq '^skip:.*( not found| absent| not installed| not executable|no supported .* installed|no C compiler)' "$file" 2>/dev/null
+  grep -Eq \
+    -e '^(# )?skip:.*( not found| absent| not installed| not executable|no supported .* installed|no C compiler|no long-running stand-in|no Bash [a-z]+ loadable|predates| is older than| is below)' \
+    -e '^ok - .*skipped.*( not found| absent| not installed| without |[:,] no )' \
+    "$1" 2>/dev/null
 }
 
 apply_exclude_families() {
@@ -2590,7 +2589,7 @@ record_script_result() {
     log "required gate skip token seen in $script: skip: $FAIL_ON_GATE_SKIP"
     rc=1
   fi
-  if [ "$FAIL_ON_MISSING_TOOL_SKIP" -eq 1 ] && detect_missing_tool_skip "$out" "$base" "$family"; then
+  if [ "$FAIL_ON_MISSING_TOOL_SKIP" -eq 1 ] && detect_missing_tool_skip "$out"; then
     log "$script skipped because this host lacks something it needs"
     rc=1
   fi

@@ -441,6 +441,20 @@ skip: Herdr lab helper not executable at /fixture/helper
 skip: live: no supported runner (claude, pi, pi-signed) installed
 skip: no C compiler, so the compiled stand-in cannot build
 skip: a-tool-no-suite-names-yet not installed
+skip: installed tasks-axi predates 0.3.0, so the real backlog mutations cannot run
+skip: installed cmux is older than the verified minimum
+skip: this herdr build is below the events.subscribe capability
+skip: no long-running stand-in survives a rename, so the descendant case cannot run
+skip: no Bash stat loadable beside /fixture/bash, so the per-log budget is not enforced here
+# skip: agy is not installed on this machine, so its contract is unverified here
+ok - skipped: tmux is not installed
+ok - skipped (python3 is not installed; a queue start decides the note with it)
+ok - skipped the Orca capacity case (node, which the Orca status check needs, is not installed)
+ok - zsh: shell-portable backend matching skipped (zsh not found)
+ok - fm_sleep: skipped (perl absent for sub-second timing)
+ok - herdr pane fallback skipped without jq
+ok - a launcher argument guard (skipped, no python3)
+ok - a GNU timeout fallback (skipped: no timeout binary on this host)
 EOF
   write_skip_suite fm-remote-wording-mid-run.test.sh 'ok - a case ran' 'skip: node not found for one case' 'ok - another case ran'
   commit_all "suites in each wording of a missing tool"
@@ -451,20 +465,36 @@ EOF
   pass "every wording of a host lacking a tool fails the remote run, without enumerating tools"
 }
 
-test_a_skip_that_is_not_a_missing_required_tool_stays_a_counted_skip() {
+test_no_backend_adapter_or_harness_is_exempt_from_the_missing_tool_rule() {
+  new_world exempt
+  write_skip_suite fm-backend-zellij-smoke.test.sh 'skip: zellij not found'
+  write_skip_suite fm-backend-zellij.test.sh 'skip: jq not found (required by the zellij adapter)'
+  write_skip_suite fm-backend-cmux-smoke.test.sh 'skip: cmux CLI not found on PATH'
+  write_skip_suite fm-backend-orca.test.sh 'skip: orca not found'
+  write_skip_suite fm-pi-codex-native.test.sh 'skip: native Pi adapter not installed (PI_CODEX_NATIVE_PACKAGE to select it)'
+  write_skip_suite fm-remote-harness-note.test.sh 'ok - one harness ran' '# skip: opencode is not installed on this machine, so its contract is unverified here'
+  commit_all "suites of optional backends and adapters, and a per-harness note"
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --jobs 1 tests/fm-backend-zellij-smoke.test.sh tests/fm-backend-zellij.test.sh \
+    tests/fm-backend-cmux-smoke.test.sh tests/fm-backend-orca.test.sh tests/fm-pi-codex-native.test.sh tests/fm-remote-harness-note.test.sh
+  expect_code 1 "$RC" "skips for a missing optional backend, adapter, or harness"$'\n'"$OUT"
+  assert_contains "$OUT" "FM_TEST_SUMMARY total=6 failed=6 skipped_gate=0" "none of them is exempt"
+  pass "an optional backend's or adapter's suite, and a per-harness note, fail the remote run when the host lacks the tool"
+}
+
+test_a_skip_that_is_not_a_missing_tool_stays_a_counted_skip() {
   new_world counted
   write_skip_suite fm-remote-opt-in.test.sh 'skip: live: opt-in; set FM_FIXTURE=1 to run'
-  write_skip_suite fm-remote-platform.test.sh 'skip: fork counting requires BASHPID (Bash 4+)'
-  write_skip_suite fm-remote-harness-note.test.sh '# skip: agy is not installed on this machine, so its contract is unverified here' 'ok - the installed harnesses ran'
-  write_skip_suite fm-backend-zellij-smoke.test.sh 'skip: zellij not found'
-  write_skip_suite fm-backend-cmux-smoke.test.sh 'skip: cmux CLI not found on PATH'
-  write_skip_suite fm-pi-codex-native.test.sh 'skip: native Pi adapter not installed (PI_CODEX_NATIVE_PACKAGE to select it)'
-  commit_all "suites whose skips are not a missing required tool"
+  write_skip_suite fm-remote-platform.test.sh 'skip: native Windows Node required'
+  write_skip_suite fm-remote-note.test.sh 'ok - a case ran' '# skip: unprivileged PID namespaces are unavailable here, so one case is unverified' \
+    '# skip - checkout has no upstream/github/origin remote to scope'
+  write_skip_suite fm-remote-behavior.test.sh 'ok - no-origin clone is skipped (benign), not flagged STUCK' \
+    'ok - a passing required check and a skipped one leave nothing to report' 'ok - unreadable source skipped: this user can read mode-000 files'
+  commit_all "suites whose skips are not a missing tool"
   run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --jobs 1 tests/fm-remote-opt-in.test.sh tests/fm-remote-platform.test.sh \
-    tests/fm-remote-harness-note.test.sh tests/fm-backend-zellij-smoke.test.sh tests/fm-backend-cmux-smoke.test.sh tests/fm-pi-codex-native.test.sh
-  expect_code 0 "$RC" "skips that are not a missing required tool"$'\n'"$OUT"
-  assert_contains "$OUT" "FM_TEST_SUMMARY total=6 failed=0 skipped_gate=5" "these stay counted skips, and a per-harness note is not one"
-  pass "a live opt-in, a platform skip, a per-harness note, and optional backends and adapters do not fail the remote run"
+    tests/fm-remote-note.test.sh tests/fm-remote-behavior.test.sh
+  expect_code 0 "$RC" "skips that are not a missing tool"$'\n'"$OUT"
+  assert_contains "$OUT" "FM_TEST_SUMMARY total=4 failed=0 skipped_gate=2" "a policy or platform skip stays counted, and a behavior named skipped is no skip"
+  pass "a live opt-in, a platform skip, and a passing case that describes skipping do not fail the remote run"
 }
 
 test_a_busy_host_gate_is_a_wait_not_a_failure() {
@@ -716,7 +746,8 @@ test_fm_test_only_reaches_the_host
 test_a_live_switch_set_here_refuses_the_remote_run
 test_a_suite_skipping_for_a_missing_host_tool_fails_the_remote_run
 test_every_wording_of_a_missing_host_tool_fails_the_remote_run
-test_a_skip_that_is_not_a_missing_required_tool_stays_a_counted_skip
+test_no_backend_adapter_or_harness_is_exempt_from_the_missing_tool_rule
+test_a_skip_that_is_not_a_missing_tool_stays_a_counted_skip
 test_a_busy_host_gate_is_a_wait_not_a_failure
 test_transport_failures_stop_before_anything_runs
 test_a_host_copy_at_another_commit_runs_nothing
