@@ -1,0 +1,4 @@
+# Measurement: bin/fm-drift-nightly.sh check --no-fetch on base 04b36d8f prints "error: missing manifest entry for PR 198".
+# On this head squashed onto that base as "(#201)", the check names neither PR 198 nor PR 201 as missing and reports no path-drift for either proof file.
+# Its remaining errors are pre-existing and unrelated: missing entries for PRs 193 and 194, and proof patch conflicts for PRs 137, 138, 139 and 197.
+pr: 201
