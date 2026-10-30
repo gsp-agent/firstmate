@@ -576,6 +576,10 @@ test_pending_pr_after_197_is_refused_and_at_197_stays_accepted() {
   run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
   expect_code 2 "$CHECK_RC" "a pending-pr line for PR 198 exits 2"
   assert_contains "$CHECK_ERR" "pending-pr entry for PR 198 is refused: pending proof closed after PR 197" "the refusal names the closed pending proof"
+  printf 'pending-pr: 18446744073709551616 bead-big\n' > "$repo/proof.txt"
+  run_check "$repo" --fork HEAD --upstream upstream --proof "$repo/proof.txt"
+  expect_code 2 "$CHECK_RC" "a pending-pr line with an oversized PR number exits 2"
+  assert_contains "$CHECK_ERR" "pending-pr entry for PR 18446744073709551616 is refused: pending proof closed after PR 197" "the oversized pending-pr refusal names the closed pending proof"
   printf 'pending-pr: 197 bead-197\n' > "$repo/proof.txt"
   git -C "$repo" update-ref refs/heads/upstream HEAD
   printf 'next\n' > "$repo/notes.txt"

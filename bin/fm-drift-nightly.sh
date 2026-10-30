@@ -171,7 +171,7 @@ load_proof() {
       *) die "proof line is not a PR entry: $line" ;;
     esac
     printf '%s\n' "$pr" | grep -Eq '^[0-9]+$' || die "proof line is not a PR number: $line"
-    if [ -n "$bead" ] && [ "$((10#$pr))" -gt 197 ]; then
+    if [ -n "$bead" ] && { [ "${#pr}" -gt 3 ] || [ "$((10#$pr))" -gt 197 ]; }; then
       die "pending-pr entry for PR $pr is refused: pending proof closed after PR 197"
     fi
     case "|$KEEP_PRS$PENDING_PRS" in *"|$pr|"*) die "duplicate proof entry for PR $pr" ;; esac

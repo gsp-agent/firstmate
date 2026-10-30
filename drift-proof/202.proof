@@ -1,2 +1,2 @@
 # Failing-first test: test_pending_pr_after_197_is_refused_and_at_197_stays_accepted in tests/fm-drift-nightly.test.sh. Red on base 04b36d8f, where a pending-pr line for PR 198 is accepted and the check exits 0; green here, where it is refused and the check exits 2, while a pending-pr line for PR 197 stays accepted.
-pr: 198
+pr: 202
