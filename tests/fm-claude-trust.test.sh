@@ -288,9 +288,10 @@ DECLINE_PAIR='hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternal
 
 # The seat that ran a refused spawn needs the whole story in the refusal: the
 # recorded flag pair, the store and project it sits in, that it stays, and who
-# this home sends it to.
+# this home sends it to. A caller may keep only the spawn's last line, so that
+# line must carry it.
 test_spawn_decline_refusal_names_the_pair_and_this_homes_contact() {
-  local case_dir home proj wt config fakebin launch_log out
+  local case_dir home proj wt config fakebin launch_log out last
   case_dir="$TMP_ROOT/spawn-decline"
   home="$case_dir/home"
   proj="$case_dir/project"
@@ -310,10 +311,13 @@ JSON
     fm_test_run_spawn "$home" "$wt" "$fakebin" declinespawn "$proj" claude \
     --mode no-mistakes --yolo off)
   expect_code 1 $? "a spawn into a project with a recorded decline must refuse: $out"
-  assert_contains "$out" "project entry for $proj in $config/.claude.json records declined external CLAUDE.md imports ($DECLINE_PAIR), a recorded decline this script will not override. Tell ops-desk about this refusal." \
-    "the spawn refusal did not name the pair, the store, the project and this home's contact"
+  last=$(printf '%s\n' "$out" | tail -n 1)
+  assert_contains "$last" "error: could not pre-register Claude workspace trust for $wt;" \
+    "the spawn's last line is not its trust refusal"
+  assert_contains "$last" "project entry for $proj in $config/.claude.json records declined external CLAUDE.md imports ($DECLINE_PAIR), a recorded decline this script will not override. Tell ops-desk about this refusal." \
+    "the spawn's last line did not name the pair, the store, the project and this home's contact"
   assert_absent "$launch_log" "a claude worker was launched into a project with a recorded decline"
-  pass "fm-spawn.sh: a decline refusal names the recorded pair, store, project and this home's contact"
+  pass "fm-spawn.sh: a decline refusal's last line names the recorded pair, store, project and this home's contact"
 }
 
 # Without a usable config/claude-decline-contact the refusal still says who to
