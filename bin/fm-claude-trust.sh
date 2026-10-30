@@ -514,7 +514,7 @@ if [ "$MODE" = worktree ]; then
 else
   WRITE_ARGS=("$STORE" "$MODE" "$TARGET_REAL" "" "$TRUST_FLAG" "$IMPORT_FLAGS" "$CHECK_ONLY" "$DECLINE_CONTACT")
 fi
-if ! node - "${WRITE_ARGS[@]}" <<'NODE'
+IFS= read -r -d '' WRITE_SCRIPT <<'NODE'
 const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
@@ -624,24 +624,25 @@ try {
     const result = attempt();
     if (result === "recorded" || result === "checked") process.exit(0);
     if (result === "moved" && i >= 1) {
-      console.error(`error: ${store} was modified while trust was being recorded; refusing to overwrite it`);
+      console.error(`${store} was modified while trust was being recorded; refusing to overwrite it`);
       process.exit(1);
     }
   }
 } catch (err) {
-  console.error(`error: ${err.message}`);
+  console.error(err.message);
   process.exit(1);
 }
-console.error(`error: ${store} did not retain trust for ${target}${project ? ` and ${project}` : ""} after 3 attempts`);
+console.error(`${store} did not retain trust for ${target}${project ? ` and ${project}` : ""} after 3 attempts`);
 process.exit(1);
 NODE
-then
+if ! WRITE_ERR=$(node - "${WRITE_ARGS[@]}" <<<"$WRITE_SCRIPT" 2>&1 >/dev/null); then
+  WRITE_ERR=${WRITE_ERR//$'\n'/ }
   if [ "$CHECK_ONLY" = 1 ]; then
-    refuse "trust cannot be recorded for '$TARGET_REAL' in '$STORE' (check only; nothing was written)"
+    refuse "trust cannot be recorded for '$TARGET_REAL' in '$STORE' (check only; nothing was written)${WRITE_ERR:+: $WRITE_ERR}"
   elif [ "$MODE" = worktree ]; then
-    refuse "could not record trust for '$TARGET_REAL' and project '$PROJ_CANON' in '$STORE'"
+    refuse "could not record trust for '$TARGET_REAL' and project '$PROJ_CANON' in '$STORE'${WRITE_ERR:+: $WRITE_ERR}"
   else
-    refuse "could not record trust for '$TARGET_REAL' in '$STORE'"
+    refuse "could not record trust for '$TARGET_REAL' in '$STORE'${WRITE_ERR:+: $WRITE_ERR}"
   fi
 fi
 

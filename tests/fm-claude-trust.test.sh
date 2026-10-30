@@ -347,6 +347,30 @@ JSON
   pass "fm-claude-trust.sh --check: a decline refusal falls back to a generic contact without a usable config value"
 }
 
+# A relaunch runs this check with stdout dropped and passes stderr straight
+# through, so the check's last stderr line is the last line its caller reads:
+# that one line must be the refusal and carry the whole decline.
+test_check_decline_refusal_is_the_last_line() {
+  local rec store out home last
+  rec=$(make_case check-decline-last)
+  read_case "$rec"
+  store="$CONFIG/.claude.json"
+  home="$CASE_DIR/home"
+  mkdir -p "$home/config"
+  printf 'ops-desk\n' > "$home/config/claude-decline-contact"
+  cat > "$store" <<JSON
+{"projects":{"$PROJ":{"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}}}
+JSON
+  out=$(env -u FM_CONFIG_OVERRIDE FM_HOME="$home" CLAUDE_CONFIG_DIR="$CONFIG" HOME="$CONFIG" \
+    "$TRUST" --check "$WT" "$PROJ" 2>&1 >/dev/null)
+  expect_code 1 $? "a check against a recorded decline must refuse: $out"
+  last=$(printf '%s\n' "$out" | tail -n 1)
+  assert_contains "$last" "error: refusing to pre-register Claude trust: trust cannot be recorded for '$WT' in '$store' (check only; nothing was written): project entry for $PROJ in $store records declined external CLAUDE.md imports ($DECLINE_PAIR), a recorded decline this script will not override. Tell ops-desk about this refusal." \
+    "the check's last stderr line did not carry the pair, the store, the project and this home's contact"
+  [ "$out" = "$last" ] || fail "the check printed more than its one refusal line: $out"
+  pass "fm-claude-trust.sh --check: a decline refusal is the last stderr line and names the pair, store, project and contact"
+}
+
 test_check_mode_accepts_a_fresh_worktree_without_writing() {
   local rec out
   rec=$(make_case check-fresh)
@@ -939,6 +963,7 @@ test_project_root_entry_declined_external_imports_is_not_overridden
 test_check_mode_reports_a_decline_without_writing
 test_spawn_decline_refusal_names_the_pair_and_this_homes_contact
 test_check_decline_refusal_falls_back_without_a_usable_contact
+test_check_decline_refusal_is_the_last_line
 test_check_mode_accepts_a_fresh_worktree_without_writing
 test_project_root_entry_default_import_flags_are_not_a_decline
 test_registration_is_idempotent

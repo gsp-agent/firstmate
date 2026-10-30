@@ -6297,9 +6297,11 @@ claude*)
     spawn_trust_args=("$WT" "$PROJ_ABS")
   fi
   # A caller may keep only this script's last line, so that line carries the
-  # trust script's own refusal (which names a recorded decline and who to tell).
+  # trust script's last line: its refusal, which names a recorded decline and
+  # who to tell.
   if ! spawn_trust_refusal=$("$FM_ROOT/bin/fm-claude-trust.sh" "${spawn_trust_args[@]}" 2>&1 >/dev/null); then
-    spawn_trust_refusal=$(printf '%s\n' "$spawn_trust_refusal" | awk 'NF { sub(/^error: /, ""); out = out (out == "" ? "" : "; ") $0 } END { printf "%s", out }')
+    spawn_trust_refusal=${spawn_trust_refusal##*$'\n'}
+    spawn_trust_refusal=${spawn_trust_refusal#error: }
     echo "error: could not pre-register Claude workspace trust for $WT; refusing to launch a claude worker that would wedge on the trust dialog; inspect window $T${spawn_trust_refusal:+; $spawn_trust_refusal}" >&2
     exit 1
   fi

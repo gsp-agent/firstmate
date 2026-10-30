@@ -1048,7 +1048,7 @@ A remote secondmate is launched on its host from its own home's configuration, s
 ## Claude imports-decline contact (config/claude-decline-contact)
 
 The optional local, gitignored `config/claude-decline-contact` holds one line naming who to tell when a Claude launch refuses because the project's entry in the launching account's Claude config store records a declined external CLAUDE.md imports prompt.
-[`bin/fm-claude-trust.sh`](../bin/fm-claude-trust.sh) puts that name in its refusal, which the spawn or relaunch that hit it prints.
+[`bin/fm-claude-trust.sh`](../bin/fm-claude-trust.sh) puts that name in its refusal, which is the last line printed by the spawn or relaunch that hit it.
 When the file is absent, empty, or not one line of printable characters, the refusal names whoever runs this Firstmate home instead.
 The value is text only: it never changes whether a launch refuses, and each home reads its own file rather than inheriting one.
 
