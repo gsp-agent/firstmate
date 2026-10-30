@@ -1,0 +1,5 @@
+# Failing-first tests in tests/fm-claude-trust.test.sh, each red before its change and green on the PR.
+# test_spawn_decline_refusal_names_the_pair_and_this_homes_contact failed on base c8bc3334 because a recorded-decline refusal named neither the flag pair as a decline nor who to tell; tightened to read only spawn's last line, it failed again on spawn's generic trust error until spawn carried the trust refusal.
+# test_check_decline_refusal_is_the_last_line pins the trust script's own last line; on the base that line left the decline out, which sat on the line above it.
+# test_oversized_contact_never_changes_the_verdict failed with "node: Argument list too long" on a fresh registration until the contact was bounded to one 256-byte line.
+pr: 198
