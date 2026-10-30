@@ -1,0 +1,2 @@
+# Failing-first test test_completion_retires_a_record_when_its_backlog_row_is_missing in tests/fm-backlog-atomicity.test.sh: on the base the teardown of a task with no backlog row fails with 'not found in this backlog' and leaves its record and pending close holding a project place; after this change it retires both, frees the place, and exits 0.
+pr: 199
