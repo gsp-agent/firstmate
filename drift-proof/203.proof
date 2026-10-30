@@ -1,0 +1,2 @@
+# Failing-first test in tests/fm-brief.test.sh, on upstream-lean: test_no_mistakes_dod_wording is red because the generated no-mistakes worker brief does not name `no-mistakes axi respond --action rerun` for a custom gate red only in untouched code (agent-config .agent-config-uwxul: the only retry was `fix`, whose agent ran the 65-minute stock-bash check inside a 30-minute budget; 2 timeouts and 2 hand skips on 10-29). It is green after this change.
+pr: 203
