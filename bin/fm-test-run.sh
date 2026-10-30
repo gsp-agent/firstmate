@@ -47,8 +47,11 @@
 #                   and exit with that run's status. bin/fm-test-remote.sh owns
 #                   the transport, its failure modes, and the host's
 #                   one-suite-at-a-time gate. It takes no machine line here and
-#                   never falls back to a local run. --json is written there and
-#                   copied back; the inspection modes run here and ignore it.
+#                   never falls back to a local run. It refuses when a live
+#                   switch is set here, and a suite that skips because a tool
+#                   every Firstmate host has is missing there fails the run.
+#                   --json is written there and copied back; the inspection
+#                   modes run here and ignore it.
 #   --base <ref>    with --changed, compare against this ref (default: origin/main)
 #   --exclude-family <name>
 #                   drop scripts whose primary family matches <name> after selection
@@ -58,7 +61,7 @@
 #                   after each script, fail the run if any output line contains
 #                   "skip: <token>" (e.g. --fail-on-gate-skip 'herdr not found').
 #                   The required Herdr CI lane uses this so a missing pin cannot
-#                   silently pass as a gate skip.
+#                   silently pass as a gate skip. Repeatable: any token fails it.
 #   --jobs N        run the selected scripts with up to N concurrent workers.
 #                   Plain --changed and a plain list of script paths use
 #                   min(4, cpus) workers when multiple selected scripts are
@@ -205,7 +208,7 @@ JSON_PATH=
 REMOTE=
 SCRIPTS=()
 EXCLUDE_FAMILIES=()
-FAIL_ON_GATE_SKIP=
+FAIL_ON_GATE_SKIPS=()
 JOBS=1
 JOBS_EXPLICIT=0
 JOBS_MAX=8
@@ -2149,11 +2152,11 @@ while [ "$#" -gt 0 ]; do
       ;;
     --fail-on-gate-skip)
       [ "$#" -gt 1 ] || die "--fail-on-gate-skip requires a token (e.g. 'herdr not found')"
-      FAIL_ON_GATE_SKIP=$2
+      FAIL_ON_GATE_SKIPS+=("$2")
       shift 2
       ;;
     --fail-on-gate-skip=*)
-      FAIL_ON_GATE_SKIP=${1#--fail-on-gate-skip=}
+      FAIL_ON_GATE_SKIPS+=("${1#--fail-on-gate-skip=}")
       shift
       ;;
     -h|--help)
@@ -2244,12 +2247,14 @@ fi
 
 # Hand an executing run to bin/fm-test-remote.sh, which owns the transport.
 # The host runs this same runner on this checkout's commit, so the arguments
-# go across unchanged except three: --remote is dropped; --json is written on
-# the host and copied back; and --changed's base is resolved here and sent as
-# a commit, because a relative base such as HEAD~1 names another commit there
-# when uncommitted changes add a commit over HEAD.
+# go across unchanged except four: --remote is dropped; --json is written on
+# the host and copied back; --changed's base is resolved here and sent as a
+# commit, because a relative base such as HEAD~1 names another commit there
+# when uncommitted changes add a commit over HEAD; and each tool a Firstmate
+# host must have gets a --fail-on-gate-skip, so a suite that could not run there
+# is not a pass. zellij is not one: it is an optional backend.
 run_remote() {
-  local arg skip=0 rest=0 base_sha
+  local arg skip=0 rest=0 base_sha tool
   local -a forward=() pre=() opts=()
   for arg in ${ORIGINAL_ARGS[@]+"${ORIGINAL_ARGS[@]}"}; do
     if [ "$skip" -eq 1 ]; then
@@ -2269,6 +2274,9 @@ run_remote() {
     # A script named by its path in this checkout is the same path there.
     case "$arg" in "$ROOT"/*) arg=${arg#"$ROOT"/} ;; esac
     forward+=("$arg")
+  done
+  for tool in herdr jq tmux tasks-axi treehouse python3 node perl git awk mkfifo; do
+    pre+=(--fail-on-gate-skip "$tool not found")
   done
   if [ -n "$JSON_PATH" ]; then
     # The host runs this from <run>/repo and resolves a relative --json
@@ -2328,8 +2336,8 @@ apply_exclude_families
 if [ "${#EXCLUDE_FAMILIES[@]}" -gt 0 ]; then
   SELECTION_DESC="${SELECTION_DESC};exclude-family=$(IFS=,; printf '%s' "${EXCLUDE_FAMILIES[*]}")"
 fi
-if [ -n "$FAIL_ON_GATE_SKIP" ]; then
-  SELECTION_DESC="${SELECTION_DESC};fail-on-gate-skip=$FAIL_ON_GATE_SKIP"
+if [ "${#FAIL_ON_GATE_SKIPS[@]}" -gt 0 ]; then
+  SELECTION_DESC="${SELECTION_DESC};fail-on-gate-skip=$(IFS=,; printf '%s' "${FAIL_ON_GATE_SKIPS[*]}")"
 fi
 if [ "$LIST_ONLY" -eq 1 ] || [ "$LIST_SCHEDULED" -eq 1 ]; then
   if [ "$LIST_SCHEDULED" -eq 1 ]; then
@@ -2553,15 +2561,17 @@ family_bump() {
 
 record_script_result() {
   local script=$1 rc=$2 duration=$3 out=$4 end_iso=$5
-  local base family expected gate_skip gate_reason fail_delta
+  local base family expected gate_skip gate_reason fail_delta token
   base=$(basename "$script")
   family=$(family_for_basename "$base")
   expected=$(expected_gate_skip_for_family "$family")
 
-  if [ -n "$FAIL_ON_GATE_SKIP" ] && detect_gate_skip_token "$out" "$FAIL_ON_GATE_SKIP"; then
-    log "required gate skip token seen in $script: skip: $FAIL_ON_GATE_SKIP"
-    rc=1
-  fi
+  for token in ${FAIL_ON_GATE_SKIPS[@]+"${FAIL_ON_GATE_SKIPS[@]}"}; do
+    if detect_gate_skip_token "$out" "$token"; then
+      log "required gate skip token seen in $script: skip: $token"
+      rc=1
+    fi
+  done
 
   gate_skip=false
   gate_reason=

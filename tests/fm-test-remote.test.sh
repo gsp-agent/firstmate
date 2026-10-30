@@ -17,6 +17,7 @@ set -u
 # shellcheck source=tests/lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
+unset FM_LIVE
 TMP_ROOT=$(fm_test_tmproot fm-test-remote)
 REAL_GATE="$HOME/.agent-state/machine-gate.sh"
 GIT_BIN_DIR=$(dirname "$(command -v git)")
@@ -25,6 +26,7 @@ GIT_BIN_DIR=$(dirname "$(command -v git)")
 mkdir -p "$TMP_ROOT/bin"
 cat >"$TMP_ROOT/bin/ssh" <<'EOF'
 #!/usr/bin/env bash
+printf '%s\n' "$*" >>"$FAKE_SSH_LOG"
 while [ $# -gt 0 ]; do
   case "$1" in
     -n | -T) shift ;;
@@ -39,6 +41,7 @@ case "${FAKE_SSH_FAIL:-}" in
   unreachable) echo "ssh: connect to host $host port 22: Connection refused" >&2; exit 255 ;;
   key) echo "$host: Permission denied (publickey)." >&2; exit 255 ;;
   pull) case "$*" in "cat -- "*) echo "Connection to $host closed by remote host." >&2; exit 255 ;; esac ;;
+  run) case "$*" in *" __host "*) echo "Connection to $host closed by remote host." >&2; exit 255 ;; esac ;;
 esac
 shell=/bin/zsh
 [ -x "$shell" ] || shell=/bin/bash
@@ -100,7 +103,8 @@ new_world() {
   FAKE_HOST_TMP="$w/host-tmp"
   FAKE_HOST_PATH="$(dirname "$BASH"):$GIT_BIN_DIR:/usr/bin:/bin:/usr/sbin:/sbin"
   FAKE_HOST_ENV=
-  export FAKE_HOST_HOME FAKE_HOST_TMP FAKE_HOST_PATH FAKE_HOST_ENV
+  FAKE_SSH_LOG="$w/ssh.log"
+  export FAKE_HOST_HOME FAKE_HOST_TMP FAKE_HOST_PATH FAKE_HOST_ENV FAKE_SSH_LOG
   unset FAKE_SSH_FAIL
   mkdir -p "$REPO/bin" "$REPO/tests" "$SCRATCH" "$FAKE_HOST_TMP"
   write_host_gate "$FAKE_HOST_HOME"
@@ -232,6 +236,32 @@ EOF
   pass "a suite on the host sees this checkout's branch at the commit under test, origin URL, origin/HEAD, refs, and tags"
 }
 
+test_remote_urls_reach_the_host_without_user_info() {
+  local secret=s3cret-fixture-token
+  new_world urls
+  cat >"$REPO/tests/fm-remote-urls.test.sh" <<'EOF'
+#!/usr/bin/env bash
+for remote in origin mirror scp plain; do
+  printf '%s=%s\n' "$remote" "$(git remote get-url "$remote")"
+done
+EOF
+  chmod +x "$REPO/tests/fm-remote-urls.test.sh"
+  commit_all "a urls probe"
+  git -C "$REPO" remote add origin "https://fixture-user:$secret@example.invalid/fixture.git"
+  git -C "$REPO" remote add mirror "ssh://$secret@example.invalid:2222/fixture.git"
+  git -C "$REPO" remote add scp "$secret@example.invalid:o/fixture.git"
+  git -C "$REPO" remote add plain "https://example.invalid/at@sign.git"
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-urls.test.sh
+  expect_code 0 "$RC" "a run from a checkout whose remotes carry user info"$'\n'"$OUT"
+  assert_contains "$OUT" "origin=https://example.invalid/fixture.git" "a token and user leave an https URL"
+  assert_contains "$OUT" "mirror=ssh://example.invalid:2222/fixture.git" "user info leaves an ssh URL, keeping its port"
+  assert_contains "$OUT" "scp=example.invalid:o/fixture.git" "user info leaves an scp-style URL"
+  assert_contains "$OUT" "plain=https://example.invalid/at@sign.git" "an @ in a URL's path stays"
+  assert_not_contains "$OUT" "$secret" "the token does not reach the host's copy"
+  ! grep -q "$secret" "$FAKE_SSH_LOG" || fail "the token was on an ssh command line: $(grep "$secret" "$FAKE_SSH_LOG")"
+  pass "every remote URL has its user info removed before it leaves this machine"
+}
+
 test_changed_base_and_json_cross_the_transport() {
   local json="$TMP_ROOT/changed-json/timing.json"
   new_world changed
@@ -259,7 +289,22 @@ test_an_output_not_copied_back_fails_a_passing_run() {
   assert_contains "$OUT" "ok - probe at " "the suite ran on the host"
   assert_contains "$OUT" "the ssh connection to fakehost failed while copying back timing.json" "the dropped copy-back is named"
   assert_contains "$OUT" "came back: $json" "the missing artifact is named"
-  [ "$(cat "$json")" = stale ] || fail "a failed copy-back changed $json"
+  [ ! -e "$json" ] || fail "a failed copy-back left an earlier run's file at $json"
+
+  echo stale >"$json"
+  export FAKE_SSH_FAIL=run
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --json "$json" tests/fm-remote-probe.test.sh
+  unset FAKE_SSH_FAIL
+  expect_code 2 "$RC" "a connection dropped during the run"$'\n'"$OUT"
+  assert_contains "$OUT" "its verdict is unknown" "the dropped run is named"
+  [ ! -e "$json" ] || fail "a dropped run left an earlier run's file at $json"
+
+  echo stale >"$json"
+  export FAKE_SSH_FAIL=unreachable
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --json "$json" tests/fm-remote-probe.test.sh
+  unset FAKE_SSH_FAIL
+  expect_code 2 "$RC" "an unreachable host"$'\n'"$OUT"
+  [ ! -e "$json" ] || fail "a run that never started left an earlier run's file at $json"
 
   run_remote bin/fm-test-remote.sh "fakehost:$SCRATCH" --pull "absent.json=$absent" -- tests/fm-remote-probe.test.sh
   expect_code 2 "$RC" "a passing run that wrote no requested output"$'\n'"$OUT"
@@ -268,10 +313,12 @@ test_an_output_not_copied_back_fails_a_passing_run() {
 
   : >"$REPO/tests/probe.fail"
   commit_all "fail the probe"
+  echo stale >"$absent"
   run_remote bin/fm-test-remote.sh "fakehost:$SCRATCH" --pull "absent.json=$absent" -- tests/fm-remote-probe.test.sh
   expect_code 1 "$RC" "a failing run that wrote no requested output"$'\n'"$OUT"
+  [ ! -e "$absent" ] || fail "a failing run left an earlier run's file at $absent"
   assert_scratch_empty "runs whose outputs did not come back"
-  pass "a passing run whose requested output does not come back exits 2 naming it, and a failing run keeps its status"
+  pass "a passing run whose requested output does not come back exits 2 naming it, a failing run keeps its status, and no earlier run's file survives"
 }
 
 test_fm_test_only_reaches_the_host() {
@@ -280,6 +327,90 @@ test_fm_test_only_reaches_the_host() {
   expect_code 0 "$RC" "a focused run on the host"$'\n'"$OUT"
   assert_contains "$OUT" "only=test_one" "FM_TEST_ONLY narrows the run on the host"
   pass "FM_TEST_ONLY reaches the host run"
+}
+
+# refuses_live_switch <assignment> <variable> <command...>: the command exits 2
+# naming the variable, with no ssh and nothing run.
+refuses_live_switch() {
+  local assignment=$1 var=$2
+  shift 2
+  rm -f "$FAKE_SSH_LOG"
+  run_remote env "$assignment" "$@"
+  expect_code 2 "$RC" "$assignment on the remote path"$'\n'"$OUT"
+  assert_contains "$OUT" "live switch set here: $var" "the refusal names $var"
+  assert_contains "$OUT" "nothing ran" "the refusal says nothing ran"
+  assert_not_contains "$OUT" "FM_TEST_BEGIN" "no suite ran with $assignment"
+  [ ! -e "$FAKE_SSH_LOG" ] || fail "$assignment still reached ssh: $(cat "$FAKE_SSH_LOG")"
+}
+
+test_a_live_switch_set_here_refuses_the_remote_run() {
+  local remote_args
+  new_world live
+  cat >"$REPO/tests/fm-remote-live.test.sh" <<'EOF'
+#!/usr/bin/env bash
+. tests/lib.sh
+fm_live_gate opt-in FM_FIXTURE_LIVE,FM_FIXTURE_SECOND_NAME tmux
+  fm_live_gate default-on FM_FIXTURE_DEFAULT_ON jq
+echo "ok - the live suite ran"
+EOF
+  chmod +x "$REPO/tests/fm-remote-live.test.sh"
+  commit_all "a live suite"
+  remote_args=(bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-live.test.sh)
+  refuses_live_switch FM_LIVE=1 FM_LIVE "${remote_args[@]}"
+  refuses_live_switch FM_LIVE=0 FM_LIVE "${remote_args[@]}"
+  refuses_live_switch FM_FIXTURE_LIVE=1 FM_FIXTURE_LIVE "${remote_args[@]}"
+  refuses_live_switch FM_FIXTURE_SECOND_NAME=1 FM_FIXTURE_SECOND_NAME "${remote_args[@]}"
+  refuses_live_switch FM_FIXTURE_DEFAULT_ON=0 FM_FIXTURE_DEFAULT_ON "${remote_args[@]}"
+  refuses_live_switch FM_LIVE=1 FM_LIVE bin/fm-stock-bash-check.sh --remote "fakehost:$SCRATCH"
+  refuses_live_switch FM_CLAUDE_CALM_PLUGIN_TEST=0 FM_CLAUDE_CALM_PLUGIN_TEST \
+    "$ROOT/bin/fm-test-remote.sh" "fakehost:$SCRATCH" -- tests/fm-remote-live.test.sh
+  run_remote env FM_NOT_A_LIVE_SWITCH=1 bin/fm-test-remote.sh "fakehost:$SCRATCH" -- tests/fm-remote-probe.test.sh
+  expect_code 0 "$RC" "a variable no fm_live_gate declares"$'\n'"$OUT"
+  assert_laptop_line_untouched "a refused live run"
+  pass "FM_LIVE and each suite's declared live switch, on or off, refuse the remote run by name before any ssh"
+}
+
+test_a_suite_skipping_for_a_missing_host_tool_fails_the_remote_run() {
+  local tools tool
+  new_world skip
+  tools="$FAKE_HOST_HOME/tools"
+  mkdir -p "$tools"
+  # Each suite looks only in the host's tool directory, so the case decides
+  # what the host has wherever this test runs.
+  for tool in herdr jq zellij fixture-tool; do
+    cat >"$REPO/tests/fm-remote-needs-$tool.test.sh" <<EOF
+#!/usr/bin/env bash
+PATH="$tools"
+command -v $tool >/dev/null 2>&1 || { echo "skip: $tool not found"; exit 0; }
+echo "ok - $tool is here"
+EOF
+    chmod +x "$REPO/tests/fm-remote-needs-$tool.test.sh"
+  done
+  commit_all "suites that need a host tool"
+
+  for tool in herdr jq; do
+    run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" "tests/fm-remote-needs-$tool.test.sh"
+    expect_code 1 "$RC" "a suite skipping for a missing $tool on the host"$'\n'"$OUT"
+    assert_contains "$OUT" "FM_TEST_SUMMARY total=1 failed=1" "the summary counts the skip for $tool as a failure"
+    assert_contains "$OUT" "skip: $tool not found" "the run names the missing $tool"
+  done
+
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --fail-on-gate-skip 'fixture-tool not found' tests/fm-remote-needs-herdr.test.sh
+  expect_code 1 "$RC" "a caller's own --fail-on-gate-skip beside a missing herdr"$'\n'"$OUT"
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --fail-on-gate-skip 'fixture-tool not found' tests/fm-remote-needs-fixture-tool.test.sh
+  expect_code 1 "$RC" "a caller's own --fail-on-gate-skip token on the host"$'\n'"$OUT"
+
+  printf '#!/bin/sh\nexit 0\n' >"$tools/herdr"
+  chmod +x "$tools/herdr"
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-needs-herdr.test.sh
+  expect_code 0 "$RC" "a host that has herdr"$'\n'"$OUT"
+  assert_contains "$OUT" "ok - herdr is here" "the suite ran once the host has the tool"
+
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-needs-zellij.test.sh
+  expect_code 0 "$RC" "a suite skipping for the optional zellij backend"$'\n'"$OUT"
+  assert_contains "$OUT" "FM_TEST_SUMMARY total=1 failed=0 skipped_gate=1" "an optional backend's skip stays a counted skip"
+  assert_scratch_empty "runs that skipped on the host"
+  pass "a suite that skips because the host lacks a required tool fails the remote run, a caller's own token still holds, and an optional backend stays a counted skip"
 }
 
 test_a_busy_host_gate_is_a_wait_not_a_failure() {
@@ -524,9 +655,12 @@ test_runs_the_suite_on_the_host_at_the_exact_head_and_cleans_up
 test_a_failing_suite_returns_its_exit_status
 test_uncommitted_changes_run_as_a_commit_over_head
 test_the_host_copy_carries_this_checkouts_branch_remotes_and_tags
+test_remote_urls_reach_the_host_without_user_info
 test_changed_base_and_json_cross_the_transport
 test_an_output_not_copied_back_fails_a_passing_run
 test_fm_test_only_reaches_the_host
+test_a_live_switch_set_here_refuses_the_remote_run
+test_a_suite_skipping_for_a_missing_host_tool_fails_the_remote_run
 test_a_busy_host_gate_is_a_wait_not_a_failure
 test_transport_failures_stop_before_anything_runs
 test_a_host_copy_at_another_commit_runs_nothing

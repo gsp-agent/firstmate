@@ -27,9 +27,10 @@
 #      rather than putting the run on the host's system disk.
 #   3. pushes that commit, --base's commit, and this checkout's branches,
 #      remote-tracking refs, and tags into repo/ over ssh, and gives repo/ each
-#      of this checkout's remotes with the same URL, never fetched, and each
-#      remote's HEAD, so a suite there reads the refs and remotes it reads
-#      here. It checks the commit out on a branch named as HEAD's branch here,
+#      of this checkout's remotes, never fetched, and each remote's HEAD, so a
+#      suite there reads the refs and remotes it reads here. A remote's URL has
+#      any user info, such as a token or git@, removed before it leaves this
+#      machine. It checks the commit out on a branch named as HEAD's branch here,
 #      or detached when HEAD here is detached, and stops before anything runs
 #      unless `git rev-parse HEAD` there prints that commit.
 #   4. runs <script> under the host's ~/.agent-state/machine-gate.sh with
@@ -44,22 +45,31 @@
 #   5. streams the script's output back, copies each --pull <name> from out/
 #      to <path> here (a relative <path> is relative to this checkout's root),
 #      removes the run directory, and exits with the script's own status, or
-#      2 when the script passed but a --pull file did not come back.
+#      2 when the script passed but a --pull file did not come back. Any file
+#      already at a --pull <path> is removed before step 1, so after any exit
+#      that path holds this run's file or nothing.
 #
 # It never runs a suite or takes a machine line on this machine, and it never
 # falls back to a local run: a failure before or during the remote run is
 # reported and exits 2. The host run sees only the host's own environment,
 # plus FM_TEST_ONLY when it is set here, because that narrows which cases a
-# test file runs. Live opt-in variables, such as FM_LIVE or a suite's own,
-# do not cross, so a live check runs on the caller's machine. The machine gate
-# sees none of this machine's markers, such as NO_MISTAKES_GATE, so a run here
-# inside a no-mistakes gate still queues on the host.
+# test file runs. Live switches never cross: with FM_LIVE or a control variable
+# named by a suite's fm_live_gate declaration set to anything here, it refuses
+# before any ssh and names the variable, so a live check runs on the caller's
+# machine without --remote. The machine gate sees none of this machine's
+# markers, such as NO_MISTAKES_GATE, so a run here inside a no-mistakes gate
+# still queues on the host.
 #
-# Exit status: the script's own; 2 when nothing ran (no ssh connection, an ssh
-# key the host refused, a missing scratch root, a failed push or checkout, a
-# rev-parse mismatch, or no machine gate on the host), when the connection
-# dropped mid-run, so the verdict is unknown, or when the script passed but a
-# --pull file was not copied back. A failing script keeps its own status.
+# The script's status is reported as it is. bin/fm-test-run.sh --remote is what
+# fails a suite that skips because the host lacks a tool; a script named here
+# directly gets no such check.
+#
+# Exit status: the script's own; 2 when nothing ran (a live switch set here, no
+# ssh connection, an ssh key the host refused, a missing scratch root, a failed
+# push or checkout, a rev-parse mismatch, or no machine gate on the host), when
+# the connection dropped mid-run, so the verdict is unknown, or when the script
+# passed but a --pull file was not copied back. A failing script keeps its own
+# status.
 #
 # Environment:
 #   FM_TEST_REMOTE_BASH        bash on the host that runs <script> (default
@@ -176,7 +186,9 @@ while [ $# -gt 0 ]; do
       case "${2%%=*}" in
         '' | . | .. | */*) die "--pull names a file in the run's out/ directory, got '${2%%=*}'" ;;
       esac
-      PULLS+=("$2")
+      pull_dest=${2#*=}
+      case "$pull_dest" in /*) ;; *) pull_dest="$ROOT/$pull_dest" ;; esac
+      PULLS+=("${2%%=*}=$pull_dest")
       shift 2
       ;;
     --)
@@ -196,6 +208,28 @@ if ! printf '%s' "$RETRY" | grep -Eq '^[0-9]+(\.[0-9]+)?$' \
   die "FM_TEST_REMOTE_RETRY_SECS must be seconds above 0 and under 180, got '$RETRY'"
 fi
 SSH_OPTS=(-o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=4)
+
+for pull in ${PULLS[@]+"${PULLS[@]}"}; do
+  rm -f -- "${pull#*=}" || die "cannot clear ${pull#*=} for this run's output; nothing ran"
+done
+
+# Print the live switches set here: FM_LIVE and each control variable the
+# suites' fm_live_gate declarations name.
+live_switches_set() {
+  local var
+  for var in FM_LIVE $(sed -nE 's/^[[:space:]]*fm_live_gate[[:space:]]+(default-on|opt-in)[[:space:]]+([A-Za-z0-9_,]+).*/\2/p' "$ROOT"/tests/*.sh 2>/dev/null | tr ',' '\n' | sort -u); do
+    [ -z "${!var:-}" ] || printf '%s ' "$var"
+  done
+}
+LIVE_SET=$(live_switches_set)
+[ -z "$LIVE_SET" ] \
+  || die "live switch set here: ${LIVE_SET% }. It does not cross to $HOST; unset it, or run the live suite on this machine without --remote; nothing ran"
+
+# Print a remote's URL without user info: https://token@host/path becomes
+# https://host/path, and git@host:path becomes host:path.
+without_user_info() {
+  printf '%s\n' "$1" | sed -E -e 's#^([A-Za-z][A-Za-z0-9+.-]*://)[^/]*@#\1#' -e 's#^[^/]*@([^/]*:)#\1#'
+}
 
 # Print the words quoted for the host's login shell, one line.
 quote_words() {
@@ -317,7 +351,7 @@ host_env=()
 copy_setup=
 while IFS= read -r remote; do
   url=$(git -C "$ROOT" config --get "remote.$remote.url") || continue
-  copy_setup="$copy_setup && git remote add $(quote_words "$remote" "$url")"
+  copy_setup="$copy_setup && git remote add $(quote_words "$remote" "$(without_user_info "$url")")"
   if remote_head=$(git -C "$ROOT" symbolic-ref -q "refs/remotes/$remote/HEAD"); then
     copy_setup="$copy_setup && git symbolic-ref $(quote_words "refs/remotes/$remote/HEAD" "$remote_head")"
   fi
@@ -342,7 +376,6 @@ undelivered=
 for pull in ${PULLS[@]+"${PULLS[@]}"}; do
   name=${pull%%=*}
   dest=${pull#*=}
-  case "$dest" in /*) ;; *) dest="$ROOT/$dest" ;; esac
   if ! mkdir -p "$(dirname "$dest")"; then
     say "cannot make the directory for $dest, so it is not written"
   else
