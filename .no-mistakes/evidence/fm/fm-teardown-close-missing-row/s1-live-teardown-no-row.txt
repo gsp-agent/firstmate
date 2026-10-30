@@ -1,0 +1,37 @@
+=== S1: fixed teardown --force of a task with no backlog row and a live worker window ===
+## BEFORE
+-- task record and pending close in state/:
+   present: state/lab-no-row-live.meta
+   absent:  state/lab-no-row-live.backlog-close
+-- lab tmux windows:
+   firstmate:primary
+   firstmate:fm-lab-no-row-live
+-- tasks-axi show lab-no-row-live:
+   error: "Task \"lab-no-row-live\" not found in this backlog"
+   code: NOT_FOUND
+   help[1]: Run `tasks-axi list --file=data/backlog.md` to see existing tasks
+-- place count (fm-dispatch-ready.sh, working crew-state reader):
+   Dispatch: demo has 0 of 1 places free by bin/fm-spawn.sh's own count (holding: lab-no-row-live). Ready for it, in backlog order: next-demo-task. Nothing starts until a place frees; the next cleanup, recorded PR or freed place in demo prints this line again.
+
+## RUN: fm-teardown.sh lab-no-row-live --force
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+warning: bead home /Users/dalecarman/dev/asupersync/.beads/beads.db records no issue_prefix; its ids are not bead references
+teardown lab-no-row-live complete (window firstmate:fm-lab-no-row-live, worktree <lab>/projects/demo-wt-already-removed)
+Backlog: lab-no-row-live has no item in <lab>/data/backlog.md, so nothing there was closed or changed. What its freed place can start is the Dispatch line below.
+Dispatch: demo has 1 of 1 places free by bin/fm-spawn.sh's own count. Ready for it, in backlog order: next-demo-task. Write each brief and start it now with bin/fm-spawn.sh, in that order, until a spawn defers with exit 75 (its row stays queued); the spawn alone decides capacity, never a count of backlog rows.
+## teardown exit code: 0
+
+## AFTER
+-- task record and pending close in state/:
+   absent:  state/lab-no-row-live.meta
+   absent:  state/lab-no-row-live.backlog-close
+-- lab tmux windows:
+   firstmate:primary
+-- tasks-axi show lab-no-row-live:
+   error: "Task \"lab-no-row-live\" not found in this backlog"
+   code: NOT_FOUND
+   help[1]: Run `tasks-axi list --file=data/backlog.md` to see existing tasks
+-- place count (fm-dispatch-ready.sh, working crew-state reader):
+   Dispatch: demo has 1 of 1 places free by bin/fm-spawn.sh's own count. Ready for it, in backlog order: next-demo-task. Write each brief and start it now with bin/fm-spawn.sh, in that order, until a spawn defers with exit 75 (its row stays queued); the spawn alone decides capacity, never a count of backlog rows.
+-- backlog.md diff (before -> after):
+   (unchanged)

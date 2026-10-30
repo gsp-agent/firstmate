@@ -1,0 +1,2 @@
+not ok - teardown failed when the backlog row was already gone: warning: bead home /Users/dalecarman/dev/asupersync/.beads/beads.db records no issue_prefix; its ids are not bead references
+error: atomic-close-missing-row's endpoint and local copy are cleaned up, but its backlog item could not be closed atomically (error: "Task \"atomic-close-missing-row\" not found in this backlog"); the pending close is recorded and the next session start retries it

@@ -1,0 +1,17 @@
+Targeted existing tests (tests/fm-backlog-atomicity.test.sh) run against the fixed code (478e6028).
+Run 1 used a history-less archive copy; its single 'not ok' (spawn refused: code root has no readable history) is that setup, not the product.
+Run 2 re-ran the remaining tests after giving the copy a git history; all passed.
+
+--- run 1 ---
+ok - session start finishes a close an interrupted cleanup recorded but never landed
+ok - session start finishes a close for the matching meta incarnation
+ok - session start preserves a pending close across a transient backlog read failure
+ok - recovery preserves incomplete-cleanup evidence across a failed replay
+not ok - spawn failed: warning: /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-backlog-atomicity.B297wq/close-destructive-interrupt/home/data/atomic-close-destructive-interrupt-b8/launch-brief.md records no ship branch; defaulting to legacy branch fm/atomic-close-destructive-interrupt-b8
+error: spawn refused for atomic-close-destructive-interrupt-b8: cannot determine whether /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-backlog-atomicity.B297wq/close-destructive-interrupt/project shares firstmate's history (the code root <scratch>/head has no readable history, or a shallow clone shares no root commit); fetch full history (git fetch --unshallow) before dispatching publishing work
+error: to let this home publish to path:/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-backlog-atomicity.B297wq/close-destructive-interrupt/project, write 'maintainer path:/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-backlog-atomicity.B297wq/close-destructive-interrupt/project' into /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-backlog-atomicity.B297wq/close-destructive-interrupt/home/config/firstmate-role (docs/configuration.md "Firstmate role"), or pass --upstream-consent path:/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-backlog-atomicity.B297wq/close-destructive-interrupt/project for this one task with the captain's explicit approval
+--- run 2 (copy with git history) ---
+ok - restart recovers closes recorded before destructive cleanup
+ok - session start leaves a captain-held item where the captain put it
+ok - refused teardown leaves the backlog item in flight
+ok - completion retires a task record when its backlog row is already gone, and frees its place

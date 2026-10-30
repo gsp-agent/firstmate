@@ -1,0 +1,80 @@
+=== S4: FIXED teardown --force of a task whose backlog row is In flight (regression) ===
+## BEFORE
+-- task record and pending close in state/:
+   present: state/lab-with-row.meta
+   absent:  state/lab-with-row.backlog-close
+-- lab tmux windows:
+   firstmate:primary
+   firstmate:fm-lab-with-row
+-- tasks-axi show lab-with-row:
+   task:
+     id: lab-with-row
+     title: work item for lab-with-row
+     state: in_flight
+     blocked: no
+     blocked_by: none
+     held: no
+     hold_reason: "-"
+     hold_kind: "-"
+     hold_until: "-"
+     kind: ship
+     repo: demo
+     priority: "-"
+     created: 2026-10-30
+     closed: "-"
+     deps: none
+     links: none
+     body: ""
+-- place count (fm-dispatch-ready.sh, working crew-state reader):
+   Dispatch: demo has 0 of 1 places free by bin/fm-spawn.sh's own count (holding: lab-with-row). Ready for it, in backlog order: next-demo-task. Nothing starts until a place frees; the next cleanup, recorded PR or freed place in demo prints this line again.
+
+## RUN: fm-teardown.sh lab-with-row --force
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+warning: bead home /Users/dalecarman/dev/asupersync/.beads/beads.db records no issue_prefix; its ids are not bead references
+teardown lab-with-row complete (window firstmate:fm-lab-with-row, worktree <lab>/projects/demo-wt-already-removed)
+Backlog: lab-with-row is closed in <lab>/data/backlog.md. What its freed place can start is the Dispatch line below.
+Dispatch: demo has 1 of 1 places free by bin/fm-spawn.sh's own count. Ready for it, in backlog order: next-demo-task. Write each brief and start it now with bin/fm-spawn.sh, in that order, until a spawn defers with exit 75 (its row stays queued); the spawn alone decides capacity, never a count of backlog rows.
+## teardown exit code: 0
+
+## AFTER
+-- task record and pending close in state/:
+   absent:  state/lab-with-row.meta
+   absent:  state/lab-with-row.backlog-close
+-- lab tmux windows:
+   firstmate:primary
+-- tasks-axi show lab-with-row:
+   task:
+     id: lab-with-row
+     title: work item for lab-with-row
+     state: done
+     blocked: no
+     blocked_by: none
+     held: no
+     hold_reason: "-"
+     hold_kind: "-"
+     hold_until: "-"
+     kind: ship
+     repo: demo
+     priority: "-"
+     created: "-"
+     closed: 2026-10-30
+     deps: none
+     links: none
+     body: local main
+-- place count (fm-dispatch-ready.sh, working crew-state reader):
+   Dispatch: demo has 1 of 1 places free by bin/fm-spawn.sh's own count. Ready for it, in backlog order: next-demo-task. Write each brief and start it now with bin/fm-spawn.sh, in that order, until a spawn defers with exit 75 (its row stays queued); the spawn alone decides capacity, never a count of backlog rows.
+-- backlog.md diff (before -> after):
+   --- <lab>/backlog.before	2026-10-30 00:42:31
+   +++ <lab>/data/backlog.md	2026-10-30 00:42:48
+   @@ -1,9 +1,9 @@
+    # Backlog
+    
+    ## In flight
+   -- [ ] lab-with-row - work item for lab-with-row (repo: demo) (kind: ship) (since 2026-10-30)
+   -
+    ## Queued
+    - [ ] next-demo-task - next work waiting for a demo place (repo: demo) (kind: ship) (since 2026-10-30)
+    
+    ## Done
+   +- [x] lab-with-row - work item for lab-with-row (repo: demo) (kind: ship) (done 2026-10-30)
+   +  local main

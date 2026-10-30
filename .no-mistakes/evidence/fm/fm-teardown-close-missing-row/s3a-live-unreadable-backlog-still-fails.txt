@@ -1,0 +1,20 @@
+=== S3a: FIXED teardown --force when the backlog file is unreadable (chmod 000) ===
+## BEFORE
+   present: state/lab-unreadable.meta
+   absent:  state/lab-unreadable.backlog-close
+-- lab tmux windows:
+   firstmate:primary
+   firstmate:fm-lab-unreadable
+
+## RUN: fm-teardown.sh lab-unreadable --force
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+error: task lab-unreadable cannot be torn down because whether its backlog item is still held for the captain could not be read; fix that read and retry rather than risk closing a captain call with no recorded answer
+fm-captain-hold: error: "EACCES: permission denied, open '<lab>/data/backlog.md'"
+## teardown exit code: 1
+
+## AFTER
+   present: state/lab-unreadable.meta
+   absent:  state/lab-unreadable.backlog-close
+-- lab tmux windows:
+   firstmate:primary
+   firstmate:fm-lab-unreadable

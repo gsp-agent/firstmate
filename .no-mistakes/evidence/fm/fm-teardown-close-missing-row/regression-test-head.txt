@@ -1,0 +1,2 @@
+ok - completion retires a task record when its backlog row is already gone, and frees its place
+ok - completion refuses to report success while its item is still open, and records what it owes

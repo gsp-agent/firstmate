@@ -1,0 +1,72 @@
+=== S5: FIXED teardown --force of a captain-held task whose row is removed after the hold pre-check ===
+## BEFORE
+-- task record and pending close in state/:
+   present: state/lab-held-vanishes.meta
+   absent:  state/lab-held-vanishes.backlog-close
+-- lab tmux windows:
+   firstmate:primary
+   firstmate:fm-lab-held-vanishes
+-- tasks-axi show lab-held-vanishes:
+   task:
+     id: lab-held-vanishes
+     title: work item for lab-held-vanishes
+     state: in_flight
+     blocked: no
+     blocked_by: none
+     held: yes
+     hold_reason: captain decision pending
+     hold_kind: captain
+     hold_until: "-"
+     kind: ship
+     repo: demo
+     priority: "-"
+     created: 2026-10-30
+     closed: "-"
+     deps: none
+     links: none
+     body: ""
+-- place count (fm-dispatch-ready.sh, working crew-state reader):
+   Dispatch: demo has 0 of 1 places free by bin/fm-spawn.sh's own count (holding: lab-held-vanishes). Ready for it, in backlog order: next-demo-task. Nothing starts until a place frees; the next cleanup, recorded PR or freed place in demo prints this line again.
+
+## RUN: fm-teardown.sh lab-held-vanishes --force
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+warning: bead home /Users/dalecarman/dev/asupersync/.beads/beads.db records no issue_prefix; its ids are not bead references
+teardown lab-held-vanishes complete (window firstmate:fm-lab-held-vanishes, worktree <lab>/projects/demo-wt-already-removed)
+Backlog: lab-held-vanishes has no item in <lab>/data/backlog.md, so nothing there was closed or changed. What its freed place can start is the Dispatch line below.
+Dispatch: demo has 1 of 1 places free by bin/fm-spawn.sh's own count. Ready for it, in backlog order: next-demo-task. Write each brief and start it now with bin/fm-spawn.sh, in that order, until a spawn defers with exit 75 (its row stays queued); the spawn alone decides capacity, never a count of backlog rows.
+## teardown exit code: 0
+
+## AFTER
+-- task record and pending close in state/:
+   absent:  state/lab-held-vanishes.meta
+   absent:  state/lab-held-vanishes.backlog-close
+-- lab tmux windows:
+   firstmate:primary
+-- tasks-axi show lab-held-vanishes:
+   error: "Task \"lab-held-vanishes\" not found in this backlog"
+   code: NOT_FOUND
+   help[1]: Run `tasks-axi list --file=data/backlog.md` to see existing tasks
+-- place count (fm-dispatch-ready.sh, working crew-state reader):
+   Dispatch: demo has 1 of 1 places free by bin/fm-spawn.sh's own count. Ready for it, in backlog order: next-demo-task. Write each brief and start it now with bin/fm-spawn.sh, in that order, until a spawn defers with exit 75 (its row stays queued); the spawn alone decides capacity, never a count of backlog rows.
+-- backlog.md diff (before -> after):
+   --- <lab>/backlog.before	2026-10-30 00:44:58
+   +++ <lab>/data/backlog.md	2026-10-30 00:45:19
+   @@ -1,7 +1,6 @@
+    # Backlog
+    
+    ## In flight
+   -- [ ] lab-held-vanishes - work item for lab-held-vanishes (repo: demo) (kind: ship) (since 2026-10-30) (hold: captain decision pending) (hold-kind: captain)
+    ## Queued
+    - [ ] next-demo-task - next work waiting for a demo place (repo: demo) (kind: ship) (since 2026-10-30)
+    
+
+-- race injection log:
+   pending-close record at removal time:
+     id=lab-held-vanishes
+     data=<lab>/data
+     spawn_gen=spawn-lab-lab-held-vanishes
+     cleanup_incomplete=0
+     mode=retain
+     arg=--note
+     arg=local%20main
+   removed row lab-held-vanishes before: tasks-axi show lab-held-vanishes --file <lab>/data/backlog.md

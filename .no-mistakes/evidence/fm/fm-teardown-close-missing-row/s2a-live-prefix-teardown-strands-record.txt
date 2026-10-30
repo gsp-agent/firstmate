@@ -1,0 +1,34 @@
+=== S2a: PRE-FIX teardown (base 2a33f467) --force of a task with no backlog row ===
+## BEFORE
+-- task record and pending close in state/:
+   present: state/lab-stranded.meta
+   absent:  state/lab-stranded.backlog-close
+-- lab tmux windows:
+   firstmate:primary
+   firstmate:fm-lab-stranded
+-- tasks-axi show lab-stranded:
+   error: "Task \"lab-stranded\" not found in this backlog"
+   code: NOT_FOUND
+   help[1]: Run `tasks-axi list --file=data/backlog.md` to see existing tasks
+-- place count (fm-dispatch-ready.sh, working crew-state reader):
+   Dispatch: demo has 0 of 1 places free by bin/fm-spawn.sh's own count (holding: lab-stranded). Ready for it, in backlog order: next-demo-task. Nothing starts until a place frees; the next cleanup, recorded PR or freed place in demo prints this line again.
+
+## RUN: fm-teardown.sh lab-stranded --force
+warning: bead home /Users/dalecarman/dev/asupersync/.beads/beads.db records no issue_prefix; its ids are not bead references
+error: lab-stranded's endpoint and local copy are cleaned up, but its backlog item could not be closed atomically (error: "Task \"lab-stranded\" not found in this backlog"); the pending close is recorded and the next session start retries it
+## teardown exit code: 1
+
+## AFTER
+-- task record and pending close in state/:
+   present: state/lab-stranded.meta
+   present: state/lab-stranded.backlog-close
+-- lab tmux windows:
+   firstmate:primary
+-- tasks-axi show lab-stranded:
+   error: "Task \"lab-stranded\" not found in this backlog"
+   code: NOT_FOUND
+   help[1]: Run `tasks-axi list --file=data/backlog.md` to see existing tasks
+-- place count (fm-dispatch-ready.sh, working crew-state reader):
+   Dispatch: demo has 0 of 1 places free by bin/fm-spawn.sh's own count (holding: lab-stranded). Ready for it, in backlog order: next-demo-task. Nothing starts until a place frees; the next cleanup, recorded PR or freed place in demo prints this line again.
+-- backlog.md diff (before -> after):
+   (unchanged)
