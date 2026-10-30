@@ -2005,7 +2005,7 @@ set_priority() {  # <home> <id> <priority>
 
 tree_wait_entry() {  # <home> <id> -> the entry's path, if any
   local entry
-  for entry in "$1"/state/project-tree-wait/*/"$2"; do
+  for entry in "$1"/state/project-tree-wait/*/*/"$2"; do
     [ ! -f "$entry" ] || printf '%s\n' "$entry"
   done
 }
@@ -2105,6 +2105,71 @@ test_same_second_arrivals_keep_their_order() {
   expect_code 0 "$rc" "the earlier waiter did not take the freed tree: $out"
   [ -n "$(tree_wait_entry "$home" task-a)" ] || fail "the later waiter lost its place in the line"
   pass "arrivals of one priority within one second keep their order, whatever their task ids"
+}
+
+# The next two cases drive the line's own helpers, as chip reproduced them on
+# PR 196, because their setups (two homes with one task id on one origin, one
+# teardown returning two trees) have no cheap end-to-end fixture here.
+tree_line_helpers() {  # <command...> -> runs it with the line's helpers loaded
+  (
+    # shellcheck source=bin/fm-project-capacity-lib.sh
+    . "$ROOT/bin/fm-project-capacity-lib.sh" || exit 1
+    "$@"
+  )
+}
+
+# chip on PR 196: a task id is unique only within its Firstmate home, but the
+# line is shared by every home on the machine. With entries keyed by id alone,
+# a secondmate home's same-task overwrote the primary's entry and wake file,
+# and each saw no one ahead of it.
+two_homes_one_id() {  # <dir>
+  local dir=$1
+  fm_tree_wait_join "$dir/line" same-task 1 "$dir/home-1/state" 1000 || return 1
+  fm_tree_wait_join "$dir/line" same-task 1 "$dir/home-2/state" 1000 || return 1
+  printf 'waiters=%s\n' "$(fm_tree_wait_order "$dir/line" 1000 | wc -l | tr -d ' ')"
+  fm_tree_wait_ahead "$dir/line" same-task 1 1000 "$dir/home-2/state"
+  printf 'ahead-of-second=%s\n' "$FM_TREE_WAIT_AHEAD"
+  fm_tree_wait_ahead "$dir/line" same-task 1 1000 "$dir/home-1/state"
+  printf 'ahead-of-first=%s\n' "$FM_TREE_WAIT_AHEAD"
+  fm_tree_wait_leave "$dir/line" same-task "$dir/home-1/state"
+  fm_tree_wait_ahead "$dir/line" same-task 1 1000 "$dir/home-2/state"
+  printf 'after-first-left=%s/%s\n' "$(fm_tree_wait_order "$dir/line" 1000 | wc -l | tr -d ' ')" "$FM_TREE_WAIT_AHEAD"
+}
+test_one_task_id_in_two_homes_keeps_two_places() {
+  local dir out
+  dir="$TMP_ROOT/tree-line-two-homes"
+  mkdir -p "$dir/home-1/state" "$dir/home-2/state"
+  out=$(tree_line_helpers two_homes_one_id "$dir" 2>&1) || fail "the line's helpers failed: $out"
+  assert_contains "$out" "waiters=2" "two homes waiting with one task id hold one place between them: $out"
+  assert_contains "$out" "ahead-of-second=1" "the second home's start sees no one ahead of it: $out"
+  assert_contains "$out" "ahead-of-first=0" "the first home's start lost its place: $out"
+  assert_contains "$out" "after-first-left=1/0" "the first home's start leaving took the second's place: $out"
+  pass "one task id waiting from two homes keeps two places in the line"
+}
+
+# chip on PR 196: a teardown that returns two trees wakes the line once per
+# tree, and each wake went to the unchanged head, so the second waiter slept
+# until its fallback retry. The k-th wake reaches the k-th waiter.
+two_wakes() {  # <dir>
+  local dir=$1
+  fm_tree_wait_join "$dir/line" task-a 1 "$dir/home/state" 1000 || return 1
+  fm_tree_wait_join "$dir/line" task-b 1 "$dir/home/state" 1000 || return 1
+  printf 'wake-1=%s\n' "$(fm_tree_wait_wake "$dir/line" 1000)"
+  printf 'wake-2=%s\n' "$(fm_tree_wait_wake "$dir/line" 1000)"
+  printf 'wake-3=%s\n' "$(fm_tree_wait_wake "$dir/line" 1000)"
+}
+test_two_returned_trees_wake_two_waiters() {
+  local dir out
+  dir="$TMP_ROOT/tree-line-two-wakes"
+  mkdir -p "$dir/home/state"
+  out=$(tree_line_helpers two_wakes "$dir" 2>&1) || fail "the line's helpers failed: $out"
+  assert_contains "$out" "wake-1=task-a" "the first returned tree did not wake the head: $out"
+  assert_contains "$out" "wake-2=task-b" "the second returned tree did not wake the second waiter: $out"
+  case "$out" in
+    *"wake-3=") ;;
+    *) fail "a third tree woke a waiter that already holds a wake: $out" ;;
+  esac
+  pass "two returned trees wake the first two waiters, not the head twice"
 }
 
 # A waiter that no deferral refreshed within FM_TREE_WAIT_STALE seconds has no
@@ -2294,6 +2359,8 @@ test_away_spend_cap_is_rechecked_at_publication
 test_freed_tree_goes_to_the_highest_priority_waiter
 test_later_arrival_of_one_priority_waits_behind
 test_same_second_arrivals_keep_their_order
+test_one_task_id_in_two_homes_keeps_two_places
+test_two_returned_trees_wake_two_waiters
 test_stale_waiter_stops_holding_the_line
 test_teardown_wakes_the_head_waiter_at_once
 test_waiter_lives_as_long_as_its_owner

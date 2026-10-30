@@ -4492,7 +4492,7 @@ spawn_tree_wait_join() {
   [ -n "$SPAWN_TREE_WAIT_DIR" ] || return 0
   spawn_tree_priority
   if fm_tree_wait_join "$SPAWN_TREE_WAIT_DIR" "$ID" "$SPAWN_TREE_PRIORITY" "$STATE" "$(date +%s)" "${FM_TREE_WAIT_OWNER_PID:-}"; then
-    echo "tree-wait: $SPAWN_TREE_WAIT_DIR/.wake-$ID" >&2
+    echo "tree-wait: $FM_TREE_WAIT_WAKE" >&2
   else
     echo "warning: task $ID could not join project $(basename "$PROJ_ABS")'s waiting line for its next tree" >&2
   fi
@@ -4509,7 +4509,7 @@ if { [ "$RELAUNCH" -eq 0 ] || [ "$RELAUNCH_FRESH" = 1 ]; } && [ "$KIND" != secon
   fi
   if [ -n "$SPAWN_TREE_WAIT_DIR" ] && [ -d "$SPAWN_TREE_WAIT_DIR" ]; then
     spawn_tree_priority
-    fm_tree_wait_ahead "$SPAWN_TREE_WAIT_DIR" "$ID" "$SPAWN_TREE_PRIORITY" "$(date +%s)"
+    fm_tree_wait_ahead "$SPAWN_TREE_WAIT_DIR" "$ID" "$SPAWN_TREE_PRIORITY" "$(date +%s)" "$STATE"
     if [ "$FM_TREE_WAIT_AHEAD" -ge "$FM_PROJECT_CAPACITY_POOL_FREE" ]; then
       spawn_tree_wait_join
       echo "deferred: project $(basename "$PROJ_ABS")'s $FM_PROJECT_CAPACITY_POOL_FREE free tree(s) go first to the start(s) waiting ahead of task $ID in its line: $FM_TREE_WAIT_AHEAD_IDS; task $ID was not launched, it keeps its place in the line, and its backlog item stays queued - dispatch it again once a tree is returned" >&2
@@ -7091,7 +7091,7 @@ if [ "$RELAUNCH" -eq 0 ]; then
   SPAWN_META_TMP=
   # The tree is this task's now, so it leaves the project's waiting line,
   # still under the project lock that ordered it.
-  [ -z "$SPAWN_TREE_WAIT_DIR" ] || fm_tree_wait_leave "$SPAWN_TREE_WAIT_DIR" "$ID"
+  [ -z "$SPAWN_TREE_WAIT_DIR" ] || fm_tree_wait_leave "$SPAWN_TREE_WAIT_DIR" "$ID" "$STATE"
 fi
 
 # Fuse the backlog In-flight transition into the publication that just created
