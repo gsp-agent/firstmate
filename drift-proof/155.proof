@@ -1,1 +1,2 @@
-pending-pr: 155 .agent-config-dtjsb
+# Harvest replay keeps this PR: tests/fm-inbox.test.sh distinguishes upstream from this PR and the nightly replay passes.
+pr: 155
