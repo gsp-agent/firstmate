@@ -101,7 +101,6 @@ pr: 92
 # The earlier "Install-time proof" list in drift-measurements.txt predates these cuts and is superseded; do not reinstall its whole-commit approvals.
 # Alternate --proof inputs apply only to manual checks (bin/fm-drift-nightly.sh owns selection).
 # Guard and proof files have no automatic exemption; their complete patches must match this sequence.
-# tests/fm-spawn-defer-slot.test.sh
 # Harvest replay keeps this PR for rebase: tests/fm-spawn-orca-worktree.test.sh distinguishes upstream from this PR; its proof is keyed for its rebase series.
 pr: 98
 # Redaction scan on https://github.com/gsp-agent/firstmate/pull/109: no home-folder path in drift-measurements.txt or in any object archives/fork-cuts.bundle carries; test_documented_cut_recovery_restores_a_cut_from_the_bundle in tests/fm-drift-nightly.test.sh recovers a cut from the rebuilt bundle.

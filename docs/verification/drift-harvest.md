@@ -3,11 +3,23 @@
 Audience: maintainer verification.
 
 This record holds the scripted harvest replay of every remove-verdict change that carries a test.
-Each test ran red on current upstream files and green with its change applied, one suite at a time under the shared machine gate.
-A test that distinguishes upstream from the change makes the change a keep.
-A keep whose nightly replay still fails on another line is a keep for its rebase series, not a plain keep.
-A timed-out or never-admitted run is unmeasured, not a remove verdict.
-The keep and keep-rebase proofs are keyed in the drift proof files that sit beside this record's subject scripts.
+The pass ran on 2026-10-29.
+Red trees were built from kunchenguid/main at two commits because upstream moved during the pass: `7bbf71b4a702f0795941eaabd43f942bb9f42707` for the laptop batches and `05196e30ead54796dfbe986db61abe9d8df9e3d2` for the later mini batches.
+
+For each PR and test, a scratch clone is checked out at that upstream commit.
+For the red run, only the PR's test files are overlaid and the suite runs under the shared machine gate (`bash ~/.agent-state/machine-gate.sh run --needs firstmate`).
+For the green run, the PR's full diff is then overlaid and the suite runs again.
+A test distinguishes upstream from the change when a red `not ok` subtest is absent from the green output.
+
+The verdicts are:
+
+- `keep`: a distinguishing subtest, a green exit of 0, and a clean `bin/fm-drift-nightly.sh check` replay of the PR's committed overlay against the same upstream commit.
+- `keep-rebase`: a distinguishing subtest, but a nonzero green exit or a nightly replay that still fails on another line; the PR is a keep for its rebase series, not a plain keep.
+- `remove`: no distinguishing subtest.
+- `unmeasured`: a suite exit of 124 (timed out) or 75 (never admitted), never a remove.
+- `unmeasured-candidate`: not run in the deciding pass because another test on the same PR had already settled that PR's verdict.
+
+The keep and keep-rebase proofs are keyed in `drift-proof.txt` and `drift-proof/<N>.proof` at the repository root.
 Raw replay output stays out of this repository; this table names only the PR, the test file, and the verdict.
 
 | PR | Test | Verdict |
