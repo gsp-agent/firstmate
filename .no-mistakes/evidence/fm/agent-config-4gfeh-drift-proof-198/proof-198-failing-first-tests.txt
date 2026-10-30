@@ -1,0 +1,31 @@
+### test_spawn_decline_refusal_names_the_pair_and_this_homes_contact on before (code at c8bc3334, tests from e5520d68)
+not ok - the spawn's last line did not name the pair, the store, the project and this home's contact (missing: 'project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-claude-trust.i0TWJ9/spawn-decline/project in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-claude-trust.i0TWJ9/spawn-decline/claude-config/.claude.json records declined external CLAUDE.md imports (hasClaudeMdExternalIncludesApproved=false with hasClaudeMdExternalIncludesWarningShown=true), a recorded decline this script will not override. Tell ops-desk about this refusal.')
+--- output ---
+error: could not pre-register Claude workspace trust for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-claude-trust.i0TWJ9/spawn-decline/wt; refusing to launch a claude worker that would wedge on the trust dialog; inspect window firstmate:fm-declinespawn
+exit: 1
+
+### test_spawn_decline_refusal_names_the_pair_and_this_homes_contact on after (code at e5520d68, tests from e5520d68)
+ok - fm-spawn.sh: a decline refusal's last line names the recorded pair, store, project and this home's contact
+exit: 0
+
+### test_check_decline_refusal_is_the_last_line on before (code at c8bc3334, tests from e5520d68)
+not ok - the check's last stderr line did not carry the pair, the store, the project and this home's contact (missing: 'error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-claude-trust.qMVUmA/check-decline-last/wt' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-claude-trust.qMVUmA/check-decline-last/claude-config/.claude.json' (check only; nothing was written): project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-claude-trust.qMVUmA/check-decline-last/project in /privat
+--- output ---
+error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-claude-trust.qMVUmA/check-decline-last/wt' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-claude-trust.qMVUmA/check-decline-last/claude-config/.claude.json' (check only; nothing was written)
+exit: 1
+
+### test_check_decline_refusal_is_the_last_line on after (code at e5520d68, tests from e5520d68)
+ok - fm-claude-trust.sh --check: a decline refusal is the last stderr line and names the pair, store, project and contact
+exit: 0
+
+### test_oversized_contact_never_changes_the_verdict on before (code at c8bc3334, tests from e5520d68)
+not ok - an oversized contact did not fall back to the generic pointer (missing: 'Tell whoever runs this Firstmate home (config/claude-decline-contact can name them) about this refusal.')
+--- output ---
+error: project entry for /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-claude-trust.8jBvhe/oversized-contact/project in /private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-claude-trust.8jBvhe/oversized-contact/claude-config/.claude.json already declined external CLAUDE.md imports; refusing to override that consent. To recover, remove hasClaudeMdExternalIncludesApproved and hasClaudeMdExternalIncludesWarningShown from that project entry and approve the imports dialog interactively once
+error: refusing to pre-register Claude trust: trust cannot be recorded for '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-claude-trust.8jBvhe/oversized-contact/wt' in '/private/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T/fm-claude-trust.8jBvhe/oversized-contact/claude-config/.claude.json' (check only; nothing was written)
+exit: 1
+
+### test_oversized_contact_never_changes_the_verdict on after (code at e5520d68, tests from e5520d68)
+ok - fm-claude-trust.sh: an oversized contact never changes the verdict and falls back to the generic pointer
+exit: 0
+

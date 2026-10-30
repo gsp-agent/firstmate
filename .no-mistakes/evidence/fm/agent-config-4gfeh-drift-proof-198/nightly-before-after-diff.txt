@@ -1,0 +1,23 @@
+# Nightly lines that changed between base 04b36d8f (-) and target 4e7d3796 (+), excluding run time and commit-list lines
+2c2
+< ahead: 244
+---
+> ahead: 245
+45a46
+> path-ok: bin/fm-claude-trust.sh
+97a99
+> path-ok: bin/fm-spawn.sh
+120a123
+> path-ok: docs/configuration.md
+241a245
+> path-ok: tests/fm-claude-trust.test.sh
+339,340d342
+< path-drift: bin/fm-claude-trust.sh
+< path-drift: bin/fm-spawn.sh
+345,346c347
+< path-drift: docs/configuration.md
+< path-drift: tests/fm-claude-trust.test.sh
+---
+> path-drift: drift-proof/198.proof
+355d355
+< error: missing manifest entry for PR 198

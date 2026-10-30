@@ -1,0 +1,9 @@
+$ git status --short (disposable clone at base)
+?? drift-proof/198.proof
+$ bin/fm-drift-nightly.sh check --repo <disposable clone at base> --no-fetch  (filtered to PR 198 lines and exit)
+path-drift: bin/fm-claude-trust.sh
+path-drift: bin/fm-spawn.sh
+path-drift: docs/configuration.md
+path-drift: tests/fm-claude-trust.test.sh
+error: missing manifest entry for PR 198
+exit: 1

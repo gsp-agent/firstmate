@@ -1,0 +1,612 @@
+### nightly at target (4e7d379661195c9732da6e2b87bbe876a580ab7f)
+$ bin/fm-drift-nightly.sh nightly --repo <disposable clone at target> --log <tmp log>
+run: 2026-10-30T04:43:57-0500
+From https://github.com/kunchenguid/firstmate
+ * branch              main       -> FETCH_HEAD
+behind: 157
+ahead: 245
+path-ok: .agents/skills/afk/SKILL.md
+path-ok: .agents/skills/agent-skill-trigger-index/SKILL.md
+path-ok: .agents/skills/ask-user-authority/SKILL.md
+path-ok: .agents/skills/captain-hold-lifecycle/SKILL.md
+path-ok: .agents/skills/firstmate-coding-guidelines/SKILL.md
+path-ok: .agents/skills/firstmate-self-repo/SKILL.md
+path-ok: .agents/skills/harness-adapters/references/common/control-and-recovery.md
+path-ok: .agents/skills/harness-adapters/references/common/model-and-effort.md
+path-ok: .agents/skills/harness-adapters/references/harness/claude.md
+path-ok: .agents/skills/harness-adapters/references/harness/codex.md
+path-ok: .agents/skills/harness-adapters/references/harness/cursor.md
+path-ok: .agents/skills/harness-adapters/references/harness/grok.md
+path-ok: .agents/skills/operational-home-layout/SKILL.md
+path-ok: .agents/skills/quota-array-dispatch/SKILL.md
+path-ok: .agents/skills/session-start-recovery/SKILL.md
+path-ok: .agents/skills/ship-landing/SKILL.md
+path-ok: .agents/skills/stow/SKILL.md
+path-ok: .agents/skills/updatefirstmate/SKILL.md
+path-ok: .agents/skills/validation-supervision/SKILL.md
+path-ok: .claude/settings.json
+path-ok: .github/workflows/ci.yml
+path-ok: .gitignore
+path-ok: .no-mistakes.yaml
+path-ok: .pi/extensions/fm-branch-supervision.ts
+path-ok: .pi/extensions/fm-primary-pi-watch.ts
+path-ok: .pi/extensions/lib/fm-branch-dispatch.ts
+path-ok: AGENTS.md
+path-ok: CONTRIBUTING.md
+path-ok: archives/fork-cuts.bundle
+path-ok: bin/backends/herdr.sh
+path-ok: bin/backends/tmux.sh
+path-ok: bin/fm-afk-start.sh
+path-ok: bin/fm-agent-process-lib.sh
+path-ok: bin/fm-backlog-transition-lib.sh
+path-ok: bin/fm-bootstrap.sh
+path-ok: bin/fm-branch-prompt.sh
+path-ok: bin/fm-brief-heading-lib.sh
+path-ok: bin/fm-brief.sh
+path-ok: bin/fm-busy-lib.sh
+path-ok: bin/fm-captain-hold.sh
+path-ok: bin/fm-check-lib.sh
+path-ok: bin/fm-classify-lib.sh
+path-ok: bin/fm-claude-stop-autoarm.sh
+path-ok: bin/fm-claude-trust.sh
+path-ok: bin/fm-claude-turn.sh
+path-ok: bin/fm-claude-wake.sh
+path-ok: bin/fm-codex-trust.sh
+path-ok: bin/fm-composer-lib.sh
+path-ok: bin/fm-config-inherit-lib.sh
+path-ok: bin/fm-contributions.sh
+path-ok: bin/fm-control-lib.sh
+path-ok: bin/fm-control.sh
+path-ok: bin/fm-crew-resume-lib.sh
+path-ok: bin/fm-crew-state.sh
+path-ok: bin/fm-cursor-crew-guard.mjs
+path-ok: bin/fm-cursor-guard.sh
+path-ok: bin/fm-dispatch-profile-lib.sh
+path-ok: bin/fm-dispatch-ready.sh
+path-ok: bin/fm-dispatch-resolve.sh
+path-ok: bin/fm-dod-lib.sh
+path-ok: bin/fm-drift-nightly.sh
+path-ok: bin/fm-ff-lib.sh
+path-ok: bin/fm-fleet-snapshot.sh
+path-ok: bin/fm-grok-worker-lib.sh
+path-ok: bin/fm-guard.sh
+path-ok: bin/fm-herdr-session-cleanup.sh
+path-ok: bin/fm-hold-route-idle.py
+path-ok: bin/fm-home-summary-refresh.sh
+path-ok: bin/fm-inactive-reconcile.sh
+path-ok: bin/fm-inbox.sh
+path-ok: bin/fm-install-treehouse.sh
+path-ok: bin/fm-lease.sh
+path-ok: bin/fm-lint.sh
+path-ok: bin/fm-live-session-lib.sh
+path-ok: bin/fm-merge-outcome-lib.sh
+path-ok: bin/fm-nm-run-lib.sh
+path-ok: bin/fm-pending-reply-lib.sh
+path-ok: bin/fm-pr-bead.sh
+path-ok: bin/fm-pr-check.sh
+path-ok: bin/fm-pr-lib.sh
+path-ok: bin/fm-pr-made-with.sh
+path-ok: bin/fm-pr-merge.sh
+path-ok: bin/fm-pr-poll-shipped.sha256
+path-ok: bin/fm-pr-poll.sh
+path-ok: bin/fm-pr-queue-sweep.sh
+path-ok: bin/fm-procevent-when.sh
+path-ok: bin/fm-procevent.sh
+path-ok: bin/fm-project-capacity-lib.sh
+path-ok: bin/fm-promote.sh
+path-ok: bin/fm-quota-axi-lib.sh
+path-ok: bin/fm-quota-choose.sh
+path-ok: bin/fm-remote-job-lib.sh
+path-ok: bin/fm-review-diff.sh
+path-ok: bin/fm-send.sh
+path-ok: bin/fm-session-start.sh
+path-ok: bin/fm-sessionstart-run.sh
+path-ok: bin/fm-spawn.sh
+path-ok: bin/fm-stock-bash-check.sh
+path-ok: bin/fm-supervise-daemon.sh
+path-ok: bin/fm-supervision-engine-lib.sh
+path-ok: bin/fm-supervision-host.sh
+path-ok: bin/fm-supervision-lib.sh
+path-ok: bin/fm-task-reap-lib.sh
+path-ok: bin/fm-teardown.sh
+path-ok: bin/fm-test-isolation-proof.sh
+path-ok: bin/fm-test-machine-line-lib.sh
+path-ok: bin/fm-test-run.sh
+path-ok: bin/fm-timeout-lib.sh
+path-ok: bin/fm-turnend-guard.sh
+path-ok: bin/fm-update.sh
+path-ok: bin/fm-wake-drain.sh
+path-ok: bin/fm-wake-lib.sh
+path-ok: bin/fm-watch-arm.sh
+path-ok: bin/fm-watch-checkpoint.sh
+path-ok: bin/fm-watch-statewait.py
+path-ok: docs/agent-control.md
+path-ok: docs/architecture.md
+path-ok: docs/arm-pretool-check.md
+path-ok: docs/captain-hold-lifecycle.md
+path-ok: docs/cd-guard.md
+path-ok: docs/configuration.md
+path-ok: docs/documentation-audiences.json
+path-ok: docs/fm-test-isolation-proof.md
+path-ok: docs/fm-test-portable-shards.md
+path-ok: docs/forgejo-tea-integration.md
+path-ok: docs/herdr-backend.md
+path-ok: docs/pi-supervision-branch.md
+path-ok: docs/remote-secondmates.md
+path-ok: docs/scripts.md
+path-ok: docs/secondmate-parent-channel.md
+path-ok: docs/sessionstart-nudge.md
+path-ok: docs/supervision-host.md
+path-ok: docs/turnend-guard.md
+path-ok: docs/verification/codex.md
+path-ok: docs/verification/dispatch-resolve.md
+path-ok: docs/verification/lint-option-a.md
+path-ok: docs/verification/public-followup.md
+path-ok: docs/verification/runtime-backends.md
+path-ok: docs/verification/supervision.md
+path-ok: docs/watcher-continuity.md
+path-ok: drift-measurements.txt
+path-ok: drift-proof.txt
+path-ok: drift-proof/100.proof
+path-ok: drift-proof/101.proof
+path-ok: drift-proof/102.proof
+path-ok: drift-proof/103.proof
+path-ok: drift-proof/104.proof
+path-ok: drift-proof/106.proof
+path-ok: drift-proof/107.proof
+path-ok: drift-proof/108.proof
+path-ok: drift-proof/110.proof
+path-ok: drift-proof/111.proof
+path-ok: drift-proof/112.proof
+path-ok: drift-proof/126.proof
+path-ok: drift-proof/127.proof
+path-ok: drift-proof/129.proof
+path-ok: drift-proof/130.proof
+path-ok: drift-proof/131.proof
+path-ok: drift-proof/148.proof
+path-ok: drift-proof/155.proof
+path-ok: drift-proof/166.proof
+path-ok: drift-proof/167.proof
+path-ok: drift-proof/168.proof
+path-ok: drift-proof/169.proof
+path-ok: drift-proof/170.proof
+path-ok: drift-proof/172.proof
+path-ok: drift-proof/173.proof
+path-ok: drift-proof/174.proof
+path-ok: drift-proof/175.proof
+path-ok: drift-proof/176.proof
+path-ok: drift-proof/177.proof
+path-ok: drift-proof/178.proof
+path-ok: drift-proof/179.proof
+path-ok: drift-proof/180.proof
+path-ok: drift-proof/181.proof
+path-ok: drift-proof/182.proof
+path-ok: drift-proof/183.proof
+path-ok: drift-proof/184.proof
+path-ok: drift-proof/185.proof
+path-ok: drift-proof/186.proof
+path-ok: drift-proof/187.proof
+path-ok: drift-proof/188.proof
+path-ok: drift-proof/189.proof
+path-ok: drift-proof/190.proof
+path-ok: drift-proof/191.proof
+path-ok: drift-proof/192.proof
+path-ok: drift-proof/195.proof
+path-ok: drift-proof/197.proof
+path-ok: drift-proof/199.proof
+path-ok: drift-proof/29.proof
+path-ok: drift-proof/55.proof
+path-ok: drift-proof/65.proof
+path-ok: drift-proof/68.proof
+path-ok: drift-proof/70.proof
+path-ok: drift-proof/71.proof
+path-ok: drift-proof/72.proof
+path-ok: drift-proof/73.proof
+path-ok: drift-proof/75.proof
+path-ok: drift-proof/77.proof
+path-ok: drift-proof/78.proof
+path-ok: drift-proof/79.proof
+path-ok: drift-proof/80.proof
+path-ok: drift-proof/81.proof
+path-ok: drift-proof/82.proof
+path-ok: drift-proof/83.proof
+path-ok: drift-proof/84.proof
+path-ok: drift-proof/85.proof
+path-ok: drift-proof/86.proof
+path-ok: drift-proof/87.proof
+path-ok: drift-proof/88.proof
+path-ok: drift-proof/89.proof
+path-ok: drift-proof/90.proof
+path-ok: drift-proof/91.proof
+path-ok: drift-proof/93.proof
+path-ok: drift-proof/94.proof
+path-ok: drift-proof/95.proof
+path-ok: drift-proof/96.proof
+path-ok: drift-proof/99.proof
+path-ok: tests/captures/claude-code-2.1.300/scrolled-recent.ansi
+path-ok: tests/captures/claude-code-2.1.300/scrolled-visible.ansi
+path-ok: tests/captures/claude-code-2.1.302/exit-popup.ansi
+path-ok: tests/captures/claude-code-2.1.302/slash-popup.ansi
+path-ok: tests/fixtures.sh
+path-ok: tests/fm-ask-user-authority.test.sh
+path-ok: tests/fm-backend-herdr-presentation-e2e.test.sh
+path-ok: tests/fm-backend-herdr.test.sh
+path-ok: tests/fm-backend-meta-for-window.test.sh
+path-ok: tests/fm-backend-orca.test.sh
+path-ok: tests/fm-backend.test.sh
+path-ok: tests/fm-backlog-atomicity.test.sh
+path-ok: tests/fm-bearings-snapshot.test.sh
+path-ok: tests/fm-bootstrap.test.sh
+path-ok: tests/fm-branch-supervision.test.sh
+path-ok: tests/fm-brief.test.sh
+path-ok: tests/fm-busy-state.test.sh
+path-ok: tests/fm-captain-hold-backfill.test.sh
+path-ok: tests/fm-captain-hold-lifecycle-lane-a.test.sh
+path-ok: tests/fm-captain-hold-lifecycle-lane-b.test.sh
+path-ok: tests/fm-captain-hold-lifecycle.test.sh
+path-ok: tests/fm-ci-workflow.test.sh
+path-ok: tests/fm-classify-decision-key.test.sh
+path-ok: tests/fm-claude-stop-autoarm.test.sh
+path-ok: tests/fm-claude-trust.test.sh
+path-ok: tests/fm-claude-wake.test.sh
+path-ok: tests/fm-codex-limit-live-e2e.test.sh
+path-ok: tests/fm-codex-trust.test.sh
+path-ok: tests/fm-composer-lib.test.sh
+path-ok: tests/fm-contributions.test.sh
+path-ok: tests/fm-control-herdr-smoke.test.sh
+path-ok: tests/fm-control-relaunch.test.sh
+path-ok: tests/fm-control.test.sh
+path-ok: tests/fm-crew-resume-herdr-smoke.test.sh
+path-ok: tests/fm-crew-resume.test.sh
+path-ok: tests/fm-crew-state-fork-budget.test.sh
+path-ok: tests/fm-crew-state.test.sh
+path-ok: tests/fm-cursor-guard.test.sh
+path-ok: tests/fm-daemon.test.sh
+path-ok: tests/fm-dispatch-ready.test.sh
+path-ok: tests/fm-dispatch-resolve.test.sh
+path-ok: tests/fm-dod-lib.test.sh
+path-ok: tests/fm-drift-nightly.test.sh
+path-ok: tests/fm-fleet-snapshot-view.test.sh
+path-ok: tests/fm-fork-budget.test.sh
+path-ok: tests/fm-fork-free-helpers.test.sh
+path-ok: tests/fm-gate-refuse.test.sh
+path-ok: tests/fm-gotmp.test.sh
+path-ok: tests/fm-grok-harness.test.sh
+path-ok: tests/fm-guard-stale-banner.test.sh
+path-ok: tests/fm-harness-liveness-drift-live-e2e.test.sh
+path-ok: tests/fm-herdr-session-cleanup.test.sh
+path-ok: tests/fm-home-summary-refresh.test.sh
+path-ok: tests/fm-inactive-reconcile.test.sh
+path-ok: tests/fm-inbox.test.sh
+path-ok: tests/fm-kimi-harness.test.sh
+path-ok: tests/fm-launch-prompt-signals-live-e2e.test.sh
+path-ok: tests/fm-lint-workflows.test.sh
+path-ok: tests/fm-lint.test.sh
+path-ok: tests/fm-live-session.test.sh
+path-ok: tests/fm-nm-run-lib.test.sh
+path-ok: tests/fm-nm-test-contract.test.sh
+path-ok: tests/fm-pi-branch-extension.test.sh
+path-ok: tests/fm-pi-watch-extension.test.sh
+path-ok: tests/fm-pm-live.test.sh
+path-ok: tests/fm-pr-check-security.test.sh
+path-ok: tests/fm-pr-merge.test.sh
+path-ok: tests/fm-pr-ready-callback.test.sh
+path-ok: tests/fm-procevent-when.test.sh
+path-ok: tests/fm-procevent.test.sh
+path-ok: tests/fm-project-capacity.test.sh
+path-ok: tests/fm-public-followup.test.sh
+path-ok: tests/fm-quota-choose.test.sh
+path-ok: tests/fm-relaunch-fresh-slot.test.sh
+path-ok: tests/fm-remote-job.test.sh
+path-ok: tests/fm-remote-secondmate-lifecycle-e2e.test.sh
+path-ok: tests/fm-route-due-fork-budget.test.sh
+path-ok: tests/fm-secondmate-harness.test.sh
+path-ok: tests/fm-secondmate-safety.test.sh
+path-ok: tests/fm-session-lock-ancestry.test.sh
+path-ok: tests/fm-session-start.test.sh
+path-ok: tests/fm-spawn-compact-adviser-disable.test.sh
+path-ok: tests/fm-spawn-defer-slot.test.sh
+path-ok: tests/fm-spawn-dispatch-profile.test.sh
+path-ok: tests/fm-spawn-orca-worktree.test.sh
+path-ok: tests/fm-spawn-pool-base-freshen.test.sh
+path-ok: tests/fm-spawn-queue-start.test.sh
+path-ok: tests/fm-spawn-worker-git-identity.test.sh
+path-ok: tests/fm-spawn-worktree-settle.test.sh
+path-ok: tests/fm-stock-bash-check.test.sh
+path-ok: tests/fm-supervision-events.test.sh
+path-ok: tests/fm-supervision-host-attended-live-e2e.test.sh
+path-ok: tests/fm-supervision-host-lane-a.test.sh
+path-ok: tests/fm-supervision-host-lane-b.test.sh
+path-ok: tests/fm-supervision-host.test.sh
+path-ok: tests/fm-tangle-guard.test.sh
+path-ok: tests/fm-task-delivery.test.sh
+path-ok: tests/fm-test-fixtures.test.sh
+path-ok: tests/fm-test-isolation-proof.test.sh
+path-ok: tests/fm-test-run.test.sh
+path-ok: tests/fm-timeout-lib.test.sh
+path-ok: tests/fm-trace-context-spawn.test.sh
+path-ok: tests/fm-turnend-guard.test.sh
+path-ok: tests/fm-update.test.sh
+path-ok: tests/fm-wake-drain-fork-budget.test.sh
+path-ok: tests/fm-wake-drain-unread-status.test.sh
+path-ok: tests/fm-watch-arm-sleep-fork-budget.test.sh
+path-ok: tests/fm-watch-arm.test.sh
+path-ok: tests/fm-watch-checkpoint.test.sh
+path-ok: tests/fm-watch-fixed-fork-budget.test.sh
+path-ok: tests/fm-watch-inactive-fork-budget.test.sh
+path-ok: tests/fm-watch-recovery-loop.test.sh
+path-ok: tests/fm-watch-scan-fork-budget.test.sh
+path-ok: tests/fm-watch-sleep-fork-budget.test.sh
+path-ok: tests/fm-watch-state-wait.test.sh
+path-ok: tests/fm-watch-window-fork-budget.test.sh
+path-ok: tests/fm-watcher-lock.test.sh
+path-ok: tests/herdr-test-safety.sh
+path-ok: tests/lib.sh
+path-ok: tests/watch-fork-budget-helpers.sh
+path-ok: treehouse.toml
+path-drift: bin/fm-backend.sh
+path-drift: bin/fm-task-bead-lib.sh
+path-drift: bin/fm-task-data-lib.sh
+path-drift: bin/fm-task-data.py
+path-drift: bin/fm-watch.sh
+path-drift: drift-proof/198.proof
+path-drift: tests/fm-pr-made-with.test.sh
+path-drift: tests/fm-task-data-offload.test.sh
+path-drift: tests/fm-teardown.test.sh
+path-drift: tests/fm-wake-queue.test.sh
+path-drift: tests/fm-watch-triage.test.sh
+path-drift: tests/wake-helpers.sh
+unproven: 4e7d379661195c9732da6e2b87bbe876a580ab7f proof: record PR 198's failing-first tests in its drift proof
+keep: 04b36d8f743438c1bc79a0ec542dabdadbf9b667 fix(bin): retire a task record when its backlog row is already gone (#199)
+keep: e5520d68257060f9d9ed7c77864fae0c522ebfc7 fix(bin): name the recorded imports decline and who to tell in a refused Claude spawn (#198)
+keep: 2a33f467cdcf899cb16d5418a62f562cc7124acc refactor(bin): cut the per-poll window index and add upstream-lean inflow rules (#197)
+keep: c8bc33340b3ed9b57601defc6b8cad457750c782 fix(bin): hold a home's task set only across a spawn's publication, guarded by a teardown epoch (#195)
+unproven: 9b3b5b0a925f9272eac88da3d7d687a0b5e13fe6 fix(bin): discover bead homes and date ended tasks so offload stops keeping them forever (#194)
+keep: c7751ac23a8a371cee18d977bcf7cb2a666e8e1f fix(bin): check Claude workspace trust before a relaunch stops the old agent (#191)
+unproven: 43045f59bbf1363dd4accb7b3344827838a0ff0b test: give watcher-exit waits one shared 300-poll bound (#193)
+keep: cbf3d373dbb0d950818308255df081230b6e93ed fix(bin): defer a spawn that loses the shared Treehouse project lock instead of refusing it (#192)
+keep: 810d6ae30ca27399cab0e401aeb36b496c973dba fix(bin): report Codex crew sessions to Herdr so a restore resumes them (#185)
+keep: f2e9216e61c62ea3aa3a48cb717859f77a8d1ff6 feat(bin): add a machine-wide worker ceiling beside per-project capacity (#190)
+keep: 1ea9accc31bd73668b60c877854aedc3c4aba2bf feat(bin): wake the watcher cycle on state writes with a kqueue wait (#189)
+keep: 9644b302b7cdbf9a371ca38afd3c1823d4cfa588 perf(bin): wait without a sleep process in the procevent owner guard and when polls (#188)
+keep: a22529b3fb9f01bd1473a58059d4e3650e0ab328 feat(bin): fm-spawn --queue-start refuses while a Dale-stop stands (#187)
+keep: e2bf8f977acff53be01e113bf3af1b1b606dc1f5 fix(bin): stop the drift nightly sending an inbox note on a red run (#186)
+keep: f4591e6ef0ef023d7c73fa0c966e91e8c414a13d fix(bin): report a proof patch stacked on unproven work as drift instead of failing the check (#184)
+keep: 52da4ad91f071e11658c6db144f637256f93bfc8 fix(bin): a re-appended wake row queued before a watcher started no longer counts as new work (#183)
+keep: cb664f23cb049212bf4243fe617b3a2c2617d36f fix(bin): keep a task's pane open while its newest status says working after its PR merges (#182)
+keep: 7970fcff276376afc72f8db15590a25f7743e8a5 feat(bin): offload closed tasks' repositories as verified archives at the end of each sweep (#181)
+keep: 55e5f27d5ac733965531b4b372b3e9e92e526465 test: fix load-only flakes in the supervision-host and wake-queue suites (#180)
+keep: e3758436ed56080f7f487d70b4fa90a664f1614e fix(bin): a relaunch of an old-clone ship starts in a fresh slot of this home's clone (#174)
+keep: 6dd37c2ae83d01cebc639e7417eb48dd3096f869 fix(bin): refuse to merge a hold-labeled PR in fm-pr-merge (#179)
+keep: 833ba217d6931a99a99e34e0d9b70cd0705cbf22 fix(bin): release the steering lease on a clean claimed pool slot the reuse test refuses (#178)
+keep: 6e58c8a8084ee1916a3b2b9cba977ff6019a15fe fix(bin): release a claimed target slot's claim and lease when a spawn aborts (#177)
+keep: fb4463d9688432814dfc6c8d1f3ee594a0ce3ea9 fix(bin): refuse relaunch into a pool slot reassigned to another task (#176)
+keep: 163269e0726c101bd04cdeb5deae36c95f2e3b76 fix(bin): adopt claimed own-clone pool slots from lease steering instead of leaking the lease (#175)
+keep: 2703782f9d7593ac6cd74f57733c3ff7d4f121a5 fix(bin): a tree a task still claims with nothing running in it is held, and a spawn that sees one does not ask the allocator (#173)
+keep: 64373821f0e544cbdb809ec0d66add6105126d79 feat(bin): run Grok workers under a trimmed per-task Grok home (#168)
+keep: 449f74a8d1b3c119da9958e3b81760305f6f11a9 fix(drift): move PR 169's proof entry into drift-proof/169.proof (#172)
+keep: 371c4fee34f335633dea1b9f3f7aad1d87e16536 fix(bin): the Dispatch line reads this home's clone of a recorded older clone (#169)
+keep: ee883bc0a377c0c7c869a06b84f111f23d21c093 fix(drift): each PR records its drift proof in its own file, so open PRs stop conflicting (#170)
+keep: ec15c8300755b3e3b6ac6c013513b596e4874073 fix(bin): free starts count pool trees, a stopped worker's place reaches main, captain rows are not work (#164)
+pending: c94c04e05de4f0b13b431abe83b52f92c5e5b4f0 .agent-config-dtjsb fix(tests): stop the take-over case's lock holder when the case fails or its home is gone (#167)
+keep: 81a89088748ba650495f435ec7a76d9647a09c47 fix(bin): end an arm whose home or state directory is gone, and stop the successor a host test left before its home goes (#166)
+keep: 71d900e330f18521718800105bda4c01a18f96eb fix(bin): lower the supervision host turn bound to 540 seconds (#165)
+keep: 9690cd19d7a589fd3967dcb98d7ed4dc8f07c6ef fix(bin): read a crew as merged from the recorded merge marker when the forge read is skipped (#163)
+keep: a5fa9d577749f4307114c41eeafd1551e6f6e371 perf(bin): wait without a sleep process in fm-watch-arm.sh's steady loops (#162)
+keep: f9fab1d42f3631027d104e689e21a73dee065277 perf(bin): read unchanged status logs without processes in the wake drain (#161)
+keep: 2f8ac29b0a59ccce45d556d1bdbe396cd0f3de27 fix(bin): a freed place says what it can start, and fm-spawn alone judges capacity (#160)
+keep: 001eb0f60ad05b19ca1a79f8813ccb60e91476cb fix(bin): single-flight the Stop claim against a waker rewake and carry the away line in the waker banner (#159)
+keep: 02ce380fb47a43238840faa1c7ac19ad878a65a9 perf(bin): load fm-crew-state.sh's libraries without starting processes (#158)
+keep: c61994724fc2c3d122f87bb3afdb98365055cbcb fix(bin): grow the stock-Bash step wall with machine load (#156)
+keep: c78421c3d1de9570a2ef8bad4b53852dc196e14a perf(bin): read crew metadata and status verdicts without forks in fm-crew-state.sh (#157)
+keep: 307d003c27e3580dfbef89eb7b4c42ee3d7827b3 fix(bin): an exhausted label route falls through the default walk (#153)
+pending: 11c85a6cdbf387abb9e7ec1cb2247b39a715b340 .agent-config-dtjsb fix(bin): mark an idle main with stale unread wake rows as unable to receive in fm-inbox ready (#155)
+keep: 1991ea087f00ad2313d170d6c0b69123905ca484 fix(bin): stop the watcher rejecting a contributions check mid-arm (#154)
+keep: 2c55278ed46886c0c2f8ae7c94fe674e59b916dd docs(bin): document fm-send --key passthrough per backend (#152)
+keep: 6a3e343aa7788c93c4759d96038040c6f5cca2c8 fix(brief): a wait for review of the pushed head is a merge-only pause (#151)
+keep: 6c90cd9f77e1c4c63199c994fc3b76827401cc6c feat(bin): wake an idle Claude primary when no Stop hook runs (#150)
+keep: e492870f7ddc47db0a73c98e3e4ae007f3950ec3 fix(bin): take free own-clone slots only from the configured treehouse pool (#147)
+keep: 3b87064602fec29500de64c437193649ea6806dc fix(bin): accept Grok mode-suffixed composer titles at exact width (#149)
+pending: 6b404015805dc9f45e73b741db6613c515a36b63 .agent-config-dtjsb fix: surface and retry primary watch rebind failures (#148)
+keep: cfd72172437f9c715bccc1754c25c68f3ffeef84 fix(bin): deliver unread wake records at the Stop hook and in the park (#146)
+keep: 442e7a4747f61e2622740f48db1dc67d71f0e808 feat(bin): record optional route reasons on spawn and relaunch (#144)
+keep: be08d7189b9a9cfcd4e4b8ffc7c8179d4491fb0b fix(bin): bound snapshot parent-activity and registry scans by CPU time, not wall time (#145)
+keep: 037902bc5669d42680b825d6f48df7326da5cfbd fix(bin): accept short bead IDs that br expands when reading task bead status (#142)
+keep: 936228d216f6f8bcacfbf4ed54715b267ee9d780 fix(bin): refuse approvals submitted before the PR head commit existed (#141)
+keep: 65ddbb26c6713681921bc9638eae264b602ded6f fix(watch): bound covering arms without a harness (#143)
+keep: d6b8de4d43ae3f582017479c1504b937accf03a8 perf(watch): builtin sleep cuts idle polls from 3 to 2 processes (#140)
+keep: f96e6fa9d0be3d60c2aefb214674acb54b8425a3 perf(watch): fixed poll reads, 64 → 3 processes per poll (#139)
+keep: efbe1b61c798d790fe6f2cce77e3e90e8fab1034 perf(watch): defer inactive scans until due, 164 → 64 processes per poll (#138)
+keep: 446eb1e7f53f7d03dc580227a7488129263dadbf perf(watch): per-window poll reads, 35 -> 10 processes per window (ks05d.4) (#137)
+keep: 13b4a94eb768de1ed2b4aab9741be67f0074c41c fix(watch): stop orphaned arms and reap test fixtures (#136)
+keep: 8b560f7cfcf30d22d929cf932fb948f257c2cbbf fix: add the verified owning bead to GitHub PRs before registration (#132)
+keep: 9973eb8a4c3e78882fcaa72983eead73d4afd509 fix: keep registered PR identity readable after control relaunch (#133)
+keep: 9045e3da14756373dee87b5df8f2e33342e495e4 fix: block merge handoff when the task's worker is not alive (#134)
+keep: 6d1adfb6886b6705fb0950be04daf62262f0919b Offload closed-task evidence only after verified independent backup (#135)
+pending: 41a0d972d8bd6ad77a424c4cc7d3670d3b02bc2a .agent-config-dtjsb perf(watch): read every status log with one stat per poll (ks05d.4) (#131)
+pending: 7c76acbd663f2873c2cc1e48ec472c25a4fbf315 .agent-config-dtjsb fix(route): a Cursor fallback to Codex runs at medium, not xhigh (uk4z8) (#130)
+pending: e45c14f12baf0529ec032852b05827a4d6ad8cda .agent-config-dtjsb fix(captain-hold): cache idle holds whose listing body is cut short (ks05d.3) (#129)
+pending: 4b9275d90cb6eda4a35171c6edc8a957b7857740 .agent-config-dtjsb Skip unchanged idle captain holds before row dispatch (#127)
+keep: 689fb68d5abf3cde52cb8e32915620bf74d3ac67 fix: pin Firstmate gate agents to [claude, codex] again (#128)
+pending: e0288d6edf0d8e055e3e3657227c9ce55797918f .agent-config-dtjsb Reduce captain-hold routing fork overhead (#126)
+keep: 4fb22770fa3adc9632f02c90e556227b03c9e17c test: recognize marker-wrapped treehouse commands in defer-slot fixture (#125)
+keep: 28946c225cf17482a81c66988ca157469ecb8eea fix: resolve configured home ancestors in task cleanup (#124)
+keep: 48a1a07ad512e6e5c654967666b562ddefccc811 fix(task-data): keep the drain sweep alive past its launcher and drain large evidence sets in batches (ojg69) (#121)
+keep: 1bdd9575eaae2952b40981e709c48d275790a41d fix: carry retired-inbox refusal onto upstream-lean (#123)
+keep: 1580d6f9b33a8cc0de599cbb6dd716811d518fa5 fix: preserve trusted Codex pin on upstream-lean (#122)
+keep: 619fa803e78084a87569140e22cac111662a365b fix: keep task cleanup tied to bead completion and restore closed tasks (#120)
+keep: 3bf27678ba0f3f8d6c95f88baaf092a4b4f71c1c fix: fail fast when treehouse exits without a worktree (#62)
+keep: e4df55a9e5e85080ee35d584e0f14d77808c7fc9 fix: let relaunch stop a Claude agent's live background work with --stop-background (#119)
+keep: e10b37f7181d2e50a44d7b0d5112ea9d0e70a275 fix(holds): deliver recorded answers to the current task (#115)
+keep: ee930e28a04e92606ef8dd7f00e509c8cc1d1a16 Validate owned queue intake through recorded captain releases (#116)
+keep: 798b1c3f7398db2d8954f2c667612e63df2e0c08 Notify optional callback after PR registration (#117)
+keep: 8ea07a1cf97c1b27fbce3954deb5e55a1daed501 Merge pull request #114 from gsp-agent/fix/merge-owner-handoff
+keep: 71f683e29cd404b3d6e123e45cc818a08e1e7c9a test: record merge handoff regression proof
+keep: 60bacd0ac5646c984b0a6de9d40d8b210edd0f99 fix: deliver confirmed merges to the existing task owner
+pending: c10040e0ecd6456cc88eb10f78387ffc25f08504 .agent-config-dtjsb fix(watch): a host-home recovery closes on its oldest queued row as itself (.agent-config-bjx9p) (#110)
+pending: a67d9894caf45fd34c3202a9e82b70de7e92d9d0 .agent-config-dtjsb fm-pr-merge: --expect-head refuses a merge whose verified head moved (.agent-config-0t7ys) (#112)
+keep: f68b4e1f2d204d0504d3053c652f8dfd878a195f drift-measurements: drop captain-private fleet records from the public fork (#109)
+pending: 146b6dd07d735987f53a5b48d9301fa19bac86b1 .agent-config-dtjsb status: a worker can say it waits only on its own PR's merge, [awaits=merge] (.agent-config-q3y8o) (#111)
+pending: b58070ae7e5c2bd7599d5b5ac94a93ef908c1c89 .agent-config-dtjsb fix: resolve task cleanup references by their owning repository (#108)
+pending: 9244da507c33274fb80188f3ddbfdc95f5ebb1d1 .agent-config-dtjsb fix: a hold-domain sweep slice does not wake main (#107)
+pending: cc5135f8bb40c2ba35ba6eae6b2c4e4f660de904 .agent-config-dtjsb test: clean up Pi branch extension test subprocesses (#65)
+pending: 165e08bb2c96c76d5aff7c644a606f652e50ac79 .agent-config-onxre fix: return prepared ship slots after pre-launch deferrals and aborts (#98)
+pending: 1d80a61803ccf47e27fa0ceb78f4549e256ee149 .agent-config-dtjsb fix: a failed process list fails the stock-bash cap (#106)
+unproven: 95fb0ba8f83d4c0f2b5c41b6ba88dc165d039020 fix: look up a window's meta once per watcher poll
+pending: 0a4ad26497ee3c703e60516e17e2242abd67fc16 .agent-config-dtjsb captain-hold: write the whole normalized routing reason in backfill (.agent-config-m4t5e) (#104)
+pending: c62d2b1038dface202de8dc7f62fae2aa4982489 .agent-config-dtjsb captain-hold: backfill Decision owners for pre-contract holds (.agent-config-m4t5e) (#103)
+keep: 3571f03ce3c6dcf0056c6c7e9af9835bad4a3e8c fix: enforce ShellCheck memory and time caps on every lint run (#92)
+pending: 4778d82199d94a6d2bd21bb5e738843ea749161e .agent-config-dtjsb fix: route usage-limited Codex tasks to Claude on launch and relaunch (#70)
+pending: df48dd1ab7827ca7427409a46fa7cd49a8601edd .agent-config-dtjsb fix: stop background shells and recover Claude exit pickers (#102)
+pending: 14e9a3f557ee998976bc10d2b312d356237ee5c5 .agent-config-dtjsb fix(spawn): presentation failure falls back flat and dead v1 journals recover (.agent-config-q6v5e) (#101)
+pending: d8b9cb1600f6ad9b2879e07435b54411af446d9c .agent-config-dtjsb fix(spawn): take only a treehouse slot from the project's own clone (.agent-config-q6v5e) (#99)
+pending: 4ce948e5b2287ac57297d1778628bda1d7ead234 .agent-config-dtjsb fix(spawn): accept a clear label route on queue start (.agent-config-r7162) (#100)
+pending: 175344d7a041b38e29f4f21b27f86825bc6d9ecf .agent-config-dtjsb fix: route technical holds to their declared agent owners (#29)
+pending: 934e7fa351c73f6facb8bcebc1500bceeff90057 .agent-config-dtjsb Merge pull request #96 from gsp-agent/fm/ty23z-wakes
+pending: 474f0c69e9c11030b16015dbcbb795ae12ebe086 .agent-config-dtjsb fix(watch): freshness bounds the PM proof; plain homes keep the legacy resurface (.agent-config-ty23z.1)
+pending: 82e8df5e89607a8c7902d9b5de7eaf4ff4954bdb .agent-config-dtjsb Merge pull request #95 from gsp-agent/fm/ty23z-wakes
+pending: e101ec0122b77b7f0776eb28eada41bf5b99c1b7 .agent-config-dtjsb fix(watch): main wakes only for what only main can do (.agent-config-ty23z.1)
+pending: 30bfbd62949d72b36f3006466a55452af955641c .agent-config-dtjsb fix(brief): a worker retries a no-mistakes daemon reply timeout with backoff instead of stopping (#94)
+pending: 1d30da03ba404807c691f957ea6fc2c96006686b .agent-config-dtjsb fix(supervision): daemon owns wake routing in every posture (.agent-config-ty23z cut 4) (#93)
+pending: 57ef6551b33bcf8d585f3711d0eec9e46609836e .agent-config-dtjsb fix: enforce dispatch profiles for worker spawns and relaunches (#55)
+pending: cce2c7c9573f803fe299f5805763e2e135c03fce .agent-config-dtjsb fix: isolate watcher suites and clean up interrupted test runs (#87)
+pending: 62586a1acf277f08eaf62b5978e2f16941e79858 .agent-config-dtjsb fix: keep watcher coverage active while main handles wakes (#91)
+pending: 77c9f9d19830d09c947f3b1dbdcb777c818758bf .agent-config-dtjsb fix: verify live remote worker ownership during startup (#83)
+pending: e1f649749a90b1caafdace2f617e344b00c25431 .agent-config-dtjsb fix(dod): a no-mistakes worker starts its own gate run at its first done (#90)
+pending: 533a77911563f65fddec199c7ef3b6252868603a .agent-config-dtjsb fix: coalesce background home-summary publication (#88)
+pending: 4686c3609aa7875bad272e79f78cf26320728f38 .agent-config-dtjsb fix(lint): diff a fork branch against upstream-lean, not stale main (2 roots, was 127) (#89)
+pending: ef96230d6ba2878c4cf16e1c06b2a0522b5f70fd .agent-config-dtjsb fix: count unreadable crew states toward project capacity (#85)
+pending: 2bb55e12a369b812ef618c03e61cacc771ce0df0 .agent-config-dtjsb perf(drain): stop the wake drain forking per cursor row (748 s to 74-99 s) (#86)
+pending: c4f47a6c47d32c5d36b4f1dd5e8e092e7e1ebf4f .agent-config-dtjsb fix(bin): size task-data kept text from lstat and cap it at 16 MiB before reading (#72)
+pending: 3829d299981aa09bae8f08fb4259072675eb2081 .agent-config-dtjsb fix: apply agent git identity to worker launches (#71)
+pending: 97a04611499cc70a540b152cb477d0d822980f32 .agent-config-dtjsb fix: defer worker dispatch when live-session checks are not clear (#84)
+keep: e9fdc88abb4197feeef4589309f2b60a5fc8aca2 fix: preserve drift proofs across squash merges (#53)
+pending: cf86f6531dd2786b6f82f3459180dce517288832 .agent-config-dtjsb Brief: a docs-only no-surface warning is the worker's to answer (#82)
+pending: 6cfb10ff2d27da93544f33f6724cc555fa65039d .agent-config-dtjsb Teardown: bound every lock wait so an orphan cannot spin forever (#81)
+pending: 9143fde1171cbbdf1ac63810ef382f9ba89a47a9 .agent-config-dtjsb fix: disable inherited MCP servers for Claude task workers (#68)
+pending: 27ad4c0e92b58e9f4c173de191fb4897d8eee177 .agent-config-dtjsb Brief: gated runs for gsp-agent/firstmate skip the ci step (#80)
+pending: 0114926a3c9455a8d24e54bcdc0b4054274e5d7a .agent-config-dtjsb fix(capacity): count only working tasks toward project capacity (.agent-config-ydbn7) (#79)
+pending: 60b4076e4d4d710b5668154a52e62fd9fa5cdd89 .agent-config-dtjsb Merge pull request #78 from gsp-agent/fm/mxwex-paused-close
+pending: 6dd200dcde3d94997ec3539499277e11b9e583f9 .agent-config-dtjsb fix(merge): a changes-request at the head vetoes that head (.agent-config-ydbn7) (#77)
+pending: 6884d1abc80d7f8c276500bc0b6b78c3e7a89208 .agent-config-dtjsb no-mistakes(lint): Quote done literals in reconciliation test loops
+pending: 68570963ed284642622586bf38814737d815cd32 .agent-config-dtjsb no-mistakes(document): Document context-paused pane closure and watcher defaults
+pending: ff98f86c03276b1842152f23b10e9c0b4ff47769 .agent-config-dtjsb no-mistakes(review): Classify context pauses by remaining wait content
+pending: 5518faef0d63ab568bc58b1683300656643a5278 .agent-config-dtjsb fix(merge): ignore checks where Actions is off; require chip approval at head (.agent-config-ydbn7) (#75)
+pending: 422eea7fea38c269c20ebcbe2d2b82c2d7de4d4c .agent-config-dtjsb no-mistakes(review): Handle coordinated waits in context pause classification
+pending: 56644cfbc6f16a5198501a6992338e36b70436bf .agent-config-dtjsb ci: run the stock macOS Bash 3.2 check locally before push, not on GitHub (#73)
+pending: af83243520b6ba5f8a042fb2671b1949cccda344 .agent-config-dtjsb no-mistakes(review): Allow arbitrary actions in replacement session waits
+pending: 97a45e032a3f1f75226cf29d133995654e7013bf .agent-config-dtjsb fix(inbox): say at once when no wake consumer can receive (.agent-config-ydbn7) (#76)
+pending: 75c71635529e904a32c12dae760089634f9eb813 .agent-config-dtjsb no-mistakes(review): Serialize hold checks and allow fresh session waits
+pending: c32f2a89d40208ae4a3bf2f4b0c392d43daa74c4 .agent-config-dtjsb no-mistakes(review): Honor captain holds and retain context-paused crew state
+pending: 08da58ea8f282e00787a3c40f82abab14e48876d .agent-config-dtjsb fix: close context-paused Herdr crew panes and quicken inactive scan
+pending: d0c8bd47f9e9af126dd39f1ff1fc9b0666f9a481 .agent-config-dtjsb fix: reduce GitHub GraphQL reads for PR polling and merges (#66)
+pending: 423b215fff6f954228cb1e5a7a2a02b798d9017a .agent-config-dtjsb Merge pull request #69 from gsp-agent/fm/fm-mxwex-pane-close-drive
+pending: fe2c5f959c21a550a3b0afcf71e2c490fb8883ab .agent-config-dtjsb fix: drain held task data after teardown safely (#67)
+pending: 917a9c3747a3fed9023b2aeed920d9f9aab62029 .agent-config-dtjsb no-mistakes(lint): Quote done literals to resolve ShellCheck warnings
+pending: 62d907cb142956ceb12a8dc7ce1dbdf23377dfe2 .agent-config-dtjsb no-mistakes(document): Document guarded Herdr pane closure
+pending: b34730a0d8f24ff9b5c8eb64744f1c1bb46f0310 .agent-config-dtjsb no-mistakes(review): Serialize native submissions with terminal pane closure
+pending: de50672471fecf9d86354f0b9b19ea4f88e20c2b .agent-config-dtjsb no-mistakes(review): Keep herdr panes open for unhandled steering messages
+pending: b36003c20d725fffe91971ac05b8ab6617a52fe2 .agent-config-dtjsb no-mistakes(review): Guard herdr pane closure and retain terminal outcomes
+pending: cdd12e941ff89215bc164be349c539c902355020 .agent-config-dtjsb fix: prevent Codex workers from stalling on folder trust (#64)
+pending: c324d5c73e4ec11fc1e59efea023e1cada6371e5 .agent-config-dtjsb feat: close a terminal crewmate's pane in the inactive reconcile scan
+pending: d80a4d67325bf6d92d8e2d2a8d7cbd36e28cad57 .agent-config-dtjsb fix: batch Herdr session cleanup journal matching (#51)
+pending: c8a01078246e0817c0b8f1141385a7adb1c1aa06 .agent-config-dtjsb feat: start a template-note ship under its own spawn lock (fm-spawn --queue-start) (#60)
+pending: 3b44ca13be3d0a11ec2226f63cba687194923e42 .agent-config-dtjsb fix: fm-update.sh follows upstream-lean for a home that is on it (.agent-config-8fzw6) (#59)
+pending: 2f4f18df88da320e2a6c534902a8c936585a156d .agent-config-dtjsb fix: visit the least-recently-visited crew window first in the stale scan (#58)
+pending: b8bc147f7e75020171cd3e547e7943e12c85aaa2 .agent-config-dtjsb fix: release project lock during headroom readings (#45)
+pending: a36316fc965947eac7f969c32d1a37b74eaa7e12 .agent-config-dtjsb feat: release captain holds when readiness probes pass (#44)
+pending: 97b6971a4688ef39fc8490e96a5a1287e55d3132 .agent-config-dtjsb fix: resolve fleet blockers for archived tasks (#54)
+pending: 8a8b47345424ebaf2fef14d5d20b6d637a00d4b3 .agent-config-dtjsb fix: raise Firstmate worktree pool capacity to 24 (#49)
+pending: 24b06030ff677645eafedea8a6a56ce2450db7f4 .agent-config-dtjsb fix: prevent lazy-fetch status hangs and orphaned subprocesses (#50)
+pending: d55766ddee031bc994f83a60a051a04e0ee645d5 .agent-config-dtjsb fix: honor quota fallback order and Grok prepaid credits (#47)
+keep: cfb4a4d1949f1dd2b953b5b0b496f218ab8c2114 feat: prune fork customizations and add nightly drift checks (#25)
+pending: c9cc2d326693fe8e9e8d2dd7a05cc89e724752ba .agent-config-dtjsb fix: prevent teardown stalls and false inbox readiness failures (#43)
+pending: 031cd2d2175bcf9775630519096d24226d55bc42 .agent-config-dtjsb feat(bin): admit one extra worker past project capacity when a headroom reading reports room (#38)
+pending: d862d5e8746eab41bd6a4ca2973ed66009bcc26f .agent-config-dtjsb fix(bin): keep task-data cleanup moving when kept reports are large or slow to read (#36)
+pending: 9cfe7cfef9a9be2e1ffb82a456ff73e421cce143 .agent-config-dtjsb fix: clear the required CI checks on upstream-lean and split supervision-host tests into two lanes (#42)
+keep: 9ed8076692548e9cbeb9d90e28c4a5898d499cfd fix: run CI on upstream-lean and clear its Cursor, Pi and test reds (#34)
+pending: 116fdc5281d21a9992d7a4bb83ab75ed7bc38740 .agent-config-dtjsb fix(bin): cut home summary producer fan-out so it publishes within its 60s deadline (#39)
+pending: a70ba7abd29e26ad59a844b32c0706ce19951bf0 .agent-config-dtjsb feat(bin): name the engines that wrote a pull request on Made-with lines (#35)
+pending: 4470e616b494277b607b483a58fd8294b5bda773 .agent-config-dtjsb fix(bin): keep Cursor on prepaid/on-demand credit at the models_pct limit (#33)
+pending: 433c7b85519f64afda78038ac31c4b6a4fb0b23f .agent-config-dtjsb fix(bin): prepare retired task data from legacy backlog rows and keep unread PRs whole (#31)
+pending: ff8c5f8def6d93ad0257d66c90e1e8f98e958846 .agent-config-dtjsb fix(bin): read the current Herdr composer when the pane is scrolled (#32)
+pending: 67669705d25551948f6ca48d153c1526d2739440 .agent-config-dtjsb fix: detect merge queue removals across watched repositories (#21)
+pending: 8ab8f46d1086aaed5c009a257f8705552fa08b62 .agent-config-dtjsb Merge pull request #30 from gsp-agent/fm/fm-data-ref-fix
+pending: b8932e8b6269d5d48b0498d4b4aeca60bc72b564 .agent-config-dtjsb no-mistakes(document): Clarify named-bead retention and retry documentation
+pending: e59a6665512399edd2fab7de05f9ee94e8267d5b .agent-config-dtjsb fix: resolve named bead evidence without blocking retirement
+pending: 8ca0dc62b32426d9838012528796a8cd6d9afdcd .agent-config-dtjsb test: reproduce named bead cleanup retirement failures
+pending: 4439ef547fa08c9537b9b48cfcb17d6311386db5 .agent-config-dtjsb Merge pull request #27 from gsp-agent/fm/fm-data-cleanup
+pending: 8c448df39091dec2b7824b3636b599d9946dac62 .agent-config-dtjsb no-mistakes(lint): Quote empty-string declarations to satisfy ShellCheck
+pending: 4cd46f41f053c80e7ee16cc7580d6eab97bf787f .agent-config-dtjsb no-mistakes(document): Clarify linked evidence retention and recovery documentation
+pending: c3b3e1ce3e563fb89c9a760c97af194237f548ef .agent-config-dtjsb no-mistakes(review): Preserve Unicode spellings and escaped Markdown evidence
+pending: cf0da8c3225c828f3cd8fe05be71ae0c84c186bf .agent-config-dtjsb no-mistakes(review): Preserve linked directories and filesystem aliases during cleanup
+pending: 586f37f7d271db9e1ae57859b78cc2d877b44926 .agent-config-dtjsb fix: require a live watcher for inbox readiness (#28)
+pending: 0b8dddb9f0e78af2a34d3d8ef069cb0d55f551c8 .agent-config-dtjsb no-mistakes(review): Preserve transitive evidence links and portable Beads coverage
+pending: fb8006527599d03228f7099aa0d342a53146f115 .agent-config-dtjsb no-mistakes(review): Preserve Beads evidence from configured backlog sources
+pending: c4a5ec6775ea3c61312b69993e7e1d71599c4dae .agent-config-dtjsb no-mistakes(review): Preserve PR references and symlink traversal during cleanup
+pending: 1eef4fdd56eebc7e8ffc2ba772b129453ccc0247 .agent-config-dtjsb fix: limit task scratch recovery to data directories
+pending: 559548c816572200119a60c52e051fd54fb58408 .agent-config-dtjsb no-mistakes(lint): Quote task-next literal to satisfy ShellCheck
+pending: b0512fc88d185d30fcd966a5e7fa622481b94e47 .agent-config-dtjsb no-mistakes(document): Clarify task-data retention and recovery documentation
+pending: bd9ca126ad8328352c30c01217988972711549a9 .agent-config-dtjsb no-mistakes(review): Preserve linked targets through ancestor path aliases
+pending: 86fa1306443d3412ace2320aae85d6dcd051f6ce .agent-config-dtjsb no-mistakes(review): Preserve linked evidence and recover task scratch across teardown
+pending: d05e9561bc141ad74dedcb336e620fc340711c2b .agent-config-dtjsb Prune retired task data with guarded one-cycle recovery
+keep: 4877ac8efddab30fb01fb756dc52c81f30adedd5 Merge pull request #26 from gsp-agent/fm/codex-fallback
+keep: 8e41a7db2a33ec9366a5429e8dbeba688c3f9ecc cursor fallback: pool checks before the pstack pin; test the claude spawn
+keep: 974e42ac3022b10573ff20b963c23bf8ff8ef266 cursor fallback: Codex first, then Claude, not bare Grok
+pending: 8287d35f4152c050bdb77fb26a8262ea42406575 .agent-config-dtjsb Merge pull request #22 from gsp-agent/fm/fm-test-machine-line
+pending: c1b24cc9687cb259d405f17d8b8ab0504e57836f .agent-config-dtjsb no-mistakes(document): Refresh suite admission and affected operational documentation
+pending: eab38dcef5a72c9ecc3b4524eac20376836251a1 .agent-config-dtjsb no-mistakes(review): Fix suite admission, runner paths, timing, and cap
+pending: 516346afbbd8f36b23885c5c5a79ea8f7c8ff972 .agent-config-dtjsb fix(fm-test-run): keep suite runs at caller priority on the machine line
+pending: 7a8e6d580c83f104077e31a773a5c15b46172b7f .agent-config-dtjsb fix(fm-test-run): hold the machine line for each suite run
+keep: f2214ad4567231cebabbf49d416bde354c995af1 Merge pull request #19 from gsp-agent/fm/fm-promote-switch-c
+keep: 58573e6360fb52575a975fe5970588981e4aef08 no-mistakes(document): Align promotion, dispatch, and harness documentation
+keep: 9a849dd4fb0b48f91ea1ed033f939aed558c45ed fix(promote): tell a promoted scout to run git switch -c
+pending: 37902fa5bb1cb0089a68c4e242f23ba1cfa648b2 .agent-config-dtjsb Merge pull request #18 from gsp-agent/fm/sync-upstream-20261013
+keep: f525bbba83a62c03324eaba18920d0fd890a250e Merge pull request #15 from gsp-agent/fm/fm-teardown-open-pr
+pending: 54a767b5d265e7d4d2b34c54184f2e99979a62eb .agent-config-dtjsb no-mistakes(lint): Restore merge documentation and suppress SC2012
+pending: 47a7870946c4158308d9b1ebffc82ff30889735c .agent-config-dtjsb no-mistakes(document): Align dispatch, launch, and supervision documentation
+keep: ff9a8d36cc2e9a71bb15103019f63f9c17e713ed fix(teardown): refuse an open recorded request when the copy is gone
+keep: 3b60ba95d799a2a56eadec82f27f7a42e22d9b2c test(teardown): show an open request still loses its record when the copy is gone
+pending: b0d5875dfea533418e101610f966fc74e30a0c39 .agent-config-dtjsb Merge kunchenguid/firstmate main (7df545bf) into upstream-lean
+pending: f47850ef54ef3a3c38912a7607436a6e1b1c2c90 .agent-config-dtjsb Merge pull request #17 from gsp-agent/fm/ep-watch-resurface
+pending: 17c4d13162f8fcdfb6cc9885a01648cf82b2a7a9 .agent-config-dtjsb fix(bin): close GitLab-landed backlog items with the merge request URL as a note (#16)
+keep: 8193b2365719da824fe563f01645fe1eb1ccffa0 fix(cursor-guard): match usage-limit prose, not exceededLimit false (#13)
+pending: 3ce31900713f4e569dfa2aba6e463115e28eeae4 .agent-config-dtjsb fix(host): offer a rearm resurface by the rows it re-announces
+pending: 44a0ba0ad7b5c3539c706cfe04261f522fdf52e8 .agent-config-dtjsb Merge pull request #12 from gsp-agent/fm/a3ov3-2-fm
+keep: 14b1c4432cfb9443ea03a320adb09bf97c7b047c fix(teardown): keep a task record until its request is merged or closed
+keep: 9733ff859b3f7ac0d8209d37e47df32a626ab2ea test(teardown): show an open recorded request still loses its task record
+pending: 7aad5e45f778cd28bdd047010f6b994480308648 .agent-config-dtjsb fix(spawn): disable Claude auto-memory on every launch
+pending: 9c9ddae92ab31b074a90587542f8346f9c1b45ec .agent-config-dtjsb test(spawn): require Claude launches to disable auto-memory
+pending: a129556026c1c2b56dc17c9dddc822978bd2165c .agent-config-dtjsb Merge pull request #11 from gsp-agent/fm/a3ov3-4-fm
+pending: 1d82cb6ea8661cedc95c4a825661c57c3b57ddff .agent-config-dtjsb fix(watch): limit takeover continuity to confirmed TERM stops
+pending: 2c1ca1dcd8a6e18fde320357db7ea70a0b6daf7e .agent-config-dtjsb test(watch): reproduce announced recovery lost during self-exit takeover
+pending: 9cbbbd76419b1dcbe23b7b376c700bf9521adc54 .agent-config-dtjsb no-mistakes(lint): Restore watcher scope by reverting unrelated documentation changes
+pending: 96e8d817220911f5292fcb61957d5687bc40b1a3 .agent-config-dtjsb no-mistakes(document): Align dispatch, launch, startup, and watcher documentation
+pending: 3ad15feca7b37ce8ef405e268481219ff3a4b5f1 .agent-config-dtjsb fix(watch): take-over does not reopen an already-announced episode
+pending: a727bbf5a3c51ce9bdc2ebdc14f58d77db3c5eb7 .agent-config-dtjsb test(watch): a repeated Stop take-over must keep an announced episode quiet
+keep: dd8fc4533f44a8d0670c25e11f11e30252058f2e Merge PR 9: crew isolation (Codex APPROVE at bcba9dac; Chip-Grok PASS)
+keep: bcba9dacdb658976bf77dd2415cdc1265c45b072 crew guard: check wrapper payloads and commands after a leading keyword; state the scope
+keep: 4ad5d60fec0b33026e1ebe74be89fb54229585d9 Crew isolation: spawn creates the ship branch, crew guard pins cwd and refuses ref plumbing
+pending: dc6078041281132565f5b886cf99db9152f88bb7 .agent-config-dtjsb Merge PR #8 (carry 4 commits onto upstream-lean; Opus reviewer PASS at 89b9cbcac; Dale 8:0x PM: don't wait on Grok)
+pending: 89b9cbcacaccc45b642129aa6cce68ef50f2831c .agent-config-dtjsb fix(session-start): the newest event keeps its full 60 characters
+pending: 981bd823e260fc8586c13ec10a403c43828ba318 .agent-config-dtjsb fix: keep hold fields and the newest event visible; accept configured efforts
+pending: a158eb8675cc62ec2fe8fa8d33bfaa64d0df52d6 .agent-config-dtjsb fix(session-start): cap each task line at 150 characters (#4)
+pending: fccd2fe3482cc9df9951b2a95a334f83ac507048 .agent-config-dtjsb feat(session-start): one line per task in the fleet digest (#3)
+keep: e98dda6bd04a94f741d9cf6635a2fdd876371b67 Merge PR #7 (passed by the Opus reviewer and Chip-Grok; Dale 6:4x PM: both passes = approval)
+keep: 92a657f4ec4b45f9b5b179539b196b1ffc748e58 Merge PR #6 (passed by the Opus reviewer and Chip-Grok; Dale 6:4x PM: both passes = approval)
+keep: ece80a3543c804bd10e8f13ad28775abef9a4e94 feat(cursor): run wide; deterministic grok fallback, per-bead 3rd-launch stop, stale lock, docs-only routing, pstack version pin
+keep: 745991e8e70fab9fb35bb63e5d2c1491c42124da feat(cursor): keep the agent's exit status past the tee; daily cap on Cursor beads
+keep: cce0ab3a8a709642fc85a3999f6424a8bcb6633d feat(cursor): step 1 of the Cursor cutover: pstack launch line, label routing, Sol max
+keep: ada14efcab836915609ea325e537fef0e9c45edc fix(dispatch): accept grok xhigh in the validators
+keep: aba49d6b2fa3313d1b9605fd605b9fd5c5b79d48 feat(spawn): pass xhigh reasoning effort to grok
+keep: 2f360c82b60815e9f07a84c12256a0fe20db0b6f feat(spawn): refuse a fresh task whose # Task section is over 2048 bytes
+keep: b606779ed08299d160ccbb154ec7c0dc8277b9d8 feat(spawn): keep a Grok crewmate off the captain's Claude and Cursor surface
+error: missing manifest entry for PR 193
+error: missing manifest entry for PR 194
+error: proof patch conflicts for PR 137: 446eb1e7f53f7d03dc580227a7488129263dadbf
+error: proof patch conflicts for PR 138: efbe1b61c798d790fe6f2cce77e3e90e8fab1034
+error: proof patch conflicts for PR 139: f96e6fa9d0be3d60c2aefb214674acb54b8425a3
+error: proof patch conflicts for PR 197: 2a33f467cdcf899cb16d5418a62f562cc7124acc
+exit: 1
+exit: 1
+
