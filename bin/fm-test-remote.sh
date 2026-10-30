@@ -21,14 +21,16 @@
 #      a temporary index, so HEAD, the index, and the branch are untouched.
 #      Both are printed.
 #   2. makes a fresh run directory <scratch-root>/fm-test-remote.XXXXXX on the
-#      host, holding an empty repo/ and out/. The scratch root must already
-#      exist: this never creates it, so an unmounted volume refuses rather
-#      than putting the run on the host's system disk.
+#      host, holding an empty repo/, out/, and tmp/. The scratch root must
+#      already exist: this never creates it, so an unmounted volume refuses
+#      rather than putting the run on the host's system disk.
 #   3. pushes that commit, and --base's commit, into repo/ over ssh, checks the
 #      commit out detached, and stops before anything runs unless `git
 #      rev-parse HEAD` there prints that commit.
 #   4. runs <script> under the host's ~/.agent-state/machine-gate.sh with
-#      --needs firstmate, so one Firstmate suite runs there at a time. A busy
+#      --needs firstmate, so one Firstmate suite runs there at a time, with
+#      TMPDIR set to tmp/ so the suite's own temp files stay on the scratch
+#      volume too. A busy
 #      gate is a wait, not a failure: each refused try records its arrival in
 #      the gate's line, and the next try follows within
 #      FM_TEST_REMOTE_RETRY_SECS, inside the gate's 180-second live-waiter
@@ -103,7 +105,8 @@ if [ "${1:-}" = __host ]; then
   waited_since=$(date +%s)
   said=
   PATH="$(dirname "$BASH"):$PATH"
-  export PATH
+  TMPDIR="$run/tmp"
+  export PATH TMPDIR
   exec 3>&1 4>&2
   # No caller marker applies on the host: a gate marker would let the gate
   # skip firstmate, and FM_TASK_ID would read the host's plain clone as a
@@ -288,7 +291,7 @@ trap 'exit 129' HUP
 # shellcheck disable=SC2016 # The host's shell expands these.
 setup="root=$(quote_words "$SCRATCH_ROOT")"'
 [ -d "$root" ] || { printf "scratch root %s does not exist on this host\n" "$root" >&2; exit 3; }
-run=$(mktemp -d "$root/fm-test-remote.XXXXXX") && mkdir "$run/repo" "$run/out" && git init -q "$run/repo" && printf "%s\n" "$run"'
+run=$(mktemp -d "$root/fm-test-remote.XXXXXX") && mkdir "$run/repo" "$run/out" "$run/tmp" && git init -q "$run/repo" && printf "%s\n" "$run"'
 remote_setup "$setup" || die "could not make a run directory under $SCRATCH_ROOT on $HOST (${SETUP_ERR:-no reason given}); nothing ran"
 case "$SETUP_OUT" in
   "$SCRATCH_ROOT"/fm-test-remote.*) RUN=$SETUP_OUT ;;

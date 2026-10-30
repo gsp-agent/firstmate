@@ -82,7 +82,7 @@ EOF
 write_probe() {  # <path> <label>
   cat >"$1" <<EOF
 #!/usr/bin/env bash
-printf 'ok - $2 at %s in %s only=%s\n' "\$(git rev-parse HEAD)" "\$(pwd -P)" "\${FM_TEST_ONLY:-}"
+printf 'ok - $2 at %s in %s only=%s tmp=%s\n' "\$(git rev-parse HEAD)" "\$(pwd -P)" "\${FM_TEST_ONLY:-}" "\${TMPDIR:-}"
 [ ! -e tests/probe.fail ] || { echo "not ok - $2 told to fail"; exit 1; }
 EOF
   chmod +x "$1"
@@ -144,6 +144,8 @@ test_runs_the_suite_on_the_host_at_the_exact_head_and_cleans_up() {
   expect_code 0 "$RC" "a passing suite on the host"$'\n'"$OUT"
   assert_contains "$OUT" "fakehost runs bin/fm-test-run.sh at $head" "the output names the commit under test"
   assert_contains "$OUT" "ok - probe at $head in $SCRATCH/fm-test-remote." "the suite ran in the host's copy at that commit"
+  printf '%s\n' "$OUT" | grep -q "^ok - probe at $head in $SCRATCH/fm-test-remote\\.[^/]*/repo only= tmp=$SCRATCH/fm-test-remote\\.[^/]*/tmp\$" \
+    || fail "the suite's TMPDIR is not the run's tmp/ on the scratch volume"$'\n'"$OUT"
   assert_contains "$OUT" "FM_TEST_SUMMARY total=1 failed=0" "the host runner's summary comes back"
   assert_contains "$OUT" "fakehost finished bin/fm-test-run.sh at $head: exit 0" "the output names the result"
   grep -q '^try: run --cap 180 --needs firstmate -- ' "$FAKE_HOST_HOME/gate.log" \
@@ -152,7 +154,7 @@ test_runs_the_suite_on_the_host_at_the_exact_head_and_cleans_up() {
     "$FAKE_HOST_HOME/gate.log" || fail "the host gate did not get a named, arrival-logged try: $(cat "$FAKE_HOST_HOME/gate.log")"
   assert_scratch_empty "a finished run"
   assert_laptop_line_untouched "a remote run"
-  pass "the runner runs the suite on the host at the exact head, through its gate, and removes the run"
+  pass "the runner runs the suite on the host at the exact head, through its gate, with temp files on the scratch volume, and removes the run"
 }
 
 test_a_failing_suite_returns_its_exit_status() {
