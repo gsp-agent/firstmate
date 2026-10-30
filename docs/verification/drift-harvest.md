@@ -134,18 +134,8 @@ Each of those PRs carries a deciding verdict from another of its tests.
 
 ## Not yet measured: not cut until measured
 
-These PRs' own tests were never replayed.
-PRs 50 and 75 have no table row; the others hold a remove verdict from another test, which does not cover the tests listed here.
+PR 50 is the one remove-verdict PR whose own test has no table row; PRs 75, 76 and 77 carry no test.
 
-- PR 30: `tests/fm-afk-inject-e2e.test.sh`, `tests/fm-wake-queue.test.sh`
-- PR 36: `tests/fm-gotmp.test.sh`
-- PR 50: `tests/fm-nm-run-lib.test.sh`
-- PR 75: `tests/fm-wake-queue.test.sh`
-- PR 101: `tests/fm-wake-queue.test.sh`
-- PR 103: `tests/fm-send-popup-settle.test.sh`
-- PR 104: `tests/fm-crew-state.test.sh`
-- PR 107: `tests/fm-watch-triage.test.sh`, `tests/fm-wake-queue.test.sh`, `tests/fm-wake-daemon-lifecycle-e2e.test.sh`
-- PR 126: `tests/fm-watch-triage.test.sh`, `tests/fm-wake-queue.test.sh`
-- PR 167: `tests/fm-pr-merge.test.sh`, `tests/fm-teardown.test.sh`
+- PR 50: `tests/fm-nm-run-lib.test.sh`, from the PR's merge commit `24b06030`
 
-A cut PR that would remove one of these first replays its tests red on upstream and green with the change, and a test that distinguishes makes it a keep.
+Only PR 50's cut first replays its test red on upstream and green with the change, and a test that distinguishes makes it a keep.
