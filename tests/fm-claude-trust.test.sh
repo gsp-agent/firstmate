@@ -371,6 +371,32 @@ JSON
   pass "fm-claude-trust.sh --check: a decline refusal is the last stderr line and names the pair, store, project and contact"
 }
 
+# The contact is text only, so even an oversized one-line value must never
+# change a verdict: a fresh registration still succeeds, and a decline refusal
+# falls back to the generic pointer rather than carrying it.
+test_oversized_contact_never_changes_the_verdict() {
+  local rec out home
+  rec=$(make_case oversized-contact)
+  read_case "$rec"
+  home="$CASE_DIR/home"
+  mkdir -p "$home/config"
+  { head -c 1200000 /dev/zero | tr '\0' x; printf '\n'; } > "$home/config/claude-decline-contact"
+  out=$(env -u FM_CONFIG_OVERRIDE FM_HOME="$home" CLAUDE_CONFIG_DIR="$CONFIG" HOME="$CONFIG" \
+    "$TRUST" "$WT" "$PROJ" 2>&1)
+  expect_code 0 $? "an oversized contact must not stop a fresh registration: $out"
+  assert_trusted "$CONFIG/.claude.json" "$WT" "an oversized contact stopped trust being recorded"
+  cat > "$CONFIG/.claude.json" <<JSON
+{"projects":{"$PROJ":{"hasClaudeMdExternalIncludesApproved":false,"hasClaudeMdExternalIncludesWarningShown":true}}}
+JSON
+  out=$(env -u FM_CONFIG_OVERRIDE FM_HOME="$home" CLAUDE_CONFIG_DIR="$CONFIG" HOME="$CONFIG" \
+    "$TRUST" --check "$WT" "$PROJ" 2>&1)
+  expect_code 1 $? "a check against a recorded decline must refuse: $out"
+  assert_contains "$out" "Tell whoever runs this Firstmate home (config/claude-decline-contact can name them) about this refusal." \
+    "an oversized contact did not fall back to the generic pointer"
+  assert_not_contains "$out" "xxxxxxxxxx" "an oversized contact was echoed into the refusal"
+  pass "fm-claude-trust.sh: an oversized contact never changes the verdict and falls back to the generic pointer"
+}
+
 test_check_mode_accepts_a_fresh_worktree_without_writing() {
   local rec out
   rec=$(make_case check-fresh)
@@ -964,6 +990,7 @@ test_check_mode_reports_a_decline_without_writing
 test_spawn_decline_refusal_names_the_pair_and_this_homes_contact
 test_check_decline_refusal_falls_back_without_a_usable_contact
 test_check_decline_refusal_is_the_last_line
+test_oversized_contact_never_changes_the_verdict
 test_check_mode_accepts_a_fresh_worktree_without_writing
 test_project_root_entry_default_import_flags_are_not_a_decline
 test_registration_is_idempotent
