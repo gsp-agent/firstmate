@@ -2070,6 +2070,43 @@ test_later_arrival_of_one_priority_waits_behind() {
   pass "a later arrival of the same priority waits behind the earlier waiter"
 }
 
+# chip on PR 196: a first wait is an epoch second, and ties fell to the task id,
+# so an earlier waiter task-z lost its place to task-a arriving in the same
+# second. The line orders one priority by arrival, never by id: here the
+# earlier waiter's id sorts after the later arrival's, and the clock cannot
+# tell them apart.
+test_same_second_arrivals_keep_their_order() {
+  local case_dir home out rc entry_z entry_a
+  case_dir=$(pool_case tree-line-same-second task-z task-a)
+  home="$case_dir/home"
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_FULL_STATUS spawn_ship "$case_dir" task-z "$case_dir/project") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "the earlier waiter did not defer on the full pool: $out"
+  entry_z=$(tree_wait_entry "$home" task-z)
+  [ -n "$entry_z" ] || fail "the earlier waiter did not join the line"
+  # task-a arrives within the second the line recorded for task-z: its own
+  # clock reading is no later than task-z's first wait.
+  sed -i.bak "s/^since=.*/since=$(($(date +%s) + 5))/" "$entry_z" && rm -f "$entry_z.bak"
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_ONE_FREE_STATUS spawn_ship "$case_dir" task-a) || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "an arrival in the earlier waiter's second took its tree: $out"
+  assert_contains "$out" "in its line: task-z (" "the arrival's deferral did not name the earlier waiter"
+  assert_absent "$home/state/task-a.meta" "the arrival published a record for the earlier waiter's tree"
+  # Both now wait with one recorded second, and task-a retries first.
+  entry_a=$(tree_wait_entry "$home" task-a)
+  [ -n "$entry_a" ] || fail "the deferred arrival did not join the line"
+  sed -i.bak 's/^since=.*/since=1000/' "$entry_z" "$entry_a" && rm -f "$entry_z.bak" "$entry_a.bak"
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_ONE_FREE_STATUS spawn_ship "$case_dir" task-a) || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a later waiter with the same recorded second passed the earlier one: $out"
+  assert_contains "$out" "in its line: task-z (" "the later waiter's deferral did not name the earlier waiter"
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_ONE_FREE_STATUS spawn_ship "$case_dir" task-z) || rc=$?
+  expect_code 0 "$rc" "the earlier waiter did not take the freed tree: $out"
+  [ -n "$(tree_wait_entry "$home" task-a)" ] || fail "the later waiter lost its place in the line"
+  pass "arrivals of one priority within one second keep their order, whatever their task ids"
+}
+
 # A waiter that no deferral refreshed within FM_TREE_WAIT_STALE seconds has no
 # caller retrying it, so it stops holding the line and a free tree is not kept
 # idle for it.
@@ -2256,6 +2293,7 @@ test_machine_total_recheck_sees_a_same_id_replacement
 test_away_spend_cap_is_rechecked_at_publication
 test_freed_tree_goes_to_the_highest_priority_waiter
 test_later_arrival_of_one_priority_waits_behind
+test_same_second_arrivals_keep_their_order
 test_stale_waiter_stops_holding_the_line
 test_teardown_wakes_the_head_waiter_at_once
 test_waiter_lives_as_long_as_its_owner
