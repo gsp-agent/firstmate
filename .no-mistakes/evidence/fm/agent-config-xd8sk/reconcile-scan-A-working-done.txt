@@ -1,0 +1,6 @@
+== case: A: working line + done answer (old fixture)
+status ledger: working: validating
+crew-state answer: state: done · source: run-step · passed
+scan exit: 0
+terminal-outcomes records: none
+wake queue inactive-outcome lines: 0 (no queue file)

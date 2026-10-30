@@ -1,0 +1,2 @@
+ok - session start: inactive reconciliation runs after the digest and retains its durable wake
+# only test_inactive_reconcile_never_blocks_the_digest: all assertions passed

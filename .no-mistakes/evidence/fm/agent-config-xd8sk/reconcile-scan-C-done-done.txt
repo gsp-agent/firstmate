@@ -1,0 +1,9 @@
+== case: C: done line + done answer (guard is specific to working)
+status ledger: done: validation passed
+crew-state answer: state: done · source: run-step · passed
+actionable: inactive terminal outcome awaiting captain presentation: child=child state=done
+scan exit: 0
+terminal-outcomes records: <fp>.pending 
+task_id=child state=done origin=direct phase=presentation 
+wake queue inactive-outcome lines: 1
+1	check	inactive-outcome:<fp>	inactive terminal outcome awaiting captain presentation: child=child state=done

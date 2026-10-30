@@ -1,0 +1,9 @@
+== case: B: working line + failed answer (new fixture)
+status ledger: working: validating
+crew-state answer: state: failed · source: run-step · failed
+actionable: inactive terminal outcome awaiting captain presentation: child=child state=failed
+scan exit: 0
+terminal-outcomes records: <fp>.pending 
+task_id=child state=failed origin=direct phase=presentation 
+wake queue inactive-outcome lines: 1
+1	check	inactive-outcome:<fp>	inactive terminal outcome awaiting captain presentation: child=child state=failed

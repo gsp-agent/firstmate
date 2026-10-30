@@ -1,0 +1,20 @@
+ok - context digest distinguishes ABSENT, empty-but-present, and populated files
+ok - a lock refusal prints a loud read-only banner, skips every mutating step, and still completes the digest
+ok - session start stays read-only when lock ownership cannot be published
+ok - locked session start freezes trace context and lock refusal leaves it unchanged
+ok - concurrent session-lock acquisition admits exactly one live harness
+ok - digest sections are ordered safety-preamble first, live fleet state before curated memory
+ok - the read-once contract is stated once, ahead of the sources it governs
+ok - session start: configured and auto-detected Herdr homes never require tmux
+ok - session start: an absent recorded tmux window relaunches its Pi secondmate exactly once, off the blocking path
+ok - session start: a deferred relaunch is always reported, so the digest's stale endpoint record cannot stand
+not ok - the deferred scan's terminal finding never reached the durable wake queue (calls=deferred, report=completed off the startup path in 9s: GitHub authentication, dead-secondmate relaunch, secondmate convergence, pending handoff delivery, project clone refresh with its drift reporting, and inactive terminal-outcome reconciliation.
+(silent - no problems found)
+TIMINGS - where the deferred network checks spent their time (ms):
+  phase       gh-auth                                    start=+8000    elapsed=0
+  phase       fleet-sync                                 start=+8000    elapsed=0
+  phase       secondmate-liveness                        start=+8000    elapsed=0
+  phase       secondmate-sync                            start=+8000    elapsed=0
+  phase       handoff-delivery                           start=+8000    elapsed=0
+  stage       network-checks probe_sweeps                start=+1000    elapsed=7000
+  slowest: stage network-checks probe_sweeps 7000ms, phase fleet-sync 0ms, phase secondmate-liveness 0ms, queue=)
