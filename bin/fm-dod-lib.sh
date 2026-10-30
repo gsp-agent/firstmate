@@ -389,13 +389,14 @@ $drive_block
 A killed or timed-out call is never evidence the daemon died: the daemon accepts your response immediately and runs the round in the background, so the call was only ever waiting for a read while the run kept working.
 Reattach and keep going rather than reporting the pipeline blocked; rule 7 owns the checks that decide when a pipeline block is real.
 
-Two firstmate-specific rules layer on top of that guidance:
+Three firstmate-specific rules layer on top of that guidance:
 - ask-user findings are never yours to answer: escalate to firstmate using rule 6's ask-user format and stop.
   Firstmate applies \`ask-user-authority\` and obtains any required captain decision.
   When the decision comes back, feed it to the gate with \`no-mistakes axi respond\` and let the pipeline apply it - do not route the question to "the user" or implement the fix yourself.
   One exception, which is not an authority decision: a warning-level finding whose only question is whether to proceed without live validation because the change has no executable surface (a docs-only change; no-mistakes calls this a no-surface verdict) is yours to answer at the gate: respond to proceed, and name the untested scenarios in your status report. The scenarios stay listed as untested on the PR; you are deciding nothing about product behavior, only recording that there was no surface to drive.
 - NEVER pass \`--yes\` (or \`-y\`) to \`no-mistakes axi run\` or \`no-mistakes axi respond\`. It is banned fleet-wide.
   It auto-resolves every gate including ask-user findings with no escalation, and answering your own ask-user finding is a hard rule violation.
+- A custom gate (for example \`gate.lint.stock-macos-bash\`) that is red only in code your branch does not touch, such as a timing check that ran out under load, takes \`no-mistakes axi respond --action rerun\`: the gate runs its command once more with no agent turn. Do not answer \`fix\` for it (its agent would run the whole check inside its own budget) or skip it on a verdict from your own run.
 EOF
 }
 

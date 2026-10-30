@@ -484,6 +484,11 @@ test_no_mistakes_dod_wording() {
     "no-mistakes DOD still states the --yes ban as a preference"
   assert_no_grep "no-mistakes refuses" "$brief" \
     "no-mistakes DOD must not claim the tool itself refuses --yes"
+  # .agent-config-uwxul: a parked custom gate red only in untouched code is retried
+  # with no-mistakes' `rerun` action (one more run of the gate, no agent turn), not
+  # `fix`, whose agent ran the 65-minute stock-bash check inside a 30-minute budget.
+  assert_grep "takes \`no-mistakes axi respond --action rerun\`: the gate runs its command once more with no agent turn" "$brief" \
+    "no-mistakes DOD must name rerun for a red gate in untouched code"
   pass "fm-brief.sh: no-mistakes DOD keeps its apostrophe prose and bans --yes outright"
 }
 
