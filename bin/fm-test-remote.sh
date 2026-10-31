@@ -492,6 +492,7 @@ else
 fi
 run_cmd="cd $(quote_words "$RUN/repo")$copy_setup && git -c advice.detachedHead=false checkout -q -f $(quote_words "${checkout[@]}") $SHA && got=\$(git rev-parse HEAD) && [ \"\$got\" = $SHA ] || { printf 'fm-test-remote: the host copy is at %s, not %s; nothing ran\\n' \"\${got:-no commit}\" $SHA >&2; exit 2; }; exec $(quote_words ${host_env[@]+"${host_env[@]}"} "$REMOTE_BASH" "$RUN/repo/bin/fm-test-remote.sh" __host "$RUN" "$line_name" "$RETRY" "$keep_out" -- "$@")"
 
+# shellcheck disable=SC2029 # run_cmd is quoted here on purpose; the host shell only reads it
 ssh "${SSH_OPTS[@]}" "$HOST" "exec \"\$SHELL\" -lc $(quote_words "$run_cmd")" < <(
   while kill -0 "$$" 2>/dev/null; do
     echo
