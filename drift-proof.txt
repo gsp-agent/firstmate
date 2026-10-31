@@ -28,7 +28,8 @@ pending-pr: 22 .agent-config-dtjsb
 pr: 26
 # Harvest replay keeps this PR: tests/fm-inbox.test.sh distinguishes upstream from this PR and the nightly replay passes.
 pr: 28
-pending-pr: 27 .agent-config-dtjsb
+# Cut replay keeps this PR: tests/fm-teardown.test.sh fails on kunchenguid/main files with only this PR's tests ("finished task clone remains in data") and passes with this PR's diff.
+pr: 27
 pending-pr: 30 .agent-config-dtjsb
 # Harvest replay keeps this PR for rebase: tests/fm-pr-check-security.test.sh distinguishes upstream from this PR; its proof is keyed for its rebase series.
 pr: 21
@@ -52,7 +53,8 @@ pending-pr: 43 .agent-config-dtjsb
 pr: 25
 # Harvest replay keeps this PR for rebase: tests/fm-dispatch-resolve.test.sh distinguishes upstream from this PR; its proof is keyed for its rebase series.
 pr: 47
-pending-pr: 50 .agent-config-dtjsb
+# Cut replay keeps this PR: tests/fm-nm-run-lib.test.sh fails on kunchenguid/main files with only this PR's tests ("a child that outlived its parent survived the bound") and passes with this PR's diff.
+pr: 50
 pending-pr: 49 .agent-config-dtjsb
 # Harvest replay keeps this PR: tests/fm-fleet-snapshot-view.test.sh distinguishes upstream from this PR and the nightly replay passes.
 pr: 54
