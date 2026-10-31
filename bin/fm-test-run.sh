@@ -65,8 +65,10 @@
 #                   after each script, fail the run if a line reporting a skip
 #                   ("skip:", "skip -", "# skip", or a passing "ok - ", "note: ",
 #                   or "# " line saying skipped) is not one that
-#                   tests/remote-permitted-skips.txt permits. --remote always
-#                   sets this on the host.
+#                   tests/remote-permitted-skips.txt permits. "skipped" and
+#                   "SKIP" count only as a word of their own, so a passing case
+#                   named like "skipped-test:" or "github/skipped:" is a pass.
+#                   --remote always sets this on the host.
 #   --jobs N        run the selected scripts with up to N concurrent workers.
 #                   Plain --changed and a plain list of script paths use
 #                   min(4, cpus) workers when multiple selected scripts are
@@ -1923,9 +1925,10 @@ unpermitted_skip() {
   grep -E \
     -e '^(# )?skip(-runner)?(:| -)' \
     -e '^ok - skip:' \
-    -e '^ok - (skipped|SKIP)' \
-    -e '^ok - .*(\(skipped|skipped (\(|without |because |where |on |as |for )|skipped: |: skipped|; skipped)' \
-    -e '^# .*skipped' \
+    -e '^ok - (skipped|SKIP)([^A-Za-z0-9_/-]|$)' \
+    -e '^ok - (.*[^A-Za-z0-9_/-])?skipped( \(| without | because | where | on | as | for |: )' \
+    -e '^ok - .*(\(|[:;] )skipped([^A-Za-z0-9_/-]|$)' \
+    -e '^# (.*[^A-Za-z0-9_/-])?skipped([^A-Za-z0-9_/-]|$)' \
     -e '^(ok - |note: ).*[,;] skipping' \
     "$1" 2>/dev/null \
     | grep -Ev -f <(grep -Ev '^(#|$)' "$ROOT/tests/remote-permitted-skips.txt" 2>/dev/null) \

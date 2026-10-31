@@ -508,7 +508,6 @@ ok - zsh: shell-portable backend matching skipped (zsh not found)
 ok - herdr pane fallback skipped without jq
 ok - a launcher argument guard (skipped, no python3)
 ok - a stock case (skipped: needs /bin/bash 3.2.57, the stock macOS shell)
-ok - skipped on markdown-only tasks-axi: a captain hold
 ok - daemon permission recovery skipped because permissions cannot deny reads
 ok - skip: macOS /tmp ancestor alias is not present on this host
 EOF
@@ -580,7 +579,8 @@ test_a_permitted_skip_stays_a_counted_skip() {
   write_skip_suite fm-remote-note.test.sh 'ok - a case ran' '# skip: unprivileged PID namespaces are unavailable here, so one case is unverified' \
     'note: FM_FIXTURE=1 not set; skipping the real-agent check' \
     'ok - SKIP: no standalone Pi Calm extension is installed, so dual-install coverage used the pinned contract' \
-    'ok - index-lock mtime fault injection is PATH-based; skipped on Darwin where stat is /usr/bin/stat'
+    'ok - index-lock mtime fault injection is PATH-based; skipped on Darwin where stat is /usr/bin/stat' \
+    'ok - skipped on markdown-only tasks-axi: verify against a beads-migrated hold'
   write_skip_suite fm-remote-behavior.test.sh 'ok - no-origin clone is skipped (benign), not flagged STUCK' \
     'ok - a passing required check and a skipped one leave nothing to report' \
     'ok - run wrapper: an unrecognized or absent source takes the helm rather than skipping it' \
@@ -595,6 +595,22 @@ test_a_permitted_skip_stays_a_counted_skip() {
   expect_code 0 "$RC" "skips the list permits"$'\n'"$OUT"
   assert_contains "$OUT" "FM_TEST_SUMMARY total=13 failed=0 skipped_gate=9" "the listed skips stay counted, and a behavior named skipped is no skip"
   pass "the five tools, live suites not opted in, skips the laptop prints too, and passing cases about what the product skips do not fail the remote run"
+}
+
+test_a_passing_case_named_skipped_is_a_pass_and_a_tool_skip_still_fails() {
+  new_world named
+  write_skip_suite fm-remote-named.test.sh 'ok - skipped-test: cancellation without delivery carries no verdict' \
+    'ok - skipped-rebase: terminal delivery reports only observed evidence' \
+    'ok - failed-outcome/github/skipped: terminal delivery uses current disposition' \
+    'ok - cancelled-status/gerrit/skipped: terminal delivery uses current disposition'
+  write_skip_suite fm-remote-tool-skip.test.sh 'ok - a case ran' 'ok - herdr pane fallback skipped without jq'
+  commit_all "a suite whose passing cases are named skipped, and one that skips for a missing tool"
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --jobs 1 tests/fm-remote-named.test.sh tests/fm-remote-tool-skip.test.sh
+  expect_code 1 "$RC" "a tool skip beside passing cases named skipped"$'\n'"$OUT"
+  assert_contains "$OUT" "FM_TEST_SUMMARY total=2 failed=1 skipped_gate=0" "only the tool skip fails"
+  assert_contains "$OUT" "tests/fm-remote-named.test.sh exit=0" "passing cases named skipped stay green"
+  assert_contains "$OUT" "tests/fm-remote-tool-skip.test.sh exit=1" "a missing-tool skip still fails the remote run"
+  pass "a passing case whose name contains skipped is a pass, and a missing-tool skip still fails the remote run"
 }
 
 # write_server_suite: a suite that leaves a server in its own session, its cwd in
@@ -977,6 +993,7 @@ test_a_cut_off_wait_gives_up_its_place_in_the_hosts_line
 test_a_run_sweeps_only_abandoned_runs_of_its_own_making
 test_a_required_tool_fails_whichever_suite_or_form_names_it
 test_a_permitted_skip_stays_a_counted_skip
+test_a_passing_case_named_skipped_is_a_pass_and_a_tool_skip_still_fails
 test_a_busy_host_gate_is_a_wait_not_a_failure
 test_transport_failures_stop_before_anything_runs
 test_a_host_copy_at_another_commit_runs_nothing
