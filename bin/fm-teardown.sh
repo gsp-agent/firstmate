@@ -710,11 +710,12 @@ fi
 # A merge or a measurement is a milestone, and cleanup would mark the task
 # done, close its backlog item, and remove the worker pane and local copy its
 # owner still needs for activation and live verification. So while that bead
-# is open, or while the task's own last status line is the merge handoff that
-# leaves activation and live verification pending, teardown refuses here,
-# before any destructive step, with every record intact. --force authorizes
-# discarding unlanded work, never closing a task whose bead is still open. A
-# task with no bead keeps every gate below exactly as it was.
+# is open with no recorded owner release, or while the task's own last status
+# line is the merge handoff that leaves activation and live verification
+# pending, teardown refuses here, before any destructive step, with every
+# record intact. --force authorizes discarding unlanded work, never an open
+# bead that has no release. A task with no bead keeps every gate below exactly
+# as it was. Who may record the release is bin/fm-task-bead-lib.sh's rule.
 teardown_require_task_bead_done() {
   local rc=0
   fm_task_bead_read "$ID" || rc=$?
@@ -726,16 +727,22 @@ teardown_require_task_bead_done() {
       return 1
       ;;
   esac
-  if fm_task_bead_open "$FM_TASK_BEAD_STATUS"; then
-    echo "REFUSED: task $ID answers to bead $FM_TASK_BEAD_ID, which is $FM_TASK_BEAD_STATUS. A merge or a measurement is a milestone; the bead's done decides when the task is done. Its worker, pane, local copy, and backlog item stay with their owner; nothing was changed. Tear it down after the bead closes." >&2
+  if fm_task_bead_open "$FM_TASK_BEAD_STATUS" && [ -z "${FM_TASK_BEAD_RELEASE_AUTHOR:-}" ]; then
+    echo "REFUSED: task $ID answers to bead $FM_TASK_BEAD_ID, which is $FM_TASK_BEAD_STATUS. A merge or a measurement is a milestone; the bead's done decides when the task is done. No release by its assignee or owning EP or PM was recorded, and --force does not supply one. Its worker, pane, local copy, and backlog item stay with their owner; nothing was changed. Tear it down after the bead closes, or after that owner records the release." >&2
     return 1
   fi
   if fm_task_merge_handoff_pending "$STATE/$ID.status" "$ID"; then
-    echo "REFUSED: task $ID's last status line is the merge handoff that leaves activation and live verification pending, so the task is not done even though bead $FM_TASK_BEAD_ID is closed; nothing was changed. Its worker or owner records the verification result as a later status line before cleanup." >&2
+    FM_TASK_BEAD_RELEASE_AUTHOR=
+    FM_TASK_BEAD_RELEASE_AT=
+    FM_TASK_BEAD_RELEASE_ID=
+    echo "REFUSED: task $ID's last status line is the merge handoff that leaves activation and live verification pending, so the task is not done; nothing was changed. Its worker or owner records the verification result as a later status line before cleanup." >&2
     return 1
   fi
   return 0
 }
+FM_TASK_BEAD_RELEASE_AUTHOR=
+FM_TASK_BEAD_RELEASE_AT=
+FM_TASK_BEAD_RELEASE_ID=
 if [ "$TEARDOWN_META_KIND" != secondmate ]; then
   teardown_require_task_bead_done || exit 1
 fi
@@ -3561,8 +3568,71 @@ teardown_archive_task_record() {
   echo "REFUSED: task $ID's record could not be archived at $archive; nothing was changed." >&2
   return 1
 }
+# After the archive, and before the tree is returned, record whose release let
+# an open bead through. The live status log is retired later; the copy under
+# record/ is what remains. An empty release is a closed bead or no bead.
+teardown_record_owner_release() {
+  local author=${FM_TASK_BEAD_RELEASE_AUTHOR:-}
+  local at=${FM_TASK_BEAD_RELEASE_AT:-}
+  local cid=${FM_TASK_BEAD_RELEASE_ID:-}
+  local status="$STATE/$ID.status" dest="$DATA/$ID/record/status" dir stamp line
+  [ -n "$author" ] || return 0
+  case "$author" in
+    ''|*[!A-Za-z0-9._+@-]*)
+      echo "REFUSED: task $ID's owner release is not a readable author; cleanup stopped before removing the task." >&2
+      return 1
+      ;;
+  esac
+  case "$cid" in
+    ''|*[!0-9]*)
+      echo "REFUSED: task $ID's owner release is not a readable comment; cleanup stopped before removing the task." >&2
+      return 1
+      ;;
+  esac
+  case "$at" in
+    [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][T\ ][0-9][0-9]:[0-9][0-9]:[0-9][0-9]*) ;;
+    *)
+      echo "REFUSED: task $ID's owner release is not a readable time; cleanup stopped before removing the task." >&2
+      return 1
+      ;;
+  esac
+  dir="$DATA/$ID/record"
+  if [ -L "$status" ] || { [ -e "$status" ] && [ ! -f "$status" ]; } \
+     || [ -L "$dir" ] || [ ! -d "$dir" ] \
+     || [ -L "$dest" ] || { [ -e "$dest" ] && [ ! -f "$dest" ]; }; then
+    echo "REFUSED: task $ID's status log is not a plain file that can be kept at $dest; cleanup stopped before removing the task." >&2
+    return 1
+  fi
+  stamp=$(date +%s) || {
+    echo "REFUSED: task $ID's owner release could not be stamped; cleanup stopped before removing the task." >&2
+    return 1
+  }
+  case "$stamp" in
+    ''|*[!0-9]*)
+      echo "REFUSED: task $ID's owner release could not be stamped; cleanup stopped before removing the task." >&2
+      return 1
+      ;;
+  esac
+  line="note [at=${stamp}]: bead ${FM_TASK_BEAD_ID} stays open; accepted ${author}'s release (comment ${cid} at ${at}) that the remaining step needs no tree"
+  if [ -f "$status" ] && [ -n "$(tail -c 1 "$status" 2>/dev/null || true)" ]; then
+    printf '\n' >> "$status" || {
+      echo "REFUSED: task $ID's owner release could not be written to its status log; cleanup stopped before removing the task." >&2
+      return 1
+    }
+  fi
+  printf '%s\n' "$line" >> "$status" || {
+    echo "REFUSED: task $ID's owner release could not be written to its status log; cleanup stopped before removing the task." >&2
+    return 1
+  }
+  cp "$status" "$dest" || {
+    echo "REFUSED: task $ID's owner release could not be copied to $dest; cleanup stopped before removing the task." >&2
+    return 1
+  }
+  echo "accepted owner release by $author"
+}
 if [ "$KIND" != secondmate ]; then
   teardown_archive_task_record || exit 1
+  teardown_record_owner_release || exit 1
 fi
 
 BACKLOG_CLOSED=0

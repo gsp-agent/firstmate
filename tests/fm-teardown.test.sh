@@ -5531,7 +5531,19 @@ rows = json.loads(Path(args[1]).read_text())
 if args[3] not in rows:
     print(json.dumps({"error": {"code": "ISSUE_NOT_FOUND", "message": "Issue not found: " + args[3]}}))
     sys.exit(3)
-print(json.dumps([{"id": args[3], "title": "fixture bead", "status": rows[args[3]]}]))
+row = rows[args[3]]
+if isinstance(row, str):
+    payload = {"id": args[3], "title": "fixture bead", "status": row, "comments": []}
+else:
+    payload = {
+        "id": args[3],
+        "title": "fixture bead",
+        "status": row.get("status", ""),
+        "comments": row.get("comments") or [],
+    }
+    if row.get("assignee"):
+        payload["assignee"] = row["assignee"]
+print(json.dumps([payload]))
 PY
   chmod +x "$1/fakebin/br"
   : > "$1/br.log"
@@ -5545,6 +5557,37 @@ set_bead_status() {
   [ -f "$db" ] || printf '{}\n' > "$db"
   [ -f "${db%/*}/config.yaml" ] || printf '# issue_prefix: %s\n' "${3%-*}" > "${db%/*}/config.yaml"
   jq --arg id "$3" --arg status "$4" '.[$id] = $status' "$db" > "$db.next" && mv "$db.next" "$db"
+}
+
+# The owner's recorded release is this sentence. A comment that does not
+# contain it is ordinary talk, whoever wrote it.
+OWNER_RELEASE_SENTENCE="Firstmate may tear down this bead's tree"
+
+# seed_open_bead <case> <home-rel> <bead> <assignee> <comments-json>
+# comments-json is a JSON array of {id, author, created_at, text}.
+seed_open_bead() {
+  local db="$1/home/$2/.beads/beads.db"
+  mkdir -p "${db%/*}"
+  [ -f "$db" ] || printf '{}\n' > "$db"
+  [ -f "${db%/*}/config.yaml" ] || printf '# issue_prefix: %s\n' "${3%-*}" > "${db%/*}/config.yaml"
+  jq --arg id "$3" --arg assignee "$4" --argjson comments "$5" \
+    '.[$id] = {status: "open", assignee: $assignee, comments: $comments}' \
+    "$db" > "$db.next" && mv "$db.next" "$db"
+}
+
+owner_release_comment() { # <id> <author> <created_at> <text>
+  jq -n --argjson id "$1" --arg author "$2" --arg at "$3" --arg text "$4" \
+    '{id: $id, author: $author, created_at: $at, text: $text}'
+}
+
+arm_treehouse_log() { # <case-dir>
+  : > "$1/treehouse.log"
+  cat > "$1/fakebin/treehouse" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "${FM_TEST_TREEHOUSE_LOG:?}"
+exit 0
+SH
+  chmod +x "$1/fakebin/treehouse"
 }
 
 # make_bead_case <name> <task-id> [merged|green]: a ship task under <task-id>
@@ -5871,6 +5914,105 @@ SH
   env -u FM_TASK_DATA_BEAD_LOCATIONS HOME="$case_dir/home" bash "$case_dir/check.sh" "$ROOT"
 }
 
+test_released_open_bead_tears_down_and_frees_its_tree() {
+  local case_dir id home author assignee comments out rc role bead_at
+  bead_at='2026-10-30T23:27:22Z'
+  # The live release is a comment by ep-<bead-home directory>. pm-<prefix>
+  # and the assignee are the other two owners the same sentence authorizes.
+  # A later comment that is not a release does not hide an earlier one.
+  for role in ep pm assignee kept; do
+    case "$role" in
+      ep) id=heru-rel1; author=ep-heru-vr-vision-sim; assignee= ;;
+      pm) id=heru-rel2; author=pm-heru; assignee= ;;
+      assignee) id=heru-rel3; author=opus-heru-fps-2; assignee=$author ;;
+      kept) id=heru-rel4; author=ep-heru-vr-vision-sim; assignee= ;;
+    esac
+    case_dir=$(make_bead_case "bead-release-$role" "$id")
+    home=dev/heru-vr-vision-sim
+    if [ "$role" = kept ]; then
+      comments=$(jq -n \
+        --argjson release "$(owner_release_comment 2275 "$author" "$bead_at" "owner's word for the worktree pool: $OWNER_RELEASE_SENTENCE")" \
+        --argjson later "$(owner_release_comment 2276 "$author" '2026-10-30T23:40:00Z' 'the next cut is noted here and does not release the tree')" \
+        '[$release, $later]')
+    else
+      comments=$(owner_release_comment 2275 "$author" "$bead_at" \
+        "owner's word for the worktree pool: $OWNER_RELEASE_SENTENCE" | jq -s '.')
+    fi
+    seed_open_bead "$case_dir" "$home" "$id" "$assignee" "$comments"
+    arm_treehouse_log "$case_dir"
+    rc=0
+    out=$(FM_TEST_TREEHOUSE_LOG="$case_dir/treehouse.log" run_bead_teardown "$case_dir" "$id" 2>&1) || rc=$?
+    expect_code 0 "$rc" "a released open bead ($role) was not cleaned up"$'\n'"$out"
+    assert_contains "$out" "accepted owner release by $author" \
+      "the $role release was not reported"
+    assert_absent "$case_dir/state/$id.meta" "a released open bead ($role) kept its record"
+    [ "$(bead_row_state "$case_dir" "$id")" = "done" ] \
+      || fail "a released open bead ($role) left its backlog item $(bead_row_state "$case_dir" "$id")"
+    assert_present "$case_dir/data/$id/record/closed-task.meta" \
+      "a released open bead ($role) was not archived for a restore"
+    assert_grep "accepted ${author}'s release (comment 2275 at ${bead_at})" \
+      "$case_dir/data/$id/record/status" \
+      "the $role release was not kept in the task status record"
+    assert_grep "bead $id stays open" "$case_dir/data/$id/record/status" \
+      "the status record does not say the bead stayed open"
+    assert_grep "return --force $case_dir/wt" "$case_dir/treehouse.log" \
+      "the $role release did not return the tree"
+    assert_no_grep ' close ' "$case_dir/br.log" "teardown asked br to close bead $id"
+    jq -e --arg id "$id" '.[$id].status == "open"' \
+      "$case_dir/home/$home/.beads/beads.db" >/dev/null \
+      || fail "teardown closed bead $id instead of leaving it open"
+  done
+
+  # The release does not skip the merge handoff. Live verification still
+  # needs the task, so the tree stays.
+  id=heru-rel5
+  case_dir=$(make_bead_case bead-release-handoff "$id")
+  comments=$(owner_release_comment 2275 ep-heru-vr-vision-sim "$bead_at" \
+    "owner's word for the worktree pool: $OWNER_RELEASE_SENTENCE" | jq -s '.')
+  seed_open_bead "$case_dir" dev/heru-vr-vision-sim "$id" '' "$comments"
+  printf '%s\n' \
+    "note [key=merged-$id] [at=1792800043]: merged $id https://github.com/example/repo/pull/7 spawn_gen=teardown-test-$id; activation and live verification pending with the existing owner" \
+    > "$case_dir/state/$id.status"
+  rc=0
+  out=$(run_bead_teardown "$case_dir" "$id" 2>&1) || rc=$?
+  expect_code 1 "$rc" "a release tore down a task whose live verification is still pending"$'\n'"$out"
+  assert_contains "$out" "activation and live verification pending" \
+    "the pending verification was not what refused the release"
+  assert_bead_refusal_kept_everything "$case_dir" "$id" "release with pending handoff"
+  pass "fm-teardown: an open bead with its owner's recorded release is archived and its tree is returned; the bead stays open"
+}
+
+test_unreleased_open_bead_still_refuses() {
+  local case_dir id=heru-hold1 shape comments out rc force
+  for shape in none stranger chatter; do
+    case_dir=$(make_bead_case "bead-unreleased-$shape" "$id")
+    case "$shape" in
+      none) comments='[]' ;;
+      stranger)
+        comments=$(owner_release_comment 3100 ep-laptop '2026-10-30T23:27:22Z' \
+          "owner's word for the worktree pool: $OWNER_RELEASE_SENTENCE" | jq -s '.')
+        ;;
+      chatter)
+        comments=$(owner_release_comment 2270 ep-heru-vr-vision-sim '2026-10-30T23:10:00Z' \
+          'the next cut still needs this tree' | jq -s '.')
+        ;;
+    esac
+    seed_open_bead "$case_dir" dev/heru-vr-vision-sim "$id" '' "$comments"
+    for force in '' --force; do
+      rc=0
+      out=$(run_bead_teardown "$case_dir" "$id" ${force:+"$force"} 2>&1) || rc=$?
+      expect_code 1 "$rc" "an unreleased open bead ($shape${force:+ $force}) was cleaned up"$'\n'"$out"
+      assert_contains "$out" "bead $id, which is open" "the refusal did not name the open bead"
+      assert_contains "$out" "No release by its assignee or owning EP or PM was recorded" \
+        "the refusal did not say that no owner release was recorded"
+      assert_contains "$out" "--force does not supply one" \
+        "the refusal did not say that --force is not a release"
+      assert_bead_refusal_kept_everything "$case_dir" "$id" "unreleased $shape${force:+ $force}"
+    done
+  done
+  pass "fm-teardown: an open bead with no release by its assignee or owning EP or PM is not cleaned up, even with --force"
+}
+
 if [ "${FM_TEARDOWN_TEST_GROUP:-}" = bead-resolution ]; then
   test_task_bead_resolves_canonical_id || exit 1
   test_tied_bead_homes_resolve_by_their_record || exit 1
@@ -5888,6 +6030,8 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = bead-gate ]; then
   test_discovered_bead_home_gates_cleanup
   test_unreadable_bead_home_refuses_cleanup
   test_task_with_no_bead_is_cleaned_up_as_before_and_archived
+  test_released_open_bead_tears_down_and_frees_its_tree
+  test_unreleased_open_bead_still_refuses
   exit 0
 fi
 
@@ -10360,6 +10504,8 @@ test_unreadable_task_bead_refuses_cleanup
 test_discovered_bead_home_gates_cleanup
 test_unreadable_bead_home_refuses_cleanup
 test_task_with_no_bead_is_cleaned_up_as_before_and_archived
+test_released_open_bead_tears_down_and_frees_its_tree
+test_unreleased_open_bead_still_refuses
 test_teardown_closes_a_gerrit_task_with_its_change_url_as_a_note
 test_teardown_manual_backend_leaves_the_backlog_to_the_operator
 test_local_only_truly_unpushed_refuses
