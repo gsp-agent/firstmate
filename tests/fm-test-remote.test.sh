@@ -299,6 +299,7 @@ test_the_remote_run_gets_the_laptop_pi_and_the_host_keeps_its_own() {
   mkdir -p "$login_bin" "$pkg_root/@earendil-works/pi-coding-agent/dist/bundle"
   printf '#!/bin/sh\necho 9.9.9-fixture\n' >"$pkg_root/@earendil-works/pi-coding-agent/dist/bundle/cli.js"
   printf '#!/bin/sh\necho 1.1.1-host\n' >"$login_bin/pi"
+  # shellcheck disable=SC2016 # the fake npm expands $1 when it runs, not here
   printf '#!/bin/sh\n[ "${1:-}" = root ] && printf "%%s\\n" "%s"\n' "$pkg_root" >"$login_bin/npm"
   chmod +x "$pkg_root/@earendil-works/pi-coding-agent/dist/bundle/cli.js" "$login_bin/pi" "$login_bin/npm"
   FAKE_HOST_PATH="$login_bin:$FAKE_HOST_PATH"
