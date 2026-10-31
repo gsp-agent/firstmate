@@ -117,7 +117,7 @@ new_world() {
   printf 'PATH=$FAKE_LOGIN_PATH\nexport PATH\n' | tee "$FAKE_HOST_HOME/.zprofile" >"$FAKE_HOST_HOME/.bash_profile"
   cp "$ROOT/bin/fm-test-run.sh" "$ROOT/bin/fm-test-remote.sh" "$ROOT/bin/fm-test-machine-line-lib.sh" \
     "$ROOT/bin/fm-timeout-lib.sh" "$ROOT/bin/fm-stock-bash-check.sh" "$REPO/bin/"
-  cp "$ROOT/tests/git-config-helpers.sh" "$REPO/tests/"
+  cp "$ROOT/tests/git-config-helpers.sh" "$ROOT/tests/remote-permitted-skips.txt" "$REPO/tests/"
   : >"$REPO/tests/lib.sh"
   write_probe "$REPO/tests/fm-remote-probe.test.sh" probe
   commit_all "fixture"
@@ -402,26 +402,6 @@ EOF
   pass "FM_LIVE, each declared live switch, and any variable named as one, on or off, refuse the remote run by name before any ssh"
 }
 
-# host_without <tool...>: the host's login PATH holds this machine's system
-# commands, bash, and git, without the named tools.
-host_without() {
-  local dir tool
-  dir="$(dirname "$FAKE_HOST_HOME")/host-bin"
-  mkdir -p "$dir"
-  ln -sf /bin/* /usr/bin/* /sbin/* /usr/sbin/* "$dir/"
-  ln -sf "$BASH" "$dir/bash"
-  ln -sf "$GIT_BIN_DIR/git" "$dir/git"
-  for tool in "$@"; do
-    rm -f "$dir/$tool"
-  done
-  FAKE_HOST_PATH=$dir
-}
-
-# declare_suite_tools <tool...>: the fixture's suites check for these tools.
-declare_suite_tools() {
-  printf 'command -v %s\n' "$@" >"$REPO/tests/fm-remote-tool-names.sh"
-}
-
 # write_skip_suite <file name> <line...>: a stand-in suite that prints the lines.
 write_skip_suite() {
   local file="$REPO/tests/$1"
@@ -431,36 +411,29 @@ write_skip_suite() {
 }
 
 test_a_suite_skipping_for_a_missing_host_tool_fails_the_remote_run() {
-  local tools tool
+  local tools
   new_world skip
-  host_without herdr jq
   tools="$FAKE_HOST_HOME/tools"
   mkdir -p "$tools"
-  # Each suite looks only in the host's tool directory, so the case decides
-  # what the host has wherever this test runs.
-  for tool in herdr jq; do
-    cat >"$REPO/tests/fm-remote-needs-$tool.test.sh" <<EOF
+  # The suite looks only in the host's tool directory, so the case decides what
+  # the host has wherever this test runs.
+  cat >"$REPO/tests/fm-remote-needs-herdr.test.sh" <<EOF
 #!/usr/bin/env bash
 PATH="$tools"
-command -v $tool >/dev/null 2>&1 || { echo "skip: $tool not found"; exit 0; }
-echo "ok - $tool is here"
+command -v herdr >/dev/null 2>&1 || { echo "skip: herdr not found"; exit 0; }
+echo "ok - herdr is here"
 EOF
-    chmod +x "$REPO/tests/fm-remote-needs-$tool.test.sh"
-  done
-  write_skip_suite fm-remote-caller-token.test.sh 'skip: a reason the caller named'
+  chmod +x "$REPO/tests/fm-remote-needs-herdr.test.sh"
+  write_skip_suite fm-remote-caller-token.test.sh 'skip: live: opt-in; set FM_FIXTURE=1 to run'
   commit_all "suites that need a host tool"
 
-  for tool in herdr jq; do
-    run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" "tests/fm-remote-needs-$tool.test.sh"
-    expect_code 1 "$RC" "a suite skipping for a missing $tool on the host"$'\n'"$OUT"
-    assert_contains "$OUT" "FM_TEST_SUMMARY total=1 failed=1" "the summary counts the skip for $tool as a failure"
-    assert_contains "$OUT" "skip: $tool not found" "the run names the missing $tool"
-  done
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-needs-herdr.test.sh
+  expect_code 1 "$RC" "a suite skipping for a missing herdr on the host"$'\n'"$OUT"
+  assert_contains "$OUT" "FM_TEST_SUMMARY total=1 failed=1" "the summary counts the skip as a failure"
+  assert_contains "$OUT" "does not permit: skip: herdr not found" "the run names the skip it refused"
 
-  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --fail-on-gate-skip 'a reason the caller named' tests/fm-remote-needs-herdr.test.sh
-  expect_code 1 "$RC" "a caller's own --fail-on-gate-skip beside a missing herdr"$'\n'"$OUT"
-  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --fail-on-gate-skip 'a reason the caller named' tests/fm-remote-caller-token.test.sh
-  expect_code 1 "$RC" "a caller's own --fail-on-gate-skip token on the host"$'\n'"$OUT"
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --fail-on-gate-skip 'live: opt-in' tests/fm-remote-caller-token.test.sh
+  expect_code 1 "$RC" "a caller's own --fail-on-gate-skip token on a permitted skip"$'\n'"$OUT"
 
   printf '#!/bin/sh\nexit 0\n' >"$tools/herdr"
   chmod +x "$tools/herdr"
@@ -468,154 +441,134 @@ EOF
   expect_code 0 "$RC" "a host that has herdr"$'\n'"$OUT"
   assert_contains "$OUT" "ok - herdr is here" "the suite ran once the host has the tool"
   assert_scratch_empty "runs that skipped on the host"
-  pass "a suite that skips because the host lacks a required tool fails the remote run, and a caller's own token still holds"
+  pass "a suite that skips because the host lacks a tool fails the remote run, and a caller's own token still holds"
 }
 
-test_each_way_a_suite_reports_a_missing_host_tool_fails_the_remote_run() {
+test_any_skip_the_list_does_not_permit_fails_the_remote_run() {
   local n=0 line
   new_world wordings
-  host_without herdr jq tmux node npm pi python3 shellcheck claude treehouse tasks-axi zsh timeout agy
-  declare_suite_tools herdr jq tmux node npm pi python3 shellcheck claude treehouse tasks-axi zsh timeout agy
   while IFS= read -r line; do
     n=$((n + 1))
     write_skip_suite "fm-remote-wording-$n.test.sh" "$line"
   done <<'EOF'
+skip: a wording no suite uses yet
+skip - a hyphenated wording no suite uses yet
+# skip: a commented wording no suite uses yet
+# a-suite: skipped (a reason no suite gives yet)
+skip-runner: claude is not installed, so its pin check was not exercised
 skip: live: herdr absent
-skip: npm absent
 skip: node or npm not found for Pi calm renderer test
-skip: pi or tmux not found for Pi calm interactive E2E
 skip: jq not found (required by the herdr adapter)
-skip: tmux not found (concurrent start)
 skip: installed @earendil-works/pi-coding-agent package not found
 skip: Herdr lab helper not executable at /fixture/helper
 skip: live: no supported runner (claude, pi, pi-signed) installed
 skip: no C compiler, so the compiled stand-in cannot build
-skip: a-tool-no-suite-names-yet not installed
 skip: installed tasks-axi predates 0.3.0, so the real backlog mutations cannot run
-skip: installed jq is older than the verified minimum
 skip: this herdr build is below the events.subscribe capability
-skip: no long-running stand-in survives a rename, so the descendant case cannot run
-skip: no Bash stat loadable beside /fixture/bash, so the per-log budget is not enforced here
+skip: kqueue state wait unavailable on this host (probe rc=3)
+skip: could not source the cmux adapter
+skip: fork counting requires BASHPID (Bash 4+)
 # skip: agy is not installed on this machine, so its contract is unverified here
+# skip - checkout has no upstream/github/origin remote to scope
+skip - tmux not installed
+skip - herdr relaunch needs jq (the herdr adapter parses JSON with it)
+note: claude not installed; skipping the real-agent busy_state check
+ok - shellcheck not installed, skipping
+ok - SKIP (ShellCheck 0.11.0 not resolved): fast lint-defect regression check
 ok - skipped: tmux is not installed
 ok - skipped (python3 is not installed; a queue start decides the note with it)
 ok - skipped the Orca capacity case (node, which the Orca status check needs, is not installed)
 ok - zsh: shell-portable backend matching skipped (zsh not found)
-ok - a timing case: skipped (node absent for sub-second timing)
 ok - herdr pane fallback skipped without jq
 ok - a launcher argument guard (skipped, no python3)
-ok - a GNU timeout fallback (skipped: no timeout binary on this host)
-skip - tmux not installed
-skip - herdr relaunch needs jq (the herdr adapter parses JSON with it)
-skip - the herdr adapter and the Treehouse pool reads need jq
-ok - shellcheck not installed, skipping
-note: claude not installed; skipping the real-agent busy_state check
-ok - SKIP (ShellCheck 0.11.0 not resolved): fast lint-defect regression check
-ok - skipped: installed tasks-axi predates 0.3.0, so dispatch refuses automatic backlog transitions
-ok - skipped on markdown-only tasks-axi: a captain hold
 ok - a stock case (skipped: needs /bin/bash 3.2.57, the stock macOS shell)
-skip-runner: claude is not installed, so its pin check was not exercised
+ok - skipped on markdown-only tasks-axi: a captain hold
+ok - daemon permission recovery skipped because permissions cannot deny reads
+ok - skip: macOS /tmp ancestor alias is not present on this host
 EOF
   write_skip_suite fm-remote-wording-mid-run.test.sh 'ok - a case ran' 'skip: node not found for one case' 'ok - another case ran'
-  commit_all "suites reporting a missing tool each way"
+  commit_all "suites reporting skips the list does not permit"
   run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --jobs 1 --family unclassified
-  expect_code 1 "$RC" "suites reporting a missing tool each way"$'\n'"$OUT"
-  assert_contains "$OUT" "FM_TEST_SUMMARY total=$((n + 2)) failed=$((n + 1)) skipped_gate=0" "each report, and only those, fails"
+  expect_code 1 "$RC" "suites reporting skips the list does not permit"$'\n'"$OUT"
+  assert_contains "$OUT" "FM_TEST_SUMMARY total=$((n + 2)) failed=$((n + 1)) skipped_gate=0" "each of them, and only those, fails"
   assert_contains "$OUT" "tests/fm-remote-wording-mid-run.test.sh exit=1" "a case-level skip mid-run fails the suite"
-  pass "each way a suite reports a tool the host lacks fails the remote run"
+  pass "any skip the list does not permit fails the remote run, in whatever wording and form"
 }
 
-test_a_skip_for_what_an_installed_tool_lacks_fails_the_remote_run() {
-  new_world installed
-  host_without pi
-  declare_suite_tools pi
-  printf '#!/bin/sh\nexit 0\n' >"$FAKE_HOST_PATH/pi"
-  chmod +x "$FAKE_HOST_PATH/pi"
-  cat >"$REPO/tests/fm-remote-approve.test.sh" <<'EOF'
-#!/usr/bin/env bash
-command -v pi >/dev/null 2>&1 || { echo "not ok - the host should have pi here"; exit 1; }
-echo "# fm-pi-seeded-home-trust-live-e2e: skipped (no --approve on installed pi)"
-EOF
-  chmod +x "$REPO/tests/fm-remote-approve.test.sh"
-  commit_all "a suite that skips for what its installed tool lacks"
-  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-approve.test.sh
-  expect_code 1 "$RC" "a skip for what the installed pi lacks"$'\n'"$OUT"
-  assert_contains "$OUT" "FM_TEST_SUMMARY total=1 failed=1" "the summary counts it as a failure"
-  pass "a suite that reads as a plain pass after skipping for what its installed tool lacks fails the remote run"
+test_a_skip_the_list_cannot_read_fails_the_remote_run() {
+  new_world nolist
+  git -C "$REPO" rm -q --cached tests/remote-permitted-skips.txt
+  rm -f "$REPO/tests/remote-permitted-skips.txt"
+  write_skip_suite fm-remote-opt-in.test.sh 'skip: live: opt-in; set FM_FIXTURE=1 to run'
+  commit_all "no permitted-skip list"
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-opt-in.test.sh
+  expect_code 1 "$RC" "a skip with no permitted-skip list"$'\n'"$OUT"
+  pass "with no permitted-skip list, every skip fails the remote run"
 }
 
 test_a_probe_whose_command_is_missing_fails_the_remote_run() {
   new_world probe
-  host_without python3
   cat >"$REPO/tests/fm-remote-probe-rc.test.sh" <<EOF
 #!/usr/bin/env bash
-PATH="$FAKE_HOST_HOME/probe-bin:\$PATH"
+PATH="$FAKE_HOST_HOME/no-tools"
 python3 -I /fixture/waiter >/dev/null 2>&1
-probe_rc=\$?
-echo "skip: kqueue state wait unavailable on this host (probe rc=\$probe_rc)"
+echo "skip: kqueue state wait unavailable on this host (probe rc=\$?)"
 EOF
   chmod +x "$REPO/tests/fm-remote-probe-rc.test.sh"
   commit_all "a suite whose probe needs python3"
   run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-probe-rc.test.sh
   expect_code 1 "$RC" "a probe whose python3 is not on the host"$'\n'"$OUT"
   assert_contains "$OUT" "probe rc=127" "the probe's command was missing"
-  mkdir -p "$FAKE_HOST_HOME/probe-bin"
-  printf '#!/bin/sh\nexit 3\n' >"$FAKE_HOST_HOME/probe-bin/python3"
-  chmod +x "$FAKE_HOST_HOME/probe-bin/python3"
-  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-probe-rc.test.sh
-  expect_code 0 "$RC" "a probe that ran and found no capability"$'\n'"$OUT"
-  assert_contains "$OUT" "FM_TEST_SUMMARY total=1 failed=0 skipped_gate=1" "a probe that ran stays a counted skip"
-  pass "a probe whose command is missing fails the remote run, and one that ran stays a counted skip"
+  pass "a suite whose probe's command is missing fails the remote run"
 }
 
-test_a_missing_tool_fails_by_the_tool_named_never_by_the_suites_family() {
+test_a_required_tool_fails_whichever_suite_or_form_names_it() {
   new_world byname
-  host_without jq node opencode
-  declare_suite_tools jq node opencode zellij cmux orca
   write_skip_suite fm-backend-zellij.test.sh 'skip: jq not found (required by the zellij adapter)'
   write_skip_suite fm-backend-cmux-smoke.test.sh 'skip: jq not found (required by the cmux adapter)'
   write_skip_suite fm-backend-orca.test.sh 'ok - skipped the Orca capacity case (node, which the Orca status check needs, is not installed)'
   write_skip_suite fm-pi-codex-native.test.sh 'skip: live: node absent'
   write_skip_suite fm-remote-harness-note.test.sh 'ok - one harness ran' '# skip: opencode is not installed on this machine, so its contract is unverified here'
-  commit_all "suites of optional backends lacking a required tool, and a per-harness note"
+  write_skip_suite fm-remote-approve.test.sh '# fm-pi-seeded-home-trust-live-e2e: skipped (no --approve on installed pi)'
+  commit_all "required tools named in optional backends' suites and other forms"
   run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --jobs 1 tests/fm-backend-zellij.test.sh tests/fm-backend-cmux-smoke.test.sh \
-    tests/fm-backend-orca.test.sh tests/fm-pi-codex-native.test.sh tests/fm-remote-harness-note.test.sh
-  expect_code 1 "$RC" "skips for a required tool in an optional backend's suite"$'\n'"$OUT"
-  assert_contains "$OUT" "FM_TEST_SUMMARY total=5 failed=5 skipped_gate=0" "a required tool is required whichever suite names it"
-  pass "a required tool missing from an optional backend's suite, and a missing harness, fail the remote run"
+    tests/fm-backend-orca.test.sh tests/fm-pi-codex-native.test.sh tests/fm-remote-harness-note.test.sh tests/fm-remote-approve.test.sh
+  expect_code 1 "$RC" "skips for a required tool"$'\n'"$OUT"
+  assert_contains "$OUT" "FM_TEST_SUMMARY total=6 failed=6 skipped_gate=0" "a required tool is required whichever suite names it"
+  pass "a required tool missing from an optional backend's suite, a missing harness, and an installed tool's shortfall fail the remote run"
 }
 
-test_a_skip_that_is_not_a_missing_required_tool_stays_a_counted_skip() {
+test_a_permitted_skip_stays_a_counted_skip() {
   new_world counted
   write_skip_suite fm-backend-zellij-smoke.test.sh 'skip: zellij not found'
-  write_skip_suite fm-backend-cmux-smoke.test.sh 'skip: cmux CLI not found on PATH'
+  write_skip_suite fm-backend-cmux-smoke.test.sh 'skip: cmux CLI not found on PATH or at the bundle path'
   write_skip_suite fm-backend-orca.test.sh 'skip: orca not found'
   write_skip_suite fm-pi-codex-native.test.sh 'skip: native Pi adapter not installed (PI_CODEX_NATIVE_PACKAGE to select it)'
   write_skip_suite fm-remote-stand-in-path.test.sh 'skip: cursor executable not resolvable in this environment, so the launch could not be built'
   write_skip_suite fm-remote-proc.test.sh 'skip: /proc not readable (the read-death shape needs process ancestry)'
-  write_skip_suite fm-remote-omp.test.sh 'ok - a harness ran' '# skip: omp is not installed on this machine, so its contract is unverified here'
-  write_skip_suite fm-remote-pi-signed.test.sh 'ok - a runner ran' 'skip-runner: pi-signed is not installed, so its pin check was not exercised'
   write_skip_suite fm-remote-live-omp.test.sh 'skip: live: omp absent'
-  write_skip_suite fm-remote-present.test.sh 'ok - a case ran' 'skip: git not found on the stand-in PATH one case sets'
   write_skip_suite fm-remote-opt-in.test.sh 'skip: live: opt-in; set FM_FIXTURE=1 to run'
   write_skip_suite fm-remote-platform.test.sh 'skip: native Windows Node required'
+  write_skip_suite fm-remote-omp.test.sh 'ok - a harness ran' '# skip: omp is not installed on this machine, so its contract is unverified here'
+  write_skip_suite fm-remote-pi-signed.test.sh 'ok - a runner ran' 'skip-runner: pi-signed is not installed, so its pin check was not exercised'
   write_skip_suite fm-remote-note.test.sh 'ok - a case ran' '# skip: unprivileged PID namespaces are unavailable here, so one case is unverified' \
-    '# skip - checkout has no upstream/github/origin remote to scope'
-  write_skip_suite fm-remote-behavior.test.sh 'ok - no-origin clone is skipped (benign), not flagged STUCK' \
-    'ok - a passing required check and a skipped one leave nothing to report' 'ok - unreadable source skipped: this user can read mode-000 files' \
-    'ok - run wrapper: an unrecognized or absent source takes the helm rather than skipping it' \
-    'ok - SKIP: no standalone Pi Calm extension is installed, so dual-install coverage used the pinned contract' \
     'note: FM_FIXTURE=1 not set; skipping the real-agent check' \
-    '# skip - inaccessible launch configuration requires a non-root user' \
-    '# a-suite: skipped (no origin remote to read)'
-  commit_all "suites whose skips are not a missing required tool"
+    'ok - SKIP: no standalone Pi Calm extension is installed, so dual-install coverage used the pinned contract' \
+    'ok - index-lock mtime fault injection is PATH-based; skipped on Darwin where stat is /usr/bin/stat'
+  write_skip_suite fm-remote-behavior.test.sh 'ok - no-origin clone is skipped (benign), not flagged STUCK' \
+    'ok - a passing required check and a skipped one leave nothing to report' \
+    'ok - run wrapper: an unrecognized or absent source takes the helm rather than skipping it' \
+    'ok - INJECT_SKIP forces self-handle, bypassing captain-relevant classification' \
+    'ok - an origin-less pooled worktree launches as-is, skipping the freshness gate' \
+    'ok - sweep: skipped entirely under FM_BOOTSTRAP_DETECT_ONLY=1, exactly like the other mutating sweeps'
+  commit_all "suites whose skips the list permits"
   run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --jobs 1 tests/fm-backend-zellij-smoke.test.sh tests/fm-backend-cmux-smoke.test.sh \
     tests/fm-backend-orca.test.sh tests/fm-pi-codex-native.test.sh tests/fm-remote-stand-in-path.test.sh tests/fm-remote-proc.test.sh \
-    tests/fm-remote-omp.test.sh tests/fm-remote-pi-signed.test.sh tests/fm-remote-live-omp.test.sh tests/fm-remote-present.test.sh \
-    tests/fm-remote-opt-in.test.sh tests/fm-remote-platform.test.sh tests/fm-remote-note.test.sh tests/fm-remote-behavior.test.sh
-  expect_code 0 "$RC" "skips that are not a missing required tool"$'\n'"$OUT"
-  assert_contains "$OUT" "FM_TEST_SUMMARY total=14 failed=0 skipped_gate=9" "optional tools, policy, and platform skips stay counted, and a behavior named skipped is no skip"
-  pass "an optional tool including omp and pi-signed, a tool the host has, a live opt-in, a platform skip, and a passing case that describes skipping do not fail the remote run"
+    tests/fm-remote-live-omp.test.sh tests/fm-remote-opt-in.test.sh tests/fm-remote-platform.test.sh tests/fm-remote-omp.test.sh \
+    tests/fm-remote-pi-signed.test.sh tests/fm-remote-note.test.sh tests/fm-remote-behavior.test.sh
+  expect_code 0 "$RC" "skips the list permits"$'\n'"$OUT"
+  assert_contains "$OUT" "FM_TEST_SUMMARY total=13 failed=0 skipped_gate=9" "the listed skips stay counted, and a behavior named skipped is no skip"
+  pass "the five tools, live suites not opted in, skips the laptop prints too, and passing cases about what the product skips do not fail the remote run"
 }
 
 # write_server_suite: a suite that leaves a server in its own session, its cwd in
@@ -988,15 +941,15 @@ test_an_output_not_copied_back_fails_a_passing_run
 test_fm_test_only_reaches_the_host
 test_a_live_switch_set_here_refuses_the_remote_run
 test_a_suite_skipping_for_a_missing_host_tool_fails_the_remote_run
-test_each_way_a_suite_reports_a_missing_host_tool_fails_the_remote_run
-test_a_skip_for_what_an_installed_tool_lacks_fails_the_remote_run
+test_any_skip_the_list_does_not_permit_fails_the_remote_run
+test_a_skip_the_list_cannot_read_fails_the_remote_run
 test_a_probe_whose_command_is_missing_fails_the_remote_run
 test_a_finished_run_ends_what_it_left_and_removes_its_directory
 test_a_cut_off_run_leaves_nothing_on_the_host
 test_a_cut_off_wait_gives_up_its_place_in_the_hosts_line
 test_a_run_sweeps_only_abandoned_runs_of_its_own_making
-test_a_missing_tool_fails_by_the_tool_named_never_by_the_suites_family
-test_a_skip_that_is_not_a_missing_required_tool_stays_a_counted_skip
+test_a_required_tool_fails_whichever_suite_or_form_names_it
+test_a_permitted_skip_stays_a_counted_skip
 test_a_busy_host_gate_is_a_wait_not_a_failure
 test_transport_failures_stop_before_anything_runs
 test_a_host_copy_at_another_commit_runs_nothing

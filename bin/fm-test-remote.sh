@@ -74,8 +74,8 @@
 # still queues on the host.
 #
 # The script's status is reported as it is. bin/fm-test-run.sh --remote is what
-# fails a suite that skips because the host lacks what it needs; a script named
-# here directly gets no such check.
+# fails a suite whose skip tests/remote-permitted-skips.txt does not permit; a
+# script named here directly gets no such check.
 #
 # Exit status: the script's own; 2 when nothing ran (a live switch set here, no
 # ssh connection, an ssh key the host refused, a missing scratch root, a failed

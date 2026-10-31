@@ -49,7 +49,7 @@
 #                   one-suite-at-a-time gate. It takes no machine line here and
 #                   never falls back to a local run. It refuses when a live
 #                   switch is set here, and the host runs with
-#                   --fail-on-missing-tool-skip. --json is written there and
+#                   --fail-on-unpermitted-skip. --json is written there and
 #                   copied back; the inspection modes run here and ignore it.
 #   --base <ref>    with --changed, compare against this ref (default: origin/main)
 #   --exclude-family <name>
@@ -61,14 +61,12 @@
 #                   "skip: <token>" (e.g. --fail-on-gate-skip 'herdr not found').
 #                   The required Herdr CI lane uses this so a missing pin cannot
 #                   silently pass as a gate skip.
-#   --fail-on-missing-tool-skip
+#   --fail-on-unpermitted-skip
 #                   after each script, fail the run if a line reporting a skip
-#                   ("skip:", "skip -", "# skip", or a passing "ok - " or "note: "
-#                   line, or a "# " line saying skipped) names a tool this host's
-#                   PATH lacks, says its installed tool falls short, or names a
-#                   tool version or package it needs. Only the tools in
-#                   OPTIONAL_HOST_TOOLS may be missing, whichever suite names
-#                   them. --remote always sets this on the host.
+#                   ("skip:", "skip -", "# skip", or a passing "ok - ", "note: ",
+#                   or "# " line saying skipped) is not one that
+#                   tests/remote-permitted-skips.txt permits. --remote always
+#                   sets this on the host.
 #   --jobs N        run the selected scripts with up to N concurrent workers.
 #                   Plain --changed and a plain list of script paths use
 #                   min(4, cpus) workers when multiple selected scripts are
@@ -137,7 +135,7 @@
 #   retry behavior, nested runs, and timing across admission waits.
 #
 # Exit status is non-zero if any selected script exits non-zero, a configured
-# --fail-on-gate-skip token or a --fail-on-missing-tool-skip line appears, the
+# --fail-on-gate-skip token or a --fail-on-unpermitted-skip line appears, the
 # measured duration exceeds --max-wall-ms, timing-artifact finalization fails,
 # or a concurrent worker violates its isolation check. Other gate skips (first meaningful line
 # matching ^skip:) remain successful and are counted as skipped_gate; each one
@@ -216,7 +214,7 @@ REMOTE=
 SCRIPTS=()
 EXCLUDE_FAMILIES=()
 FAIL_ON_GATE_SKIP=
-FAIL_ON_MISSING_TOOL_SKIP=0
+FAIL_ON_UNPERMITTED_SKIP=0
 JOBS=1
 JOBS_EXPLICIT=0
 JOBS_MAX=8
@@ -1913,52 +1911,19 @@ detect_gate_skip_token() {
   grep -F -q "skip: $token" "$file" 2>/dev/null
 }
 
-# Tools a host may lack because the laptop lacks them too: remove when the laptop has it.
-OPTIONAL_HOST_TOOLS='zellij|cmux|orca|omp|pi-signed|native Pi adapter'
-
-# The tools the suites here check for, lowercase, read once.
-SUITE_TOOLS=
-suite_tools() {
-  [ -z "$SUITE_TOOLS" ] || return 0
-  SUITE_TOOLS=$({
-    sed -nE 's/.*(command -v|type -P) +"?([a-zA-Z][a-zA-Z0-9_-]*)"?.*/\2/p' "$ROOT"/tests/*.sh
-    sed -nE 's/^[[:space:]]*fm_live_gate[[:space:]]+(default-on|opt-in)[[:space:]]+[A-Za-z0-9_,]+[[:space:]]+(.*)$/\2/p' "$ROOT"/tests/*.sh | tr ' ' '\n'
-  } 2>/dev/null | tr 'A-Z' 'a-z' | LC_ALL=C sort -u | tr '\n' ' ')
-}
-
-# True when a line reporting a skip names a tool this host's PATH lacks: one a
-# suite here checks for, or the word a "not found" style reason names. "installed
-# <tool>" counts too, since the tool is there and the suite still skipped. So
-# does a reason on the shortfall list, which a PATH check cannot see: a tool below
-# the version a suite needs, or a probe's command not found.
-detect_missing_tool_skip() {
-  local line lower word name names previous
-  local optional_head="^(# )?skip(-runner)?(:| -) (live: )?($OPTIONAL_HOST_TOOLS)( |\$)"
-  local shortfall=' is below| not resolved|skipped: needs |no C compiler|no long-running stand-in|no Bash [a-z]+ loadable|requires BASHPID|no EPOCHREALTIME|markdown-only|rc=127'
-  suite_tools
-  while IFS= read -r line; do
-    [[ ! $line =~ $optional_head ]] || continue
-    [[ ! $line =~ $shortfall ]] || return 0
-    lower=$(printf '%s\n' "$line" | tr 'A-Z' 'a-z')
-    names=$(printf '%s\n' "$lower" | sed -nE -e 's/ (is|are) not / not /' -e 's/^.*[^a-z0-9_-]([a-z0-9_-]+) (not found|not installed|not executable|absent).*$/\1/p')
-    previous=
-    for word in $(printf '%s' "$lower" | tr -c 'a-z0-9_-' ' '); do
-      case " $SUITE_TOOLS " in
-        *" $word "*)
-          names="$names $word"
-          if [ "$previous" = installed ]; then
-            case "|$OPTIONAL_HOST_TOOLS|" in *"|$word|"*) ;; *) return 0 ;; esac
-          fi
-          ;;
-      esac
-      previous=$word
-    done
-    for name in $names; do
-      case "|$OPTIONAL_HOST_TOOLS|" in *"|$name|"*) continue ;; esac
-      type -P "$name" >/dev/null 2>&1 || return 0
-    done
-  done < <(grep -E -e '^(# )?skip(-runner)?(:| -)' -e '^ok - .*skipped' -e '^# .*skipped' -e '^ok - SKIP' -e '^(ok - |note: ).*[,;] skipping' "$1" 2>/dev/null)
-  return 1
+# Print the first line in the script's output that reports a skip and that
+# tests/remote-permitted-skips.txt does not permit, or nothing.
+unpermitted_skip() {
+  grep -E \
+    -e '^(# )?skip(-runner)?(:| -)' \
+    -e '^ok - skip:' \
+    -e '^ok - (skipped|SKIP)' \
+    -e '^ok - .*(\(skipped|skipped (\(|without |because |where |on |as |for )|skipped: |: skipped|; skipped)' \
+    -e '^# .*skipped' \
+    -e '^(ok - |note: ).*[,;] skipping' \
+    "$1" 2>/dev/null \
+    | grep -Ev -f <(grep -Ev '^(#|$)' "$ROOT/tests/remote-permitted-skips.txt" 2>/dev/null) \
+    | head -n 1
 }
 
 apply_exclude_families() {
@@ -2215,8 +2180,8 @@ while [ "$#" -gt 0 ]; do
       FAIL_ON_GATE_SKIP=${1#--fail-on-gate-skip=}
       shift
       ;;
-    --fail-on-missing-tool-skip)
-      FAIL_ON_MISSING_TOOL_SKIP=1
+    --fail-on-unpermitted-skip)
+      FAIL_ON_UNPERMITTED_SKIP=1
       shift
       ;;
     -h|--help)
@@ -2311,11 +2276,11 @@ fi
 # the host and copied back; --changed's base is resolved here and sent as a
 # commit, because a relative base such as HEAD~1 names another commit there
 # when uncommitted changes add a commit over HEAD; and
-# --fail-on-missing-tool-skip is added, so a suite that could not run there is
+# --fail-on-unpermitted-skip is added, so a suite that could not run there is
 # not a pass.
 run_remote() {
   local arg skip=0 rest=0 base_sha
-  local -a forward=() pre=(--fail-on-missing-tool-skip) opts=()
+  local -a forward=() pre=(--fail-on-unpermitted-skip) opts=()
   for arg in ${ORIGINAL_ARGS[@]+"${ORIGINAL_ARGS[@]}"}; do
     if [ "$skip" -eq 1 ]; then
       skip=0
@@ -2396,8 +2361,8 @@ fi
 if [ -n "$FAIL_ON_GATE_SKIP" ]; then
   SELECTION_DESC="${SELECTION_DESC};fail-on-gate-skip=$FAIL_ON_GATE_SKIP"
 fi
-if [ "$FAIL_ON_MISSING_TOOL_SKIP" -eq 1 ]; then
-  SELECTION_DESC="${SELECTION_DESC};fail-on-missing-tool-skip"
+if [ "$FAIL_ON_UNPERMITTED_SKIP" -eq 1 ]; then
+  SELECTION_DESC="${SELECTION_DESC};fail-on-unpermitted-skip"
 fi
 if [ "$LIST_ONLY" -eq 1 ] || [ "$LIST_SCHEDULED" -eq 1 ]; then
   if [ "$LIST_SCHEDULED" -eq 1 ]; then
@@ -2621,7 +2586,7 @@ family_bump() {
 
 record_script_result() {
   local script=$1 rc=$2 duration=$3 out=$4 end_iso=$5
-  local base family expected gate_skip gate_reason fail_delta
+  local base family expected gate_skip gate_reason fail_delta unpermitted
   base=$(basename "$script")
   family=$(family_for_basename "$base")
   expected=$(expected_gate_skip_for_family "$family")
@@ -2630,9 +2595,12 @@ record_script_result() {
     log "required gate skip token seen in $script: skip: $FAIL_ON_GATE_SKIP"
     rc=1
   fi
-  if [ "$FAIL_ON_MISSING_TOOL_SKIP" -eq 1 ] && detect_missing_tool_skip "$out"; then
-    log "$script skipped because this host lacks something it needs"
-    rc=1
+  if [ "$FAIL_ON_UNPERMITTED_SKIP" -eq 1 ]; then
+    unpermitted=$(unpermitted_skip "$out")
+    if [ -n "$unpermitted" ]; then
+      log "$script reported a skip tests/remote-permitted-skips.txt does not permit: $unpermitted"
+      rc=1
+    fi
   fi
 
   gate_skip=false
