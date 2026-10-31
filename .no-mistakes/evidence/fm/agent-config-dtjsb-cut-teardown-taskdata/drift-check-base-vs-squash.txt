@@ -1,0 +1,44 @@
+base       rc=1  total=     635 pending=92 error=6 path-drift=17 unmatched=0 path-ok=353 keep=162
+squash216  rc=1  total=     637 pending=69 error=6 path-drift=17 unmatched=0 path-ok=354 keep=186
+squash217  rc=1  total=     639 pending=69 error=7 path-drift=22 unmatched=1 path-ok=349 keep=185
+tip        rc=1  total=     642 pending=69 error=6 path-drift=22 unmatched=1 path-ok=349 keep=185
+--- head of base output
+behind: 168
+ahead: 257
+path-ok: .agents/skills/afk/SKILL.md
+path-ok: .agents/skills/agent-skill-trigger-index/SKILL.md
+path-ok: .agents/skills/ask-user-authority/SKILL.md
+--- error+path-drift diff base vs squash216 (empty = unchanged)
+--- unmatched lines squash216
+--- unmatched lines tip (unsquashed)
+unmatched: 216
+--- errors squash217 (adversarial wrong number) not on base
+2a3
+> error: missing manifest entry for PR 217
+--- pending-pr entries
+      54
+      47
+--- PRs whose pending lines left
+< pending: c4f47a6c47d32c5d36b4f1dd5e8e092e7e1ebf4f .agent-config-dtjsb fix(bin): size tas
+< pending: 6cfb10ff2d27da93544f33f6724cc555fa65039d .agent-config-dtjsb Teardown: bound ev
+< pending: 24b06030ff677645eafedea8a6a56ce2450db7f4 .agent-config-dtjsb fix: prevent lazy-
+< pending: d862d5e8746eab41bd6a4ca2973ed66009bcc26f .agent-config-dtjsb fix(bin): keep tas
+< pending: 8ab8f46d1086aaed5c009a257f8705552fa08b62 .agent-config-dtjsb Merge pull request
+< pending: b8932e8b6269d5d48b0498d4b4aeca60bc72b564 .agent-config-dtjsb no-mistakes(docume
+< pending: e59a6665512399edd2fab7de05f9ee94e8267d5b .agent-config-dtjsb fix: resolve named
+< pending: 8ca0dc62b32426d9838012528796a8cd6d9afdcd .agent-config-dtjsb test: reproduce na
+< pending: 4439ef547fa08c9537b9b48cfcb17d6311386db5 .agent-config-dtjsb Merge pull request
+< pending: 8c448df39091dec2b7824b3636b599d9946dac62 .agent-config-dtjsb no-mistakes(lint):
+< pending: 4cd46f41f053c80e7ee16cc7580d6eab97bf787f .agent-config-dtjsb no-mistakes(docume
+< pending: c3b3e1ce3e563fb89c9a760c97af194237f548ef .agent-config-dtjsb no-mistakes(review
+< pending: cf0da8c3225c828f3cd8fe05be71ae0c84c186bf .agent-config-dtjsb no-mistakes(review
+< pending: 0b8dddb9f0e78af2a34d3d8ef069cb0d55f551c8 .agent-config-dtjsb no-mistakes(review
+< pending: fb8006527599d03228f7099aa0d342a53146f115 .agent-config-dtjsb no-mistakes(review
+< pending: c4a5ec6775ea3c61312b69993e7e1d71599c4dae .agent-config-dtjsb no-mistakes(review
+< pending: 1eef4fdd56eebc7e8ffc2ba772b129453ccc0247 .agent-config-dtjsb fix: limit task sc
+< pending: 559548c816572200119a60c52e051fd54fb58408 .agent-config-dtjsb no-mistakes(lint):
+< pending: b0512fc88d185d30fcd966a5e7fa622481b94e47 .agent-config-dtjsb no-mistakes(docume
+< pending: bd9ca126ad8328352c30c01217988972711549a9 .agent-config-dtjsb no-mistakes(review
+< pending: 86fa1306443d3412ace2320aae85d6dcd051f6ce .agent-config-dtjsb no-mistakes(review
+< pending: d05e9561bc141ad74dedcb336e620fc340711c2b .agent-config-dtjsb Prune retired task
+< pending: 17c4d13162f8fcdfb6cc9885a01648cf82b2a7a9 .agent-config-dtjsb fix(bin): close Gi

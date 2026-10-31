@@ -1,0 +1,23 @@
+path-drift: .agents/skills/quota-array-dispatch/SKILL.md
+path-drift: bin/fm-backend.sh
+path-drift: bin/fm-claude-quota.sh
+path-drift: bin/fm-dispatch-resolve.sh
+path-drift: bin/fm-spawn.sh
+path-drift: bin/fm-task-bead-lib.sh
+path-drift: bin/fm-task-data-lib.sh
+path-drift: bin/fm-task-data.py
+path-drift: bin/fm-watch.sh
+path-drift: docs/configuration.md
+path-drift: tests/fm-claude-quota.test.sh
+path-drift: tests/fm-dispatch-resolve.test.sh
+path-drift: tests/fm-pr-made-with.test.sh
+path-drift: tests/fm-quota-choose.test.sh
+path-drift: tests/fm-spawn-queue-start.test.sh
+path-drift: tests/fm-task-data-offload.test.sh
+path-drift: tests/fm-teardown.test.sh
+error: missing manifest entry for PR 194
+error: missing manifest entry for PR 200
+error: proof patch conflicts for PR 137: 446eb1e7f53f7d03dc580227a7488129263dadbf
+error: proof patch conflicts for PR 138: efbe1b61c798d790fe6f2cce77e3e90e8fab1034
+error: proof patch conflicts for PR 139: f96e6fa9d0be3d60c2aefb214674acb54b8425a3
+error: proof patch conflicts for PR 197: 2a33f467cdcf899cb16d5418a62f562cc7124acc
