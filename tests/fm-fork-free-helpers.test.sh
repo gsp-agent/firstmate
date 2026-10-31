@@ -333,6 +333,117 @@ SH
   pass "fm_backend_target_of_meta_to reads every meta's target as the printing form does"
 }
 
+# fm-crew-state.sh reads every run field, table row and ledger row through
+# these (.agent-config-8c70c); each must answer as the subshell or pipeline it
+# replaced did.
+test_nm_field_and_trim_helpers_match_the_pipelines() {
+  local script="$TMP_ROOT/nm-field.sh"
+  cat > "$script" <<'SH'
+. "$1/bin/fm-nm-run-lib.sh"
+ref_trim() {  # the replaced fm_nm_trim
+  local s=${1:-}
+  s="${s#"${s%%[![:space:]]*}"}"
+  s="${s%"${s##*[![:space:]]}"}"
+  printf '%s' "$s"
+}
+ref_strip_quotes() {  # the replaced fm_nm_strip_quotes
+  local s
+  s=$(ref_trim "${1:-}")
+  case "$s" in
+    \"*\") s=${s#\"}; s=${s%\"} ;;
+  esac
+  ref_trim "$s"
+}
+ref_field() {  # the replaced printf | sed | head read
+  printf '%s\n' "$1" | sed -n "s/^[[:space:]]*$2:[[:space:]]*\(.*\)/\1/p" | head -1
+}
+toon=$'run:\n  id: "01RUN"\n  status:running\n  status: second\n\tbranch:\t fm/x y \n  pr: ""\n  head: "abc\r"\n  status_x: no\n  gate :spaced\n  note: héllo "q" \n  empty:\n  blank:   \nkey: "a" b "c"\n  dotted: v.1'
+for key in id status branch pr head status_x gate note empty blank key dotted missing run; do
+  for text in "$toon" '' $'id: only\n' $'\n\n  id:   "  x  "  '; do
+    want=$(ref_strip_quotes "$(ref_field "$text" "$key")")
+    fm_nm_qfield_to got "$text" "$key"
+    [ "$got" = "$want" ] || printf 'qfield %q: helper %q, pipeline %q\n' "$key" "$got" "$want"
+    want=$(ref_field "$text" "$key")
+    fm_nm_field_to got "$text" "$key"
+    [ "$got" = "$want" ] || printf 'field %q: helper %q, pipeline %q\n' "$key" "$got" "$want"
+  done
+done
+for s in '' ' ' '  "a"  ' '"a' 'a"' '""' '" "' $'\t"x y"\n' $'\r"x"\r' '"a"b"' 'plain' $'two\nlines '; do
+  want=$(ref_trim "$s"); fm_nm_trim_to got "$s"
+  [ "$got" = "$want" ] || printf 'trim %q: helper %q, subshell %q\n' "$s" "$got" "$want"
+  want=$(ref_strip_quotes "$s"); fm_nm_strip_quotes_to got "$s"
+  [ "$got" = "$want" ] || printf 'strip %q: helper %q, subshell %q\n' "$s" "$got" "$want"
+  [ "$(fm_nm_strip_quotes "$s")" = "$want" ] || printf 'strip printing form %q differs\n' "$s"
+done
+:
+SH
+  run_everywhere "run field reads" "$script"
+  pass "run field, trim and quote reads match the sed pipeline and the subshell trims"
+}
+
+test_nm_first_line_matches_grep() {
+  local script="$TMP_ROOT/nm-line.sh"
+  cat > "$script" <<'SH'
+. "$1/bin/fm-nm-run-lib.sh"
+text=$'run:\n  status: "awaiting_approval"\n  awaiting_agent: parked 2m\n  findings[2]{id,severity,file,line,action,description}:\n    r1,warning,a.go,,auto-fix,x\n  steps[3]{step,status,findings,duration_ms}:\n    review, "fix_review" ,0,1\n    ci,"running",0,2\n  gate:\n    step: review\n  state: fix_review \nfindings[0]: none\n  ci, fixing ,0,3'
+for re in "$FM_NM_GATE_LINE_RE" "$FM_NM_AWAITING_AGENT_RE" "$FM_NM_GATE_SCALAR_RE" "$FM_NM_GATE_ROW_RE" \
+  "$FM_NM_GATE_LINE_RE|$FM_NM_AWAITING_AGENT_RE|$FM_NM_GATE_SCALAR_RE|$FM_NM_GATE_ROW_RE" \
+  'findings\[[0-9]+\]' '^[[:space:]]*findings\[[0-9]+\]\{[^}]*\}:' \
+  '^[[:space:]]*ci,[[:space:]]*"?(running|fixing)"?[[:space:]]*,' 'never-present'; do
+  for t in "$text" '' $'gate: x\n' $'  ci,running,0,1\r'; do
+    want=$(printf '%s\n' "$t" | grep -E "$re" | head -1)
+    want_rc=0; printf '%s\n' "$t" | grep -Eq "$re" || want_rc=1
+    got_rc=0; fm_nm_first_line_to got "$t" "$re" || got_rc=1
+    [ "$got" = "$want" ] || printf 'line %q: helper %q, grep %q\n' "$re" "$got" "$want"
+    [ "$got_rc" = "$want_rc" ] || printf 'line %q: helper status %s, grep %s\n' "$re" "$got_rc" "$want_rc"
+  done
+done
+fm_nm_run_is_parked $'run:\n  status: running' && printf 'running run read as parked\n'
+fm_nm_run_is_parked $'run:\n  awaiting_agent: parked' || printf 'awaiting run not read as parked\n'
+:
+SH
+  run_everywhere "run line reads" "$script"
+  pass "first-matching-line reads agree with grep -E | head -1 for every run regex"
+}
+
+test_meta_exact_value_matches_the_grep_pipeline() {
+  local script="$TMP_ROOT/exact.sh" dir="$TMP_ROOT/exact-metas"
+  mkdir -p "$dir/dir.meta"
+  printf 'schema=v1\ntask_id=a\n' > "$dir/once.meta"
+  printf 'task_id=a\ntask_id=b\n' > "$dir/twice.meta"
+  printf 'task_id=\n' > "$dir/empty.meta"
+  printf 'task_id=a=b=c\nstate=done' > "$dir/equals-no-newline.meta"
+  printf 'task_id=a\r\n task_id=b\ntask_id_x=c\n' > "$dir/crlf.meta"
+  printf 'other=1\n' > "$dir/absent.meta"
+  printf 'task_id=x\n' > "$dir/unreadable.meta"
+  chmod 000 "$dir/unreadable.meta"
+  cat > "$script" <<'SH'
+. "$1/bin/fm-wake-lib.sh"
+. "$1/bin/fm-backend.sh"
+ref_exact() {  # the replaced grep -c / grep | cut read
+  local meta=$1 key=$2 count value
+  count=$(grep -c "^$key=" "$meta" 2>/dev/null || true)
+  [ "$count" -eq 1 ] 2>/dev/null || return 1
+  value=$(grep "^$key=" "$meta" | cut -d= -f2-)
+  [ -n "$value" ] || return 1
+  printf '%s' "$value"
+}
+for meta in "$2"/*.meta "$2/missing.meta"; do
+  for key in task_id schema state task_id_x; do
+    want_rc=0; want=$(ref_exact "$meta" "$key") || want_rc=1
+    rc=0; got=$(fm_backend_meta_exact_value "$meta" "$key") || rc=1
+    [ "$got/$rc" = "$want/$want_rc" ] || printf '%s %s: printing %q/%s, grep %q/%s\n' "${meta##*/}" "$key" "$got" "$rc" "$want" "$want_rc"
+    rc=0; got=stale; fm_backend_meta_exact_value "$meta" "$key" got || rc=1
+    [ "$got/$rc" = "$want/$want_rc" ] || printf '%s %s: out-var %q/%s, grep %q/%s\n' "${meta##*/}" "$key" "$got" "$rc" "$want" "$want_rc"
+  done
+done
+:
+SH
+  run_everywhere "exact meta value" "$script" "$dir"
+  chmod 600 "$dir/unreadable.meta"
+  pass "fm_backend_meta_exact_value answers as the grep -c / grep | cut read for every record shape"
+}
+
 test_watch_read_helpers_preserve_results() {
   local script="$TMP_ROOT/watch-reads.sh" home="$TMP_ROOT/watch-home"
   mkdir -p "$home/state" "$home/config"
@@ -637,4 +748,7 @@ else
   test_status_reads_notice_same_stamp_rewrites
   test_inactive_cadence_skips_only_a_known_idle_main_home
   test_fixed_read_helpers_match_the_existing_readers
+  test_nm_field_and_trim_helpers_match_the_pipelines
+  test_nm_first_line_matches_grep
+  test_meta_exact_value_matches_the_grep_pipeline
 fi

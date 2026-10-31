@@ -403,13 +403,24 @@ fm_backend_target_of_meta_to() {  # <out-var> <meta-file>
 # valid only when their window name itself is exactly fm-<task-id>.
 # On success, sets FM_BACKEND_VALIDATED_BACKEND and
 # FM_BACKEND_VALIDATED_TARGET. On failure, prints one refusal and returns 1.
-fm_backend_meta_exact_value() {  # <meta-file> <key>
-  local meta=$1 key=$2 count value
-  count=$(grep -c "^$key=" "$meta" 2>/dev/null || true)
-  [ "$count" -eq 1 ] || return 1
-  value=$(grep "^$key=" "$meta" | cut -d= -f2-)
-  [ -n "$value" ] || return 1
-  printf '%s' "$value"
+
+# fm_backend_meta_exact_value: the value of the one <key>= line in <meta-file>,
+# printed or assigned to <out-var> ('' on failure); 1 when the key is absent,
+# repeated or empty. It mirrors the grep -c / grep | cut read it replaced and
+# starts no process: fm-crew-state.sh reads every retained terminal outcome
+# with it, and 637 records cost ~7,800 processes a call (.agent-config-8c70c).
+fm_backend_meta_exact_value() {  # <meta-file> <key> [<out-var>]
+  local fm_meta=$1 fm_key=$2 fm_line fm_value='' fm_count=0
+  [ "$#" -gt 2 ] && printf -v "$3" '%s' ''
+  [ -f "$fm_meta" ] || return 1
+  while IFS= read -r fm_line || [ -n "$fm_line" ]; do
+    case "$fm_line" in
+      "$fm_key="*) fm_count=$((fm_count + 1)); fm_value=${fm_line#*=} ;;
+    esac
+  done 2>/dev/null < "$fm_meta" || return 1
+  [ "$fm_count" -eq 1 ] && [ -n "$fm_value" ] || return 1
+  if [ "$#" -gt 2 ]; then printf -v "$3" '%s' "$fm_value"
+  else printf '%s' "$fm_value"; fi
 }
 
 fm_backend_endpoint_atom_valid() {  # <value>
