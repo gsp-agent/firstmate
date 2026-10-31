@@ -554,10 +554,11 @@ FM_NM_RUN_WAITS_ON='waits on: '
 #     repair runs only inside a fix round, whose step reads fixing.
 # Columns are found by name in the active_steps header, whose layout differs
 # between no-mistakes versions. No table, a header without the step, status or
-# agent_pid column, any other active step, or a row that does not hold exactly
-# the declared fields or ends inside an open quote or escape is not proof, so
-# the run still reads as work: a read cut short can end partway through a row,
-# and a missing agent_pid is not an empty one.
+# agent_pid column, any other active step, a table holding other than its
+# declared [N] rows, or a row that does not hold exactly the declared fields or
+# ends inside an open quote or escape is not proof, so the run still reads as
+# work: a read cut short can end partway through a row or drop whole rows, and
+# a missing agent_pid is not an empty one.
 fm_nm_run_wait() {  # <toon-output>
   printf '%s\n' "$1" | awk '
     function cells(row, out,    n, i, c, cell, quoted, escaped) {
@@ -576,6 +577,7 @@ fm_nm_run_wait() {  # <toon-output>
     function trim(s) { gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
     /^[[:space:]]*active_steps\[[0-9]+\]\{/ {
       indent = index($0, "active_steps"); inblock = 1
+      declared = substr($0, index($0, "[") + 1); declared = substr(declared, 1, index(declared, "]") - 1) + 0
       header = $0; sub(/^[^{]*\{/, "", header); sub(/\}.*$/, "", header)
       split("", col); ncols = split(header, names, ",")
       for (i = 1; i <= ncols; i++) col[names[i]] = i
@@ -604,7 +606,7 @@ fm_nm_run_wait() {  # <toon-output>
       if (this == "") working = 1
       else if (wait == "") wait = this
     }
-    END { if (rows > 0 && !working) print wait }
+    END { if (rows > 0 && rows == declared && !working) print wait }
   '
 }
 

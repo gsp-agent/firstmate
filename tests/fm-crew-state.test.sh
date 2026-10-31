@@ -1511,6 +1511,14 @@ test_run_waiting_on_others_names_the_wait_and_holds_no_place() {
   assert_not_contains "$out" "waits on:" "a Test row with every field but an unterminated quote proves no wait"
   assert_equals 0 "$(place_verdict "$d" feat-waits)" "a Test row with an unterminated quote freed the place"
 
+  # A read cut off at a line boundary can drop a whole row, and the lost row
+  # may be an agent at work, so a table short of its declared count proves no wait.
+  FM_FAKE_AXI_STATUS="$(run_active_step fm/feat-waits "test,running,4h,4h,\"2m ago: log: still waiting for test suite lock $lock (4h)\",\"\",starting" |
+    sed 's/active_steps\[1\]/active_steps[2]/')"
+  out=$(run_crew_state "$d" feat-waits)
+  assert_not_contains "$out" "waits on:" "a table delivering one of its two declared rows proves no wait"
+  assert_equals 0 "$(place_verdict "$d" feat-waits)" "a table delivering one of its two declared rows freed the place"
+
   FM_FAKE_CI_LOGS="CI checks running, waiting for results..."
   FM_FAKE_AXI_STATUS="$(run_active_step fm/feat-waits "ci,running,16h15m,5h8m,\"quiet 42m39s ago: log: base branch advanced (aaaaaaa..bbbbbbb), re-arming CI monitor timeout\",\"\",starting")"
   out=$(run_crew_state "$d" feat-waits)
