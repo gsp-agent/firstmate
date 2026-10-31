@@ -62,12 +62,12 @@
 #                   The required Herdr CI lane uses this so a missing pin cannot
 #                   silently pass as a gate skip.
 #   --fail-on-missing-tool-skip
-#                   after each script, fail the run if it reports skipping
-#                   anything because this host lacks a tool, package, or version
-#                   it needs, on a "skip:", "skip -", or "# skip" line or a
-#                   passing "ok - " or "note: " line that reports a skip. Only
-#                   the tools in OPTIONAL_HOST_TOOLS may be missing, whichever
-#                   suite names them. --remote always sets this on the host.
+#                   after each script, fail the run if a line reporting a skip
+#                   ("skip:", "skip -", "# skip", or a passing "ok - " or "note: "
+#                   line) names a tool this host's PATH lacks, or a tool version
+#                   or package it needs. Only the tools in OPTIONAL_HOST_TOOLS may
+#                   be missing, whichever suite names them. --remote always sets
+#                   this on the host.
 #   --jobs N        run the selected scripts with up to N concurrent workers.
 #                   Plain --changed and a plain list of script paths use
 #                   min(4, cpus) workers when multiple selected scripts are
@@ -1913,20 +1913,41 @@ detect_gate_skip_token() {
 }
 
 # Tools a host may lack because the laptop lacks them too: remove when the laptop has it.
-OPTIONAL_HOST_TOOLS='zellij|cmux|orca|native Pi adapter'
+OPTIONAL_HOST_TOOLS='zellij|cmux|orca|omp|pi-signed|native Pi adapter'
 
-# True when a skip line, or a passing line reporting a skip, says this host lacks
-# a tool, package, or version the script needs, and names no optional tool as
-# the thing it lacks.
+# The tools the suites here check for, lowercase, read once.
+SUITE_TOOLS=
+suite_tools() {
+  [ -z "$SUITE_TOOLS" ] || return 0
+  SUITE_TOOLS=$({
+    sed -nE 's/.*(command -v|type -P) +"?([a-zA-Z][a-zA-Z0-9_-]*)"?.*/\2/p' "$ROOT"/tests/*.sh
+    sed -nE 's/^[[:space:]]*fm_live_gate[[:space:]]+(default-on|opt-in)[[:space:]]+[A-Za-z0-9_,]+[[:space:]]+(.*)$/\2/p' "$ROOT"/tests/*.sh | tr ' ' '\n'
+  } 2>/dev/null | tr 'A-Z' 'a-z' | LC_ALL=C sort -u | tr '\n' ' ')
+}
+
+# True when a line reporting a skip names a tool this host's PATH lacks: one a
+# suite here checks for, or the word a "not found" style reason names. A skip
+# whose reason is on the shortfall list, which a PATH check cannot see, also
+# counts: a tool below the version a suite needs, or a probe's command not found.
 detect_missing_tool_skip() {
-  local lacks=' not found| absent| not installed| not executable| not resolved| needs? [a-z][a-z0-9_-]*( \(|\)|$)|predates| is older than| is below|no C compiler|no long-running stand-in|no Bash [a-z]+ loadable|no supported .* installed|markdown-only'
-  grep -E \
-    -e "^(# )?skip(-runner)?(:| -).*($lacks)" \
-    -e "^ok - .*skipped.*($lacks| without |[:,] no |: needs )" \
-    -e "^ok - SKIP.*($lacks)" \
-    -e '^(ok - |note: ).*( not found| not installed| absent)[,;] skipping' \
-    "$1" 2>/dev/null \
-    | grep -Ev "^(# )?skip(:| -) (live: )?($OPTIONAL_HOST_TOOLS)( |$)" >/dev/null
+  local line lower word name names
+  local optional_head="^(# )?skip(-runner)?(:| -) (live: )?($OPTIONAL_HOST_TOOLS)( |\$)"
+  local shortfall=' predates| is older than| is below| not resolved|skipped: needs |no C compiler|no long-running stand-in|no Bash [a-z]+ loadable|requires BASHPID|no EPOCHREALTIME|markdown-only|rc=127'
+  suite_tools
+  while IFS= read -r line; do
+    [[ ! $line =~ $optional_head ]] || continue
+    [[ ! $line =~ $shortfall ]] || return 0
+    lower=$(printf '%s\n' "$line" | tr 'A-Z' 'a-z')
+    names=$(printf '%s\n' "$lower" | sed -nE -e 's/ (is|are) not / not /' -e 's/^.*[^a-z0-9_-]([a-z0-9_-]+) (not found|not installed|not executable|absent).*$/\1/p')
+    for word in $(printf '%s' "$lower" | tr -c 'a-z0-9_-' ' '); do
+      case " $SUITE_TOOLS " in *" $word "*) names="$names $word" ;; esac
+    done
+    for name in $names; do
+      case "|$OPTIONAL_HOST_TOOLS|" in *"|$name|"*) continue ;; esac
+      type -P "$name" >/dev/null 2>&1 || return 0
+    done
+  done < <(grep -E -e '^(# )?skip(-runner)?(:| -)' -e '^ok - .*skipped' -e '^ok - SKIP' -e '^(ok - |note: ).*[,;] skipping' "$1" 2>/dev/null)
+  return 1
 }
 
 apply_exclude_families() {
