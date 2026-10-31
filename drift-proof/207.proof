@@ -1,0 +1,2 @@
+# Failing-first test: test_runs_the_suite_on_the_host_at_the_exact_head_and_cleans_up in tests/fm-test-remote.test.sh. Red on base 74fd86e8, where bin/fm-test-remote.sh does not exist and bin/fm-test-run.sh has no --remote mode, so no suite runs on the host; green here, where the suite runs on the host at the exact head through its gate and the run directory is removed.
+pr: 207
