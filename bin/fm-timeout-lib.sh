@@ -111,18 +111,26 @@
 # bounded child its own process group before signaling its negative pid.
 set -u
 
-fm_timeout_mechanism() {
+# The mechanism assigned to <out-var>, which starts no process: fm_run_timed
+# reads it on every bounded call (.agent-config-8c70c).
+fm_timeout_mechanism_to() {  # <out-var>
   if [ "${FM_TIMEOUT_MECHANISM_OVERRIDE:-}" = bash ]; then
-    printf 'bash\n'
+    printf -v "$1" '%s' bash
   elif command -v timeout >/dev/null 2>&1; then
-    printf 'timeout\n'
+    printf -v "$1" '%s' timeout
   elif command -v gtimeout >/dev/null 2>&1; then
-    printf 'gtimeout\n'
+    printf -v "$1" '%s' gtimeout
   elif command -v perl >/dev/null 2>&1; then
-    printf 'perl\n'
+    printf -v "$1" '%s' perl
   else
-    printf 'bash\n'
+    printf -v "$1" '%s' bash
   fi
+}
+
+fm_timeout_mechanism() {
+  local mechanism
+  fm_timeout_mechanism_to mechanism
+  printf '%s\n' "$mechanism"
 }
 
 fm_wait_timed() {
@@ -224,7 +232,8 @@ fm_run_external_timeout() {
   else
     runner_rc=$?
   fi
-  command_rc=$(cat "$status_file" 2>/dev/null || true)
+  command_rc=''
+  IFS= read -r command_rc 2>/dev/null < "$status_file" || true
   rm -f "$status_file" 2>/dev/null || true
   case "$command_rc" in
     ''|*[!0-9]*) ;;
@@ -249,7 +258,7 @@ fm_run_external_timeout() {
 fm_run_timed() {  # <seconds> <command...>
   local seconds=$1 mechanism fm_timed_signal="" fm_timed_traps fm_timed_rc=0 runner_pid
   shift
-  mechanism=$(fm_timeout_mechanism)
+  fm_timeout_mechanism_to mechanism
   fm_timed_traps=$(trap -p HUP INT TERM)
   trap 'fm_timed_signal=129' HUP
   trap 'fm_timed_signal=130' INT

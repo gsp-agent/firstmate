@@ -315,7 +315,7 @@ emit_status_newer_than_run() {
   [ -n "$newest" ] || return 0
   newest_epoch=$(status_line_at_epoch "$newest") || return 0
   run_id=${SELECTED_RUN_ID:-}
-  [ -n "$run_id" ] || run_id=$(strip_quotes "$(nm_field id)")
+  [ -n "$run_id" ] || nm_qfield id run_id
   [ -n "$run_id" ] || return 0
   outcome=$(fm_nm_run_updated_epoch "$WT" "$run_id") || return 0
   case "$outcome" in ''|*[!0-9]*) return 0 ;; esac
@@ -420,11 +420,10 @@ crew_busy_verdict() {  # <target>
 }
 
 # --- no-mistakes run lookup (authoritative when a run matches this branch) --
-# trim, strip_quotes, the bounded nm_run call, nm_field's TOON parse, and the
+# strip_quotes, the bounded nm_run call, nm_field's TOON parse, and the
 # attribution helpers below are thin wrappers over the ONE owner in
 # bin/fm-nm-run-lib.sh, shared with fm-teardown.sh's pre-teardown run abort.
 
-trim() { fm_nm_trim "$@"; }
 strip_quotes() { fm_nm_strip_quotes "$@"; }
 nm_run() {  # <args...>
   fm_nm_run "$WT" "$NM_TIMEOUT" "$@"
@@ -434,6 +433,16 @@ nm_run() {  # <args...>
 RUN_OUT=""
 nm_field() {  # <key>
   fm_nm_field "$RUN_OUT" "$1"
+}
+# The out-var reads below start no process. Every supervisor calls this reader
+# per crew, and on 10-30 a live call cost 138-217 processes, most of them
+# subshells around these field, trim and line reads (.agent-config-8c70c,
+# tests/fm-crew-state-fork-budget.test.sh).
+nm_qfield() {  # <key> <out-var>: strip_quotes "$(nm_field <key>)"
+  fm_nm_qfield_to "$2" "$RUN_OUT" "$1"
+}
+nm_line() {  # <ere> <out-var>: the first line of $RUN_OUT matching <ere>
+  fm_nm_first_line_to "$2" "$RUN_OUT" "$1"
 }
 
 pr_read_record_bounded() {  # <owner> <repo> <number>
@@ -510,7 +519,7 @@ change_read_record_bounded() {  # <host> <number>
 
 passed_pr_detail() {
   local provider url host path number owner repo raw_pr state_lc
-  raw_pr=$(strip_quotes "$(nm_field pr)")
+  nm_qfield pr raw_pr
   if fm_pr_url_parse "$raw_pr"; then
     provider=$FM_PR_PROVIDER
     url=$FM_PR_URL
@@ -623,25 +632,28 @@ passed_pr_detail() {
 }
 # Finding count from a findings[N]{...} table header; empty when none.
 nm_findings_count() {
-  printf '%s\n' "$RUN_OUT" | grep -oE 'findings\[[0-9]+\]' | head -1 | grep -oE '[0-9]+'
+  local line count re='findings\[([0-9]+)\]'
+  nm_line "$re" line || return 1
+  [[ $line =~ $re ]] || return 1
+  count=${BASH_REMATCH[1]}
+  printf '%s\n' "$count"
 }
 nm_gate_step_row() {
   local row step rest status findings
-  row=$(printf '%s\n' "$RUN_OUT" | grep -E "$FM_NM_GATE_ROW_RE" | head -1)
-  [ -n "$row" ] || return 0
-  row=$(trim "$row")
-  step=$(trim "${row%%,*}")
+  nm_line "$FM_NM_GATE_ROW_RE" row || return 0
+  fm_nm_trim_to row "$row"
+  fm_nm_trim_to step "${row%%,*}"
   rest=${row#*,}
-  status=$(strip_quotes "$(trim "${rest%%,*}")")
+  fm_nm_strip_quotes_to status "${rest%%,*}"
   rest=${rest#*,}
-  findings=$(trim "${rest%%,*}")
+  fm_nm_trim_to findings "${rest%%,*}"
   printf '%s|%s|%s' "$step" "$status" "$findings"
 }
 nm_gate_status() {
   local s row
-  s=$(printf '%s\n' "$RUN_OUT" | grep -E "$FM_NM_GATE_SCALAR_RE" | head -1)
+  nm_line "$FM_NM_GATE_SCALAR_RE" s
   if [ -n "$s" ]; then
-    s=$(strip_quotes "$(trim "${s#*:}")")
+    fm_nm_strip_quotes_to s "${s#*:}"
     printf '%s' "$s"
     return
   fi
@@ -649,11 +661,12 @@ nm_gate_status() {
   [ -n "$row" ] && { row=${row#*|}; printf '%s' "${row%%|*}"; }
 }
 nm_has_gate() {
-  printf '%s\n' "$RUN_OUT" | grep -Eq "$FM_NM_GATE_LINE_RE"
+  local line
+  nm_line "$FM_NM_GATE_LINE_RE" line
 }
 nm_gate_line_name() {
   local gate step
-  gate=$(strip_quotes "$(nm_field gate)")
+  nm_qfield gate gate
   [ -n "$gate" ] && { printf '%s' "$gate"; return; }
   step=$(printf '%s\n' "$RUN_OUT" | sed -n '/^[[:space:]]*gate:[[:space:]]*$/,/^[^[:space:]][^:]*:/s/^[[:space:]]*step:[[:space:]]*\(.*\)/\1/p' | head -1)
   step=$(strip_quotes "$step")
@@ -717,19 +730,21 @@ nm_gate_findings_count() {
 # comma inside a whitelisted field's own value (a path with a comma in it, say)
 # still shifts the walk.
 nm_gate_awaits_human_decision() {
-  local header count cols idx i name field rows row rest
-  header=$(printf '%s\n' "$RUN_OUT" | grep -E '^[[:space:]]*findings\[[0-9]+\]\{[^}]*\}:' | head -1)
-  [ -n "$header" ] || return 1
-  count=$(printf '%s' "$header" | sed -n 's/^[[:space:]]*findings\[\([0-9][0-9]*\)\].*/\1/p')
+  local header count cols idx i name field rows row rest re
+  nm_line '^[[:space:]]*findings\[[0-9]+\]\{[^}]*\}:' header || return 1
+  re='^[[:space:]]*findings\[([0-9]+)\]'
+  [[ $header =~ $re ]] || return 1
+  count=${BASH_REMATCH[1]}
   case "$count" in ''|*[!0-9]*) return 1 ;; esac
   [ "$count" -gt 0 ] || return 1
-  cols=$(printf '%s' "$header" | sed -n 's/^[^{]*{\([^}]*\)}.*/\1/p')
+  cols=${header#*\{}
+  cols=${cols%%\}*}
   [ -n "$cols" ] || return 1
   idx=0
   i=0
   while [ -n "$cols" ]; do
     i=$((i + 1))
-    name=$(strip_quotes "$(trim "${cols%%,*}")")
+    fm_nm_strip_quotes_to name "${cols%%,*}"
     if [ "$name" = action ]; then idx=$i; break; fi
     case "$name" in
       id|severity|file|line) ;;
@@ -749,7 +764,7 @@ nm_gate_awaits_human_decision() {
       i=$((i + 1))
     done
     [ -n "$rest" ] || continue
-    field=$(strip_quotes "$(trim "${rest%%,*}")")
+    fm_nm_strip_quotes_to field "${rest%%,*}"
     [ "$field" = ask-user ] && return 0
   done <<EOF
 $rows
@@ -850,10 +865,10 @@ nm_failed_run_is_green_held_ci() {
   [ -n "$rows" ] || return 1
   saw_ci_failed=0
   while IFS= read -r row; do
-    row=$(trim "$row")
-    step=$(trim "${row%%,*}")
+    fm_nm_trim_to row "$row"
+    fm_nm_trim_to step "${row%%,*}"
     rest=${row#*,}
-    status=$(strip_quotes "$(trim "${rest%%,*}")")
+    fm_nm_strip_quotes_to status "${rest%%,*}"
     case "$status" in
       completed) continue ;;
       skipped)
@@ -886,7 +901,7 @@ nm_reclassify_failed_run_as_held_green() {
     *) return 1 ;;
   esac
   RUN_STATE="done"
-  pr_url=$(strip_quotes "$(nm_field pr)")
+  nm_qfield pr pr_url
   [ -n "$pr_url" ] && RUN_DETAIL="$RUN_DETAIL: $pr_url"
   return 0
 }
@@ -934,11 +949,10 @@ nm_daemon_probe() {
 
 nm_ci_step_status() {
   local row rest
-  row=$(printf '%s\n' "$RUN_OUT" | grep -E '^[[:space:]]*ci,[[:space:]]*"?(running|fixing)"?[[:space:]]*,' | head -1)
-  [ -n "$row" ] || return 0
-  row=$(trim "$row")
+  nm_line '^[[:space:]]*ci,[[:space:]]*"?(running|fixing)"?[[:space:]]*,' row || return 0
+  fm_nm_trim_to row "$row"
   rest=${row#*,}
-  strip_quotes "$(trim "${rest%%,*}")"
+  strip_quotes "${rest%%,*}"
 }
 
 nm_effective_ci_step_status() {
@@ -980,13 +994,14 @@ nm_effective_ci_step_status() {
 # not-ready held a green PR at working for as long as main kept advancing.
 nm_ci_checks_state() {
   local run_id ci_log marker
-  run_id=$(strip_quotes "$(nm_field id)")
+  nm_qfield id run_id
   [ -n "$run_id" ] || { printf 'unknown'; return; }
   ci_log=$(nm_run axi logs --step ci --run "$run_id" --full) || true
   [ -n "$ci_log" ] || { printf 'unknown'; return; }
-  marker=$(printf '%s\n' "$ci_log" \
-    | grep -E 'CI checks passed|no CI checks reported - still monitoring|no CI checks reported yet|checks failed|issues detected|CI checks running' \
-    | tail -1)
+  # One grep over the whole log; its last line is the tail -1 this replaced.
+  marker=$(grep -E 'CI checks passed|no CI checks reported - still monitoring|no CI checks reported yet|checks failed|issues detected|CI checks running' \
+    <<< "$ci_log")
+  marker=${marker##*$'\n'}
   case "$marker" in
     *"checks passed"*|*"no CI checks reported - still monitoring"*) printf 'green' ;;
     *"no CI checks reported yet"*|*"checks failed"*|*"issues detected"*|*"CI checks running"*) printf 'not-ready' ;;
@@ -1026,7 +1041,7 @@ CREW_BRANCH=$(git -C "$WT" symbolic-ref --quiet --short HEAD 2>/dev/null || true
 # fm_nm_head_matches_worktree in bin/fm-nm-run-lib.sh.
 nm_run_head_matches_worktree() {
   local run_head
-  run_head=$(strip_quotes "$(nm_field head)")
+  nm_qfield head run_head
   fm_nm_head_matches_worktree "$WT" "$run_head"
 }
 
@@ -1042,11 +1057,18 @@ NM_DAEMON_ANSWER=""
 RUN_DEAD_DAEMON=""
 COARSE_STATUS=""
 SELECTED_RUN_ID=""
+run_id_field='' run_branch_field='' run_status_field='' run_head_field='' run_outcome_field=''
 # Scouts and secondmates never drive a no-mistakes validation of their own
 # worktree, so skip the lookup for them and read state from pane/log directly.
 if [ "$KIND" = ship ] && [ -n "$CREW_BRANCH" ] && command -v no-mistakes >/dev/null 2>&1; then
   RUN_OUT=$(nm_run axi status)
-  if [ "$(strip_quotes "$(printf '%s\n' "$RUN_OUT" | sed -n 's/^error: //p')")" = "repo not initialized (run 'no-mistakes init' first)" ]; then
+  # Every `error: ` line's text, newline-joined, as sed -n 's/^error: //p' printed it.
+  run_errors=''
+  while IFS= read -r run_line; do
+    case "$run_line" in "error: "*) run_errors=${run_errors:+$run_errors$'\n'}${run_line#error: } ;; esac
+  done <<< "$RUN_OUT"
+  fm_nm_strip_quotes_to run_errors "$run_errors"
+  if [ "$run_errors" = "repo not initialized (run 'no-mistakes init' first)" ]; then
     RUN_OUT=""
   fi
   if [ -n "$RUN_OUT" ]; then
@@ -1072,11 +1094,15 @@ if [ "$KIND" = ship ] && [ -n "$CREW_BRANCH" ] && command -v no-mistakes >/dev/n
         IFS='|' read -r _ selected_id selected_status candidate_ids <<< "$run_choice"
         RUN_OUT=$(fm_nm_run_checked "$WT" "$NM_TIMEOUT" axi status --run "$selected_id") \
           || emit unknown run-step "selected run unreadable; run ids: $candidate_ids"
-        if [ "$(strip_quotes "$(nm_field id)")" != "$selected_id" ] \
-          || [ "$(strip_quotes "$(nm_field branch)")" != "$CREW_BRANCH" ]; then
+        nm_qfield id run_id_field
+        nm_qfield branch run_branch_field
+        nm_qfield status run_status_field
+        nm_qfield head run_head_field
+        if [ "$run_id_field" != "$selected_id" ] \
+          || [ "$run_branch_field" != "$CREW_BRANCH" ]; then
           emit unknown run-step "selected run unavailable or mismatched; run ids: $candidate_ids"
         fi
-        case "$(strip_quotes "$(nm_field status)")" in
+        case "$run_status_field" in
           pending|running|fixing|ci|awaiting_approval|fix_review|completed|failed|cancelled) ;;
           *) emit unknown run-step "selected run status unverified; run ids: $candidate_ids" ;;
         esac
@@ -1087,15 +1113,15 @@ if [ "$KIND" = ship ] && [ -n "$CREW_BRANCH" ] && command -v no-mistakes >/dev/n
         if nm_run_head_matches_worktree || fm_nm_run_is_pipeline_owned_active "$RUN_OUT" \
           || { fm_nm_run_is_executing "$RUN_OUT" && ! nm_daemon_answered_down; }; then
           HAVE_RUN=1
-        elif [ -z "$(fm_nm_resolve_commit "$WT" "$(strip_quotes "$(nm_field head)")")" ]; then
+        elif [ -z "$(fm_nm_resolve_commit "$WT" "$run_head_field")" ]; then
           if fm_nm_run_is_active "$RUN_OUT" \
-            && [ "$(fm_nm_runs_status_for_worktree "$WT" "$CREW_BRANCH" "$(nm_runs_list)" "$(strip_quotes "$(nm_field head)")")" = running ]; then
+            && [ "$(fm_nm_runs_status_for_worktree "$WT" "$CREW_BRANCH" "$(nm_runs_list)" "$run_head_field")" = running ]; then
             # The anchor PROVED code identity; only liveness can still fail, so
             # a dead daemon is reported as such rather than as an identity
             # failure, and a parked run keeps its gate and findings.
             HAVE_RUN=1
             if ! fm_nm_run_is_parked "$RUN_OUT" && nm_daemon_answered_down; then
-              RUN_DEAD_DAEMON="no-mistakes daemon unreachable; last run record $(strip_quotes "$(nm_field status)") - unverified"
+              RUN_DEAD_DAEMON="no-mistakes daemon unreachable; last run record $run_status_field - unverified"
             fi
           else
             emit unknown run-step "selected run code identity unverified; run ids: $candidate_ids"
@@ -1105,7 +1131,7 @@ if [ "$KIND" = ship ] && [ -n "$CREW_BRANCH" ] && command -v no-mistakes >/dev/n
         ;;
     esac
     if [ "$HAVE_RUN" = 0 ] && [ -z "$SELECTED_RUN_ID" ]; then
-      run_branch=$(strip_quotes "$(nm_field branch)")
+      nm_qfield branch run_branch
       # Head equality, the pipeline-owned parked-run exemption, or executing
       # regardless of head: a live run on this branch is current even after a
       # rebase, and while the pipeline owns this branch a parked run binds
@@ -1127,11 +1153,13 @@ if [ "$KIND" = ship ] && [ -n "$CREW_BRANCH" ] && command -v no-mistakes >/dev/n
             emit unknown run-step "run records disagree; run ids: $(strip_quotes "$(nm_field id)"), competing identity unavailable"
           fi
         else
+          nm_qfield status run_status_field
+          nm_qfield outcome run_outcome_field
           if [ "$(fm_nm_run_status_class "$ledger_status")" = live ]; then
             emit unknown run-step "replacement run identity unavailable; run ids: $(strip_quotes "$(nm_field id)"), replacement unavailable"
           elif [ -n "$ledger_status" ] \
-            && [ "$ledger_status" != "$(strip_quotes "$(nm_field status)")" ] \
-            && [ "$ledger_status" != "$(strip_quotes "$(nm_field outcome)")" ]; then
+            && [ "$ledger_status" != "$run_status_field" ] \
+            && [ "$ledger_status" != "$run_outcome_field" ]; then
             COARSE_STATUS=$ledger_status
             RUN_SOURCE=coarse
           fi
@@ -1195,10 +1223,10 @@ if [ "$HAVE_RUN" = 1 ]; then
       *)         RUN_STATE=unknown; RUN_DETAIL="runs list status: $COARSE_STATUS" ;;
     esac
   else
-    status=$(strip_quotes "$(nm_field status)")
+    nm_qfield status status
     RUN_STATUS=$status
-    outcome=$(strip_quotes "$(nm_field outcome)")
-    awaiting=$(printf '%s\n' "$RUN_OUT" | grep -E "$FM_NM_AWAITING_AGENT_RE" | head -1 || true)
+    nm_qfield outcome outcome
+    nm_line "$FM_NM_AWAITING_AGENT_RE" awaiting || true
     gate_status=$(nm_gate_status)
     has_gate=0
     nm_has_gate && has_gate=1
@@ -1262,7 +1290,7 @@ if [ "$HAVE_RUN" = 1 ]; then
               RUN_DETAIL="checks green: PR ready for review (still monitoring for merge/close)"
               # The run's own PR URL makes this reading actionable even when
               # the worker never reported it and no pr= was recorded.
-              ci_pr_url=$(strip_quotes "$(nm_field pr)")
+              nm_qfield pr ci_pr_url
               [ -z "$ci_pr_url" ] || RUN_DETAIL="$RUN_DETAIL: $ci_pr_url"
             fi
             ;;
@@ -1391,15 +1419,21 @@ if ! pane_readable "$BACKEND_TARGET"; then
       if [ "$KIND" != secondmate ] && status_is_context_paused "$LOG_LINE"; then
         emit paused status-log "$LOG_NOTE"
       fi
+      closed_value='' closed_state=''
       meta_value spawn_gen closed_spawn_gen
       if [ -n "$closed_spawn_gen" ] && [ ! -L "$STATE/terminal-outcomes" ]; then
         for closed_record in "$STATE/terminal-outcomes"/*.pending "$STATE/terminal-outcomes"/*.reported "$STATE/terminal-outcomes"/*.presented; do
           [ -f "$closed_record" ] && [ ! -L "$closed_record" ] || continue
-          [ "$(fm_backend_meta_exact_value "$closed_record" schema)" = fm-terminal-outcome.v1 ] || continue
-          [ "$(fm_backend_meta_exact_value "$closed_record" task_id)" = "$ID" ] || continue
-          [ "$(fm_backend_meta_exact_value "$closed_record" incarnation)" = "$closed_spawn_gen" ] || continue
-          [ "$(fm_backend_meta_exact_value "$closed_record" pane_close_target)" = "$BACKEND_TARGET" ] || continue
-          closed_state=$(fm_backend_meta_exact_value "$closed_record" state)
+          # The task id first: it rejects other tasks' records in one read.
+          # Each read starts no process; hundreds of records are retained.
+          fm_backend_meta_exact_value "$closed_record" task_id closed_value && [ "$closed_value" = "$ID" ] || continue
+          fm_backend_meta_exact_value "$closed_record" schema closed_value \
+            && [ "$closed_value" = fm-terminal-outcome.v1 ] || continue
+          fm_backend_meta_exact_value "$closed_record" incarnation closed_value \
+            && [ "$closed_value" = "$closed_spawn_gen" ] || continue
+          fm_backend_meta_exact_value "$closed_record" pane_close_target closed_value \
+            && [ "$closed_value" = "$BACKEND_TARGET" ] || continue
+          fm_backend_meta_exact_value "$closed_record" state closed_state
           [ "$closed_state" = "$LOG_VERB" ] || continue
           case "$closed_state" in
             done|failed) emit "$closed_state" status-log "retained terminal outcome: herdr pane intentionally closed" ;;

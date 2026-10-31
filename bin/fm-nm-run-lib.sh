@@ -50,8 +50,9 @@ fm_nm_run_bounded() {  # <dir> <timeout_secs> <args...>
   # Keep this no-mistakes invocation's object probes local: a partial clone
   # would otherwise lazy-fetch a missing pipeline head during a status read.
   # The subshell confines this policy to no-mistakes and its children, without
-  # changing the caller or requiring an env binary on a restricted PATH.
-  ( export GIT_NO_LAZY_FETCH=1; fm_nm_bounded "$dir" "$timeout_secs" no-mistakes "$@" )
+  # changing the caller or requiring an env binary on a restricted PATH. It is
+  # fm_nm_bounded's own subshell, inlined, so one call starts one subshell.
+  ( export GIT_NO_LAZY_FETCH=1; cd "$dir" && fm_run_timed "$timeout_secs" no-mistakes "$@" )
 }
 
 fm_nm_run_checked() {  # <dir> <timeout_secs> <args...>
@@ -62,20 +63,34 @@ fm_nm_run() {  # <dir> <timeout_secs> <args...>
   fm_nm_run_checked "$@" || true
 }
 
+# The _to forms assign <out-var> and start no process: fm-crew-state.sh trims
+# every row of a run's steps table and of the runs ledger on each call, which
+# cost a subshell per value (.agent-config-8c70c). The printing forms delegate.
+fm_nm_trim_to() {  # <out-var> <string>
+  local _fm_nm_trim_s=${2:-}
+  _fm_nm_trim_s="${_fm_nm_trim_s#"${_fm_nm_trim_s%%[![:space:]]*}"}"
+  printf -v "$1" '%s' "${_fm_nm_trim_s%"${_fm_nm_trim_s##*[![:space:]]}"}"
+}
+
 fm_nm_trim() {
-  local s=${1:-}
-  s="${s#"${s%%[![:space:]]*}"}"
-  s="${s%"${s##*[![:space:]]}"}"
+  local s
+  fm_nm_trim_to s "${1:-}"
   printf '%s' "$s"
+}
+
+fm_nm_strip_quotes_to() {  # <out-var> <string>
+  local _fm_nm_sq_s
+  fm_nm_trim_to _fm_nm_sq_s "${2:-}"
+  case "$_fm_nm_sq_s" in
+    \"*\") _fm_nm_sq_s=${_fm_nm_sq_s#\"}; _fm_nm_sq_s=${_fm_nm_sq_s%\"} ;;
+  esac
+  fm_nm_trim_to "$1" "$_fm_nm_sq_s"
 }
 
 fm_nm_strip_quotes() {
   local s
-  s=$(fm_nm_trim "${1:-}")
-  case "$s" in
-    \"*\") s=${s#\"}; s=${s%\"} ;;
-  esac
-  fm_nm_trim "$s"
+  fm_nm_strip_quotes_to s "${1:-}"
+  printf '%s' "$s"
 }
 
 # Path of no-mistakes' local state database as the CLI would see it from
@@ -134,6 +149,49 @@ PY
 # Scalar value of a TOON key in captured `axi status` output $1.
 fm_nm_field() {  # <toon-output> <key>
   printf '%s\n' "$1" | sed -n "s/^[[:space:]]*$2:[[:space:]]*\(.*\)/\1/p" | head -1
+}
+
+# fm_nm_field's value assigned to <out-var>, starting no process for a plain
+# key: the first line whose text after leading whitespace starts <key>:, with
+# the whitespace after the colon dropped. A key the sed pattern would read as
+# a regex takes fm_nm_field itself.
+fm_nm_field_to() {  # <out-var> <toon-output> <key>
+  local _fm_nm_line _fm_nm_rest
+  case "$3" in
+    ''|*[!A-Za-z0-9_]*) printf -v "$1" '%s' "$(fm_nm_field "$2" "$3")"; return 0 ;;
+  esac
+  while IFS= read -r _fm_nm_line; do
+    _fm_nm_rest=${_fm_nm_line#"${_fm_nm_line%%[![:space:]]*}"}
+    case "$_fm_nm_rest" in
+      "$3:"*)
+        _fm_nm_rest=${_fm_nm_rest#"$3:"}
+        printf -v "$1" '%s' "${_fm_nm_rest#"${_fm_nm_rest%%[![:space:]]*}"}"
+        return 0 ;;
+    esac
+  done <<< "$2"
+  printf -v "$1" '%s' ''
+}
+
+# fm_nm_strip_quotes of fm_nm_field, assigned to <out-var>: the run's scalar
+# as callers compare it.
+fm_nm_qfield_to() {  # <out-var> <toon-output> <key>
+  fm_nm_field_to "$1" "$2" "$3"
+  fm_nm_strip_quotes_to "$1" "${!1}"
+}
+
+# The first line of <text> matching extended regex <ere>, assigned to
+# <out-var> ('' and 1 when none). The printf | grep -E | head -1 it replaces
+# started three processes per read.
+fm_nm_first_line_to() {  # <out-var> <text> <ere>
+  local _fm_nm_line
+  while IFS= read -r _fm_nm_line; do
+    if [[ $_fm_nm_line =~ $3 ]]; then
+      printf -v "$1" '%s' "$_fm_nm_line"
+      return 0
+    fi
+  done <<< "$2"
+  printf -v "$1" '%s' ''
+  return 1
 }
 
 # Full commit sha for sha-ish $2 as seen from worktree $1's own object store;
@@ -402,8 +460,8 @@ fm_nm_branch_sync_nested() {  # <toon-output> <sub-block> <key>
 # terminal outcome and no terminal status.
 fm_nm_run_is_active() {  # <toon-output>
   local status outcome
-  status=$(fm_nm_strip_quotes "$(fm_nm_field "$1" status)")
-  outcome=$(fm_nm_strip_quotes "$(fm_nm_field "$1" outcome)")
+  fm_nm_qfield_to status "$1" status
+  fm_nm_qfield_to outcome "$1" outcome
   [ -z "$outcome" ] || return 1
   case "$status" in completed|failed|cancelled) return 1 ;; esac
 }
@@ -438,7 +496,9 @@ FM_NM_GATE_ROW_RE='^[[:space:]]*[^,]+,[[:space:]]*"?(awaiting_approval|fix_revie
 # leaves it at `running` while a run waits at a gate, so the word and the gate
 # markers routinely disagree.
 fm_nm_run_is_parked() {  # <toon-output>
-  printf '%s\n' "$1" | grep -Eq \
+  # shellcheck disable=SC2034 # Only the read's status answers; the line is unused.
+  local line
+  fm_nm_first_line_to line "$1" \
     "$FM_NM_GATE_LINE_RE|$FM_NM_AWAITING_AGENT_RE|$FM_NM_GATE_SCALAR_RE|$FM_NM_GATE_ROW_RE"
 }
 
@@ -465,9 +525,11 @@ fm_nm_run_is_parked() {  # <toon-output>
 # Dropping them would report a fix round or a ci wait as idle, which is the
 # misreport this predicate exists to prevent.
 fm_nm_run_is_executing() {  # <toon-output>
+  local status
   fm_nm_run_is_active "$1" || return 1
   fm_nm_run_is_parked "$1" && return 1
-  case "$(fm_nm_strip_quotes "$(fm_nm_field "$1" status)")" in
+  fm_nm_qfield_to status "$1" status
+  case "$status" in
     pending|running|fixing|ci) return 0 ;;
   esac
   return 1
@@ -511,7 +573,7 @@ fm_nm_runs_status_for_worktree() {  # <worktree> <branch> <runs-list-output> [ex
   local_full=$(git -C "$wt" rev-parse HEAD 2>/dev/null) || return 0
   [ -n "$list" ] || return 0
   while IFS= read -r row; do
-    row=$(fm_nm_trim "$row")
+    fm_nm_trim_to row "$row"
     [ -n "$row" ] || continue
     IFS=$' \t' read -r st br sha day clock pr extra <<< "$row"
     [ -n "$st" ] && [ -n "$br" ] && [ -n "$sha" ] && [ -n "$day" ] && [ -n "$clock" ] || break

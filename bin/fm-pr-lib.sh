@@ -325,8 +325,12 @@ fm_pr_file_mode() {
   fi
 }
 
+# The kernel name comes from fm-classify-lib.sh's load-time cache when it is
+# loaded (fm-crew-state.sh reads every passed run's receipts through here).
 fm_pr_file_device() {
-  if [ "$(uname)" = Darwin ]; then
+  local kernel=${_FM_CLASSIFY_UNAME_S:-}
+  [ -n "$kernel" ] || kernel=$(uname)
+  if [ "$kernel" = Darwin ]; then
     /usr/bin/stat -f %d "$1" 2>/dev/null
   else
     stat -c %d "$1" 2>/dev/null
