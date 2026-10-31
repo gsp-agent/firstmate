@@ -291,6 +291,31 @@ EOF
   pass "the host run finds what the host's login environment finds, and still removes its run"
 }
 
+test_the_remote_run_gets_the_laptop_pi_and_the_host_keeps_its_own() {
+  local login_bin pkg_root
+  new_world piwrap
+  login_bin="$TMP_ROOT/piwrap/login-bin"
+  pkg_root="$TMP_ROOT/piwrap/npm-root"
+  mkdir -p "$login_bin" "$pkg_root/@earendil-works/pi-coding-agent/dist/bundle"
+  printf '#!/bin/sh\necho 9.9.9-fixture\n' >"$pkg_root/@earendil-works/pi-coding-agent/dist/bundle/cli.js"
+  printf '#!/bin/sh\necho 1.1.1-host\n' >"$login_bin/pi"
+  printf '#!/bin/sh\n[ "${1:-}" = root ] && printf "%%s\\n" "%s"\n' "$pkg_root" >"$login_bin/npm"
+  chmod +x "$pkg_root/@earendil-works/pi-coding-agent/dist/bundle/cli.js" "$login_bin/pi" "$login_bin/npm"
+  FAKE_HOST_PATH="$login_bin:$FAKE_HOST_PATH"
+  cat >"$REPO/tests/fm-remote-pi.test.sh" <<'EOF'
+#!/usr/bin/env bash
+echo "ok - pi $(pi --version) at $(command -v pi)"
+EOF
+  chmod +x "$REPO/tests/fm-remote-pi.test.sh"
+  commit_all "a suite that runs pi"
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-pi.test.sh
+  expect_code 0 "$RC" "a suite running pi on the host"$'\n'"$OUT"
+  printf '%s\n' "$OUT" | grep -q "ok - pi 9.9.9-fixture at $SCRATCH/fm-test-remote\.[^/]*/bin/pi" \
+    || fail "the suite did not get the run-dir pi wrapper at the package version:"$'\n'"$OUT"
+  assert_scratch_empty "the pi wrapper run"
+  pass "the remote run gets the laptop's Pi through the run dir, and the wrapper dies with it"
+}
+
 test_changed_base_and_json_cross_the_transport() {
   local json="$TMP_ROOT/changed-json/timing.json"
   new_world changed
@@ -935,6 +960,7 @@ test_a_failing_suite_returns_its_exit_status
 test_uncommitted_changes_run_as_a_commit_over_head
 test_the_host_copy_carries_this_checkouts_branch_remotes_and_tags
 test_the_host_run_finds_what_the_login_environment_finds
+test_the_remote_run_gets_the_laptop_pi_and_the_host_keeps_its_own
 test_remote_urls_reach_the_host_without_user_info
 test_changed_base_and_json_cross_the_transport
 test_an_output_not_copied_back_fails_a_passing_run

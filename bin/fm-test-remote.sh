@@ -14,7 +14,10 @@
 # existing directory on that host. <script> is a repository-relative script,
 # run on the host as `<host bash> <script> [args...]` from the root of the
 # host's copy of the commit, in that account's login environment, so it finds
-# the tools that account's agents find.
+# the tools that account's agents find. One exception: for the run only, a
+# wrapper in the run directory, first on PATH, runs the host's installed
+# @earendil-works/pi-coding-agent (the laptop's Pi) as `pi`; the host's own
+# `pi` is untouched and the wrapper dies with the run directory.
 #
 # In order, it:
 #   1. names the commit under test: this checkout's HEAD or, when the checkout
@@ -231,6 +234,18 @@ if [ "${1:-}" = __queue ]; then
   said=
   TMPDIR="$run/tmp"
   export TMPDIR
+  # Suites get the laptop's Pi for this run only: a wrapper in the run dir,
+  # first on PATH, runs the host's installed @earendil-works package (the
+  # laptop's Pi version). The host's own pi stays untouched, and the wrapper
+  # dies with the run dir. No package on the host means no wrapper, so a
+  # suite that needs that Pi skips and the remote run fails it, not green.
+  pi_root=$(npm root -g 2>/dev/null) || pi_root=
+  if [ -n "$pi_root" ] && [ -f "$pi_root/@earendil-works/pi-coding-agent/dist/bundle/cli.js" ]; then
+    mkdir -p "$run/bin"
+    ln -sf "$pi_root/@earendil-works/pi-coding-agent/dist/bundle/cli.js" "$run/bin/pi"
+    PATH="$run/bin:$PATH"
+    export PATH
+  fi
   exec 3>&1 4>&2
   # No caller marker applies on the host: a gate marker would let the gate
   # skip firstmate, and FM_TASK_ID would read the host's plain clone as a

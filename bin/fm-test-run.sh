@@ -1484,6 +1484,12 @@ families_for_changed_path() {
       # Only this script wraps each suite in run_script_bounded's fixture Git
       # isolation, and only a standalone-family script proves it.
       printf '%s\n' "__script__:fm-test-fixtures.test.sh"
+      # The remote transport and its skip check live in this runner, and
+      # only fm-test-remote.test.sh exercises them.
+      printf '%s\n' "__script__:fm-test-remote.test.sh"
+      ;;
+    tests/remote-permitted-skips.txt)
+      printf '%s\n' "__script__:fm-test-remote.test.sh"
       ;;
     bin/fm-test-isolation-proof.sh)
       # Same reason as the runner above: the proof drives every
