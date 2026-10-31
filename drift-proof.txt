@@ -29,9 +29,10 @@ pending-pr: 22 .agent-config-dtjsb
 pr: 26
 # Harvest replay keeps this PR: tests/fm-inbox.test.sh distinguishes upstream from this PR and the nightly replay passes.
 pr: 28
-# Cut replay keeps this PR: tests/fm-teardown.test.sh fails on kunchenguid/main files with only this PR's tests ("finished task clone remains in data") and passes with this PR's diff.
+# Cut replay keeps this PR: tests/fm-teardown.test.sh fails on kunchenguid/main files with only this PR's tests ("finished task clone remains in data") and passes with this PR's diff, and the nightly replay passes.
 pr: 27
-pending-pr: 30 .agent-config-dtjsb
+# Replayed as a dependency of #108: without this PR and PR 36's slow-read stage-limit case, the "unreadable" variant of test_task_data_named_bead_resolution in tests/fm-teardown.test.sh fails "unreadable named-bead teardown failed", because the unread reference is no longer caught and the cleanup record cannot be written; the base passes it.
+pr: 30
 # Harvest replay keeps this PR for rebase: tests/fm-pr-check-security.test.sh distinguishes upstream from this PR; its proof is keyed for its rebase series.
 pr: 21
 # Harvest replay keeps this PR: tests/fm-backend-herdr.test.sh distinguishes upstream from this PR and the nightly replay passes.
@@ -55,7 +56,7 @@ pending-pr: 43 .agent-config-dtjsb
 pr: 25
 # Harvest replay keeps this PR for rebase: tests/fm-dispatch-resolve.test.sh distinguishes upstream from this PR; its proof is keyed for its rebase series.
 pr: 47
-# Cut replay keeps this PR: tests/fm-nm-run-lib.test.sh fails on kunchenguid/main files with only this PR's tests ("a child that outlived its parent survived the bound") and passes with this PR's diff.
+# Cut replay keeps this PR: tests/fm-nm-run-lib.test.sh fails on kunchenguid/main files with only this PR's tests ("a child that outlived its parent survived the bound") and passes with this PR's diff, and the nightly replay passes.
 pr: 50
 pending-pr: 49 .agent-config-dtjsb
 # Harvest replay keeps this PR: tests/fm-fleet-snapshot-view.test.sh distinguishes upstream from this PR and the nightly replay passes.

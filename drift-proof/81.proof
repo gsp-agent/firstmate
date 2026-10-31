@@ -1,1 +1,2 @@
-pending-pr: 81 .agent-config-dtjsb
+# Rebased replay keeps this PR: with this PR's patch rebased onto kunchenguid/main 095db3bc, test_held_meta_lock_teardown_gives_up_within_bound in tests/fm-teardown.test.sh hangs until a 300-second kill on upstream with only that case, because upstream's ten lock waits loop until the lock frees, and passes with the patch; the nightly replay passes.
+pr: 81
