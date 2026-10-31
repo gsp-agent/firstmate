@@ -554,8 +554,10 @@ FM_NM_RUN_WAITS_ON='waits on: '
 #     repair runs only inside a fix round, whose step reads fixing.
 # Columns are found by name in the active_steps header, whose layout differs
 # between no-mistakes versions. No table, a header without the step, status or
-# agent_pid column, or any other active step is not proof, so the run still
-# reads as work.
+# agent_pid column, any other active step, or a row that does not hold exactly
+# the declared fields or ends inside an open quote or escape is not proof, so
+# the run still reads as work: a read cut short can end partway through a row,
+# and a missing agent_pid is not an empty one.
 fm_nm_run_wait() {  # <toon-output>
   printf '%s\n' "$1" | awk '
     function cells(row, out,    n, i, c, cell, quoted, escaped) {
@@ -569,14 +571,14 @@ fm_nm_run_wait() {  # <toon-output>
         else cell = cell c
       }
       out[++n] = cell
-      return n
+      return (quoted || escaped) ? -1 : n
     }
     function trim(s) { gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
     /^[[:space:]]*active_steps\[[0-9]+\]\{/ {
       indent = index($0, "active_steps"); inblock = 1
       header = $0; sub(/^[^{]*\{/, "", header); sub(/\}.*$/, "", header)
-      split("", col); n = split(header, names, ",")
-      for (i = 1; i <= n; i++) col[names[i]] = i
+      split("", col); ncols = split(header, names, ",")
+      for (i = 1; i <= ncols; i++) col[names[i]] = i
       usable = ("step" in col) && ("status" in col) && ("agent_pid" in col)
       next
     }
@@ -586,7 +588,8 @@ fm_nm_run_wait() {  # <toon-output>
       if (RSTART <= indent) { inblock = 0; next }
       rows++
       if (!usable) { working = 1; next }
-      split("", f); cells(substr($0, RSTART), f)
+      split("", f)
+      if (cells(substr($0, RSTART), f) != ncols) { working = 1; next }
       step = trim(f[col["step"]]); status = trim(f[col["status"]])
       activity = ("last_activity" in col) ? f[col["last_activity"]] : ""
       this = ""
