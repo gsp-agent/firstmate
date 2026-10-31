@@ -1,0 +1,2 @@
+# Failing-first measurement: bin/fm-stock-bash-check.sh under the mini's /bin/bash 3.2.57. Red on base 66ee5386, whose files match 0ff028f6, where it fails "fork-free-helpers: expected 16 passing tests from tests/fm-fork-free-helpers.test.sh, got 19"; green here, where it expects 19. tests/fm-stock-bash-check.test.sh passes 10 of 10 with its stand-ins at 19.
+pr: 210
