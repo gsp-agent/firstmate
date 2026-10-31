@@ -1,0 +1,2 @@
+# Failing-first tests on upstream-lean: in tests/fm-project-capacity.test.sh, test_run_waiting_on_others_holds_no_place is red because the capacity count names a worker whose Test step sleeps on the shared test suite lock, and one whose CI step only watches its PR, as holders ("and 3 already hold a place (live-a, live-b, live-c)"). In tests/fm-crew-state.test.sh, test_run_waiting_on_others_names_the_wait_and_holds_no_place is red because crew state names no wait for such a run, so the place count reads it as a holder. Both are green after this change.
+pr: 211
