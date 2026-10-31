@@ -227,7 +227,7 @@ stop_home_processes() {  # <home>
 # has sourced its libraries. One still starting when the cleanup reaches its arm
 # is in no record. The arm's first TERM waits for that lock, up to its startup
 # deadline, before forwarding, and a second TERM or a KILL ends the arm there and
-# leaves the watcher to launchd: one outlived case 48's red by 94 s
+# leaves the watcher to launchd, where it outlives the suite
 # (.agent-config-1egx8). So the suite's exit also stops, TERM and then KILL
 # before the tree goes, whatever it started that is still running.
 #
