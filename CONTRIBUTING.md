@@ -107,7 +107,7 @@ A cut PR instead names its archive branch and the callers outside this repositor
 No PR merges to `upstream-lean` while its proof is pending.
 Pending proof closed after PR 197, so a later PR carries a `pr:` line and never a `pending-pr:` line.
 No direct pushes to `upstream-lean` are allowed.
-`drift-proof.txt` closed at PR 167 and takes no new line, so two open PRs never edit the same file.
+`drift-proof.txt` closed at PR 167 and takes no line for a later PR, so two open PRs never edit the same file.
 
 Check and test the toolbelt before pushing:
 
