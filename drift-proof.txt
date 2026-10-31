@@ -10,12 +10,14 @@ pr: 7
 pending-pr: 8 .agent-config-dtjsb
 # "R17 crew isolation" in drift-measurements.txt.
 pr: 9
-pending-pr: 11 .agent-config-dtjsb
+# Harvest replay keeps this PR: tests/fm-watch-arm.test.sh distinguishes upstream from this PR and the nightly replay passes.
+pr: 11
 pending-pr: 12 .agent-config-dtjsb
 # "R16 proof scope" in drift-measurements.txt; net effect cut by #25, replayed as dependency.
 pr: 13
 pending-pr: 16 .agent-config-dtjsb
-pending-pr: 17 .agent-config-dtjsb
+# Harvest replay keeps this PR: tests/fm-supervision-host.test.sh distinguishes upstream from this PR and the nightly replay passes.
+pr: 17
 # "R17 teardown record keeping" in drift-measurements.txt.
 pr: 15
 pending-pr: 18 .agent-config-dtjsb
@@ -24,36 +26,51 @@ pr: 19
 pending-pr: 22 .agent-config-dtjsb
 # "R16 quota fallback" in drift-measurements.txt.
 pr: 26
-pending-pr: 28 .agent-config-dtjsb
+# Harvest replay keeps this PR: tests/fm-inbox.test.sh distinguishes upstream from this PR and the nightly replay passes.
+pr: 28
 pending-pr: 27 .agent-config-dtjsb
 pending-pr: 30 .agent-config-dtjsb
-pending-pr: 21 .agent-config-dtjsb
-pending-pr: 32 .agent-config-dtjsb
-pending-pr: 31 .agent-config-dtjsb
+# Harvest replay keeps this PR for rebase: tests/fm-pr-check-security.test.sh distinguishes upstream from this PR; its proof is keyed for its rebase series.
+pr: 21
+# Harvest replay keeps this PR: tests/fm-backend-herdr.test.sh distinguishes upstream from this PR and the nightly replay passes.
+pr: 32
+# Harvest replay keeps this PR: tests/fm-teardown.test.sh distinguishes upstream from this PR and the nightly replay passes.
+pr: 31
 pending-pr: 33 .agent-config-dtjsb
-pending-pr: 35 .agent-config-dtjsb
-pending-pr: 39 .agent-config-dtjsb
+# Harvest replay keeps this PR: tests/fm-brief.test.sh distinguishes upstream from this PR and the nightly replay passes.
+pr: 35
+# Harvest replay keeps this PR: tests/fm-contributions.test.sh distinguishes upstream from this PR and the nightly replay passes.
+pr: 39
 # "R18 merge of upstream-lean" in drift-measurements.txt, kept portions enumerated there and cuts listed.
 pr: 34
-pending-pr: 42 .agent-config-dtjsb
+# Harvest replay keeps this PR for rebase: tests/fm-pi-watch-extension.test.sh distinguishes upstream from this PR; its proof is keyed for its rebase series.
+pr: 42
 pending-pr: 36 .agent-config-dtjsb
 pending-pr: 38 .agent-config-dtjsb
 pending-pr: 43 .agent-config-dtjsb
 # "PR 25 squash acceptance on upstream-lean" in drift-measurements.txt, plus the sections it names there.
 pr: 25
-pending-pr: 47 .agent-config-dtjsb
+# Harvest replay keeps this PR for rebase: tests/fm-dispatch-resolve.test.sh distinguishes upstream from this PR; its proof is keyed for its rebase series.
+pr: 47
 pending-pr: 50 .agent-config-dtjsb
 pending-pr: 49 .agent-config-dtjsb
-pending-pr: 54 .agent-config-dtjsb
-pending-pr: 44 .agent-config-dtjsb
+# Harvest replay keeps this PR: tests/fm-fleet-snapshot-view.test.sh distinguishes upstream from this PR and the nightly replay passes.
+pr: 54
+# Harvest replay keeps this PR: tests/fm-claude-stop-autoarm.test.sh distinguishes upstream from this PR and the nightly replay passes.
+pr: 44
 pending-pr: 45 .agent-config-dtjsb
-pending-pr: 58 .agent-config-dtjsb
-pending-pr: 59 .agent-config-dtjsb
+# Harvest replay keeps this PR: tests/fm-watch-triage.test.sh distinguishes upstream from this PR and the nightly replay passes.
+pr: 58
+# Harvest replay keeps this PR: tests/fm-update.test.sh distinguishes upstream from this PR and the nightly replay passes.
+pr: 59
 pending-pr: 60 .agent-config-dtjsb
-pending-pr: 51 .agent-config-dtjsb
-pending-pr: 64 .agent-config-dtjsb
+# Harvest replay keeps this PR: tests/fm-herdr-session-cleanup.test.sh distinguishes upstream from this PR and the nightly replay passes.
+pr: 51
+# Harvest replay keeps this PR: tests/fm-busy-state.test.sh distinguishes upstream from this PR and the nightly replay passes.
+pr: 64
 pending-pr: 67 .agent-config-dtjsb
-pending-pr: 69 .agent-config-dtjsb
+# Harvest replay keeps this PR: tests/fm-inactive-reconcile.test.sh distinguishes upstream from this PR and the nightly replay passes.
+pr: 69
 pending-pr: 66 .agent-config-dtjsb
 pending-pr: 76 .agent-config-dtjsb
 # Squash, merge, forgotten-line, wrong-number and open-PR regressions in tests/fm-drift-nightly.test.sh, plus "PR 25 squash acceptance on upstream-lean" in drift-measurements.txt.

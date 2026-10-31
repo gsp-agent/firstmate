@@ -1,1 +1,2 @@
-pending-pr: 87 .agent-config-dtjsb
+# Harvest replay keeps this PR: tests/fm-test-isolation-proof.test.sh distinguishes upstream from this PR and the nightly replay passes.
+pr: 87

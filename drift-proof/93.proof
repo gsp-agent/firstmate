@@ -1,1 +1,2 @@
-pending-pr: 93 .agent-config-dtjsb
+# Harvest replay keeps this PR: tests/fm-daemon.test.sh distinguishes upstream from this PR and the nightly replay passes.
+pr: 93
