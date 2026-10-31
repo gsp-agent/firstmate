@@ -314,6 +314,12 @@
 #   endpoint it opened is confirmed closed, since that count reads Treehouse's
 #   status rather than its reuse test; an endpoint whose close is not confirmed
 #   keeps that refusal an exit 1, because a deferral promises nothing is left.
+#   Either deferral joins the project's waiting line for its next tree, and a
+#   fresh start that finds a free tree also defers with 75, naming who is ahead,
+#   while as many waiters as there are free trees are ahead of it by backlog
+#   priority, then first wait (bin/fm-project-capacity-lib.sh's
+#   fm_tree_wait_dir owns the line), so a freed tree goes to the highest-priority
+#   waiter rather than to whichever caller retries first.
 #   Regression coverage: tests/fm-project-capacity.test.sh.
 #   Live sessions: when this machine has a live-session detector
 #   (bin/fm-live-session-lib.sh owns which detector, the folder name it is
@@ -1614,6 +1620,11 @@ SPAWN_OVERSHARE_DIR=
 SPAWN_OVERSHARE_IDENTITY=
 SPAWN_OVERSHARE_AT=
 SPAWN_SLOT_CLAIMED=0
+# The project's waiting line for its next tree, once the pool check below
+# finds one (bin/fm-project-capacity-lib.sh's fm_tree_wait_dir).
+SPAWN_TREE_WAIT_DIR=
+# Trees this spawn's abort handed back, each owed one wake to that line.
+SPAWN_TREE_WAKE_PENDING=0
 SPAWN_SLOT_REFUSAL=0
 SPAWN_SKIP_LEASES=
 SPAWN_TARGET_LEASE=
@@ -1770,8 +1781,9 @@ spawn_refuse_unreturned_slot() { # <reason>
 }
 
 # Return the clean ship-branch checkout, or refuse and leave it in place.
-# On success the claim flag is cleared and the project lock, if retaken, stays
-# held for the release at the bottom of the abort trap. On refusal the claim
+# On success the claim flag is cleared, the project lock, if retaken, stays
+# held for the release at the bottom of the abort trap, and the returned tree's
+# wake to the project's line goes out after that release. On refusal the claim
 # stays so the checkout is still named.
 spawn_return_checked_out_ship_slot() {
   local reason marker out current_branch
@@ -1823,6 +1835,7 @@ spawn_return_checked_out_ship_slot() {
   fi
   rm -f -- "$marker" 2>/dev/null || true
   SPAWN_SLOT_CLAIMED=0
+  SPAWN_TREE_WAKE_PENDING=$((SPAWN_TREE_WAKE_PENDING + 1))
   return 0
 }
 
@@ -1885,6 +1898,12 @@ spawn_release_skip_leases() {
 $SPAWN_SKIP_LEASES
 EOF
   SPAWN_SKIP_LEASES=
+}
+
+# A tree this spawn took goes back to the pool, so the line's head is woken.
+spawn_tree_wait_wake() {
+  [ -n "$SPAWN_TREE_WAIT_DIR" ] || return 0
+  fm_tree_wait_wake "$SPAWN_TREE_WAIT_DIR" "$(date +%s)" >/dev/null || true
 }
 
 spawn_abort_cleanup() {
@@ -2049,6 +2068,7 @@ spawn_abort_cleanup() {
     spawn_lease_return_safe "$SPAWN_TARGET_LEASE"; then
     (cd "$PROJ_ABS" 2>/dev/null && treehouse return "$SPAWN_TARGET_LEASE" >/dev/null 2>&1 </dev/null) || true
     SPAWN_TARGET_LEASE=
+    SPAWN_TREE_WAKE_PENDING=$((SPAWN_TREE_WAKE_PENDING + 1))
   fi
   # An admitted extra start past project capacity that launched no worker
   # gives its window back (bin/fm-project-capacity-lib.sh owns the record).
@@ -2069,6 +2089,22 @@ spawn_abort_cleanup() {
     SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=0
     fm_lock_release "$SPAWN_TREEHOUSE_PROJECT_LOCK" || true
   fi
+  # A start that failed without launching, other than by deferring, gives up
+  # its place in the tree line: a retry would be refused again, and the place
+  # would hold a free tree from the starts behind it (chip on PR 196 at
+  # 4f36385d). This task's spawn lock keeps any other start of it out. It
+  # leaves before the wakes below, so none of them goes to it.
+  if [ "$status" -ne 0 ] && [ "$status" -ne "$SPAWN_DEFER_EXIT" ] &&
+    [ "$SPAWN_LAUNCH_SENT" = 0 ] && [ -n "$SPAWN_TREE_WAIT_DIR" ]; then
+    fm_tree_wait_leave "$SPAWN_TREE_WAIT_DIR" "$ID" "$STATE"
+  fi
+  # Each returned tree's wake goes out once the project lock is free, since the
+  # woken start takes that lock at once; one wake per tree, so an abort that
+  # returned its checkout and a separate target lease wakes two waiters.
+  while [ "$SPAWN_TREE_WAKE_PENDING" -gt 0 ]; do
+    SPAWN_TREE_WAKE_PENDING=$((SPAWN_TREE_WAKE_PENDING - 1))
+    spawn_tree_wait_wake
+  done
   if [ "$SPAWN_META_LOCK_HELD" = 1 ]; then
     SPAWN_META_LOCK_HELD=0
     fm_lock_release "$SPAWN_META_LOCK" || true
@@ -4451,17 +4487,115 @@ spawn_machine_total_defer
 # from a fresh read, right before it would ask (the steering below). The
 # moment between that read and the allocator's own choice is Treehouse's; it
 # cannot be closed from here without a way to lease a tree by name.
+#
+# A fresh start that meets a full pool also joins the project's waiting line
+# for its next tree, and one that finds a free tree still defers while as many
+# waiters are ahead of it as there are free trees (bin/fm-project-capacity-lib.sh's
+# fm_tree_wait_dir owns the order), so a freed tree goes by priority and wait,
+# not to whichever caller retries first. A relaunch replaces a running task
+# and is never in the line.
+# Backlog preflight (bin/fm-backlog-transition-lib.sh). This spawn is about to
+# become the sole owner of the row's In-flight transition, so prove the row is
+# transitionable BEFORE any endpoint, worktree, or record exists: a refusal here
+# costs nothing to unwind, while the same refusal after publication would strand
+# a live pane. The authoritative mutation still runs under the meta lock below.
+# It runs once: the pool-tree admission runs it before a start can join or be
+# counted in the project's tree line, so work that must be refused never holds
+# a place there (chip on PR 196 at 4f36385d), and the dispatch path runs it
+# again as a no-op.
+BACKLOG_TRANSITION=0
+BACKLOG_ROW_STATE=
+SPAWN_BACKLOG_PREFLIGHT_DONE=0
+# This task's own backlog priority, from the preflight's one read: a second
+# read that failed would leave the start with no priority, behind every P0-P4
+# (chip on PR 196 at 765134d0).
+SPAWN_TREE_PRIORITY=
+spawn_backlog_preflight() {
+  [ "$SPAWN_BACKLOG_PREFLIGHT_DONE" = 0 ] || return 0
+  SPAWN_BACKLOG_PREFLIGHT_DONE=1
+  if fm_backlog_transition_applies "$CONFIG" "$DATA" "$KIND"; then
+    BACKLOG_TRANSITION=1
+    if fm_backlog_row_probe "$DATA" "$ID"; then
+      BACKLOG_ROW_STATE=$FM_BACKLOG_ROW_STATE
+      SPAWN_TREE_PRIORITY=$FM_BACKLOG_ROW_PRIORITY
+    elif [ "$FM_BACKLOG_ROW_RESULT" = not_found ]; then
+      echo "error: task $ID has no backlog item in this home, so dispatching it would leave a worker no record owns; add it first (bin/fm-tasks-axi.sh add $ID '<title>' --kind $KIND) and re-run" >&2
+      exit 1
+    else
+      echo "error: task $ID's backlog item could not be read before dispatch ($FM_BACKLOG_ROW_ERROR)" >&2
+      exit 1
+    fi
+    spawn_preflight_actor=$(fm_lease_actor) || exit "$FM_LEASE_REFUSE_EXIT"
+    if [ "$spawn_preflight_actor" = branch ] && fm_lease_away_relocated; then
+      if [ "$BACKLOG_ROW_STATE" != "queued no no" ]; then
+        echo "error: spawn refused - the supervision branch under the away-posture record may dispatch only queued unblocked work (already queued, or filed by the branch from the captain's away words); task $ID has no dispatchable backlog item in this home" >&2
+        exit 1
+      fi
+    elif ! fm_backlog_row_dispatchable "$BACKLOG_ROW_STATE"; then
+      echo "error: this home's backlog item $ID is not dispatchable in state $BACKLOG_ROW_STATE; refusing before creating its endpoint or local copy" >&2
+      exit 1
+    fi
+  else
+    BACKLOG_GATE_STATUS=$?
+    if [ "$BACKLOG_GATE_STATUS" -eq 2 ]; then
+      echo "error: task $ID cannot be dispatched because its backlog data directory is inaccessible: $DATA ($FM_BACKLOG_TRANSITION_ERROR)" >&2
+      exit 1
+    fi
+  fi
+}
 SPAWN_POOL_EXPOSED=
+# A caller whose retry loop outlives this spawn names itself as
+# FM_TREE_WAIT_OWNER_PID, so its entry lives as long as that loop, and blocks
+# on the wake file printed here until a freed tree is its turn.
+spawn_tree_wait_join() {
+  [ -n "$SPAWN_TREE_WAIT_DIR" ] || return 0
+  spawn_backlog_preflight
+  if fm_tree_wait_join "$SPAWN_TREE_WAIT_DIR" "$ID" "$SPAWN_TREE_PRIORITY" "$STATE" "$(date +%s)" "${FM_TREE_WAIT_OWNER_PID:-}"; then
+    echo "tree-wait: $FM_TREE_WAIT_WAKE" >&2
+  else
+    echo "warning: task $ID could not join project $(basename "$PROJ_ABS")'s waiting line for its next tree" >&2
+  fi
+}
 if { [ "$RELAUNCH" -eq 0 ] || [ "$RELAUNCH_FRESH" = 1 ]; } && [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   fm_project_capacity_pool "$PROJ_ABS"
+  # Every fresh start has a line, counted pool or not: a pool with no
+  # top-level max_trees, or a Treehouse without `status --json`, is full only
+  # when `treehouse get` says so, and that deferral joins the line too (chip
+  # on PR 196 at 924c8af1).
+  if [ "$RELAUNCH" -eq 0 ]; then
+    SPAWN_TREE_WAIT_DIR=$(fm_tree_wait_dir "$SPAWN_TREEHOUSE_PROJECT_LOCK") || SPAWN_TREE_WAIT_DIR=
+  fi
+  [ -z "$SPAWN_TREE_WAIT_DIR" ] || spawn_backlog_preflight
   if [ "$FM_PROJECT_CAPACITY_POOL_KNOWN" = 1 ] && [ "$FM_PROJECT_CAPACITY_POOL_FREE" -le 0 ]; then
+    spawn_tree_wait_join
     echo "deferred: project $(basename "$PROJ_ABS")'s worktree pool is full: max_trees $FM_PROJECT_CAPACITY_POOL_MAX in $PROJ_ABS/treehouse.toml and every tree is held (${FM_PROJECT_CAPACITY_POOL_HELD:-none listed}); task $ID was not launched and its backlog item stays queued - dispatch it again once a tree is returned" >&2
     exit "$SPAWN_DEFER_EXIT"
+  fi
+  if [ -n "$SPAWN_TREE_WAIT_DIR" ] && [ -d "$SPAWN_TREE_WAIT_DIR" ]; then
+    spawn_backlog_preflight
+    fm_tree_wait_ahead "$SPAWN_TREE_WAIT_DIR" "$ID" "$SPAWN_TREE_PRIORITY" "$(date +%s)" "$STATE"
+    # A pool that cannot be counted reads as one free tree, so any live
+    # waiter ahead takes it first.
+    if [ "$FM_PROJECT_CAPACITY_POOL_KNOWN" = 1 ]; then
+      SPAWN_TREE_FREE=$FM_PROJECT_CAPACITY_POOL_FREE
+      SPAWN_TREE_FREE_TEXT="$FM_PROJECT_CAPACITY_POOL_FREE free tree(s) go"
+    else
+      SPAWN_TREE_FREE=1
+      SPAWN_TREE_FREE_TEXT="next free tree goes"
+    fi
+    if [ "$FM_TREE_WAIT_AHEAD" -ge "$SPAWN_TREE_FREE" ]; then
+      spawn_tree_wait_join
+      echo "deferred: project $(basename "$PROJ_ABS")'s $SPAWN_TREE_FREE_TEXT first to the start(s) waiting ahead of task $ID in its line: $FM_TREE_WAIT_AHEAD_IDS; task $ID was not launched, it keeps its place in the line, and its backlog item stays queued - dispatch it again once a tree is returned" >&2
+      exit "$SPAWN_DEFER_EXIT"
+    fi
   fi
   # The pool count already read the claimed idle trees; with no declared
   # size it read nothing, and the fresh read before steering decides alone.
   SPAWN_POOL_EXPOSED=${FM_PROJECT_CAPACITY_POOL_EXPOSED:-}
   if [ -n "$SPAWN_POOL_EXPOSED" ] && [ -z "$(fm_treehouse_free_own_slot "$PROJ_ABS" "$BASE_BRANCH" || true)" ]; then
+    # It waits for that task's teardown to return the tree, and that return
+    # wakes the line (chip on PR 196 at 765134d0).
+    spawn_tree_wait_join
     echo "deferred: project $(basename "$PROJ_ABS")'s worktree pool holds a tree another task still claims with nothing running in it ($(printf '%s\n' "$SPAWN_POOL_EXPOSED" | awk -F '\t' 'NF { printf "%s%s claimed by %s", sep, $2, ($3 == "" ? "a task" : $3); sep = ", " }')), which treehouse get would reset, and no free tree of this clone can be entered by name; task $ID was not launched and its backlog item stays queued - dispatch it again once that task is torn down" >&2
     exit "$SPAWN_DEFER_EXIT"
   fi
@@ -5094,41 +5228,8 @@ herdr_projection_existing_meta_allows_flat() { # <meta>
   esac
 }
 
-# Backlog preflight (bin/fm-backlog-transition-lib.sh). This spawn is about to
-# become the sole owner of the row's In-flight transition, so prove the row is
-# transitionable BEFORE any endpoint, worktree, or record exists: a refusal here
-# costs nothing to unwind, while the same refusal after publication would strand
-# a live pane. The authoritative mutation still runs under the meta lock below.
-BACKLOG_TRANSITION=0
-BACKLOG_ROW_STATE=
-if fm_backlog_transition_applies "$CONFIG" "$DATA" "$KIND"; then
-  BACKLOG_TRANSITION=1
-  if fm_backlog_row_probe "$DATA" "$ID"; then
-    BACKLOG_ROW_STATE=$FM_BACKLOG_ROW_STATE
-  elif [ "$FM_BACKLOG_ROW_RESULT" = not_found ]; then
-    echo "error: task $ID has no backlog item in this home, so dispatching it would leave a worker no record owns; add it first (bin/fm-tasks-axi.sh add $ID '<title>' --kind $KIND) and re-run" >&2
-    exit 1
-  else
-    echo "error: task $ID's backlog item could not be read before dispatch ($FM_BACKLOG_ROW_ERROR)" >&2
-    exit 1
-  fi
-  spawn_preflight_actor=$(fm_lease_actor) || exit "$FM_LEASE_REFUSE_EXIT"
-  if [ "$spawn_preflight_actor" = branch ] && fm_lease_away_relocated; then
-    if [ "$BACKLOG_ROW_STATE" != "queued no no" ]; then
-      echo "error: spawn refused - the supervision branch under the away-posture record may dispatch only queued unblocked work (already queued, or filed by the branch from the captain's away words); task $ID has no dispatchable backlog item in this home" >&2
-      exit 1
-    fi
-  elif ! fm_backlog_row_dispatchable "$BACKLOG_ROW_STATE"; then
-    echo "error: this home's backlog item $ID is not dispatchable in state $BACKLOG_ROW_STATE; refusing before creating its endpoint or local copy" >&2
-    exit 1
-  fi
-else
-  BACKLOG_GATE_STATUS=$?
-  if [ "$BACKLOG_GATE_STATUS" -eq 2 ]; then
-    echo "error: task $ID cannot be dispatched because its backlog data directory is inaccessible: $DATA ($FM_BACKLOG_TRANSITION_ERROR)" >&2
-    exit 1
-  fi
-fi
+# Backlog preflight (spawn_backlog_preflight, above the pool-tree admission).
+spawn_backlog_preflight
 
 if [ "$SPAWN_META_LOCK_HELD" != 1 ]; then
   SPAWN_META_LOCK=$(fm_meta_lock_path "$STATE/$ID.meta") || exit 1
@@ -6038,7 +6139,9 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   fi
   if [ -z "$SPAWN_ENTER_SLOT" ] && [ -n "$SPAWN_POOL_EXPOSED" ]; then
     # No free own-clone tree to enter by name, and the allocator would reset
-    # a claimed tree: defer rather than ask it.
+    # a claimed tree: defer rather than ask it, in the line that tree's
+    # return wakes.
+    spawn_tree_wait_join
     echo "deferred: project $(basename "$PROJ_ABS")'s worktree pool holds a tree another task still claims with nothing running in it, which treehouse get would reset, and no free tree of this clone can be entered by name; task $ID was not launched and its backlog item stays queued - dispatch it again once that task is torn down" >&2
     exit "$SPAWN_DEFER_EXIT"
   fi
@@ -6209,6 +6312,7 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
           1:*"worktrees are in use or dirty"*)
             # The confirmed close already ran; the abort trap must not repeat it.
             SPAWN_CREATED_ENDPOINT=
+            spawn_tree_wait_join
             echo "deferred: the worktree pool of project '$PROJ_ABS' is full by treehouse's own allocation; task $ID was not launched and its backlog item stays queued - dispatch it again once a tree is returned; $treehouse_cleanup; treehouse said:"$'\n'"$treehouse_said" >&2
             exit "$SPAWN_DEFER_EXIT"
             ;;
@@ -7035,6 +7139,9 @@ if [ "$RELAUNCH" -eq 0 ]; then
     exit 1
   fi
   SPAWN_META_TMP=
+  # The tree is this task's now, so it leaves the project's waiting line,
+  # still under the project lock that ordered it.
+  [ -z "$SPAWN_TREE_WAIT_DIR" ] || fm_tree_wait_leave "$SPAWN_TREE_WAIT_DIR" "$ID" "$STATE"
 fi
 
 # Fuse the backlog In-flight transition into the publication that just created

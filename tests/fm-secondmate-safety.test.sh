@@ -2059,6 +2059,69 @@ EOF
   pass "secondmate force teardown discards child work"
 }
 
+# chip on PR 196 at 924c8af1: a child's pool tree that a forced secondmate
+# teardown returns owes its project's tree line a wake, but the wake was sent
+# after the home holding the child's project was removed, and the line could
+# no longer be named from that project, so the head slept until its retry.
+test_secondmate_force_teardown_wakes_a_child_trees_line() {
+  local home subhome childproj childwt pool fakebin log wake err
+  home="$TMP_ROOT/force-wake-home"
+  subhome="$TMP_ROOT/force-wake-subhome"
+  childproj="$subhome/projects/alpha"
+  pool="$TMP_ROOT/force-wake-pool"
+  childwt="$pool/1/alpha"
+  mkdir -p "$home/state" "$home/data" "$subhome/state" "$pool/1"
+  printf '{}\n' > "$pool/treehouse-state.json"
+  fm_git_worktree "$childproj" "$childwt" force-wake-child
+  printf 'domain\n' > "$subhome/.fm-secondmate-home"
+  cat > "$home/state/domain.meta" <<EOF
+window=firstmate:fm-domain
+worktree=$subhome
+project=$subhome
+harness=echo
+kind=secondmate
+mode=secondmate
+yolo=off
+home=$subhome
+projects=alpha
+EOF
+  printf '%s\n' '- domain - design domain (home: '"$subhome"'; scope: design domain; projects: alpha; added 2026-06-22)' > "$home/data/secondmates.md"
+  cat > "$subhome/state/child.meta" <<EOF
+window=firstmate:fm-child
+worktree=$childwt
+project=$childproj
+harness=echo
+kind=ship
+mode=no-mistakes
+yolo=off
+EOF
+  # shellcheck disable=SC2016 # The inner shell expands these.
+  wake=$(FM_HOME="$home" bash -c '
+    . "$1/bin/fm-wake-lib.sh" && . "$1/bin/fm-project-capacity-lib.sh" || exit 1
+    lock=$(fm_treehouse_project_lock_path "$2") || exit 1
+    fm_tree_wait_join "$(fm_tree_wait_dir "$lock")" waiting-task 1 "$3" "$(date +%s)" || exit 1
+    printf "%s\n" "$FM_TREE_WAIT_WAKE"' _ "$ROOT" "$childproj" "$home/state") ||
+    fail "could not put a start in the child project's tree line"
+  fakebin=$(make_fake_tmux "$TMP_ROOT/force-wake-fake")
+  log="$TMP_ROOT/force-wake-fake/tmux.log"
+  # Treehouse resets a returned pool tree in place; the shared fake deletes
+  # it, which teardown rightly reports as a lost slot.
+  cat > "$fakebin/treehouse" <<'SH'
+#!/usr/bin/env bash
+printf 'treehouse %s\n' "$*" >> "${FM_FAKE_TMUX_LOG:-/dev/null}"
+[ "${1:-}" = return ] || exit 0
+for target in "$@"; do :; done
+git -C "$target" checkout --quiet --detach
+SH
+  err=$(PATH="$fakebin:$PATH" FM_HOME="$home" FM_FAKE_TMUX_LOG="$log" FM_FAKE_TMUX_CAPTURE="$TMP_ROOT/force-wake-fake/pane.txt" \
+    "$ROOT/bin/fm-teardown.sh" domain --force 2>&1 >/dev/null) \
+    || fail "force teardown failed to discard child work: $err"
+  grep -F "treehouse return --force $childwt" "$log" >/dev/null || fail "force teardown did not return the child's pool tree"
+  [ ! -d "$subhome" ] || fail "force teardown did not remove the retired secondmate home"
+  [ -s "$wake" ] || fail "the child's returned pool tree woke no start waiting in its project's line"
+  pass "secondmate force teardown wakes the line of a child's returned pool tree"
+}
+
 test_secondmate_force_teardown_refuses_duplicated_child_slot() {
   local home subhome childproj childwt fakebin log err rc
   home="$TMP_ROOT/force-duplicate-slot-home"
@@ -3211,6 +3274,7 @@ test_secondmate_force_teardown_preserves_nested_restore_status
 test_secondmate_teardown_refuses_failed_leased_home_return
 test_secondmate_teardown_removes_plain_clone_home_without_treehouse_return
 test_secondmate_force_teardown_discards_child_work
+test_secondmate_force_teardown_wakes_a_child_trees_line
 test_secondmate_force_teardown_refuses_duplicated_child_slot
 test_secondmate_force_teardown_preserves_child_on_unproven_lock
 test_secondmate_force_teardown_allows_non_state_operational_dir_symlinks_inside_home

@@ -115,6 +115,10 @@ SH
 #!/usr/bin/env bash
 set -u
 printf 'treehouse %s\n' "$*" >> "${FM_FAKE_TREEHOUSE_LOG:?}"
+if [ "${1:-}" = status ] && [ -n "${FM_FAKE_TREEHOUSE_STATUS:-}" ]; then
+  printf '%s\n' "$FM_FAKE_TREEHOUSE_STATUS"
+  exit 0
+fi
 if [ "${1:-} ${2:-}" = "get --lease" ] && [ -n "${FM_FAKE_LEASE_SLOT:-}" ]; then
   holder=
   while [ "$#" -gt 1 ]; do
@@ -340,6 +344,41 @@ test_clean_defer_returns_the_slot_and_the_retry_spawns() {
   pass "a clean live-session deferral returns its slot in place, and the retry spawns ($origin)"
 }
 
+# Put <waiter-id> in the waiting line for <case-dir>'s project's next tree
+# (bin/fm-project-capacity-lib.sh's fm_tree_wait_dir); prints its wake file.
+join_tree_line() { # <case-dir> <waiter-id>
+  (
+    export FM_HOME="$1/home"
+    # shellcheck source=bin/fm-wake-lib.sh
+    . "$ROOT/bin/fm-wake-lib.sh" || exit 1
+    # shellcheck source=bin/fm-project-capacity-lib.sh
+    . "$ROOT/bin/fm-project-capacity-lib.sh" || exit 1
+    lock=$(fm_treehouse_project_lock_path "$1/project") || exit 1
+    dir=$(fm_tree_wait_dir "$lock") || exit 1
+    fm_tree_wait_join "$dir" "$2" 1 "$1/home/state" "$(date +%s)" || exit 1
+    printf '%s\n' "$FM_TREE_WAIT_WAKE"
+  )
+}
+
+# chip on PR 196 at e2720c5e: a deferral after checkout hands its tree back
+# through spawn_return_checked_out_ship_slot, and that return woke no one, so
+# a start waiting in the project's line slept until its fallback retry.
+test_clean_defer_wakes_the_tree_line() {
+  local id="defer-$$-wake" case_dir out rc wake
+  case_dir=$(make_world clean-wake "$id")
+  printf '%s\n' 'max_trees = 2' 'root = ""' > "$case_dir/project/treehouse.toml"
+  wake=$(join_tree_line "$case_dir" waiting-task) || fail "could not put a start in the tree line: $wake"
+
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS='[{"name":"1","status":"available","lease_holder":""},{"name":"2","status":"available","lease_holder":""}]' \
+    run_spawn "$case_dir" "$id" clean --mode no-mistakes --yolo off) || rc=$?
+  expect_code 75 "$rc" "a live-session deferral did not defer"$'\n'"$out"
+  [ "$(git -C "$case_dir/slots/1/project" branch --show-current)" = main ] \
+    || fail "the deferred spawn did not return its pool slot"$'\n'"$out"
+  [ -s "$wake" ] || fail "the tree the deferral returned woke no start waiting in the line"$'\n'"$out"
+  pass "a clean live-session deferral that returns its tree wakes the start waiting in the line"
+}
+
 test_return_that_keeps_the_ship_branch_is_refused() {
   local id="defer-$$-stays" case_dir out rc slot1
   case_dir=$(make_world stays "$id")
@@ -530,6 +569,7 @@ test_originless_slot_without_other_local_branches_is_refused() {
 
 test_clean_defer_returns_the_slot_and_the_retry_spawns
 test_clean_defer_returns_the_slot_and_the_retry_spawns originless
+test_clean_defer_wakes_the_tree_line
 test_return_that_keeps_the_ship_branch_is_refused
 test_slot_is_rechecked_after_retaking_the_project_lock
 test_dirty_slot_is_not_returned

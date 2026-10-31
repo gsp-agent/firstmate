@@ -556,6 +556,229 @@ _fm_project_capacity_require_timeout() {
 }
 
 # Directory of per-project extra-start records for the home that owns <config-dir>.
+# The waiting line for a project's next free tree (agent-config
+# .agent-config-wnvf0). Without it a freed tree went to whichever deferred
+# start retried first, so a P0 waiting since morning lost trees to P1 starts
+# whose callers retried sooner. A start that bin/fm-spawn.sh defers on a full
+# pool joins the line, and a start that finds a free tree goes ahead only
+# while fewer live waiters are ahead of it than there are free trees. Ahead
+# means a lower priority number (the backlog item's tasks-axi priority, 0-4),
+# then, at the same priority, an earlier arrival: the line hands each task a
+# sequence number when it first joins, under the project lock, so two starts
+# that arrive within one second keep their order whatever their task ids. A
+# start not yet in the line counts as arriving after every waiter, so a later
+# arrival never passes an earlier one of the same priority. A start without a
+# priority sorts after every declared one.
+#
+# One entry per task, <dir>/<home>/<id>, and the line's last sequence number
+# in <dir>/.seq, where <dir> is project-tree-wait/<identity>
+# beside the shared project lock and <identity> names that lock, so clones of
+# one origin share a line exactly as they share a pool. <home> is a short hash
+# of the Firstmate home's state directory (fm_tree_wait_home): a task id is
+# unique only within its home, so a primary and a secondmate home can both wait
+# with one id, each in its own place. Every function here
+# runs while the caller holds that lock, except a waiter's own removal and
+# fm_tree_wait_wake, which a returner sends after releasing the lock so the
+# woken start can take it at once. The wake only reads the line and writes a
+# wake file, so a wake that races a change in the line costs one fallback
+# retry, never a place.
+#
+# The line is moved by events. Whatever returns a tree to the pool calls
+# fm_tree_wait_wake once per returned tree, which writes the wake file,
+# <dir>/<home>/.wake-<id>, of the first live waiter that does not already hold
+# one, so the k-th returned tree wakes the k-th waiter; a caller's retry loop
+# blocks on that file (bin/fm-watch-statewait.py), so the waiter starts at once
+# and its retries are only the fallback. An entry is live while the process that retries it, named
+# by the caller as FM_TREE_WAIT_OWNER_PID, is alive with the identity it had
+# when it joined; that process removes the entry when it exits. An entry
+# leaves the line when its task's record publishes or exists in its home. Only
+# an entry with no owner falls back to FM_TREE_WAIT_STALE: no deferral
+# refreshed it in that many seconds, so no one is retrying it. The default is
+# just over two of Firstmate's starter passes, the slowest retrier.
+FM_TREE_WAIT_STALE=${FM_TREE_WAIT_STALE:-900}
+
+fm_tree_wait_dir() {  # <project-lock>
+  local identity
+  identity=$(fm_project_capacity_overshare_identity "$1") || return 1
+  printf '%s\n' "${1%/*}/project-tree-wait/$identity"
+}
+
+# The sort key for <priority>: 0-4 as given, anything else after them.
+fm_tree_wait_rank() {  # <priority>
+  case "$1" in
+    [0-4]) printf '%s\n' "$1" ;;
+    *) printf '5\n' ;;
+  esac
+}
+
+# The place in a line for the home whose state directory is <state-dir>: the
+# SHA-256 of its physical path, which no caller's working directory or git
+# object format can change (chip on PR 196: git hash-object gave one home two
+# keys from a SHA-1 and a SHA-256 repository), and no two homes share (chip at
+# b2810ac4: two state paths had one 32-bit cksum, so each home's leave took
+# the other's place).
+fm_tree_wait_home() {  # <state-dir>
+  local path sum
+  path=$(cd -P -- "$1" 2>/dev/null && pwd -P) || path=$1
+  if command -v sha256sum >/dev/null 2>&1; then
+    sum=$(printf '%s' "$path" | sha256sum) || return 1
+  else
+    sum=$(printf '%s' "$path" | shasum -a 256) || return 1
+  fi
+  sum=${sum%% *}
+  [ "${#sum}" -eq 64 ] || return 1
+  case "$sum" in *[!0-9a-f]*) return 1 ;; esac
+  printf '%s\n' "$sum"
+}
+
+fm_tree_wait_field() {  # <entry> <key>
+  sed -n "s/^$2=//p" "$1" 2>/dev/null | head -n 1
+}
+
+# Join the line, or refresh this task's entry, keeping its first wait and its
+# place. A live <owner-pid> is recorded with its identity, so the entry lives
+# exactly as long as that process. Sets FM_TREE_WAIT_WAKE to the entry's wake
+# file.
+fm_tree_wait_join() {  # <dir> <id> <priority> <state-dir> <now> [owner-pid]
+  local dir=$1 id=$2 place since seq owner=${6:-} owner_identity='' tmp
+  FM_TREE_WAIT_WAKE=
+  place=$(fm_tree_wait_home "$4") || return 1
+  place="$dir/$place"
+  mkdir -p -- "$place" || return 1
+  # A wake written before this deferral is spent: any wake file from here on
+  # is a tree freed while this task waited.
+  rm -f -- "${place:?}/.wake-${id:?}"
+  since=$(fm_tree_wait_field "$place/$id" since)
+  case "$since" in '' | *[!0-9]*) since=$5 ;; esac
+  # A first join takes the line's next sequence number, its place among the
+  # waiters of its priority; a refresh keeps the one it has.
+  seq=$(fm_tree_wait_field "$place/$id" seq)
+  case "$seq" in
+    '' | *[!0-9]*)
+      seq=$(cat -- "$dir/.seq" 2>/dev/null) || seq=
+      case "$seq" in '' | *[!0-9]*) seq=0 ;; esac
+      seq=$((seq + 1))
+      tmp="$dir/.seq.${BASHPID:-$$}"
+      printf '%s\n' "$seq" > "$tmp" && mv -f -- "$tmp" "$dir/.seq" || return 1
+      ;;
+  esac
+  if [ -n "$owner" ] && fm_pid_alive "$owner"; then
+    owner_identity=$(fm_pid_identity "$owner" 2>/dev/null) || owner_identity=
+  else
+    owner=
+  fi
+  tmp="$place/.$id.${BASHPID:-$$}"
+  printf 'priority=%s\nsince=%s\nseq=%s\nseen=%s\nstate=%s\nowner=%s\nowner_identity=%s\n' \
+    "$3" "$since" "$seq" "$5" "$4" "$owner" "$owner_identity" > "$tmp" &&
+    mv -f -- "$tmp" "$place/$id" || return 1
+  FM_TREE_WAIT_WAKE="$place/.wake-$id"
+}
+
+fm_tree_wait_drop() {  # <entry>
+  rm -f -- "${1:?}" "${1%/*}/.wake-${1##*/}"
+}
+
+# Never fails: an entry it cannot name leaves the line once its record exists.
+fm_tree_wait_leave() {  # <dir> <id> <state-dir>
+  local home
+  home=$(fm_tree_wait_home "$3") || return 0
+  fm_tree_wait_drop "${1:?}/$home/${2:?}"
+}
+
+# Whether <entry> has left the line: its task started, its owner is gone, or,
+# with no owner, nothing refreshed it within FM_TREE_WAIT_STALE seconds.
+fm_tree_wait_gone() {  # <entry> <id> <now>
+  local since seen state owner owner_identity
+  since=$(fm_tree_wait_field "$1" since)
+  seen=$(fm_tree_wait_field "$1" seen)
+  state=$(fm_tree_wait_field "$1" state)
+  owner=$(fm_tree_wait_field "$1" owner)
+  owner_identity=$(fm_tree_wait_field "$1" owner_identity)
+  case "$since$seen" in '' | *[!0-9]*) return 0 ;; esac
+  [ -z "$state" ] || [ ! -e "$state/$2.meta" ] || return 0
+  if [ -n "$owner" ]; then
+    fm_pid_alive "$owner" || return 0
+    [ -z "$owner_identity" ] || [ "$(fm_pid_identity "$owner" 2>/dev/null || true)" = "$owner_identity" ] || return 0
+    return 1
+  fi
+  [ $(($3 - seen)) -gt "$FM_TREE_WAIT_STALE" ]
+}
+
+# The live waiters, one "<rank> <seq> <since> <home>/<id>" per line in line
+# order, after removing every entry that has left the line. With <keep> it
+# removes nothing: fm_tree_wait_wake reads the line without the project lock,
+# so an entry it reads as gone may since have been refreshed by a join under
+# that lock, and deleting its path would take that waiter's place (chip on
+# PR 196 at 607bb0f6). Only a project-lock holder, or a task's own spawn
+# under its spawn lock, removes an entry.
+fm_tree_wait_order() {  # <dir> <now> [keep]
+  local dir=$1 now=$2 keep=${3:-} entry id home seq
+  [ -d "$dir" ] || return 0
+  for entry in "$dir"/*/*; do
+    [ -f "$entry" ] || continue
+    id=${entry##*/}
+    home=${entry%/*}
+    home=${home##*/}
+    if fm_tree_wait_gone "$entry" "$id" "$now"; then
+      [ -n "$keep" ] || fm_tree_wait_drop "$entry"
+      continue
+    fi
+    seq=$(fm_tree_wait_field "$entry" seq)
+    case "$seq" in '' | *[!0-9]*) seq=0 ;; esac
+    printf '%s %s %s %s\n' "$(fm_tree_wait_rank "$(fm_tree_wait_field "$entry" priority)")" \
+      "$seq" "$(fm_tree_wait_field "$entry" since)" "$home/$id"
+  done | LC_ALL=C sort -n -k1,1 -k2,2
+}
+
+# Count the live waiters ahead of <id> at <priority>. Sets FM_TREE_WAIT_AHEAD
+# and FM_TREE_WAIT_AHEAD_IDS ("<id> (P<n>, waiting since <epoch>)",
+# comma-separated, in line order).
+fm_tree_wait_ahead() {  # <dir> <id> <priority> <now> <state-dir>
+  local dir=$1 self now=$4 own_rank own_seq ahead
+  FM_TREE_WAIT_AHEAD=0
+  FM_TREE_WAIT_AHEAD_IDS=
+  self=$(fm_tree_wait_home "$5") || self=
+  self="$self/$2"
+  own_rank=$(fm_tree_wait_rank "$3")
+  # Not yet in the line: this start arrives after every waiter of its priority.
+  own_seq=$(fm_tree_wait_field "$dir/$self" seq)
+  case "$own_seq" in '' | *[!0-9]*) own_seq= ;; esac
+  ahead=$(fm_tree_wait_order "$dir" "$now" | awk -v self="$self" -v r="$own_rank" -v s="$own_seq" '
+    $4 != self && ($1 < r || ($1 == r && (s == "" || $2 + 0 < s + 0)))')
+  [ -n "$ahead" ] || return 0
+  FM_TREE_WAIT_AHEAD=$(printf '%s\n' "$ahead" | wc -l | tr -d ' ')
+  FM_TREE_WAIT_AHEAD_IDS=$(printf '%s\n' "$ahead" | awk '
+    { id = $4; sub(/^[^\/]*\//, "", id)
+      printf "%s%s (%s, waiting since %s)", sep, id, ($1 == 5 ? "no priority" : "P" $1), $3; sep = ", " }')
+}
+
+# A tree went back to the pool: wake the first live waiter in line order that
+# does not already hold an unconsumed wake, by writing its wake file. A waiter
+# holding one has a tree coming already, so the k-th returned tree wakes the
+# k-th waiter. Prints the woken id, or nothing when no waiter is left to wake.
+# Returners run this after releasing the project lock, so the choice and the
+# write are serialized by the line's own <dir>/.wake.lock (bin/fm-wake-lib.sh's
+# locks, which every caller loads): two trees returned at once wake two
+# waiters, never the head twice. It removes no entry, since it holds no project
+# lock. Bounded: a wake that cannot take that lock leaves the waiter's own
+# retry as the fallback.
+FM_TREE_WAIT_WAKE_LOCK_WAIT=${FM_TREE_WAIT_WAKE_LOCK_WAIT:-10}
+fm_tree_wait_wake() {  # <dir> <now>
+  local dir=$1 now=$2 key wake woken='' rc=0
+  [ -d "$dir" ] || return 0
+  fm_lock_acquire_wait_max "$dir/.wake.lock" "$FM_TREE_WAIT_WAKE_LOCK_WAIT" || return 1
+  while read -r _ _ _ key; do
+    wake="$dir/${key%/*}/.wake-${key##*/}"
+    [ ! -s "$wake" ] || continue
+    printf '%s\n' "$now" >> "$wake" || rc=1
+    [ "$rc" -ne 0 ] || woken=${key##*/}
+    break
+  done < <(fm_tree_wait_order "$dir" "$now" keep)
+  fm_lock_release "$dir/.wake.lock" || true
+  [ -z "$woken" ] || printf '%s\n' "$woken"
+  return "$rc"
+}
+
 fm_project_capacity_overshare_dir() {  # <config-dir>
   local config=$1 parent
   parent=${config%/*}

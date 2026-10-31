@@ -374,6 +374,9 @@ test_claimed_idle_tree_is_never_handed_to_the_allocator() {
   assert_contains "$out" "holds a tree another task still claims with nothing running in it" "the deferral did not name the claimed tree"
   assert_contains "$out" "3 claimed by merged-a1" "the deferral did not name the claiming task"
   assert_nothing_created "$case_dir" "$home" task-a "$before" "$worktrees"
+  # It waits for that task's teardown to return the tree, so it waits in the
+  # project's tree line, where that return wakes it (chip on PR 196 at 765134d0).
+  [ -n "$(tree_wait_entry "$home" task-a)" ] || fail "the deferral beside a claimed idle tree took no place in the tree line"
   pass "a spawn beside a claimed idle tree defers with 75 and never asks the allocator, which would reset it"
 }
 
@@ -398,6 +401,7 @@ test_claimed_tree_idle_by_steering_is_never_handed_to_the_allocator() {
   assert_contains "$out" "holds a tree another task still claims with nothing running in it" "the deferral did not name the claimed tree"
   grep -q '^treehouse get' "$case_dir/calls.log" && fail "the spawn asked the allocator beside a claimed idle tree: $(grep '^treehouse' "$case_dir/calls.log")"
   assert_absent "$home/state/task-a.meta" "a deferred spawn published a task record"
+  [ -n "$(tree_wait_entry "$home" task-a)" ] || fail "the deferral at steering took no place in the tree line"
   pass "a claimed tree that goes idle before steering is seen by a fresh read, and the spawn never asks the allocator"
 }
 
@@ -1989,6 +1993,545 @@ test_away_spend_cap_is_rechecked_at_publication() {
   pass "the away spend cap is rechecked at publication, so concurrent spawns cannot both publish"
 }
 
+# --- the waiting line for a project's next tree ------------------------------
+#
+# agent-config .agent-config-wnvf0: a freed tree went to whichever deferred
+# start retried first. GSP's P0 gsp-dc9j6-6 waited from the morning of 10-29
+# and lost tree 5 to a P1 and tree 2 to another start whose callers retried
+# sooner. A start that meets a full pool joins the project's line, and a freed
+# tree goes to the head of that line: priority first, then first wait.
+
+POOL_ONE_FREE_STATUS='[{"name":"1","status":"in-use","lease_holder":""},{"name":"2","status":"in-use","lease_holder":""},{"name":"3","status":"in-use","lease_holder":""},{"name":"4","status":"available","lease_holder":""}]'
+
+set_priority() {  # <home> <id> <priority>
+  tasks-axi update "$2" --priority "$3" --file "$1/data/backlog.md" >/dev/null
+}
+
+tree_wait_entry() {  # <home> <id> -> the entry's path, if any
+  local entry
+  for entry in "$1"/state/project-tree-wait/*/*/"$2"; do
+    [ ! -f "$entry" ] || printf '%s\n' "$entry"
+  done
+}
+
+pool_case() {  # <name> <task-id>... -> case dir with a four-tree pool
+  local case_dir
+  case_dir=$(make_case "$@")
+  declare_capacity "$case_dir/home" "project 5"
+  printf '%s\n' 'max_trees = 4' 'root = ""' > "$case_dir/project/treehouse.toml"
+  printf '%s\n' "$case_dir"
+}
+
+# The failing-first case: the P1 waited longer and its caller retries first
+# after a tree frees, yet the P0 takes the tree.
+test_freed_tree_goes_to_the_highest_priority_waiter() {
+  local case_dir home out rc
+  if [ "$HAVE_TASKS_AXI" != 1 ]; then
+    pass "a freed tree goes to the highest-priority waiter (skipped: no tasks-axi for backlog priority)"
+    return 0
+  fi
+  case_dir=$(pool_case tree-line-priority task-p0 task-p1)
+  home="$case_dir/home"
+  set_priority "$home" task-p0 0
+  set_priority "$home" task-p1 1
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_FULL_STATUS spawn_ship "$case_dir" task-p1 "$case_dir/project") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "the P1 did not defer on the full pool: $out"
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_FULL_STATUS spawn_ship "$case_dir" task-p0 "$case_dir/project") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "the P0 did not defer on the full pool: $out"
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_ONE_FREE_STATUS spawn_ship "$case_dir" task-p1) || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "the P1 took the freed tree ahead of the waiting P0: $out"
+  assert_contains "$out" "free tree(s) go first to the start(s) waiting ahead of task task-p1 in its line: task-p0 (P0, waiting since" \
+    "the P1's deferral did not name the P0 ahead of it"
+  assert_absent "$home/state/task-p1.meta" "the P1 published a record for a tree that was the P0's"
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_ONE_FREE_STATUS spawn_ship "$case_dir" task-p0) || rc=$?
+  expect_code 0 "$rc" "the P0 did not take the freed tree: $out"
+  assert_contains "$out" "spawned task-p0" "the P0 did not launch"
+  [ -z "$(tree_wait_entry "$home" task-p0)" ] || fail "the P0 stayed in the line after it took its tree"
+  [ -n "$(tree_wait_entry "$home" task-p1)" ] || fail "the P1 lost its place in the line"
+  pass "a freed tree goes to the highest-priority waiter, not the start that retries first"
+}
+
+# At one priority the line is first come, first served: a later arrival that
+# retries first still waits behind the earlier waiter.
+test_later_arrival_of_one_priority_waits_behind() {
+  local case_dir home out rc
+  case_dir=$(pool_case tree-line-fifo task-a task-b)
+  home="$case_dir/home"
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_FULL_STATUS spawn_ship "$case_dir" task-a "$case_dir/project") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "the first waiter did not defer on the full pool: $out"
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_ONE_FREE_STATUS spawn_ship "$case_dir" task-b) || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a later arrival took the freed tree from the earlier waiter: $out"
+  assert_contains "$out" "in its line: task-a (" "the later arrival's deferral did not name the earlier waiter"
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_ONE_FREE_STATUS spawn_ship "$case_dir" task-a) || rc=$?
+  expect_code 0 "$rc" "the earlier waiter did not take the freed tree: $out"
+  pass "a later arrival of the same priority waits behind the earlier waiter"
+}
+
+# chip on PR 196: a first wait is an epoch second, and ties fell to the task id,
+# so an earlier waiter task-z lost its place to task-a arriving in the same
+# second. The line orders one priority by arrival, never by id: here the
+# earlier waiter's id sorts after the later arrival's, and the clock cannot
+# tell them apart.
+test_same_second_arrivals_keep_their_order() {
+  local case_dir home out rc entry_z entry_a
+  case_dir=$(pool_case tree-line-same-second task-z task-a)
+  home="$case_dir/home"
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_FULL_STATUS spawn_ship "$case_dir" task-z "$case_dir/project") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "the earlier waiter did not defer on the full pool: $out"
+  entry_z=$(tree_wait_entry "$home" task-z)
+  [ -n "$entry_z" ] || fail "the earlier waiter did not join the line"
+  # task-a arrives within the second the line recorded for task-z: its own
+  # clock reading is no later than task-z's first wait.
+  sed -i.bak "s/^since=.*/since=$(($(date +%s) + 5))/" "$entry_z" && rm -f "$entry_z.bak"
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_ONE_FREE_STATUS spawn_ship "$case_dir" task-a) || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "an arrival in the earlier waiter's second took its tree: $out"
+  assert_contains "$out" "in its line: task-z (" "the arrival's deferral did not name the earlier waiter"
+  assert_absent "$home/state/task-a.meta" "the arrival published a record for the earlier waiter's tree"
+  # Both now wait with one recorded second, and task-a retries first.
+  entry_a=$(tree_wait_entry "$home" task-a)
+  [ -n "$entry_a" ] || fail "the deferred arrival did not join the line"
+  sed -i.bak 's/^since=.*/since=1000/' "$entry_z" "$entry_a" && rm -f "$entry_z.bak" "$entry_a.bak"
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_ONE_FREE_STATUS spawn_ship "$case_dir" task-a) || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a later waiter with the same recorded second passed the earlier one: $out"
+  assert_contains "$out" "in its line: task-z (" "the later waiter's deferral did not name the earlier waiter"
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_ONE_FREE_STATUS spawn_ship "$case_dir" task-z) || rc=$?
+  expect_code 0 "$rc" "the earlier waiter did not take the freed tree: $out"
+  [ -n "$(tree_wait_entry "$home" task-a)" ] || fail "the later waiter lost its place in the line"
+  pass "arrivals of one priority within one second keep their order, whatever their task ids"
+}
+
+# chip on PR 196 at 924c8af1: a project whose pool cannot be counted (here no
+# top-level max_trees) had no line, so its full-pool deferrals from
+# `treehouse get` held no place and a freed tree went to whichever retry came
+# first. It has a line now, read as one free tree: a start with a live waiter
+# ahead of it defers behind that waiter.
+join_uncounted_line() {  # <case-dir> <id>
+  local lock
+  lock=$(fm_treehouse_project_lock_path "$1/project") || return 1
+  fm_tree_wait_join "$(fm_tree_wait_dir "$lock")" "$2" 0 "$1/home/state" "$(date +%s)"
+}
+test_uncounted_pool_keeps_its_line() {
+  local case_dir home out rc
+  case_dir=$(make_case tree-line-uncounted task-b)
+  home="$case_dir/home"
+  out=$(FM_HOME="$home" tree_line_helpers join_uncounted_line "$case_dir" task-a 2>&1) ||
+    fail "could not put task-a in the line: $out"
+  rc=0
+  out=$(spawn_ship "$case_dir" task-b) || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a start passed the waiter ahead of it in a pool that cannot be counted: $out"
+  assert_contains "$out" "next free tree goes first to the start(s) waiting ahead of task task-b in its line: task-a (P0, waiting since" \
+    "the deferral did not name the waiter ahead of it"
+  [ -n "$(tree_wait_entry "$home" task-b)" ] || fail "the deferred start took no place in the line"
+  assert_absent "$home/state/task-b.meta" "the deferred start published a record"
+  pass "a pool that cannot be counted still has a line, and a start waits behind the waiter ahead"
+}
+
+# chip on PR 196 at 4f36385d: a start joined the line before the backlog
+# preflight that refuses work which is not dispatchable, so a Done P0 deferred
+# with 75, held a place, and kept a queued P1 from a free tree. Such a start is
+# now refused before it can join, and a waiter whose item stops being
+# dispatchable gives up its place when its next start is refused.
+test_undispatchable_start_holds_no_place() {
+  local case_dir home out rc
+  if [ "$HAVE_TASKS_AXI" != 1 ]; then
+    pass "an undispatchable start holds no place in the line (skipped: no tasks-axi for backlog state)"
+    return 0
+  fi
+  case_dir=$(pool_case tree-line-undispatchable done-p0 late-p0 queued-p1)
+  home="$case_dir/home"
+  set_priority "$home" done-p0 0
+  set_priority "$home" late-p0 0
+  set_priority "$home" queued-p1 1
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_FULL_STATUS spawn_ship "$case_dir" late-p0 "$case_dir/project") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "the queued P0 did not defer on the full pool: $out"
+  [ -n "$(tree_wait_entry "$home" late-p0)" ] || fail "the queued P0 took no place in the line"
+  tasks-axi "done" done-p0 --file "$home/data/backlog.md" >/dev/null || fail "could not mark done-p0 done"
+  tasks-axi "done" late-p0 --file "$home/data/backlog.md" >/dev/null || fail "could not mark late-p0 done"
+
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_FULL_STATUS spawn_ship "$case_dir" done-p0 "$case_dir/project") || rc=$?
+  expect_code 1 "$rc" "a Done item on a full pool was deferred, not refused: $out"
+  assert_contains "$out" "is not dispatchable" "the refusal did not say the item is not dispatchable"
+  [ -z "$(tree_wait_entry "$home" done-p0)" ] || fail "a Done item took a place in the line"
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_FULL_STATUS spawn_ship "$case_dir" late-p0 "$case_dir/project") || rc=$?
+  expect_code 1 "$rc" "a waiter whose item is now Done was deferred, not refused: $out"
+  [ -z "$(tree_wait_entry "$home" late-p0)" ] || fail "a waiter whose item is now Done kept its place in the line"
+
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_ONE_FREE_STATUS spawn_ship "$case_dir" queued-p1) || rc=$?
+  expect_code 0 "$rc" "a queued P1 did not take the free tree: $out"
+  pass "a start whose backlog item is not dispatchable holds no place in the line"
+}
+
+# chip on PR 196 at 765134d0: the line read the start's priority with a second
+# `tasks-axi show` after the backlog preflight had read the row, and a failed
+# second read left the start with no priority, behind every P0-P4. The line
+# takes the priority from the preflight's one read.
+test_line_priority_comes_from_the_preflight_read() {
+  local case_dir home out rc real
+  if [ "$HAVE_TASKS_AXI" != 1 ]; then
+    pass "the line takes the priority the preflight read (skipped: no tasks-axi for backlog priority)"
+    return 0
+  fi
+  case_dir=$(pool_case tree-line-one-read task-p0)
+  home="$case_dir/home"
+  set_priority "$home" task-p0 0
+  real=$(command -v tasks-axi)
+  # Every read of task-p0's row after the first fails.
+  cat > "$case_dir/fakebin/tasks-axi" <<SH
+#!/usr/bin/env bash
+if [ "\${1:-}" = show ] && [ "\${2:-}" = task-p0 ]; then
+  n=\$(cat "$case_dir/p0-shows" 2>/dev/null || echo 0)
+  n=\$((n + 1))
+  printf '%s\\n' "\$n" > "$case_dir/p0-shows"
+  [ "\$n" -le 1 ] || exit 1
+fi
+exec "$real" "\$@"
+SH
+  chmod +x "$case_dir/fakebin/tasks-axi"
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_FULL_STATUS spawn_ship "$case_dir" task-p0 "$case_dir/project") || rc=$?
+  rm -f -- "$case_dir/fakebin/tasks-axi"
+  expect_code "$DEFER_EXIT" "$rc" "the P0 did not defer on the full pool: $out"
+  assert_grep 'priority=0' "$(tree_wait_entry "$home" task-p0)" \
+    "the P0 joined the line without the priority its backlog preflight read: $(cat "$(tree_wait_entry "$home" task-p0)" 2>/dev/null)"
+  pass "the line takes the priority the backlog preflight read, with no second read to fail"
+}
+
+# The next two cases drive the line's own helpers, as chip reproduced them on
+# PR 196, because their setups (two homes with one task id on one origin, one
+# teardown returning two trees) have no cheap end-to-end fixture here.
+tree_line_helpers() {  # <command...> -> runs it with the line's helpers loaded
+  (
+    # shellcheck source=bin/fm-wake-lib.sh
+    . "$ROOT/bin/fm-wake-lib.sh" || exit 1
+    # shellcheck source=bin/fm-project-capacity-lib.sh
+    . "$ROOT/bin/fm-project-capacity-lib.sh" || exit 1
+    "$@"
+  )
+}
+
+# chip on PR 196: a task id is unique only within its Firstmate home, but the
+# line is shared by every home on the machine. With entries keyed by id alone,
+# a secondmate home's same-task overwrote the primary's entry and wake file,
+# and each saw no one ahead of it.
+two_homes_one_id() {  # <dir> <first-home> <second-home>
+  local dir=$1 first="$1/$2/state" second="$1/$3/state"
+  fm_tree_wait_join "$dir/line" same-task 1 "$first" 1000 || return 1
+  fm_tree_wait_join "$dir/line" same-task 1 "$second" 1000 || return 1
+  printf 'waiters=%s\n' "$(fm_tree_wait_order "$dir/line" 1000 | wc -l | tr -d ' ')"
+  fm_tree_wait_ahead "$dir/line" same-task 1 1000 "$second"
+  printf 'ahead-of-second=%s\n' "$FM_TREE_WAIT_AHEAD"
+  fm_tree_wait_ahead "$dir/line" same-task 1 1000 "$first"
+  printf 'ahead-of-first=%s\n' "$FM_TREE_WAIT_AHEAD"
+  fm_tree_wait_leave "$dir/line" same-task "$first"
+  fm_tree_wait_ahead "$dir/line" same-task 1 1000 "$second"
+  printf 'after-first-left=%s/%s\n' "$(fm_tree_wait_order "$dir/line" 1000 | wc -l | tr -d ' ')" "$FM_TREE_WAIT_AHEAD"
+}
+assert_two_homes_keep_two_places() {  # <dir> <first-home> <second-home>
+  local out
+  mkdir -p "$1/$2/state" "$1/$3/state"
+  out=$(tree_line_helpers two_homes_one_id "$@" 2>&1) || fail "the line's helpers failed: $out"
+  assert_contains "$out" "waiters=2" "two homes waiting with one task id hold one place between them: $out"
+  assert_contains "$out" "ahead-of-second=1" "the second home's start sees no one ahead of it: $out"
+  assert_contains "$out" "ahead-of-first=0" "the first home's start lost its place: $out"
+  assert_contains "$out" "after-first-left=1/0" "the first home's start leaving took the second's place: $out"
+}
+test_one_task_id_in_two_homes_keeps_two_places() {
+  assert_two_homes_keep_two_places "$TMP_ROOT/tree-line-two-homes" home-1 home-2
+  pass "one task id waiting from two homes keeps two places in the line"
+}
+
+# chip on PR 196 at b2810ac4: the home's place was the 32-bit POSIX cksum of
+# its state path, and these two homes' state paths share one under any parent
+# shorter than 200 bytes (a CRC is linear in the bytes that differ), so either
+# home's leave took the other's place.
+test_homes_with_one_checksum_keep_two_places() {
+  assert_two_homes_keep_two_places "$TMP_ROOT/tree-line-one-checksum" home-unfd6c6a5jh8 home-0msdy0y0wy9j
+  pass "two homes whose state paths share a 32-bit checksum keep two places in the line"
+}
+
+# chip on PR 196: a teardown that returns two trees wakes the line once per
+# tree, and each wake went to the unchanged head, so the second waiter slept
+# until its fallback retry. The k-th wake reaches the k-th waiter.
+two_wakes() {  # <dir>
+  local dir=$1
+  fm_tree_wait_join "$dir/line" task-a 1 "$dir/home/state" 1000 || return 1
+  fm_tree_wait_join "$dir/line" task-b 1 "$dir/home/state" 1000 || return 1
+  printf 'wake-1=%s\n' "$(fm_tree_wait_wake "$dir/line" 1000)"
+  printf 'wake-2=%s\n' "$(fm_tree_wait_wake "$dir/line" 1000)"
+  printf 'wake-3=%s\n' "$(fm_tree_wait_wake "$dir/line" 1000)"
+}
+test_two_returned_trees_wake_two_waiters() {
+  local dir out
+  dir="$TMP_ROOT/tree-line-two-wakes"
+  mkdir -p "$dir/home/state"
+  out=$(tree_line_helpers two_wakes "$dir" 2>&1) || fail "the line's helpers failed: $out"
+  assert_contains "$out" "wake-1=task-a" "the first returned tree did not wake the head: $out"
+  assert_contains "$out" "wake-2=task-b" "the second returned tree did not wake the second waiter: $out"
+  case "$out" in
+    *"wake-3=") ;;
+    *) fail "a third tree woke a waiter that already holds a wake: $out" ;;
+  esac
+  pass "two returned trees wake the first two waiters, not the head twice"
+}
+
+# chip on PR 196 at da35c20b: the home's place was a git hash-object digest,
+# which follows the object format of whatever repository the caller stands
+# in, so one home retrying from a SHA-1 and then a SHA-256 checkout held two
+# places and could wait behind itself.
+one_home_two_object_formats() {  # <dir>
+  local dir=$1
+  (cd "$dir/sha1" && fm_tree_wait_join "$dir/line" task-x 1 "$dir/home/state" 1000) || return 1
+  (cd "$dir/sha256" && fm_tree_wait_join "$dir/line" task-x 1 "$dir/home/state" 1000) || return 1
+  printf 'waiters=%s\n' "$(fm_tree_wait_order "$dir/line" 1000 | wc -l | tr -d ' ')"
+  (cd "$dir/sha256" && fm_tree_wait_ahead "$dir/line" task-x 1 1000 "$dir/home/state" &&
+    printf 'ahead-of-itself=%s\n' "$FM_TREE_WAIT_AHEAD")
+}
+test_one_home_keeps_one_place_from_any_checkout() {
+  local dir out
+  dir="$TMP_ROOT/tree-line-object-formats"
+  mkdir -p "$dir/home/state"
+  git init -q --object-format=sha1 "$dir/sha1" || fail "could not make a SHA-1 repository"
+  if ! git init -q --object-format=sha256 "$dir/sha256" 2>/dev/null; then
+    pass "one home keeps one place from any checkout (skipped: this git makes no SHA-256 repository)"
+    return 0
+  fi
+  out=$(tree_line_helpers one_home_two_object_formats "$dir" 2>&1) || fail "the line's helpers failed: $out"
+  assert_contains "$out" "waiters=1" "one home's task held two places, one per object format: $out"
+  assert_contains "$out" "ahead-of-itself=0" "the task waits behind its own other place: $out"
+  pass "one home keeps one place in the line from any checkout"
+}
+
+# chip on PR 196 at 4cfffa5b: the project lock's identity, and so the line's
+# directory, was a `git hash-object` digest of the origin, which follows the
+# object format of whatever repository the caller stands in, so a P0 joined
+# from a SHA-1 checkout and a P1 checking from a SHA-256 one met in two
+# lines, and the P1 saw no one ahead of it.
+one_pool_two_object_formats() {  # <dir>
+  local dir=$1 lock1 lock2
+  lock1=$(cd "$dir/sha1" && fm_treehouse_project_lock_path "$dir/project") || return 1
+  lock2=$(cd "$dir/sha256" && fm_treehouse_project_lock_path "$dir/project") || return 1
+  printf 'sha1-lock=%s\nsha256-lock=%s\n' "$lock1" "$lock2"
+  (cd "$dir/sha1" && fm_tree_wait_join "$(fm_tree_wait_dir "$lock1")" task-p0 0 "$dir/home/state" 1000) || return 1
+  (cd "$dir/sha256" && fm_tree_wait_ahead "$(fm_tree_wait_dir "$lock2")" task-p1 1 1000 "$dir/home/state" &&
+    printf 'ahead-of-p1=%s\n' "$FM_TREE_WAIT_AHEAD")
+}
+test_one_pool_keeps_one_line_from_any_checkout() {
+  local dir out origin=git@github.com:example/shared.git sha1_id
+  dir="$TMP_ROOT/tree-line-pool-object-formats"
+  mkdir -p "$dir/home/state"
+  git init -q "$dir/project" || fail "could not make the project"
+  git -C "$dir/project" remote add origin "$origin" || fail "could not give the project its origin"
+  git init -q --object-format=sha1 "$dir/sha1" || fail "could not make a SHA-1 repository"
+  if ! git init -q --object-format=sha256 "$dir/sha256" 2>/dev/null; then
+    pass "one pool keeps one line from any checkout (skipped: this git makes no SHA-256 repository)"
+    return 0
+  fi
+  # The lock every caller in a SHA-1 checkout has always named stays put.
+  sha1_id=$(cd "$dir/sha1" && printf '%s' "$origin" | git hash-object --stdin) || fail "could not hash the origin"
+  out=$(FM_HOME="$dir/home" tree_line_helpers one_pool_two_object_formats "$dir" 2>&1) || fail "the line's helpers failed: $out"
+  assert_contains "$out" "sha1-lock=$dir/home/state/.treehouse-project-$sha1_id.lock" \
+    "a SHA-1 caller's project lock moved: $out"
+  assert_contains "$out" "sha256-lock=$dir/home/state/.treehouse-project-$sha1_id.lock" \
+    "a SHA-256 caller named another lock for the same pool: $out"
+  assert_contains "$out" "ahead-of-p1=1" "a P1 from a SHA-256 checkout did not see the P0 waiting ahead of it: $out"
+  pass "one pool keeps one lock and one line from any checkout"
+}
+
+# chip on PR 196 at da35c20b: the wake's choice and write ran after the
+# project lock was released, so two trees returned at once could both see
+# the head's wake file empty and both wake the head. A preemption held at the
+# write, after the choice, makes the two returners overlap every time.
+two_concurrent_wakes() {  # <dir>
+  local dir=$1 w1 w2
+  # Joined within FM_TREE_WAIT_STALE of the wakes' clock, so both are live.
+  fm_tree_wait_join "$dir/line" task-a 1 "$dir/home/state" 4000 || return 1
+  fm_tree_wait_join "$dir/line" task-b 1 "$dir/home/state" 4000 || return 1
+  # The wake's write is its only `printf '%s\n' 4242`; hold it there.
+  printf() {
+    if [ "$#" = 2 ] && [ "$2" = 4242 ]; then sleep 2; fi
+    builtin printf "$@"
+  }
+  fm_tree_wait_wake "$dir/line" 4242 > "$dir/wake-1" &
+  w1=$!
+  fm_tree_wait_wake "$dir/line" 4242 > "$dir/wake-2" &
+  w2=$!
+  wait "$w1"
+  wait "$w2"
+  unset -f printf
+  printf 'woken=%s\n' "$(cat "$dir/wake-1" "$dir/wake-2" | LC_ALL=C sort | tr '\n' ' ')"
+  printf 'task-b-wake=%s\n' "$(cat "$dir"/line/*/.wake-task-b 2>/dev/null | wc -l | tr -d ' ')"
+}
+test_two_concurrent_returns_wake_two_waiters() {
+  local dir out
+  dir="$TMP_ROOT/tree-line-concurrent-wakes"
+  mkdir -p "$dir/home/state"
+  out=$(tree_line_helpers two_concurrent_wakes "$dir" 2>&1) || fail "the line's helpers failed: $out"
+  assert_contains "$out" "woken=task-a task-b " "two trees returned at once did not wake the first two waiters: $out"
+  assert_contains "$out" "task-b-wake=1" "the second waiter got no wake: $out"
+  pass "two trees returned at once wake two waiters, never the head twice"
+}
+
+# chip on PR 196 at 607bb0f6: a wake runs without the project lock, and its
+# scan deleted an entry it had read as gone, so a retry that refreshed that
+# entry under the lock while the scan read it lost its place. The scan is
+# held in its liveness check of the old owner while a new owner refreshes.
+wake_beside_a_refresh() {  # <dir>
+  local dir=$1 old new w
+  sleep 30 &
+  old=$!
+  fm_tree_wait_join "$dir/line" task-a 1 "$dir/home/state" 4000 "$old" || return 1
+  kill "$old" && wait "$old" 2>/dev/null
+  (
+    # shellcheck disable=SC2329 # Called by the wake's liveness check.
+    fm_pid_alive() {
+      if [ "$1" = "$old" ]; then sleep 2; fi
+      kill -0 "$1" 2>/dev/null
+    }
+    fm_tree_wait_wake "$dir/line" 4000 >/dev/null
+  ) &
+  w=$!
+  sleep 0.5
+  sleep 30 &
+  new=$!
+  fm_tree_wait_join "$dir/line" task-a 1 "$dir/home/state" 4000 "$new" || return 1
+  wait "$w"
+  printf 'refreshed-owner=%s\n' "$(cat "$dir"/line/*/task-a 2>/dev/null | sed -n 's/^owner=//p')"
+  printf 'waiters=%s\n' "$(fm_tree_wait_order "$dir/line" 4000 | wc -l | tr -d ' ')"
+  printf 'new=%s\n' "$new"
+  kill "$new" 2>/dev/null
+  wait "$new" 2>/dev/null || true
+}
+test_wake_never_removes_a_refreshed_waiter() {
+  local dir out new
+  dir="$TMP_ROOT/tree-line-wake-refresh"
+  mkdir -p "$dir/home/state"
+  out=$(tree_line_helpers wake_beside_a_refresh "$dir" 2>&1) || fail "the line's helpers failed: $out"
+  new=$(printf '%s\n' "$out" | sed -n 's/^new=//p')
+  assert_contains "$out" "refreshed-owner=$new" "a wake deleted the entry a live retry had just refreshed: $out"
+  assert_contains "$out" "waiters=1" "the refreshed waiter lost its place in the line: $out"
+  pass "a wake never removes a waiter that a retry refreshed while the wake read the line"
+}
+
+# A waiter that no deferral refreshed within FM_TREE_WAIT_STALE seconds has no
+# caller retrying it, so it stops holding the line and a free tree is not kept
+# idle for it.
+test_stale_waiter_stops_holding_the_line() {
+  local case_dir home out rc entry
+  case_dir=$(pool_case tree-line-stale task-gone task-b)
+  home="$case_dir/home"
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_FULL_STATUS spawn_ship "$case_dir" task-gone "$case_dir/project") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "the waiter did not defer on the full pool: $out"
+  entry=$(tree_wait_entry "$home" task-gone)
+  [ -n "$entry" ] || fail "a start deferred on a full pool did not join the line"
+  sed -i.bak 's/^seen=.*/seen=1/' "$entry" && rm -f "$entry.bak"
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_ONE_FREE_STATUS spawn_ship "$case_dir" task-b) || rc=$?
+  expect_code 0 "$rc" "a waiter nobody retried still held the freed tree: $out"
+  [ ! -f "$entry" ] || fail "the stale waiter stayed in the line"
+  pass "a waiter nobody retries stops holding the line, so the free tree is used"
+}
+
+# Liveness comes from the waiter's own retry loop: while that owner process
+# lives, its entry holds the line however long it waits, and once it is gone
+# the entry stops holding the line at once, not after FM_TREE_WAIT_STALE.
+test_waiter_lives_as_long_as_its_owner() {
+  local case_dir home out rc owner entry
+  case_dir=$(pool_case tree-line-owner task-owned task-b)
+  home="$case_dir/home"
+  sleep 60 &
+  owner=$!
+  rc=0
+  out=$(FM_TREE_WAIT_OWNER_PID=$owner FM_FAKE_TREEHOUSE_STATUS=$POOL_FULL_STATUS \
+    spawn_ship "$case_dir" task-owned "$case_dir/project") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "the owned waiter did not defer on the full pool: $out"
+  entry=$(tree_wait_entry "$home" task-owned)
+  [ -n "$entry" ] || fail "the owned waiter did not join the line"
+  sed -i.bak 's/^seen=.*/seen=1/' "$entry" && rm -f "$entry.bak"
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_ONE_FREE_STATUS spawn_ship "$case_dir" task-b) || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a waiter whose owner is alive lost its place to the stale bound: $out"
+  kill "$owner" 2>/dev/null || true
+  wait "$owner" 2>/dev/null || true
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_ONE_FREE_STATUS spawn_ship "$case_dir" task-b) || rc=$?
+  expect_code 0 "$rc" "a waiter whose owner is gone still held the freed tree: $out"
+  [ ! -f "$entry" ] || fail "the waiter whose owner is gone stayed in the line"
+  pass "a waiter holds its place while its owner lives and stops holding the line once its owner is gone"
+}
+
+now_ms() { python3 -c 'import time; print(int(time.time() * 1000))'; }
+
+# The event half (ep-agent-config, on the bead): with the head waiting, a tree
+# a teardown returns is taken by the head within a second, not at its next
+# retry. The waiter is a caller's retry loop: it joins on the full pool as the
+# loop's owner, blocks on the wake file the deferral names, and falls back to
+# its own 20 s retry when no wake file is named.
+test_teardown_wakes_the_head_waiter_at_once() {
+  local case_dir home waiter rc_td=0 out_td t_end woke_rc t_woke
+  case_dir=$(pool_case tree-line-wake task-p0)
+  home="$case_dir/home"
+  if ! python3 "$ROOT/bin/fm-watch-statewait.py" 0 "$home/state" >/dev/null 2>&1; then
+    pass "a teardown wakes the head waiter at once (skipped: no kqueue wait on this platform)"
+    return 0
+  fi
+  mkdir -p "$case_dir/pool/1"
+  git -C "$case_dir/project" worktree add --quiet -b pool-live "$case_dir/pool/1/project"
+  printf '{"worktrees":[{"name":"1","path":"%s"}]}\n' \
+    "$case_dir/pool/1/project" > "$case_dir/pool/treehouse-state.json"
+  write_live "$home" live-a "$case_dir/project"
+  sed -i.bak "s|^worktree=.*|worktree=$case_dir/pool/1/project|" "$home/state/live-a.meta" &&
+    rm -f "$home/state/live-a.meta.bak"
+  (
+    # The loop's own pid, taken here: inside $( ) BASHPID would name the
+    # command substitution, which is gone as soon as the deferral returns.
+    loop=$BASHPID
+    out=$(FM_TREE_WAIT_OWNER_PID=$loop FM_FAKE_TREEHOUSE_STATUS=$POOL_FULL_STATUS \
+      spawn_ship "$case_dir" task-p0 "$case_dir/project")
+    wake=$(printf '%s\n' "$out" | sed -n 's/^tree-wait: //p' | tail -n 1)
+    : > "$case_dir/waiting"
+    rc=0
+    if [ -n "$wake" ]; then
+      [ -s "$wake" ] || python3 "$ROOT/bin/fm-watch-statewait.py" 30 "${wake%/*}" "$wake" || rc=$?
+    else
+      sleep 20
+    fi
+    printf '%s %s\n' "$rc" "$(now_ms)" > "$case_dir/woke"
+    FM_TREE_WAIT_OWNER_PID=$loop FM_FAKE_TREEHOUSE_STATUS=$POOL_ONE_FREE_STATUS \
+      spawn_ship "$case_dir" task-p0 > "$case_dir/p0.out" 2>&1
+    echo "$?" > "$case_dir/p0.rc"
+  ) >/dev/null 2>&1 &
+  waiter=$!
+  wait_for_file "$case_dir/waiting" "the head waiter never deferred on the full pool"
+  out_td=$(FM_ROOT_OVERRIDE='' FM_HOME="$home" FM_STATE_OVERRIDE='' FM_DATA_OVERRIDE='' FM_CONFIG_OVERRIDE='' \
+    FM_FAKE_CALL_LOG="$case_dir/calls.log" FM_PROJECT_CAPACITY_CREW_STATE="$case_dir/fakebin/fm-crew-state-stub" \
+    PATH="$case_dir/fakebin:$PATH" "$TEARDOWN" live-a 2>&1) || rc_td=$?
+  t_end=$(now_ms)
+  wait "$waiter" || true
+  expect_code 0 "$rc_td" "the teardown that returns the tree failed: $out_td"
+  read -r woke_rc t_woke < "$case_dir/woke" || fail "the head waiter never woke"
+  [ $((t_woke - t_end)) -lt 1000 ] ||
+    fail "the head started $((t_woke - t_end)) ms after the teardown returned its tree (wait status $woke_rc), at its retry rather than at once"
+  expect_code 0 "$(cat "$case_dir/p0.rc" 2>/dev/null || echo missing)" "the woken head did not take the freed tree: $(cat "$case_dir/p0.out" 2>/dev/null)"
+  assert_present "$home/state/task-p0.meta" "the woken head published no record"
+  pass "a tree a teardown returns is taken by the head waiter within a second"
+}
+
 # A machine-capacity file that cannot be read as one total refuses every
 # fresh spawn rather than guessing, exactly like project-capacity.
 test_unreadable_machine_total_refuses_every_spawn() {
@@ -2068,3 +2611,19 @@ test_forced_teardown_during_a_spawns_start_is_never_missed
 test_machine_total_is_rechecked_at_publication_in_one_home
 test_machine_total_recheck_sees_a_same_id_replacement
 test_away_spend_cap_is_rechecked_at_publication
+test_freed_tree_goes_to_the_highest_priority_waiter
+test_later_arrival_of_one_priority_waits_behind
+test_same_second_arrivals_keep_their_order
+test_uncounted_pool_keeps_its_line
+test_undispatchable_start_holds_no_place
+test_line_priority_comes_from_the_preflight_read
+test_one_task_id_in_two_homes_keeps_two_places
+test_homes_with_one_checksum_keep_two_places
+test_two_returned_trees_wake_two_waiters
+test_one_home_keeps_one_place_from_any_checkout
+test_one_pool_keeps_one_line_from_any_checkout
+test_two_concurrent_returns_wake_two_waiters
+test_wake_never_removes_a_refreshed_waiter
+test_stale_waiter_stops_holding_the_line
+test_teardown_wakes_the_head_waiter_at_once
+test_waiter_lives_as_long_as_its_owner
