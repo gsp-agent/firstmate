@@ -569,6 +569,10 @@
       "audience": "maintainer-verification"
     },
     {
+      "path": "tests/remote-permitted-skips.txt",
+      "audience": "maintainer-architecture"
+    },
+    {
       "path": ".agents/skills/agent-skill-trigger-index/SKILL.md",
       "audience": "agent-runtime"
     },
