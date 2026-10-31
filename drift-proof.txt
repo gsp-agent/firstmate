@@ -15,7 +15,8 @@ pr: 11
 pending-pr: 12 .agent-config-dtjsb
 # "R16 proof scope" in drift-measurements.txt; net effect cut by #25, replayed as dependency.
 pr: 13
-pending-pr: 16 .agent-config-dtjsb
+# Net effect already cut by #25, which removed this PR's close-note helper and all four of its test functions; nothing of it remains to cut.
+pr: 16
 # Harvest replay keeps this PR: tests/fm-supervision-host.test.sh distinguishes upstream from this PR and the nightly replay passes.
 pr: 17
 # "R17 teardown record keeping" in drift-measurements.txt.
@@ -28,8 +29,10 @@ pending-pr: 22 .agent-config-dtjsb
 pr: 26
 # Harvest replay keeps this PR: tests/fm-inbox.test.sh distinguishes upstream from this PR and the nightly replay passes.
 pr: 28
-pending-pr: 27 .agent-config-dtjsb
-pending-pr: 30 .agent-config-dtjsb
+# Cut replay keeps this PR: tests/fm-teardown.test.sh fails on kunchenguid/main files with only this PR's tests ("finished task clone remains in data") and passes with this PR's diff, and the nightly replay passes.
+pr: 27
+# Replayed as a dependency of #108: without this PR and PR 36's slow-read stage-limit case, the "unreadable" variant of test_task_data_named_bead_resolution in tests/fm-teardown.test.sh fails "unreadable named-bead teardown failed", because the unread reference is no longer caught and the cleanup record cannot be written; the base passes it.
+pr: 30
 # Harvest replay keeps this PR for rebase: tests/fm-pr-check-security.test.sh distinguishes upstream from this PR; its proof is keyed for its rebase series.
 pr: 21
 # Harvest replay keeps this PR: tests/fm-backend-herdr.test.sh distinguishes upstream from this PR and the nightly replay passes.
@@ -45,14 +48,16 @@ pr: 39
 pr: 34
 # Harvest replay keeps this PR for rebase: tests/fm-pi-watch-extension.test.sh distinguishes upstream from this PR; its proof is keyed for its rebase series.
 pr: 42
-pending-pr: 36 .agent-config-dtjsb
+# Replayed as a dependency of #31 and #135: without this PR, test_task_data_legacy_rows in tests/fm-teardown.test.sh fails on read_command() taking 2 positional arguments but given 3, and tests/fm-task-data-offload.test.sh's "normal scratch expiry preserves the pointer after its report reference is removed" fails its expiry; the base passes both.
+pr: 36
 pending-pr: 38 .agent-config-dtjsb
 pending-pr: 43 .agent-config-dtjsb
 # "PR 25 squash acceptance on upstream-lean" in drift-measurements.txt, plus the sections it names there.
 pr: 25
 # Harvest replay keeps this PR for rebase: tests/fm-dispatch-resolve.test.sh distinguishes upstream from this PR; its proof is keyed for its rebase series.
 pr: 47
-pending-pr: 50 .agent-config-dtjsb
+# Cut replay keeps this PR: tests/fm-nm-run-lib.test.sh fails on kunchenguid/main files with only this PR's tests ("a child that outlived its parent survived the bound") and passes with this PR's diff, and the nightly replay passes.
+pr: 50
 pending-pr: 49 .agent-config-dtjsb
 # Harvest replay keeps this PR: tests/fm-fleet-snapshot-view.test.sh distinguishes upstream from this PR and the nightly replay passes.
 pr: 54

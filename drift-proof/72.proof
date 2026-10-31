@@ -1,1 +1,2 @@
-pending-pr: 72 .agent-config-dtjsb
+# Replayed as a dependency of #27: without this PR, test_task_data_cleanup in tests/fm-teardown.test.sh fails "next completed task did not expire recovery", because later code still reads this PR's kept-text cap; the base passes it.
+pr: 72
