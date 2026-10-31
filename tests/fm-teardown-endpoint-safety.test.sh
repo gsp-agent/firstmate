@@ -856,8 +856,10 @@ test_remote_layout_homes_serialize_on_one_project_lock() {
   done
   [ -e "$dir/lock-held" ] || fail "the local child never took the shared project lock"
 
+  # The holder keeps the lock for 30s. The wait has to be shorter than that
+  # hold, or the lock goes stale and a return succeeds for the wrong reason.
   set +e
-  run_case "$dir" "$id" > "$dir/stdout" 2> "$dir/stderr"
+  FM_TEARDOWN_LOCK_WAIT_SECS=1 run_case "$dir" "$id" > "$dir/stdout" 2> "$dir/stderr"
   rc=$?
   set -e
   kill "$holder" 2>/dev/null || true
@@ -873,6 +875,84 @@ test_remote_layout_homes_serialize_on_one_project_lock() {
     "the refusal should name the shared project lock, not some unrelated check"
 
   pass "Treehouse project locking still serializes two homes across the remote-seeded boundary"
+}
+
+# A dispatch retry takes the project lock, drops it, and takes it again.
+# Teardown starts only once the stand-in holds the lock, and the stand-in keeps
+# that first hold until teardown's wait has polled. A one-try acquire never
+# polls, so at any load it meets the hold and refuses. Later holds are the short
+# bursts, with gaps, and they never stop, so a return can only win inside a gap.
+# A hold that lasts the whole wait is the case above, not this one.
+test_short_project_lock_holds_still_let_teardown_return_its_tree() {
+  local dir id=lock-churn lock holder rc real_sleep
+  dir=$(make_case project-lock-churn)
+  mark_case_as_treehouse_pool "$dir"
+  fm_write_meta "$dir/home/state/$id.meta" \
+    "window=firstmate:fm-$id" "endpoint_task_id=$id" \
+    "worktree=$dir/worktree" "project=$dir/project" "kind=scout"
+  lock=$(resolve_project_lock "$dir/home" "$dir/project") \
+    || fail "the dispatch stand-in could not resolve the shared project lock"
+  # Teardown runs no sleep before its project lock, so its first sleep is the
+  # wait's poll. Only teardown has fakebin on PATH.
+  real_sleep=$(command -v sleep)
+  cat > "$dir/fakebin/sleep" <<SH
+#!/usr/bin/env bash
+: > "$dir/teardown-waited"
+exec "$real_sleep" "\$@"
+SH
+  chmod +x "$dir/fakebin/sleep"
+  cat > "$dir/churn.sh" <<'SH'
+#!/usr/bin/env bash
+set -u
+. "$1"
+lock=$2
+held=$3
+waited=$4
+first=1
+while :; do
+  if ! fm_lock_try_acquire "$lock"; then
+    sleep 0.05
+    continue
+  fi
+  if [ "$first" = 1 ]; then
+    : > "$held"
+    until [ -e "$waited" ]; do
+      sleep 0.05
+    done
+    first=0
+  else
+    sleep 0.3
+  fi
+  fm_lock_release "$lock" || true
+  sleep 0.15
+done
+SH
+  chmod +x "$dir/churn.sh"
+  FM_HOME="$dir/home" "$dir/churn.sh" \
+    "$ROOT/bin/fm-wake-lib.sh" "$lock" "$dir/lock-held" "$dir/teardown-waited" &
+  holder=$!
+  until [ -e "$dir/lock-held" ]; do
+    kill -0 "$holder" 2>/dev/null || fail "the dispatch stand-in never took the shared project lock"
+    sleep 0.1
+  done
+
+  set +e
+  FM_TASK_DATA_SWEEP=off run_case "$dir" "$id" > "$dir/stdout" 2> "$dir/stderr"
+  rc=$?
+  set -e
+  kill "$holder" 2>/dev/null || true
+  wait "$holder" 2>/dev/null || true
+
+  [ "$rc" -eq 0 ] \
+    || fail "teardown did not return its tree while a dispatch kept re-taking the project lock: $(cat "$dir/stderr")"
+  assert_present "$dir/teardown-waited" "teardown returned its tree without waiting on the held project lock"
+  grep -Fq "treehouse <return>" "$dir/runtime.log" \
+    || fail "teardown did not return its pool slot: $(cat "$dir/runtime.log")"
+  grep -Fq "<--force>" "$dir/runtime.log" \
+    || fail "the pool return was not a forced return: $(cat "$dir/runtime.log")"
+  assert_absent "$dir/home/state/$id.meta" "a teardown that returned its tree left the task record"
+
+  pass "fm-teardown: short repeated project-lock holds still let a teardown return its tree within the lock wait"
 }
 
 # The slot-reuse sequence with only ONE discoverable record: the finished task's
@@ -1447,3 +1527,4 @@ test_project_lock_anchors_at_the_local_root_across_home_layouts
 test_remote_seeded_home_returns_its_uncontested_slot
 test_remote_seeded_home_still_refuses_a_slot_its_child_holds
 test_remote_layout_homes_serialize_on_one_project_lock
+test_short_project_lock_holds_still_let_teardown_return_its_tree

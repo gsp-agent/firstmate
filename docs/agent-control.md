@@ -127,7 +127,10 @@ Switching harness is therefore one ordinary relaunch rather than a separate mech
 ### Restoring a task closed before its done
 
 [`bin/fm-teardown.sh`](../bin/fm-teardown.sh) copies every ship or scout task record to `data/<id>/record/closed-task.meta` before it removes the record.
-A task that answers to a bead is not torn down while that bead is open, so this copy is the recovery path for a close that happened anyway.
+A task that answers to a bead is not torn down while that bead is open, unless its assignee, owning EP, or owning PM has commented on the bead, since the task's current spawn, with the exact sentence "Firstmate may tear down this bead's tree", the release that the remaining step needs no tree.
+A release states no condition, and a comment in any other form releases nothing; the header of [`bin/fm-task-bead-lib.sh`](../bin/fm-task-bead-lib.sh) owns the exact forms it accepts and the limits of its screen.
+A restored task is a new spawn, so it needs a fresh release.
+This copy is the recovery path for a close that happened anyway and for that release.
 `relaunch` of a task with no live record refuses as before, and names that archive when one exists.
 `relaunch --restore --note <what remains>` brings the task back from it: it reopens the closed backlog item, or adds it back when the closed row was already archived away, appends the note to the brief, and dispatches a fresh worker through `bin/fm-spawn.sh` on the archived project, kind, harness and profile, delivery mode, branch prefix, base branch, and backend.
 Teardown returned the earlier local copy only after its work landed, so the restored worker starts from a fresh copy.

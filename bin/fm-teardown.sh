@@ -492,8 +492,9 @@ if [ -f "$META" ] && [ ! -L "$META" ]; then
       echo "REFUSED: cannot resolve the shared Treehouse project lock for ${TEARDOWN_LOCK_PROJECT:-<missing>}; nothing was changed" >&2
       exit 1
     }
-    fm_lock_try_acquire "$TREEHOUSE_PROJECT_LOCK" || {
-      echo "REFUSED: another Treehouse slot allocation or return is in progress for $TEARDOWN_LOCK_PROJECT; nothing was changed" >&2
+    # Dispatch retries take this lock in short bursts. One try loses the return.
+    fm_lock_acquire_wait_max "$TREEHOUSE_PROJECT_LOCK" "$TEARDOWN_LOCK_WAIT_SECS" || {
+      echo "REFUSED: another Treehouse slot allocation or return is in progress for $TEARDOWN_LOCK_PROJECT; waited ${TEARDOWN_LOCK_WAIT_SECS}s; nothing was changed" >&2
       exit 1
     }
     TREEHOUSE_PROJECT_LOCK_HELD=1
@@ -710,14 +711,23 @@ fi
 # A merge or a measurement is a milestone, and cleanup would mark the task
 # done, close its backlog item, and remove the worker pane and local copy its
 # owner still needs for activation and live verification. So while that bead
-# is open, or while the task's own last status line is the merge handoff that
+# is open with no owner release recorded since the task's current spawn, or
+# while a closed bead's task has as its last status line the merge handoff that
 # leaves activation and live verification pending, teardown refuses here,
 # before any destructive step, with every record intact. --force authorizes
-# discarding unlanded work, never closing a task whose bead is still open. A
-# task with no bead keeps every gate below exactly as it was.
+# discarding unlanded work, never an open bead that has no release. A release
+# passes the handoff too: its owner has said the remaining step needs no tree.
+# A task with no bead keeps every gate below exactly as it was. What counts as
+# a release is bin/fm-task-bead-lib.sh's rule.
 teardown_require_task_bead_done() {
-  local rc=0
-  fm_task_bead_read "$ID" || rc=$?
+  local rc=0 spawned
+  # spawn_gen is s<epoch>.<pid>.<random>. A record with no spawn time has
+  # nothing a release can be newer than, so no release counts for it.
+  spawned=$(fm_meta_get "$META" spawn_gen)
+  spawned=${spawned#s}
+  spawned=${spawned%%.*}
+  case "$spawned" in *[!0-9]*) spawned= ;; esac
+  fm_task_bead_read "$ID" "$spawned" || rc=$?
   case "$rc" in
     0) ;;
     3) return 0 ;;
@@ -727,7 +737,8 @@ teardown_require_task_bead_done() {
       ;;
   esac
   if fm_task_bead_open "$FM_TASK_BEAD_STATUS"; then
-    echo "REFUSED: task $ID answers to bead $FM_TASK_BEAD_ID, which is $FM_TASK_BEAD_STATUS. A merge or a measurement is a milestone; the bead's done decides when the task is done. Its worker, pane, local copy, and backlog item stay with their owner; nothing was changed. Tear it down after the bead closes." >&2
+    [ -z "$FM_TASK_BEAD_RELEASE_AUTHOR" ] || return 0
+    echo "REFUSED: task $ID answers to bead $FM_TASK_BEAD_ID, which is $FM_TASK_BEAD_STATUS. A merge or a measurement is a milestone; the bead's done decides when the task is done. No release by its assignee or owning EP or PM was recorded since this task's current spawn, and --force does not supply one. Its worker, pane, local copy, and backlog item stay with their owner; nothing was changed. Tear it down after the bead closes, or after that owner comments on the bead opening with the exact sentence \"Firstmate may tear down this bead's tree\", or with \"owner's word for the worktree pool:\" and then that sentence. After it may come only a period or a note starting \"Checked\"; a quote mark, a second mention of the release, or a condition or negation term from the screened list in bin/fm-task-bead-lib.sh in that note voids the release, and the list does not catch every hedge, so a release states no condition." >&2
     return 1
   fi
   if fm_task_merge_handoff_pending "$STATE/$ID.status" "$ID"; then
@@ -3563,6 +3574,8 @@ teardown_archive_task_record() {
 }
 if [ "$KIND" != secondmate ]; then
   teardown_archive_task_record || exit 1
+  [ -z "$FM_TASK_BEAD_RELEASE_AUTHOR" ] \
+    || echo "accepted owner release by $FM_TASK_BEAD_RELEASE_AUTHOR${FM_TASK_BEAD_RELEASE_ID:+ (comment $FM_TASK_BEAD_RELEASE_ID)}"
 fi
 
 BACKLOG_CLOSED=0

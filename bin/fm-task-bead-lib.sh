@@ -20,16 +20,40 @@
 # (default 10). A unique short id that br expands to its canonical id is that
 # bead when fm-task-data-lib.sh's fm_task_data_bead_id_matches accepts it.
 #
-# fm_task_bead_read <task-id>
+# fm_task_bead_read <task-id> [<spawn-epoch>]
 #   0  the task has a bead: FM_TASK_BEAD_ID (the id asked for, never the
-#      expanded canonical id) and FM_TASK_BEAD_STATUS are set.
+#      expanded canonical id) and FM_TASK_BEAD_STATUS are set. Given the epoch
+#      of the task's current spawn, an open bead's owner release also sets
+#      FM_TASK_BEAD_RELEASE_AUTHOR and FM_TASK_BEAD_RELEASE_ID. The author is
+#      empty when no release counts, and the id when br recorded none.
 #   3  the task has no bead.
 #   1  the owning database exists but did not answer, a bead home's record
-#      could not be read, or several homes hold different beads under the id;
-#      FM_TASK_BEAD_ERROR says why. A caller deciding to close must refuse
-#      rather than guess.
+#      could not be read, the bead's comments could not be read, or several
+#      homes hold different beads under the id; FM_TASK_BEAD_ERROR says why.
+#      A caller deciding to close must refuse rather than guess.
 # fm_task_bead_open <status>
 #   0 for every status except closed and tombstone.
+# An owner's recorded release is the newest comment on an open bead that states
+# the sentence "Firstmate may tear down this bead's tree", whose time is after
+# the task's current spawn, and whose author is the bead's assignee, its owning
+# EP, or its owning PM. The comment states the sentence when it opens with it,
+# or with "owner's word for the worktree pool:" then the sentence, and the
+# sentence appears once. Only the lead-in form may be signed first by its own
+# author, and a quote mark or screened term in that signature voids the
+# release. After the sentence comes only a period, or a note starting
+# "Checked" with no quote mark, no screened condition or negation term, and no
+# second mention of the release. Any other comment is not the owner's own
+# statement, so it releases nothing. That sentence is the owner's record that
+# the remaining step needs no tree. A restored task is a new spawn, so it needs
+# a fresh release. The screened terms are the list in the filter below, so a
+# hedge worded outside that list passes: a mid-sentence "once" passes, because
+# the live releases use it for later work, not for the release. The assignee
+# is the issue's assignee field. The owning EP is
+# "ep-" plus the directory name of any dev/*/.beads path that resolves to the
+# owning database, links included. The owning PM is "pm-" plus the bead id or
+# its prefix, each dot spelled as a dash. A PM under any other name releases
+# only as the assignee or through the EP. A comment list that cannot be read is
+# an unreadable bead, not an unreleased one.
 # fm_task_merge_handoff_pending <status-file> <task-id>
 #   0 when the task's last status line is the merge handoff that
 #   bin/fm-merge-outcome-lib.sh writes for a live PM, which leaves activation
@@ -47,12 +71,78 @@ fm_task_bead_candidate() {  # <task-id>
   esac
 }
 
+# The EP and PM names that may record a release for this bead, one per line.
+fm_task_bead_release_authors() { # <bead-id> <database>
+  local bead=$1 db=$2 prefix home best='' path base
+  printf 'pm-%s\n' "${bead//./-}"
+  while IFS=' ' read -r prefix home; do
+    case "$bead" in
+      "$prefix"-*)
+        [ "${#prefix}" -le "${#best}" ] || best=$prefix
+        ;;
+    esac
+  done <<EOF
+$FM_TASK_DATA_BEAD_LOCATIONS
+EOF
+  printf 'pm-%s\n' "${best//./-}"
+  for path in "$HOME"/dev/*/.beads/beads.db; do
+    [ "$path" -ef "$db" ] || continue
+    base=${path%/.beads/beads.db}
+    printf 'ep-%s\n' "${base##*/}"
+  done
+}
+
+# Prints "author<TAB>comment-id" for the newest recorded release in the br show
+# JSON, or nothing when there is none. Returns 1 when the comment list cannot
+# be read. This filter is the release rule.
+fm_task_bead_release_from_json() { # <json> <authors> <spawn-epoch>
+  jq -r --arg authors "$2" --arg sentence "Firstmate may tear down this bead's tree" \
+    --arg lead_in "owner's word for the worktree pool" --argjson spawned "$3" '
+    def created: try (.created_at | fromdateiso8601) catch 0;
+    def withdrawn:
+      test("[\"`]|\\b(?i:not|never|cannot|if|when|unless|until|while|after|before|except|but|however|still|hold|wait|waiting|pending|provided|stop|keep|withdraw\\w*|revoke\\w*|rescind\\w*|firstmate|tear|\\w+n[\\x27\\x{2019}]t)\\b|(?i:\\bas soon as\\b)|(?:[.!?;:]\\s+|\\n\\s*)(?i:no|only|once)\\b");
+    def stated:
+      .author as $author
+      | (.text | ltrimstr($author)) as $text
+      | (if $text | test("\\A \\(")
+         then ($text | capture("\\A \\((?<sig>[^()\\n]{1,40})\\)").sig) else "" end) as $sig
+      | ($text | test("\\A(?:(?:(?: \\([^()\\n]{1,40}\\))?, )?" + $lead_in + ":[ \\t]+)?" + $sentence
+                      + "(?:\\.?\\s*\\z|(?:\\.\\s+|\\s*\\n\\s*)Checked\\b)"))
+        and ($sig | withdrawn | not)
+        and ($text | split($sentence) | length == 2 and (.[1] | withdrawn | not));
+    def issue:
+      if type == "array" and length == 1 and (.[0] | type) == "object" then .[0]
+      else error("bead payload is not one issue") end;
+    issue
+    | .assignee as $assignee
+    | (if (.comments | type) == "array" then .comments
+       elif .comments == null then []
+       else error("comments are not a list") end) as $comments
+    | [
+        $comments[]
+        | select(type == "object")
+        | select((.author | type) == "string" and (.author | test("^[A-Za-z0-9._+@-]+$")))
+        | select(.author as $author | $author == $assignee or any($authors | split("\n")[]; . == $author))
+        | select((.text | type) == "string" and stated)
+        | select(created > $spawned)
+      ]
+    | sort_by(created, .id)
+    | if length == 0 then ""
+      else .[-1] | "\(.author)\t\(if (.id | type) == "number" then .id else "" end)" end
+  ' 2>/dev/null <<FM_BEAD_RELEASE_JSON
+$1
+FM_BEAD_RELEASE_JSON
+}
+
 # shellcheck disable=SC2034 # FM_TASK_BEAD_* are results for sourcing callers.
-fm_task_bead_read() {  # <task-id>
+fm_task_bead_read() {  # <task-id> [<spawn-epoch>]
   local bead db out canonical status=0 owned=0 secs=${FM_TASK_BEAD_TIMEOUT_SECS:-10} code
+  local spawned=${2:-} release=''
   FM_TASK_BEAD_ID=
   FM_TASK_BEAD_STATUS=
   FM_TASK_BEAD_ERROR=
+  FM_TASK_BEAD_RELEASE_AUTHOR=
+  FM_TASK_BEAD_RELEASE_ID=
   case "$secs" in ''|*[!0-9]*) secs=10 ;; esac
   [ "$secs" -gt 0 ] 2>/dev/null || secs=10
   bead=$(fm_task_bead_candidate "$1")
@@ -116,6 +206,17 @@ fm_task_bead_read() {  # <task-id>
       ;;
   esac
   FM_TASK_BEAD_ID=$bead
+  if [ -n "$spawned" ] && fm_task_bead_open "$FM_TASK_BEAD_STATUS"; then
+    if ! release=$(fm_task_bead_release_from_json "$out" "$(fm_task_bead_release_authors "$bead" "$db")" "$spawned"); then
+      FM_TASK_BEAD_ID=
+      FM_TASK_BEAD_STATUS=
+      FM_TASK_BEAD_ERROR="bead $bead's comments could not be read"
+      return 1
+    fi
+    IFS=$'\t' read -r FM_TASK_BEAD_RELEASE_AUTHOR FM_TASK_BEAD_RELEASE_ID <<EOF
+$release
+EOF
+  fi
   return 0
 }
 

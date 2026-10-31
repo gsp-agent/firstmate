@@ -3875,12 +3875,168 @@ test_restore_that_cannot_dispatch_changes_no_instructions() {
   pass "fm-control relaunch --restore: a dispatch refusal or a missing archive changes no instructions"
 }
 
+# An owner-released open bead is archived by teardown, then relaunch --restore
+# dispatches it again. The fresh tree is the pane path, which is not the tree
+# teardown returned. The restored task is a new spawn, so the release that freed
+# the old tree does not free this one.
+test_restore_brings_an_owner_released_task_back_on_a_fresh_tree() {
+  local case_dir proj old fresh fakebin id=heru-relc home_beads db comments
+  local out rc=0 meta archived_wt fresh_wt now
+  case_dir="$TMP_ROOT/restore-owner-release-$RANDOM"
+  proj="$case_dir/project"
+  old="$case_dir/old-wt"
+  fresh="$case_dir/fresh-wt"
+  fm_test_spawn_home "$case_dir"
+  fm_git_worktree "$proj" "$old" "fm/$id"
+  git -C "$proj" worktree add --quiet -b "fm/${id}-next" "$fresh" main
+  fm_test_spawn_brief "$case_dir" "$id" "finish the remaining step for $id from a fresh tree"
+  now=$(date +%s)
+  fm_write_meta "$case_dir/state/$id.meta" \
+    "window=firstmate:fm-$id" \
+    "endpoint_task_id=$id" \
+    "worktree=$old" \
+    "project=$proj" \
+    "harness=claude" \
+    "kind=ship" \
+    "mode=no-mistakes" \
+    "yolo=off" \
+    "branch=fm/$id" \
+    "model=default" \
+    "effort=default" \
+    "spawn_gen=s$((now - 200)).1.1" \
+    "pr=https://github.com/example/repo/pull/7"
+  printf '%s\n' '# Backlog' '' '## In flight' '' '## Queued' '' '## Done' > "$case_dir/data/backlog.md"
+  tasks-axi add "$id" "owner release restore fixture" --kind ship --repo project \
+    --file "$case_dir/data/backlog.md" >/dev/null
+  tasks-axi start "$id" --file "$case_dir/data/backlog.md" >/dev/null
+
+  fakebin=$(fm_test_make_spawn_fakebin "$case_dir/tools")
+  cat > "$fakebin/treehouse" <<SH
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$case_dir/treehouse.log"
+exit 0
+SH
+  cat > "$fakebin/gh-axi" <<'SH'
+#!/usr/bin/env bash
+case "${1:-} ${2:-}" in
+  "pr view")
+    printf '%s\n' "pull_request:" "  number: 7" "  state: merged"
+    exit 0
+    ;;
+  "pr list")
+    printf '%s\n' "count: 0 (showing first 0)" "pull_requests[]: []"
+    exit 0
+    ;;
+esac
+exit 0
+SH
+  cat > "$fakebin/gh" <<'SH'
+#!/usr/bin/env bash
+exit 0
+SH
+  cat > "$fakebin/no-mistakes" <<'SH'
+#!/usr/bin/env bash
+case "${1:-}" in
+  axi) exit 0 ;;
+  runs) exit 0 ;;
+esac
+exit 0
+SH
+  cat > "$fakebin/br" <<'PY'
+#!/usr/bin/env python3
+import json
+import os
+import sys
+from pathlib import Path
+
+args = sys.argv[1:]
+with open(os.environ["BEAD_FAKE_LOG"], "a", encoding="utf-8") as log:
+    log.write(" ".join(args) + "\n")
+if any(name in os.environ for name in ("BEADS_DIR", "BEADS_DB", "BR_DB")) or os.getcwd() != "/":
+    sys.exit(9)
+if len(args) != 5 or args[0] != "--db" or args[2] != "show" or args[4] != "--json":
+    sys.exit(2)
+rows = json.loads(Path(args[1]).read_text())
+row = rows[args[3]]
+print(json.dumps([{
+    "id": args[3],
+    "title": "fixture bead",
+    "status": row["status"],
+    "comments": row.get("comments") or [],
+}]))
+PY
+  chmod +x "$fakebin/treehouse" "$fakebin/gh-axi" "$fakebin/gh" "$fakebin/no-mistakes" "$fakebin/br"
+  : > "$case_dir/treehouse.log"
+  : > "$case_dir/br.log"
+
+  home_beads="$case_dir/beadhome/dev/heru-vr-vision-sim-beads/.beads"
+  mkdir -p "$home_beads" "$case_dir/beadhome/dev/heru-vr-vision-sim"
+  ln -s "$home_beads" "$case_dir/beadhome/dev/heru-vr-vision-sim/.beads"
+  printf '# issue_prefix: heru\n' > "$home_beads/config.yaml"
+  db="$home_beads/beads.db"
+  comments=$(jq -n --arg sentence "Firstmate may tear down this bead's tree" --argjson at "$((now - 100))" \
+    '[{id: 2275, author: "ep-heru-vr-vision-sim", created_at: ($at | todate),
+       text: ("owner'\''s word for the worktree pool: " + $sentence)}]')
+  jq -n --arg id "$id" --argjson comments "$comments" \
+    '{($id): {status: "open", comments: $comments}}' > "$db"
+
+  run_teardown() {
+    env -u FM_TASK_DATA_BEAD_LOCATIONS \
+      HOME="$case_dir/beadhome" BEAD_FAKE_LOG="$case_dir/br.log" \
+      FM_TASK_DATA_SWEEP=off \
+      FM_ROOT_OVERRIDE="$ROOT" \
+      FM_STATE_OVERRIDE="$case_dir/state" \
+      FM_DATA_OVERRIDE="$case_dir/data" \
+      FM_CONFIG_OVERRIDE="$case_dir/config" \
+      PATH="$fakebin:$PATH" \
+      "$ROOT/bin/fm-teardown.sh" "$id" "$@"
+  }
+
+  rc=0
+  out=$(run_teardown 2>&1) || rc=$?
+  expect_code 0 "$rc" "an owner-released open bead was not archived for restore"$'\n'"$out"
+  assert_absent "$case_dir/state/$id.meta" "teardown left the live record in place"
+  assert_present "$case_dir/data/$id/record/closed-task.meta" "teardown wrote no archive"
+  assert_grep "worktree=$old" "$case_dir/data/$id/record/closed-task.meta" \
+    "the archive lost the tree that was returned"
+  assert_grep "return --force $old" "$case_dir/treehouse.log" \
+    "teardown did not return the old tree"
+  jq -e --arg id "$id" '.[$id].status == "open"' "$db" >/dev/null \
+    || fail "teardown closed the bead"
+
+  rc=0
+  out=$(run_restore_control "$case_dir" "$fresh" "$fakebin" "$id" relaunch --restore \
+    --note "the remaining step needs no tree; continue from a fresh tree") || rc=$?
+  expect_code 0 "$rc" "relaunch --restore did not bring the archived task back"$'\n'"$out"
+  meta="$case_dir/state/$id.meta"
+  assert_present "$meta" "the restore published no task record"
+  archived_wt=$(sed -n 's/^worktree=//p' "$case_dir/data/$id/record/closed-task.meta")
+  fresh_wt=$(sed -n 's/^worktree=//p' "$meta")
+  [ -n "$fresh_wt" ] || fail "the restored task has no tree"
+  [ "$fresh_wt" != "$archived_wt" ] || fail "the restore reused the returned tree $archived_wt"
+  [ -d "$fresh_wt" ] || fail "the restored tree $fresh_wt is not a directory"
+  [ "$(restore_row_state "$case_dir" "$id")" = in_flight ] \
+    || fail "the restored task is $(restore_row_state "$case_dir" "$id"), not in flight"
+  jq -e --arg id "$id" '.[$id].status == "open"' "$db" >/dev/null \
+    || fail "the restore closed the bead"
+
+  rc=0
+  out=$(run_teardown --force 2>&1) || rc=$?
+  expect_code 1 "$rc" "the release from before the restore freed the restored task's tree"$'\n'"$out"
+  assert_contains "$out" "No release by its assignee or owning EP or PM was recorded since this task's current spawn" \
+    "the restored task was not refused for wanting a fresh release"
+  assert_present "$meta" "the refusal removed the restored task's record"
+  [ -d "$fresh_wt" ] || fail "the refusal removed the restored tree $fresh_wt"
+  pass "fm-control relaunch --restore: an owner-released task comes back on a fresh tree while its bead stays open, and needs a fresh release"
+}
+
 if [ "${FM_CONTROL_RELAUNCH_TEST_GROUP:-}" = restore ]; then
   test_relaunch_of_a_closed_task_names_its_archive_and_restores_it
   test_restore_preserves_an_empty_branch_prefix
   test_restore_re_adds_a_row_that_was_archived_away
   test_restore_that_cannot_dispatch_changes_no_instructions
   test_restore_carries_the_archived_route_reason
+  test_restore_brings_an_owner_released_task_back_on_a_fresh_tree
   exit 0
 fi
 
@@ -3995,3 +4151,4 @@ test_restore_preserves_an_empty_branch_prefix
 test_restore_re_adds_a_row_that_was_archived_away
 test_restore_that_cannot_dispatch_changes_no_instructions
 test_restore_carries_the_archived_route_reason
+test_restore_brings_an_owner_released_task_back_on_a_fresh_tree
