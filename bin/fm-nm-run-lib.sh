@@ -15,6 +15,8 @@
 # instead of orphaning it. Getting this wrong in either
 # direction is unsafe: a false negative hides a genuinely parked run, and a
 # false positive lets teardown act on a run it does not own.
+# fm_nm_run_wait owns the proof that a working run waits on someone else,
+# which fm-crew-state.sh names for the place count.
 #
 # Bounded call to an arbitrary command in dir $1, timeout $2 seconds, and its
 # `no-mistakes "$@"` specialization. The bounded
@@ -533,6 +535,72 @@ fm_nm_run_is_executing() {  # <toon-output>
     pending|running|fixing|ci) return 0 ;;
   esac
   return 1
+}
+
+# The one spelling of the fm-crew-state.sh detail component that names what a
+# working run waits on: "waits on: <what>", from fm_nm_run_wait below. The place
+# count's fm_project_capacity_is_working (bin/fm-project-capacity-lib.sh) is
+# its consumer.
+# shellcheck disable=SC2034 # Read by fm-crew-state.sh and the place count, not this lib.
+FM_NM_RUN_WAITS_ON='waits on: '
+
+# Print what the run in captured `axi status` TOON $1 waits on when every
+# active step is proven to wait on someone else, and nothing otherwise:
+#   test suite lock - the Test step has not started: the daemon holds it on the
+#     shared test suite lock, so no agent runs and the step's newest activity is
+#     the daemon's own waiting line.
+#   CI - the ci step watches the PR: it reads running with no agent. A CI
+#     repair runs only inside a fix round, whose step reads fixing.
+# Columns are found by name in the active_steps header, whose layout differs
+# between no-mistakes versions. No table, a header without the step, status or
+# agent_pid column, or any other active step is not proof, so the run still
+# reads as work.
+fm_nm_run_wait() {  # <toon-output>
+  printf '%s\n' "$1" | awk '
+    function cells(row, out,    n, i, c, cell, quoted, escaped) {
+      n = 0; cell = ""; quoted = 0; escaped = 0
+      for (i = 1; i <= length(row); i++) {
+        c = substr(row, i, 1)
+        if (escaped) { cell = cell c; escaped = 0 }
+        else if (quoted && c == "\\") escaped = 1
+        else if (c == "\"") quoted = !quoted
+        else if (!quoted && c == ",") { out[++n] = cell; cell = "" }
+        else cell = cell c
+      }
+      out[++n] = cell
+      return n
+    }
+    function trim(s) { gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
+    /^[[:space:]]*active_steps\[[0-9]+\]\{/ {
+      indent = index($0, "active_steps"); inblock = 1
+      header = $0; sub(/^[^{]*\{/, "", header); sub(/\}.*$/, "", header)
+      split("", col); n = split(header, names, ",")
+      for (i = 1; i <= n; i++) col[names[i]] = i
+      usable = ("step" in col) && ("status" in col) && ("agent_pid" in col)
+      next
+    }
+    inblock {
+      if ($0 ~ /^[[:space:]]*$/) { inblock = 0; next }
+      match($0, /[^ \t]/)
+      if (RSTART <= indent) { inblock = 0; next }
+      rows++
+      if (!usable) { working = 1; next }
+      split("", f); cells(substr($0, RSTART), f)
+      step = trim(f[col["step"]]); status = trim(f[col["status"]])
+      activity = ("last_activity" in col) ? f[col["last_activity"]] : ""
+      this = ""
+      if (status == "running" && trim(f[col["agent_pid"]]) == "") {
+        if (step == "test" && (index(activity, "log: waiting for test suite lock ") ||
+          index(activity, "log: still waiting for test suite lock ")))
+          this = "test suite lock"
+        else if (step == "ci")
+          this = "CI"
+      }
+      if (this == "") working = 1
+      else if (wait == "") wait = this
+    }
+    END { if (rows > 0 && !working) print wait }
+  '
 }
 
 # ONE owner for attribution from the pipeline's own runs ledger, replacing a

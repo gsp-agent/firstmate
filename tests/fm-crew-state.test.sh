@@ -1405,6 +1405,94 @@ test_ci_fixing_after_green_stays_working() {
   pass "ci fixing is not overridden by an earlier green marker"
 }
 
+# A running run whose one active step is <row>, under the active_steps header
+# the installed no-mistakes prints (v1.84, 2026-10-30), or <header> when given.
+run_active_step() {  # <branch> <row> [header]
+  cat <<EOF
+run:
+  id: "01RUN"
+  branch: $1
+  status: running
+  head: "${FM_FAKE_RUN_HEAD:-abc1234}"
+  pr: "https://github.com/o/r/pull/2"
+  findings: none
+  active_steps[1]{${3:-step,status,active_for,round_active_for,last_activity,agent_pid,round}}:
+    $2
+EOF
+}
+
+# The place count's verdict on this reader's answer, through the real
+# fm_project_capacity_is_working: 0 holds a place, 1 holds none.
+place_verdict() {  # <case-dir> <id>
+  (
+    # shellcheck source=/dev/null
+    . "$ROOT/bin/fm-project-capacity-lib.sh"
+    PATH="$1/fakebin:$PATH" FM_PROJECT_CAPACITY_CREW_STATE=$CREW_STATE \
+      fm_project_capacity_is_working "$1/state" "$2"
+    printf '%s\n' "$?"
+  )
+}
+
+# A worker whose run sleeps on the shared test suite lock, or whose CI step
+# only watches the PR, is still working but waits on someone else, so it holds
+# no place. The rows are the shapes live runs print.
+test_run_waiting_on_others_names_the_wait_and_holds_no_place() {
+  reset_fakes
+  local d out lock
+  d=$(new_case run-waits)
+  lock="$d/suite.lock"
+  make_repo_on_branch "$d/wt" fm/feat-waits
+  make_fakebin "$d" >/dev/null
+  fm_write_meta "$d/state/feat-waits.meta" "window=fm:fm-feat-waits" "worktree=$d/wt" "kind=ship"
+
+  FM_FAKE_AXI_STATUS="$(run_active_step fm/feat-waits "test,running,4h28m,4h28m,\"2m48s ago: log: still waiting for test suite lock $lock (4h25m48s)\",\"\",starting")"
+  out=$(run_crew_state "$d" feat-waits)
+  assert_contains "$out" "state: working · source: run-step · validating (running) · waits on: test suite lock" \
+    "a Test step asleep on the suite lock names the wait"
+  assert_equals 1 "$(place_verdict "$d" feat-waits)" "a Test step asleep on the suite lock held a place"
+
+  FM_FAKE_AXI_STATUS="$(run_active_step fm/feat-waits "test,running,1s,1s,\"just now: log: waiting for test suite lock $lock: another test suite holds it; test_agent_timeout starts once it is acquired\",\"\",starting")"
+  out=$(run_crew_state "$d" feat-waits)
+  assert_contains "$out" " · waits on: test suite lock" "the first suite-lock wait line names the wait"
+  assert_equals 1 "$(place_verdict "$d" feat-waits)" "the first suite-lock wait line held a place"
+
+  FM_FAKE_AXI_STATUS="$(run_active_step fm/feat-waits "test,running,3h40m,3h40m,\"21s ago: claude producing output\",\"4242\",starting")"
+  out=$(run_crew_state "$d" feat-waits)
+  assert_contains "$out" "state: working" "a Test step running its agent is working"
+  assert_not_contains "$out" "waits on:" "a Test step running its agent waits on nothing"
+  assert_equals 0 "$(place_verdict "$d" feat-waits)" "a Test step running its agent held no place"
+
+  FM_FAKE_AXI_STATUS="$(run_active_step fm/feat-waits "test,running,27m21s,1s,\"1s ago: log: took test suite lock $lock after waiting 27m20s; Test starts now\",\"\",starting")"
+  out=$(run_crew_state "$d" feat-waits)
+  assert_not_contains "$out" "waits on:" "a Test step that took the suite lock waits on nothing"
+  assert_equals 0 "$(place_verdict "$d" feat-waits)" "a Test step that took the suite lock held no place"
+
+  FM_FAKE_AXI_STATUS="$(run_active_step fm/feat-waits "test,4h28m,\"2m48s ago: log: still waiting for test suite lock $lock (4h25m48s)\",\"\",starting" \
+    "step,active_for,last_activity,agent_pid,round")"
+  out=$(run_crew_state "$d" feat-waits)
+  assert_not_contains "$out" "waits on:" "a table with no status column proves no wait"
+  assert_equals 0 "$(place_verdict "$d" feat-waits)" "a table with no status column freed the place"
+
+  FM_FAKE_CI_LOGS="CI checks running, waiting for results..."
+  FM_FAKE_AXI_STATUS="$(run_active_step fm/feat-waits "ci,running,16h15m,5h8m,\"quiet 42m39s ago: log: base branch advanced (aaaaaaa..bbbbbbb), re-arming CI monitor timeout\",\"\",starting")"
+  out=$(run_crew_state "$d" feat-waits)
+  assert_contains "$out" "state: working · source: run-step · validating (running) · waits on: CI" \
+    "a CI step watching pending checks names the wait"
+  assert_equals 1 "$(place_verdict "$d" feat-waits)" "a CI step watching pending checks held a place"
+
+  FM_FAKE_CI_LOGS="repository declares no CI (no_ci: true) - treating as all checks passed - still monitoring until merged or closed"
+  out=$(run_crew_state "$d" feat-waits)
+  assert_contains "$out" " · waits on: CI" "a CI step watching a no-CI PR for its review names the wait"
+  assert_equals 1 "$(place_verdict "$d" feat-waits)" "a CI step watching a no-CI PR held a place"
+
+  FM_FAKE_CI_LOGS="issues detected: 2 CI checks failing"
+  FM_FAKE_AXI_STATUS="$(run_active_step fm/feat-waits "ci,fixing,16h20m,1m2s,\"10s ago: claude producing output\",\"4243\",fix 1")"
+  out=$(run_crew_state "$d" feat-waits)
+  assert_not_contains "$out" "waits on:" "a CI repair round waits on nothing"
+  assert_equals 0 "$(place_verdict "$d" feat-waits)" "a CI repair round held no place"
+  pass "a run asleep on the suite lock or watching CI names the wait and holds no place; work keeps it"
+}
+
 test_top_level_fixing_ci_running_after_green_stays_working() {
   reset_fakes
   local d; d=$(new_case top-level-fixing-ci-running)
@@ -5840,6 +5928,7 @@ test_ci_monitoring_still_waiting_stays_working
 test_ci_monitoring_green_then_new_issue_stays_working
 test_ci_ready_done_log_relapse_stays_working
 test_ci_fixing_after_green_stays_working
+test_run_waiting_on_others_names_the_wait_and_holds_no_place
 test_top_level_fixing_ci_running_after_green_stays_working
 test_top_level_fixing_done_log_stays_working
 test_terminal_passed

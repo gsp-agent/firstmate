@@ -55,8 +55,14 @@
 #     FM_PROJECT_CAPACITY_CREW_TIMEOUT seconds, holds a place as if working
 #     and is listed as "<id> (state unreadable)", so an unreadable state
 #     neither undercounts the holders nor fails the count.
+#     A working run that waits on someone else - asleep on the shared test
+#     suite lock, or a ci step only watching its PR (fm_nm_run_wait in
+#     bin/fm-nm-run-lib.sh owns the proof) - holds no place while that crew
+#     state names the wait, and holds one again once it does not. No timer or
+#     age decides it.
 # A place therefore frees when a PR-based ship records its ready PR, when the
-# holder stops working, or when any task is cleaned up and its record removed.
+# holder stops working or its run starts waiting on someone else, or when any
+# task is cleaned up and its record removed.
 # A local-only ship and a scout have no recorded handoff and hold their place
 # while they work, until they stop or are cleaned up. A worker that is
 # steered back into work after its PR handoff is not counted again.
@@ -154,8 +160,9 @@
 #
 # Requires bin/fm-wake-lib.sh (root home, local homes, project lock path),
 # bin/fm-secondmate-registry-lib.sh (which the local-homes walk reads), and
-# bin/fm-backend.sh (fm_meta_get) to be sourced first. The headroom reading
-# loads bin/fm-timeout-lib.sh when that reading runs. No side effects on source.
+# bin/fm-backend.sh (fm_meta_get) to be sourced first. A crew-state read loads
+# bin/fm-nm-run-lib.sh, and the headroom reading bin/fm-timeout-lib.sh, when
+# it runs. No side effects on source.
 
 # How long one extra start remains that project's extra start. 7 * 60 seconds
 # matches one starter pass of about 7 minutes.
@@ -310,7 +317,9 @@ fm_project_capacity_total_lookup() {  # <config-dir>
 # Read one task's local crew state for the occupancy count. Returns:
 # 0 when bin/fm-crew-state.sh reads the task in <state-dir> as working;
 # 1 when the reader answered and the state is anything else - parked,
-# paused, done, blocked, failed, unknown - which holds no slot;
+# paused, done, blocked, failed, unknown - or is a working run-step reading
+# that names what its run waits on (the FM_NM_RUN_WAITS_ON component), which
+# holds no slot;
 # 2 when the reader could not answer at all (missing, not executable,
 # non-zero exit, or past FM_PROJECT_CAPACITY_CREW_TIMEOUT), which the
 # caller counts as working rather than "not working": undercounting the
@@ -320,12 +329,13 @@ fm_project_capacity_total_lookup() {  # <config-dir>
 # on this identical invocation.
 fm_project_capacity_is_working() {  # <state-dir> <id>
   local out crew_state=${FM_PROJECT_CAPACITY_CREW_STATE:-$(dirname "${BASH_SOURCE[0]}")/fm-crew-state.sh}
-  _fm_project_capacity_require_timeout || return 2
+  _fm_project_capacity_require_nm_run || return 2
   [ -x "$crew_state" ] || return 2
   out=$(fm_run_timed "$FM_PROJECT_CAPACITY_CREW_TIMEOUT" env \
     FM_HOME="$(dirname "$1")" FM_STATE_OVERRIDE="$1" FM_CREW_STATE_NO_FORGE=1 \
     "$crew_state" "$2" 2>/dev/null) || return 2
   case "$out" in
+    "state: working · source: run-step"*" · $FM_NM_RUN_WAITS_ON"*) return 1 ;;
     "state: working"*) return 0 ;;
     *) return 1 ;;
   esac
@@ -553,6 +563,14 @@ _fm_project_capacity_require_timeout() {
   command -v fm_run_timed >/dev/null 2>&1 && return 0
   # shellcheck source=bin/fm-timeout-lib.sh
   . "$(dirname "${BASH_SOURCE[0]}")/fm-timeout-lib.sh"
+}
+
+# Load bin/fm-nm-run-lib.sh, which brings that bound too, for a crew-state
+# read: it spells the run-wait component the read is matched against.
+_fm_project_capacity_require_nm_run() {
+  [ -n "${FM_NM_RUN_WAITS_ON:-}" ] && return 0
+  # shellcheck source=/dev/null # Analyzed separately as a canonical lint root.
+  . "$(dirname "${BASH_SOURCE[0]}")/fm-nm-run-lib.sh"
 }
 
 # Directory of per-project extra-start records for the home that owns <config-dir>.

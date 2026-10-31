@@ -99,7 +99,11 @@
 #      awaiting_approval/fix_review -> parked (with gate findings), terminal
 #      passed/checks-passed/passed-with-override/passed-with-skips -> done,
 #      failed -> failed, cancelled -> unknown (no verdict unless the green
-#      delivery safeguard below applies). A cancelled outcome takes precedence
+#      delivery safeguard below applies). A working run that fm_nm_run_wait in
+#      bin/fm-nm-run-lib.sh proves is waiting on someone else - asleep on the
+#      shared test suite lock, or a ci step only watching its PR - adds a
+#      `waits on: <what>` component; the place count reads it.
+#      A cancelled outcome takes precedence
 #      over an interrupted step's failed status or outstanding gate findings;
 #      it does not rewrite historical events or backlog records.
 #      passed-with-override is a passing outcome
@@ -1298,6 +1302,12 @@ if [ "$HAVE_RUN" = 1 ]; then
             CI_LOG_STATE=not-ready
             ;;
         esac
+      fi
+      # Its own ${SEP} component, as for the human-decision gate above, so no
+      # text inside another component can read as a wait.
+      if [ "$RUN_STATE" = working ] && [ "$status" != fixing ]; then
+        RUN_WAIT=$(fm_nm_run_wait "$RUN_OUT")
+        [ -z "$RUN_WAIT" ] || RUN_DETAIL="$RUN_DETAIL${SEP}${FM_NM_RUN_WAITS_ON}$RUN_WAIT"
       fi
     fi
   fi
