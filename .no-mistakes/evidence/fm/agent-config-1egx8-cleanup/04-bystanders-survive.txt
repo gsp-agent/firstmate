@@ -1,0 +1,9 @@
+/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.WaQUx6
+runner exit: 1
+bystander-watcher before the suite exit:   457     1   457 S    bash (suite pgid 94258)
+group-orphan before the suite exit:  3680     1 94258 S    sleep (suite pgid 94258)
+not ok - forced red with bystanders running
+probe: after cleanup
+bystander-watcher after the suite exit: ALIVE   457     1   457 S    bash
+group-orphan after the suite exit: GONE (pid 3680)
+lab home to remove: /var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//fm-lab.WaQUx6

@@ -1,0 +1,11 @@
+== with the exit sweep (commit as shipped)
+under-arm: exit 0 in 53s: PASSED
+reparented: exit 0 in 69s: PASSED
+orphaned-arm: exit 0 in 80s: PASSED
+reused-pid: exit 0: ok - host: the suite's exit sweep signals a listed pid only while its start time still matches
+
+== exit sweep's call removed from suite_cleanup
+under-arm: exit 1 in 46s: not ok - the suite's exit cleanup left running a process of a watcher that had not yet written state/.watch.lock/pid (under-arm, pid 32957)
+reparented: exit 1 in 46s: not ok - the suite's exit cleanup left running a process of a watcher that had not yet written state/.watch.lock/pid (reparented, pid 64894)
+orphaned-arm: exit 1 in 53s: not ok - the suite's exit cleanup left running a process of a watcher that had not yet written state/.watch.lock/pid (orphaned-arm, pid 5709)
+reused-pid: exit 0: ok - host: the suite's exit sweep signals a listed pid only while its start time still matches

@@ -1,0 +1,5 @@
+Read at 06:29 CT, after the suite's "probe: after cleanup" line was already in the runner log.
+pid ppid pgid stat etime comm of the unnamed orphan in the suite's group (pgid 34586):
+67638     1 34586 S    17:58 sleep
+It was still running, so the sweep had spared it. It was then stopped by hand with TERM.
+etime is the orphan's age, not the time since the suite's exit, which was not recorded.

@@ -1,0 +1,33 @@
+cd '/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//nm1egx8.5t4I9N/fixed' && PROBE_OUT='/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//nm1egx8.5t4I9N/fixed/.probe-out.rzLy93' PROBE_VARIANT='reparented' bash tests/zz-probe-held.test.sh ; echo pty-status=$?
+exit
+pty$ <sh tests/zz-probe-held.test.sh ; echo pty-status=$?
+probe: before cleanup
+not ok - forced red while a watcher is still starting (reparented)
+probe: after cleanup
+pty-status=1
+pty$ exit
+exit
+--- suite ran with a 80-column tty on stdin, shape plain
+suite pid=49532 pgid=49532
+watcher pid=67722 pgid=49532 ppid=1
+state/.watch.lock/pid: absent
++0s watcher 67722 gone
++5s watcher 67722 gone
+survivor check exit: 0
+
+cd '/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//nm1egx8.5t4I9N/fixed' && PROBE_OUT='/var/folders/2j/3tf17x5d7pj10gdjbp1ydpf40000gn/T//nm1egx8.5t4I9N/fixed/.probe-out.8YTh2C' PROBE_VARIANT='reparented' bash tests/zz-probe-held.test.sh 2>&1 | tail -5; echo pty-status=$?
+exit
+pty$ <obe-held.test.sh 2>&1 | tail -5; echo pty-status=$?
+probe: before cleanup
+not ok - forced red while a watcher is still starting (reparented)
+probe: after cleanup
+pty-status=0
+pty$ exit
+exit
+--- suite ran with a 80-column tty on stdin, shape tail
+suite pid=94254 pgid=94254
+watcher pid=9364 pgid=94254 ppid=1
+state/.watch.lock/pid: absent
++0s watcher 9364 gone
++5s watcher 9364 gone
+survivor check exit: 0
