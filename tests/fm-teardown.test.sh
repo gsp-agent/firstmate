@@ -5932,9 +5932,11 @@ SH
 OWNER_RELEASE_AT='2026-10-30T23:27:22Z'
 OWNER_RELEASE_AT_EPOCH=1793402842
 OWNER_RELEASE_SPAWN_GEN=s1793029902.23435.12303
+# The 23:27Z release as its owner wrote it, with its checks after the sentence.
+OWNER_RELEASE_LIVE_TEXT="ep-heru-vr-vision-sim (20a55171), owner's word for the worktree pool: $OWNER_RELEASE_SENTENCE. Checked just now: tree 2 (fm/heru-mqf, 5b18c42) and tree 5 (fm/heru-5nx, 93bd060) are clean, with no untracked files, and each branch is on origin."
 
 test_released_open_bead_tears_down_and_frees_its_tree() {
-  local case_dir id bead beads project author assignee comments out rc role shown
+  local case_dir id bead beads project author assignee comments out rc role shown text
   # Each EP is named by the link from its project to its beads home. pm-<prefix>,
   # pm-<bead> with dots as dashes, and the assignee are the other owners the
   # same sentence authorizes. A later comment that is not a release does not
@@ -5961,8 +5963,13 @@ test_released_open_bead_tears_down_and_frees_its_tree() {
     case "$id" in ac-*) bead=.agent-config-${id#ac-} ;; esac
     case_dir=$(make_bead_case "bead-release-$role" "$id")
     set_task_spawn_gen "$case_dir" "$id" "$OWNER_RELEASE_SPAWN_GEN"
-    comments=$(owner_release_comment 2275 "$author" "$OWNER_RELEASE_AT" \
-      "owner's word for the worktree pool: $OWNER_RELEASE_SENTENCE" | jq -s '.')
+    case "$role" in
+      ep) text=$OWNER_RELEASE_LIVE_TEXT ;;
+      assignee) text=$OWNER_RELEASE_SENTENCE ;;
+      no-id) text="$OWNER_RELEASE_SENTENCE." ;;
+      *) text="owner's word for the worktree pool: $OWNER_RELEASE_SENTENCE" ;;
+    esac
+    comments=$(owner_release_comment 2275 "$author" "$OWNER_RELEASE_AT" "$text" | jq -s '.')
     shown="accepted owner release by $author (comment 2275)"
     case "$role" in
       kept)
@@ -6009,15 +6016,18 @@ test_released_open_bead_tears_down_and_frees_its_tree() {
 }
 
 test_unreleased_open_bead_still_refuses() {
-  local case_dir id=heru-hold1 shape comments out rc force gen author
+  local case_dir id=heru-hold1 shape comments out rc force gen author text
   local beads=dev/heru-vr-vision-sim-beads project=dev/heru-vr-vision-sim
   # A named PM cannot be derived, an EP of another home does not own this bead,
   # a release from before this spawn was about an earlier tree, and a record
-  # with no spawn time has nothing a release can be newer than.
-  for shape in none stranger named-pm other-home chatter stale no-spawn-time; do
+  # with no spawn time has nothing a release can be newer than. An owner who
+  # quotes, conditions, or negates the sentence has released nothing.
+  for shape in none stranger named-pm other-home chatter stale no-spawn-time \
+    quoted-refusal conditional conditional-lead-in negated negated-after; do
     case_dir=$(make_bead_case "bead-unreleased-$shape" "$id")
     gen=$OWNER_RELEASE_SPAWN_GEN
     author=ep-heru-vr-vision-sim
+    text="owner's word for the worktree pool: $OWNER_RELEASE_SENTENCE"
     case "$shape" in
       none) comments='[]' ;;
       chatter)
@@ -6034,9 +6044,15 @@ test_unreleased_open_bead_still_refuses() {
             ;;
           stale) gen=s$OWNER_RELEASE_AT_EPOCH.1.1 ;;
           no-spawn-time) gen=teardown-test-$id ;;
+          quoted-refusal)
+            text="teardown still refuses: Tear it down after the bead closes, or after that owner comments on the bead with the exact sentence \"$OWNER_RELEASE_SENTENCE\"."
+            ;;
+          conditional) text="$OWNER_RELEASE_SENTENCE once the deploy read lands, not before" ;;
+          conditional-lead-in) text="if the deploy read lands: $OWNER_RELEASE_SENTENCE." ;;
+          negated) text="Not yet: $OWNER_RELEASE_SENTENCE." ;;
+          negated-after) text="$OWNER_RELEASE_SENTENCE. Not before the deploy read lands." ;;
         esac
-        comments=$(owner_release_comment 3100 "$author" "$OWNER_RELEASE_AT" \
-          "owner's word for the worktree pool: $OWNER_RELEASE_SENTENCE" | jq -s '.')
+        comments=$(owner_release_comment 3100 "$author" "$OWNER_RELEASE_AT" "$text" | jq -s '.')
         ;;
     esac
     set_task_spawn_gen "$case_dir" "$id" "$gen"

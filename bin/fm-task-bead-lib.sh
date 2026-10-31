@@ -33,12 +33,14 @@
 #      A caller deciding to close must refuse rather than guess.
 # fm_task_bead_open <status>
 #   0 for every status except closed and tombstone.
-# An owner's recorded release is the newest comment on an open bead whose text
-# contains the sentence "Firstmate may tear down this bead's tree", whose time
-# is after the task's current spawn, and whose author is the bead's assignee,
-# its owning EP, or its owning PM. That sentence is the owner's record that the
-# remaining step needs no tree. A restored task is a new spawn, so it needs a
-# fresh release. The assignee is the issue's assignee field. The owning EP is
+# An owner's recorded release is the newest comment on an open bead that states
+# the sentence "Firstmate may tear down this bead's tree", whose time is after
+# the task's current spawn, and whose author is the bead's assignee, its owning
+# EP, or its owning PM. The sentence is stated when it starts a line, or follows
+# a short lead-in on that line ending with a colon, and then ends the text or is
+# followed by a period or a line break. A quoted, conditional, or negated
+# sentence is not stated. That sentence is the owner's record that the remaining
+# step needs no tree. A restored task is a new spawn, so it needs a fresh release. The assignee is the issue's assignee field. The owning EP is
 # "ep-" plus the directory name of any dev/*/.beads path that resolves to the
 # owning database, links included. The owning PM is "pm-" plus the bead id or
 # its prefix, each dot spelled as a dash. A PM under any other name releases
@@ -88,6 +90,10 @@ EOF
 fm_task_bead_release_from_json() { # <json> <authors> <spawn-epoch>
   jq -r --arg authors "$2" --arg sentence "Firstmate may tear down this bead's tree" --argjson spawned "$3" '
     def created: try (.created_at | fromdateiso8601) catch 0;
+    def hedge: "\\b(?i:not|no|never|cannot|don.t|if|when|unless|once|after|until|before|while|only|except|but)\\b";
+    def stated:
+      test("(?:\\A|\\n)[ \\t]*(?:(?:(?!" + hedge + ")[^\\n\":`]){1,120}:[ \\t]+)?" + $sentence
+           + "(?:\\.?\\s*\\z|(?:\\.\\s+|\\s*\\n\\s*)(?!\\s|" + hedge + "))");
     def issue:
       if type == "array" and length == 1 and (.[0] | type) == "object" then .[0]
       else error("bead payload is not one issue") end;
@@ -101,7 +107,7 @@ fm_task_bead_release_from_json() { # <json> <authors> <spawn-epoch>
         | select(type == "object")
         | select((.author | type) == "string" and (.author | test("^[A-Za-z0-9._+@-]+$")))
         | select(.author as $author | $author == $assignee or any($authors | split("\n")[]; . == $author))
-        | select((.text | type) == "string" and (.text | contains($sentence)))
+        | select((.text | type) == "string" and (.text | stated))
         | select(created > $spawned)
       ]
     | sort_by(created, .id)

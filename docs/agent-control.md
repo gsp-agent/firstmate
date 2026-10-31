@@ -128,6 +128,7 @@ Switching harness is therefore one ordinary relaunch rather than a separate mech
 
 [`bin/fm-teardown.sh`](../bin/fm-teardown.sh) copies every ship or scout task record to `data/<id>/record/closed-task.meta` before it removes the record.
 A task that answers to a bead is not torn down while that bead is open, unless its assignee, owning EP, or owning PM has commented on the bead, since the task's current spawn, with the exact sentence "Firstmate may tear down this bead's tree", the release that the remaining step needs no tree (`bin/fm-task-bead-lib.sh`).
+The sentence counts only as the owner's own statement: at the start of a line or after a short lead-in ending with a colon, not quoted, conditional, or negated.
 A restored task is a new spawn, so it needs a fresh release.
 This copy is the recovery path for a close that happened anyway and for that release.
 `relaunch` of a task with no live record refuses as before, and names that archive when one exists.
