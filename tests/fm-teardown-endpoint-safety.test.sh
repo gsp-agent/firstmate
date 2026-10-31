@@ -856,8 +856,10 @@ test_remote_layout_homes_serialize_on_one_project_lock() {
   done
   [ -e "$dir/lock-held" ] || fail "the local child never took the shared project lock"
 
+  # The holder keeps the lock for 30s. The wait has to be shorter than that
+  # hold, or the lock goes stale and a return succeeds for the wrong reason.
   set +e
-  run_case "$dir" "$id" > "$dir/stdout" 2> "$dir/stderr"
+  FM_TEARDOWN_LOCK_WAIT_SECS=1 run_case "$dir" "$id" > "$dir/stdout" 2> "$dir/stderr"
   rc=$?
   set -e
   kill "$holder" 2>/dev/null || true
@@ -873,6 +875,83 @@ test_remote_layout_homes_serialize_on_one_project_lock() {
     "the refusal should name the shared project lock, not some unrelated check"
 
   pass "Treehouse project locking still serializes two homes across the remote-seeded boundary"
+}
+
+# A dispatch retry takes the project lock, drops it, and takes it again.
+# The first hold stays up long enough that a one-try acquire, started only
+# after that hold is visible, loses. Later holds are the short bursts, with a
+# gap inside the teardown wait, so a bounded wait can still return the tree.
+# A hold that lasts the whole wait is the case above, not this one.
+test_short_project_lock_holds_still_let_teardown_return_its_tree() {
+  local dir id=lock-churn lock holder waited=0 rc releases
+  dir=$(make_case project-lock-churn)
+  mark_case_as_treehouse_pool "$dir"
+  fm_write_meta "$dir/home/state/$id.meta" \
+    "window=firstmate:fm-$id" "endpoint_task_id=$id" \
+    "worktree=$dir/worktree" "project=$dir/project" "kind=scout"
+  lock=$(resolve_project_lock "$dir/home" "$dir/project") \
+    || fail "the dispatch stand-in could not resolve the shared project lock"
+  cat > "$dir/churn.sh" <<'SH'
+#!/usr/bin/env bash
+set -u
+. "$1"
+lock=$2
+log=$3
+held=$4
+released=$5
+cycles=0
+first=1
+while [ "$cycles" -lt 30 ]; do
+  if ! fm_lock_try_acquire "$lock"; then
+    sleep 0.05
+    continue
+  fi
+  cycles=$((cycles + 1))
+  printf 'hold %s\n' "$cycles" >> "$log"
+  if [ "$first" = 1 ]; then
+    : > "$held"
+    sleep 2
+    first=0
+  else
+    sleep 0.3
+  fi
+  fm_lock_release "$lock" || true
+  printf 'release %s\n' "$cycles" >> "$log"
+  : > "$released"
+  sleep 0.15
+done
+SH
+  chmod +x "$dir/churn.sh"
+  FM_HOME="$dir/home" "$dir/churn.sh" \
+    "$ROOT/bin/fm-wake-lib.sh" "$lock" "$dir/churn.log" \
+    "$dir/lock-held" "$dir/lock-released" &
+  holder=$!
+  while [ ! -e "$dir/lock-held" ] && [ "$waited" -lt 100 ]; do
+    kill -0 "$holder" 2>/dev/null || break
+    sleep 0.1
+    waited=$((waited + 1))
+  done
+  [ -e "$dir/lock-held" ] || fail "the dispatch stand-in never took the shared project lock"
+
+  set +e
+  FM_TEARDOWN_LOCK_WAIT_SECS=5 run_case "$dir" "$id" > "$dir/stdout" 2> "$dir/stderr"
+  rc=$?
+  set -e
+  kill "$holder" 2>/dev/null || true
+  wait "$holder" 2>/dev/null || true
+
+  [ "$rc" -eq 0 ] \
+    || fail "teardown did not return its tree while a dispatch kept re-taking the project lock: $(cat "$dir/stderr")"
+  grep -Fq "treehouse <return>" "$dir/runtime.log" \
+    || fail "teardown did not return its pool slot: $(cat "$dir/runtime.log")"
+  grep -Fq "<--force>" "$dir/runtime.log" \
+    || fail "the pool return was not a forced return: $(cat "$dir/runtime.log")"
+  releases=$(grep -c '^release ' "$dir/churn.log" || true)
+  [ "$releases" -ge 1 ] \
+    || fail "the dispatch stand-in never released the project lock, so the return may have found it free"
+  assert_absent "$dir/home/state/$id.meta" "a teardown that returned its tree left the task record"
+
+  pass "fm-teardown: short repeated project-lock holds still let a teardown return its tree within the lock wait"
 }
 
 # The slot-reuse sequence with only ONE discoverable record: the finished task's
@@ -1447,3 +1526,4 @@ test_project_lock_anchors_at_the_local_root_across_home_layouts
 test_remote_seeded_home_returns_its_uncontested_slot
 test_remote_seeded_home_still_refuses_a_slot_its_child_holds
 test_remote_layout_homes_serialize_on_one_project_lock
+test_short_project_lock_holds_still_let_teardown_return_its_tree

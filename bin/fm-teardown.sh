@@ -492,8 +492,9 @@ if [ -f "$META" ] && [ ! -L "$META" ]; then
       echo "REFUSED: cannot resolve the shared Treehouse project lock for ${TEARDOWN_LOCK_PROJECT:-<missing>}; nothing was changed" >&2
       exit 1
     }
-    fm_lock_try_acquire "$TREEHOUSE_PROJECT_LOCK" || {
-      echo "REFUSED: another Treehouse slot allocation or return is in progress for $TEARDOWN_LOCK_PROJECT; nothing was changed" >&2
+    # Dispatch retries take this lock in short bursts. One try loses the return.
+    fm_lock_acquire_wait_max "$TREEHOUSE_PROJECT_LOCK" "$TEARDOWN_LOCK_WAIT_SECS" || {
+      echo "REFUSED: another Treehouse slot allocation or return is in progress for $TEARDOWN_LOCK_PROJECT; waited ${TEARDOWN_LOCK_WAIT_SECS}s; nothing was changed" >&2
       exit 1
     }
     TREEHOUSE_PROJECT_LOCK_HELD=1
