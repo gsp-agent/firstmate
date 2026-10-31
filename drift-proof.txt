@@ -15,7 +15,7 @@ pr: 11
 pending-pr: 12 .agent-config-dtjsb
 # "R16 proof scope" in drift-measurements.txt; net effect cut by #25, replayed as dependency.
 pr: 13
-# Net effect already cut by #25, which removed this PR's close-note helper and both of its tests; nothing of it remains to cut.
+# Net effect already cut by #25, which removed this PR's close-note helper and all four of its test functions; nothing of it remains to cut.
 pr: 16
 # Harvest replay keeps this PR: tests/fm-supervision-host.test.sh distinguishes upstream from this PR and the nightly replay passes.
 pr: 17
@@ -31,8 +31,7 @@ pr: 26
 pr: 28
 # Cut replay keeps this PR: tests/fm-teardown.test.sh fails on kunchenguid/main files with only this PR's tests ("finished task clone remains in data") and passes with this PR's diff.
 pr: 27
-# Replayed as a dependency of #36: without this PR, test_task_data_stage_limit_bounds_reference_reads in tests/fm-teardown.test.sh fails because an unread reference is no longer caught; the base passes it.
-pr: 30
+pending-pr: 30 .agent-config-dtjsb
 # Harvest replay keeps this PR for rebase: tests/fm-pr-check-security.test.sh distinguishes upstream from this PR; its proof is keyed for its rebase series.
 pr: 21
 # Harvest replay keeps this PR: tests/fm-backend-herdr.test.sh distinguishes upstream from this PR and the nightly replay passes.
@@ -73,8 +72,7 @@ pending-pr: 60 .agent-config-dtjsb
 pr: 51
 # Harvest replay keeps this PR: tests/fm-busy-state.test.sh distinguishes upstream from this PR and the nightly replay passes.
 pr: 64
-# First-parent replay keeps this PR: on its first parent with only its tests, tests/fm-teardown.test.sh fails "expiry with prose bead strings failed" and tests/fm-backlog-atomicity.test.sh fails "failed space-path scout close removed the task's recovery protection"; both pass at this PR's commit.
-pr: 67
+pending-pr: 67 .agent-config-dtjsb
 # Harvest replay keeps this PR: tests/fm-inactive-reconcile.test.sh distinguishes upstream from this PR and the nightly replay passes.
 pr: 69
 pending-pr: 66 .agent-config-dtjsb

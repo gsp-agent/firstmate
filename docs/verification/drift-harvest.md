@@ -18,12 +18,13 @@ The verdicts are:
 - `keep-rebase`: a distinguishing subtest by that rule, with a nonzero green exit on a later subtest or a nightly replay that still fails on another line; the PR is a keep for its rebase series, not a plain keep.
 - `unproven`: a red `not ok` line is gone from the green run, but the green run never showed that subtest passing, because the green suite stopped at or before that position or its kept log is not available; never keyed and never a remove.
 - `remove`: no distinguishing subtest, because the red suite passes on upstream or the green run fails the same `not ok` line.
-- `dependency`: a remove whose removal turns a keyed keep's own test red while the base passes it; kept and keyed as a dependency of that keep.
+- `dependency`: a commit whose removal turns a keyed keep's own test red, kept as part of that keep's series, because a keep series carries what its keeps need to work and `drift-proof.txt` already records entries replayed as dependencies.
 - `unmeasured`: a suite exit of 124 (timed out) or 75 (never admitted), never a remove.
 - `unmeasured-candidate`: not run in the deciding pass because another test on the same PR was taken to have settled that PR's verdict.
 
 A PR stays keyed only when at least one of its rows is `keep`, `keep-rebase` or `dependency`; with none of those, one `unproven` row makes the PR unproven, and otherwise it is a remove.
-The keep and keep-rebase proofs are keyed in `drift-proof.txt` and `drift-proof/<N>.proof` at the repository root.
+PR 16 is the one exception: it stays keyed only because its net effect is already cut by #25 and its first-parent commit still needs a manifest entry.
+The keep, keep-rebase and dependency proofs are keyed in `drift-proof.txt` and `drift-proof/<N>.proof` at the repository root.
 Raw replay output stays out of this repository; this table names only the PR, the test file, and the verdict.
 
 | PR | Test | Verdict |
@@ -43,7 +44,7 @@ Raw replay output stays out of this repository; this table names only the PR, th
 | 27 | tests/fm-teardown.test.sh | keep |
 | 28 | tests/fm-inbox.test.sh | keep |
 | 29 | tests/fm-brief.test.sh | unproven |
-| 30 | tests/fm-teardown.test.sh | dependency |
+| 30 | tests/fm-teardown.test.sh | unproven |
 | 31 | tests/fm-teardown.test.sh | keep |
 | 32 | tests/fm-backend-herdr.test.sh | keep |
 | 33 | tests/fm-cursor-guard.test.sh | unproven |
@@ -72,8 +73,8 @@ Raw replay output stays out of this repository; this table names only the PR, th
 | 65 | tests/fm-pi-branch-extension.test.sh | remove |
 | 66 | tests/fm-captain-hold-lifecycle.test.sh | unmeasured-candidate |
 | 66 | tests/fm-pr-check-security.test.sh | unproven |
-| 67 | tests/fm-backlog-atomicity.test.sh | keep |
-| 67 | tests/fm-teardown.test.sh | keep |
+| 67 | tests/fm-backlog-atomicity.test.sh | unproven |
+| 67 | tests/fm-teardown.test.sh | unproven |
 | 68 | tests/fm-spawn-dispatch-profile.test.sh | unproven |
 | 69 | tests/fm-inactive-reconcile.test.sh | keep |
 | 70 | tests/fm-codex-limit-live-e2e.test.sh | remove |
@@ -87,7 +88,7 @@ Raw replay output stays out of this repository; this table names only the PR, th
 | 78 | tests/fm-inactive-reconcile.test.sh | remove |
 | 79 | tests/fm-project-capacity.test.sh | unproven |
 | 80 | tests/fm-brief.test.sh | keep |
-| 81 | tests/fm-teardown.test.sh | keep |
+| 81 | tests/fm-teardown.test.sh | unproven |
 | 82 | tests/fm-ask-user-authority.test.sh | unproven |
 | 83 | tests/fm-remote-job.test.sh | unproven |
 | 84 | tests/fm-live-session.test.sh | unproven |
@@ -133,7 +134,7 @@ Raw replay output stays out of this repository; this table names only the PR, th
 The unnumbered window-index commit is a remove on measurement: 10 processes per window per poll with and without the index, and wall time of 19-21 seconds with it against 18-19 seconds without across two runs under Bash 5.3.
 The done criteria name a re-land of the window index; the index does not win on this measurement, so the re-land is held for a maintainer decision.
 
-Per-PR verdicts across 80 PRs: keep 31, keep-rebase 3, dependency 3, unproven 28, remove 15, unmeasured 0.
+Per-PR verdicts across 80 PRs: keep 29, keep-rebase 3, dependency 2, unproven 31, remove 15, unmeasured 0.
 
 Six `remove` rows whose suite failed in both runs have no kept log of the deciding run, so their verdict rests on the comparison recorded at replay time: PRs 98, 99, 106, 110, 112 and 167.
 
@@ -142,10 +143,11 @@ PR 39 carries a deciding verdict from another of its tests; PRs 12 and 43 are un
 
 ## Teardown-taskdata cut measurements
 
-These rows were decided when the teardown-taskdata series was cut, one suite at a time under the machine gate of a second Mac, on base `66ee5386` and kunchenguid/main `095db3bc`.
+These measurements were taken when the teardown-taskdata series was cut, one suite at a time under the machine gate of a second Mac, on base `66ee5386` and kunchenguid/main `095db3bc`.
 
 - PRs 27 and 50, by the upstream replay above: `tests/fm-teardown.test.sh` fails on upstream with only PR 27's tests ("finished task clone remains in data") and passes with its diff; `tests/fm-nm-run-lib.test.sh` fails on upstream with only PR 50's tests ("a child that outlived its parent survived the bound") and passes with its diff.
-- PRs 67 and 81, by a first-parent replay, because their upstream green trees stopped at an unrelated startup-source check from old-file skew: each PR's own diff tests run red on the PR's first parent with only those tests applied, and green at the PR's own commit.
+- PRs 67 and 81 stay `unproven`; this first-parent replay is a note, not a key, because a keep's `pr:` key means proven against upstream, and a first-parent replay shows the PR changed behavior on the fork, not that kunchenguid/main lacks it.
+  It ran because their upstream green trees stopped at an unrelated startup-source check from old-file skew: each PR's own diff tests run red on the PR's first parent with only those tests applied, and green at the PR's own commit.
   PR 67's `tests/fm-teardown.test.sh` fails "expiry with prose bead strings failed" and its `tests/fm-backlog-atomicity.test.sh` fails "failed space-path scout close removed the task's recovery protection" on the first parent; both pass at the commit.
   PR 81's `test_held_meta_lock_teardown_gives_up_within_bound` never finishes on the first parent, whose ten teardown lock waits loop until the lock frees, and is killed at 900 seconds; at the commit it gives up within its bound and passes.
 - PRs 30, 36 and 72, by removal: `bin/fm-task-data.py` and `bin/fm-task-data-lib.sh` are absent on kunchenguid/main, so their upstream replays failed the same line red and green and decided nothing.
@@ -154,15 +156,19 @@ These rows were decided when the teardown-taskdata series was cut, one suite at 
   Without PR 36, PR 31's `test_task_data_legacy_rows` fails on `read_command()` taking 2 positional arguments but given 3, and PR 135's "normal scratch expiry preserves the pointer after its report reference is removed" fails its expiry.
   Without PR 30, PR 36's `test_task_data_stage_limit_bounds_reference_reads` fails because an unread reference is no longer caught.
   The base passes all of them: 216 cases of `tests/fm-teardown.test.sh` and 59 of `tests/fm-task-data-offload.test.sh`.
-- PR 16 has nothing left to cut: #25 removed its helper and both of its tests, so its rows stay `remove` and its entry records that.
+  PRs 36 and 72 are therefore dependencies.
+  PR 30's only red is in PR 36's stage-limit test, and PR 36 is itself a dependency, so PR 30 awaits a removal measurement against the keyed keeps' own tests; its row is `unproven` rather than `remove` until then, because its upstream replay decided nothing.
+- PR 16 has nothing left to cut: #25 removed its helper and all four of its test functions, so its rows stay `remove` and its entry records that.
 - PR 126 belongs with the holds-inbox-wake cut: its only later code is PRs 127 and 129 of that series, and the three revert cleanly together, newest first, while PR 126 alone conflicts.
 
 ## Not yet measured: not cut until measured
 
-Every PR listed here is still `pending-pr` without a deciding verdict: a test file in its own diff has no table row, or its rows hold an `unproven` and no `keep` or `keep-rebase`, so every test file in that PR's own diff is still owed a replay.
+Every PR listed here is still `pending-pr` without a deciding verdict: a test file in its own diff has no table row, or its rows hold an `unproven` and no `keep`, `keep-rebase` or `dependency`, so every test file in that PR's own diff is still owed a replay.
 PRs 75, 76 and 77 carry no test.
 
 - PR 18: an upstream sync merge; `tests/fm-secondmate-liveness.test.sh`, `tests/fm-secondmate-safety.test.sh` and `tests/fm-self-repo-role.test.sh` equal upstream `7df545bf`'s, and `tests/fm-session-start.test.sh` equals the synced branch's version, so its cut replays them first.
 - PRs 8, 12, 22, 29, 33, 38, 43, 45, 49, 55, 60, 66, 68, 70, 71, 79, 82, 83, 84, 85, 89, 90, 91, 94, 96, 98, 110 and 130: their green runs never showed the red subtest passing; the tests are every test file the PR's own diff carries, plus any `unmeasured` or `unmeasured-candidate` row on the same PR, not only their `unproven` table rows.
+- PR 30: a removal measurement against the keyed keeps' own tests, with PR 36's stage-limit behavior removed along with it.
+- PRs 67 and 81: each PR's patch rebased onto kunchenguid/main the way a keep-rebase series would carry it, with its own diff tests red without the patch and green with it.
 
-Each listed PR's cut first replays every test file in that PR's own diff red on upstream and green with the change, and a test that distinguishes makes it a keep.
+Unless its entry above names another measurement, each listed PR's cut first replays every test file in that PR's own diff red on upstream and green with the change, and a test that distinguishes makes it a keep.
