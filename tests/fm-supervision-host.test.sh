@@ -224,48 +224,66 @@ stop_home_processes() {  # <home>
 }
 # A watcher writes state/.watch.lock/pid, the only record stop_home_processes
 # and the arm's --stop find it by, when it takes its singleton lock, after it
-# has sourced its libraries. One still starting when the cleanup stops its arm
-# is in no record and runs on under launchd: one outlived case 48's red by 94 s
+# has sourced its libraries. One still starting when the cleanup reaches its arm
+# is in no record. The arm's first TERM waits for that lock, up to its startup
+# deadline, before forwarding, and a second TERM or a KILL ends the arm there and
+# leaves the watcher to launchd: one outlived case 48's red by 94 s
 # (.agent-config-1egx8). So the suite's exit also stops, TERM and then KILL
 # before the tree goes, whatever it started that is still running.
 #
-# What it started, from one listing: every process below it, and a member of its
-# process group already reparented to launchd whose command line names this
-# suite's scripts or tree. Group membership alone proves nothing: under
-# bin/fm-test-run.sh the group's leader is the stream wrapper with its tee, and
-# in an interactive pipeline the group holds the reader. Those are not the
-# suite's, and neither are its ancestors.
+# What it started, from one listing, as "<pid> <start time>" lines: the roots are
+# the suite and each member of its process group already reparented to launchd
+# whose command line names this suite's scripts or tree, and every process whose
+# parent chain reaches a root is selected, so a watcher goes with its orphaned
+# arm. Group membership alone proves nothing: under bin/fm-test-run.sh the
+# group's leader is the stream wrapper with its tee, and in an interactive
+# pipeline the group holds the reader. Those are not the suite's, and neither are
+# its ancestors.
 own_processes() {
-  ps -Ao pid=,ppid=,pgid=,command= 2>/dev/null | awk -v top="$$" -v bin="$ROOT/bin/" -v tree="$TMP_ROOT/" '
-    { parent[$1] = $2; group[$1] = $3; named[$1] = index($0, bin) || index($0, tree) }
+  LC_ALL=C ps -Ao pid=,ppid=,pgid=,lstart=,command= 2>/dev/null | awk -v top="$$" -v bin="$ROOT/bin/" -v tree="$TMP_ROOT/" '
+    {
+      parent[$1] = $2; group[$1] = $3; start[$1] = $4 " " $5 " " $6 " " $7 " " $8
+      named[$1] = index($0, bin) || index($0, tree)
+    }
     END {
       for (q = top; q in parent && q > 1; q = parent[q]) ancestor[q] = 1
+      root[top] = 1
+      for (p in parent) if (parent[p] == 1 && group[p] == group[top] && named[p] && !(p in ancestor)) root[p] = 1
       for (p in parent) {
         q = p
-        while (q in parent && q > 1 && q != top) q = parent[q]
-        if ((p != top && q == top) || (parent[p] == 1 && group[p] == group[top] && named[p] && !(p in ancestor))) print p
+        while (q in parent && q > 1 && !(q in root)) q = parent[q]
+        if (p != top && (q in root)) print p, start[p]
       }
     }'
 }
-still_running() {  # <pids>
-  local pid
-  for pid in $1; do
-    if is_live_non_zombie "$pid"; then printf '%s\n' "$pid"; fi
-  done
+pids_of() {  # <"pid start" lines>
+  printf '%s\n' "$1" | awk 'NF { print $1 }'
 }
-stop_own_processes() {  # <pids listed before the per-home stops, which orphan what an arm started>
+# Those of <lines> whose pid still runs, not as a zombie, as the process of that
+# start time, by one ps call: a pid reused since its listing is dropped.
+still_own() {  # <"pid start" lines>
+  local pids
+  pids=$(pids_of "$1" | paste -s -d , -)
+  [ -n "$pids" ] || return 0
+  { printf '%s\n' "$1"; LC_ALL=C ps -o pid=,stat=,lstart= -p "$pids" 2>/dev/null; } | awk '
+    NF < 6 { next }
+    { id = $1 " " $(NF-4) " " $(NF-3) " " $(NF-2) " " $(NF-1) " " $NF }
+    NF == 6 { listed[id] = 1; next }
+    $2 !~ /^Z/ && (id in listed) { print id }'
+}
+stop_own_processes() {  # <"pid start" lines listed before the per-home stops, which can orphan what an arm started>
   local left i=0
-  left=$(still_running "$1 $(own_processes)")
+  left=$(still_own "$1"$'\n'"$(own_processes)")
   [ -n "$left" ] || return 0
-  # shellcheck disable=SC2086 # one pid per word
-  kill -TERM $left 2>/dev/null || true
+  # shellcheck disable=SC2046 # one pid per word
+  kill -TERM $(pids_of "$left") 2>/dev/null || true
   while [ -n "$left" ] && [ "$i" -lt 50 ]; do
     sleep 0.1
     i=$((i + 1))
-    left=$(still_running "$left")
+    left=$(still_own "$left")
   done
-  # shellcheck disable=SC2086 # one pid per word
-  [ -z "$left" ] || kill -KILL $left 2>/dev/null || true
+  # shellcheck disable=SC2046 # one pid per word
+  [ -z "$left" ] || kill -KILL $(pids_of "$left") 2>/dev/null || true
 }
 suite_cleanup() {
   local home listed
@@ -2995,11 +3013,12 @@ test_home_teardown_leaves_no_arm_or_watcher_running() {
 # suite under launchd. The child holds a real watcher before it takes its
 # singleton lock, so before state/.watch.lock/pid exists, and leaves through the
 # suite's own exit cleanup in bin/fm-test-run.sh's stream shape: a wrapper leads
-# the group, and the suite is its non-leader child, piped into a reader. An arm
-# the cleanup stops leaves the watcher to launchd; "reparented" has it there
-# before the cleanup starts.
-suite_exit_stops_held_watcher() {  # <case> <arm|reparented>
-  local dir home rc watcher
+# the group, and the suite is its non-leader child, piped into a reader. Under
+# "under-arm" the watcher's parent is one the per-home stop ends, under
+# "reparented" launchd has the watcher before the cleanup starts, and under
+# "orphaned-arm" launchd has a real arm with the watcher still below it.
+suite_exit_stops_held_watcher() {  # <under-arm|reparented|orphaned-arm>
+  local dir home rc watcher arm pid
   dir="$TMP_ROOT/held-before-pid-$1"
   home="$dir/home"
   mkdir -p "$home/state"
@@ -3018,43 +3037,78 @@ suite_exit_stops_held_watcher() {  # <case> <arm|reparented>
     # The watcher sources this library last before its singleton lock.
     rm -f "$held_bin/fm-secondmate-liveness-lib.sh"
     {
-      printf "%s\n" ": > \"\$FM_HOME/watcher-held\"" "_fm_held_polls=0"
+      printf "%s\n" "echo \"\$\$\" > \"\$FM_HOME/watcher-held\"" "_fm_held_polls=0"
       printf "while [ \"\$_fm_held_polls\" -lt %s ]; do\n" "$((FM_TEST_STUB_MAX_BLOCK_SECONDS * 10))"
       printf "%s\n" "  sleep 0.1" "  _fm_held_polls=\$((_fm_held_polls + 1))" "done"
       printf ". \"%s\"\n" "$ROOT/bin/fm-secondmate-liveness-lib.sh"
     } > "$held_bin/fm-secondmate-liveness-lib.sh"
-    (
-      FM_HOME="$2" "$held_bin/fm-watch.sh" > "$2/watcher.out" 2>&1 &
-      printf "%s\n" "$!" > "$2/watcher.pid"
-      [ "$3" = reparented ] || wait
-    ) &
-    arm=$!
-    if [ "$3" = reparented ]; then wait "$arm"; else printf "arm\t%s\n" "$arm" > "$2/state/.supervision-host"; fi
-    wait_until 600 test -e "$2/watcher-held" || exit 3
+    case "$3" in
+      under-arm)
+        ( FM_HOME="$2" "$held_bin/fm-watch.sh" > "$2/watcher.out" 2>&1 & wait ) &
+        printf "arm\t%s\n" "$!" > "$2/state/.supervision-host"
+        ;;
+      reparented)
+        ( FM_HOME="$2" "$held_bin/fm-watch.sh" > "$2/watcher.out" 2>&1 & ) &
+        wait "$!"
+        ;;
+      orphaned-arm)
+        (
+          FM_HOME="$2" FM_ARM_CONFIRM_TIMEOUT="$FM_TEST_STUB_MAX_BLOCK_SECONDS" \
+            "$held_bin/fm-watch-arm.sh" > "$2/arm.out" 2>&1 &
+          printf "%s\n" "$!" > "$2/arm.pid"
+        ) &
+        wait "$!"
+        ;;
+    esac
+    wait_until 600 test -s "$2/watcher-held" || exit 3
     printf "before cleanup\n"
     exit 1
-  ' "$dir/child.out" "$ROOT/tests/fm-supervision-host.test.sh" "$home" "$2" &
+  ' "$dir/child.out" "$ROOT/tests/fm-supervision-host.test.sh" "$home" "$1" &
   wait "$!"
   rc=$?
-  watcher=$(cat "$home/watcher.pid" 2>/dev/null || true)
-  [ -n "$watcher" ] || fail "fixture ($1): the child suite started no watcher: $(cat "$dir/child.out")"
-  if [ "$rc" = 3 ]; then
-    kill -KILL "$watcher" 2>/dev/null || true
-    fail "fixture ($1): the watcher never reached its hold before the singleton lock: $(cat "$dir/child.out" "$home/watcher.out" 2>/dev/null)"
+  watcher=$(cat "$home/watcher-held" 2>/dev/null || true)
+  arm=$(cat "$home/arm.pid" 2>/dev/null || true)
+  if [ "$rc" = 3 ] || [ -z "$watcher" ]; then
+    fail "fixture ($1): the watcher never reached its hold before the singleton lock: $(cat "$dir/child.out" "$home/watcher.out" "$home/arm.out" 2>/dev/null)"
   fi
   [ ! -e "$home/state/.watch.lock/pid" ] || fail "fixture ($1): the held watcher wrote state/.watch.lock/pid"
-  if ! wait_until 50 sh -c '! kill -0 "$1" 2>/dev/null' _ "$watcher"; then
-    kill -KILL "$watcher" 2>/dev/null || true
-    fail "the suite's exit cleanup left running a watcher that had not yet written state/.watch.lock/pid ($1, pid $watcher)"
-  fi
+  for pid in "$watcher" $arm; do
+    if ! wait_until 50 sh -c '! kill -0 "$1" 2>/dev/null' _ "$pid"; then
+      # shellcheck disable=SC2086 # an absent arm is no word
+      kill -KILL "$watcher" $arm 2>/dev/null || true
+      fail "the suite's exit cleanup left running a process of a watcher that had not yet written state/.watch.lock/pid ($1, pid $pid)"
+    fi
+  done
   [ "$rc" = 1 ] || fail "the wrapper's exit is not the suite's own 1 ($1): got $rc: $(cat "$dir/child.out")"
   grep -qx 'before cleanup' "$dir/child.out" && grep -qx 'after cleanup' "$dir/child.out" \
     || fail "the suite's output did not reach its reader through the cleanup ($1): $(cat "$dir/child.out")"
 }
 test_suite_exit_stops_a_watcher_held_before_its_pid_write() {
-  suite_exit_stops_held_watcher under-arm arm
-  suite_exit_stops_held_watcher reparented reparented
-  pass "host: the suite's exit cleanup stops a watcher held before it writes state/.watch.lock/pid, and leaves the group's wrapper and reader alone"
+  suite_exit_stops_held_watcher under-arm
+  suite_exit_stops_held_watcher reparented
+  suite_exit_stops_held_watcher orphaned-arm
+  pass "host: the suite's exit cleanup stops a watcher held before it writes state/.watch.lock/pid, with an orphaned arm above it, and leaves the group's wrapper and reader alone"
+}
+
+# The sweep signals a pid from an earlier listing only while its start time still
+# matches. The bystander is in no selection of the child, which is only handed it.
+sweep_handed() {  # <"pid start" line>
+  perl -e 'setpgrp(0, 0); exec @ARGV or die "exec: $!"' bash -c '
+    . "$1"
+    stop_own_processes "$2"
+  ' _ "$ROOT/tests/fm-supervision-host.test.sh" "$1" > /dev/null 2>&1
+}
+test_suite_exit_leaves_a_pid_reused_since_its_listing() {
+  local bystander start
+  sleep "$FM_TEST_STUB_MAX_BLOCK_SECONDS" &
+  bystander=$!
+  start=$(LC_ALL=C ps -o lstart= -p "$bystander")
+  sweep_handed "$bystander Thu Jan 1 00:00:00 1970"
+  is_live_non_zombie "$bystander" || fail "the suite's exit sweep signalled a pid whose start time no longer matches its listing"
+  sweep_handed "$bystander $start"
+  ! is_live_non_zombie "$bystander" || fail "the suite's exit sweep left a listed process whose start time still matches"
+  wait "$bystander" 2>/dev/null || true
+  pass "host: the suite's exit sweep signals a listed pid only while its start time still matches"
 }
 
 test_restarted_host_stops_what_a_killed_predecessor_left() {
@@ -3881,6 +3935,7 @@ supervision_host_lane_b() {
   test_engine_turn_is_bounded_and_its_descendants_reaped
   test_home_teardown_leaves_no_arm_or_watcher_running
   test_suite_exit_stops_a_watcher_held_before_its_pid_write
+  test_suite_exit_leaves_a_pid_reused_since_its_listing
   test_restarted_host_stops_what_a_killed_predecessor_left
   test_teardown_lease_lock_at_activation_still_starts_the_watcher
   test_teardown_lease_lock_after_an_engine_turn_still_parks_on_the_successor
