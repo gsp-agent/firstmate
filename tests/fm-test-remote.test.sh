@@ -5,8 +5,9 @@
 # bin/fm-stock-bash-check.sh that hand their runs to it.
 #
 # The host is this machine behind a stand-in ssh that, like real ssh, runs the
-# command string under a login-style shell (zsh where present) with none of
-# the caller's environment: only its own HOME, PATH, and TMPDIR. Each case
+# command string under the account's shell (zsh where present) with none of the
+# caller's environment: only its own HOME, SHELL, a minimal PATH, and TMPDIR.
+# The host's tools are on PATH only in that shell's login environment. Each case
 # commits a fixture repository holding this checkout's runner files and
 # stand-in suites, so a case decides what the host runs. The host's machine
 # gate is a stand-in that records each try, except in the two arrival-order
@@ -43,12 +44,13 @@ case "${FAKE_SSH_FAIL:-}" in
   unreachable) echo "ssh: connect to host $host port 22: Connection refused" >&2; exit 255 ;;
   key) echo "$host: Permission denied (publickey)." >&2; exit 255 ;;
   pull) case "$*" in "cat -- "*) echo "Connection to $host closed by remote host." >&2; exit 255 ;; esac ;;
-  run) case "$*" in *" __host "*) echo "Connection to $host closed by remote host." >&2; exit 255 ;; esac ;;
+  run) case "$*" in *__host*) echo "Connection to $host closed by remote host." >&2; exit 255 ;; esac ;;
 esac
 shell=/bin/zsh
 [ -x "$shell" ] || shell=/bin/bash
 # shellcheck disable=SC2086 # FAKE_HOST_ENV is NAME=value words without spaces
-exec env -i HOME="$FAKE_HOST_HOME" PATH="$FAKE_HOST_PATH" TMPDIR="$FAKE_HOST_TMP" ${FAKE_HOST_ENV:-} "$shell" -c "$*"
+exec env -i HOME="$FAKE_HOST_HOME" SHELL="$shell" PATH="$FAKE_NONLOGIN_PATH" FAKE_LOGIN_PATH="$FAKE_HOST_PATH" \
+  TMPDIR="$FAKE_HOST_TMP" ${FAKE_HOST_ENV:-} "$shell" -c "$*"
 EOF
 chmod +x "$TMP_ROOT/bin/ssh"
 
@@ -105,11 +107,14 @@ new_world() {
   FAKE_HOST_TMP="$w/host-tmp"
   FAKE_HOST_PATH="$(dirname "$BASH"):$GIT_BIN_DIR:/usr/bin:/bin:/usr/sbin:/sbin"
   FAKE_HOST_ENV=
+  FAKE_NONLOGIN_PATH="$GIT_BIN_DIR:/usr/bin:/bin:/usr/sbin:/sbin"
   FAKE_SSH_LOG="$w/ssh.log"
-  export FAKE_HOST_HOME FAKE_HOST_TMP FAKE_HOST_PATH FAKE_HOST_ENV FAKE_SSH_LOG
+  export FAKE_HOST_HOME FAKE_HOST_TMP FAKE_HOST_PATH FAKE_NONLOGIN_PATH FAKE_HOST_ENV FAKE_SSH_LOG
   unset FAKE_SSH_FAIL
   mkdir -p "$REPO/bin" "$REPO/tests" "$SCRATCH" "$FAKE_HOST_TMP"
   write_host_gate "$FAKE_HOST_HOME"
+  # shellcheck disable=SC2016 # the host's login shell expands this
+  printf 'PATH=$FAKE_LOGIN_PATH\nexport PATH\n' | tee "$FAKE_HOST_HOME/.zprofile" >"$FAKE_HOST_HOME/.bash_profile"
   cp "$ROOT/bin/fm-test-run.sh" "$ROOT/bin/fm-test-remote.sh" "$ROOT/bin/fm-test-machine-line-lib.sh" \
     "$ROOT/bin/fm-timeout-lib.sh" "$ROOT/bin/fm-stock-bash-check.sh" "$REPO/bin/"
   cp "$ROOT/tests/git-config-helpers.sh" "$REPO/tests/"
@@ -262,6 +267,28 @@ EOF
   assert_not_contains "$OUT" "$secret" "the token does not reach the host's copy"
   ! grep -q "$secret" "$FAKE_SSH_LOG" || fail "the token was on an ssh command line: $(grep "$secret" "$FAKE_SSH_LOG")"
   pass "every remote URL has its user info removed before it leaves this machine"
+}
+
+test_the_host_run_finds_what_the_login_environment_finds() {
+  local login_bin
+  new_world login
+  login_bin="$TMP_ROOT/login/login-bin"
+  mkdir -p "$login_bin"
+  printf '#!/bin/sh\nexit 0\n' >"$login_bin/herdr"
+  chmod +x "$login_bin/herdr"
+  FAKE_HOST_PATH="$login_bin:$FAKE_HOST_PATH"
+  cat >"$REPO/tests/fm-remote-login.test.sh" <<'EOF'
+#!/usr/bin/env bash
+command -v herdr >/dev/null 2>&1 || { echo "skip: herdr not found"; exit 0; }
+echo "ok - herdr at $(command -v herdr)"
+EOF
+  chmod +x "$REPO/tests/fm-remote-login.test.sh"
+  commit_all "a suite that needs a login-only tool"
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-login.test.sh
+  expect_code 0 "$RC" "a tool only the host's login environment finds"$'\n'"$OUT"
+  assert_contains "$OUT" "ok - herdr at $login_bin/herdr" "the suite found the login environment's tool"
+  assert_scratch_empty "a run in the login environment"
+  pass "the host run finds what the host's login environment finds, and still removes its run"
 }
 
 test_changed_base_and_json_cross_the_transport() {
@@ -455,6 +482,16 @@ ok - fm_sleep: skipped (perl absent for sub-second timing)
 ok - herdr pane fallback skipped without jq
 ok - a launcher argument guard (skipped, no python3)
 ok - a GNU timeout fallback (skipped: no timeout binary on this host)
+skip - tmux not installed
+skip - herdr relaunch needs jq (the herdr adapter parses JSON with it)
+skip - the herdr adapter and the Treehouse pool reads need jq
+ok - shellcheck not installed, skipping
+note: claude not installed; skipping the real-agent busy_state check
+ok - SKIP (ShellCheck 0.11.0 not resolved): fast lint-defect regression check
+ok - skipped: installed tasks-axi predates 0.3.0, so dispatch refuses automatic backlog transitions
+ok - skipped on markdown-only tasks-axi: a captain hold
+ok - a stock case (skipped: needs /bin/bash 3.2.57, the stock macOS shell)
+skip-runner: pi-signed is not installed, so its pin check was not exercised
 EOF
   write_skip_suite fm-remote-wording-mid-run.test.sh 'ok - a case ran' 'skip: node not found for one case' 'ok - another case ran'
   commit_all "suites in each wording of a missing tool"
@@ -465,36 +502,46 @@ EOF
   pass "every wording of a host lacking a tool fails the remote run, without enumerating tools"
 }
 
-test_no_backend_adapter_or_harness_is_exempt_from_the_missing_tool_rule() {
-  new_world exempt
-  write_skip_suite fm-backend-zellij-smoke.test.sh 'skip: zellij not found'
+test_a_missing_tool_fails_by_the_tool_named_never_by_the_suites_family() {
+  new_world byname
   write_skip_suite fm-backend-zellij.test.sh 'skip: jq not found (required by the zellij adapter)'
+  write_skip_suite fm-backend-cmux-smoke.test.sh 'skip: jq not found (required by the cmux adapter)'
+  write_skip_suite fm-backend-orca.test.sh 'ok - skipped the Orca capacity case (node, which the Orca status check needs, is not installed)'
+  write_skip_suite fm-pi-codex-native.test.sh 'skip: live: node absent'
+  write_skip_suite fm-remote-harness-note.test.sh 'ok - one harness ran' '# skip: opencode is not installed on this machine, so its contract is unverified here'
+  commit_all "suites of optional backends lacking a required tool, and a per-harness note"
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --jobs 1 tests/fm-backend-zellij.test.sh tests/fm-backend-cmux-smoke.test.sh \
+    tests/fm-backend-orca.test.sh tests/fm-pi-codex-native.test.sh tests/fm-remote-harness-note.test.sh
+  expect_code 1 "$RC" "skips for a required tool in an optional backend's suite"$'\n'"$OUT"
+  assert_contains "$OUT" "FM_TEST_SUMMARY total=5 failed=5 skipped_gate=0" "a required tool is required whichever suite names it"
+  pass "a required tool missing from an optional backend's suite, and a missing harness, fail the remote run"
+}
+
+test_a_skip_that_is_not_a_missing_required_tool_stays_a_counted_skip() {
+  new_world counted
+  write_skip_suite fm-backend-zellij-smoke.test.sh 'skip: zellij not found'
   write_skip_suite fm-backend-cmux-smoke.test.sh 'skip: cmux CLI not found on PATH'
   write_skip_suite fm-backend-orca.test.sh 'skip: orca not found'
   write_skip_suite fm-pi-codex-native.test.sh 'skip: native Pi adapter not installed (PI_CODEX_NATIVE_PACKAGE to select it)'
-  write_skip_suite fm-remote-harness-note.test.sh 'ok - one harness ran' '# skip: opencode is not installed on this machine, so its contract is unverified here'
-  commit_all "suites of optional backends and adapters, and a per-harness note"
-  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --jobs 1 tests/fm-backend-zellij-smoke.test.sh tests/fm-backend-zellij.test.sh \
-    tests/fm-backend-cmux-smoke.test.sh tests/fm-backend-orca.test.sh tests/fm-pi-codex-native.test.sh tests/fm-remote-harness-note.test.sh
-  expect_code 1 "$RC" "skips for a missing optional backend, adapter, or harness"$'\n'"$OUT"
-  assert_contains "$OUT" "FM_TEST_SUMMARY total=6 failed=6 skipped_gate=0" "none of them is exempt"
-  pass "an optional backend's or adapter's suite, and a per-harness note, fail the remote run when the host lacks the tool"
-}
-
-test_a_skip_that_is_not_a_missing_tool_stays_a_counted_skip() {
-  new_world counted
+  write_skip_suite fm-remote-stand-in-path.test.sh 'skip: cursor executable not resolvable in this environment, so the launch could not be built'
+  write_skip_suite fm-remote-proc.test.sh 'skip: /proc not readable (the read-death shape needs process ancestry)'
   write_skip_suite fm-remote-opt-in.test.sh 'skip: live: opt-in; set FM_FIXTURE=1 to run'
   write_skip_suite fm-remote-platform.test.sh 'skip: native Windows Node required'
   write_skip_suite fm-remote-note.test.sh 'ok - a case ran' '# skip: unprivileged PID namespaces are unavailable here, so one case is unverified' \
     '# skip - checkout has no upstream/github/origin remote to scope'
   write_skip_suite fm-remote-behavior.test.sh 'ok - no-origin clone is skipped (benign), not flagged STUCK' \
-    'ok - a passing required check and a skipped one leave nothing to report' 'ok - unreadable source skipped: this user can read mode-000 files'
-  commit_all "suites whose skips are not a missing tool"
-  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --jobs 1 tests/fm-remote-opt-in.test.sh tests/fm-remote-platform.test.sh \
-    tests/fm-remote-note.test.sh tests/fm-remote-behavior.test.sh
-  expect_code 0 "$RC" "skips that are not a missing tool"$'\n'"$OUT"
-  assert_contains "$OUT" "FM_TEST_SUMMARY total=4 failed=0 skipped_gate=2" "a policy or platform skip stays counted, and a behavior named skipped is no skip"
-  pass "a live opt-in, a platform skip, and a passing case that describes skipping do not fail the remote run"
+    'ok - a passing required check and a skipped one leave nothing to report' 'ok - unreadable source skipped: this user can read mode-000 files' \
+    'ok - run wrapper: an unrecognized or absent source takes the helm rather than skipping it' \
+    'ok - SKIP: no standalone Pi Calm extension is installed, so dual-install coverage used the pinned contract' \
+    'note: FM_FIXTURE=1 not set; skipping the real-agent check' \
+    '# skip - inaccessible launch configuration requires a non-root user'
+  commit_all "suites whose skips are not a missing required tool"
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --jobs 1 tests/fm-backend-zellij-smoke.test.sh tests/fm-backend-cmux-smoke.test.sh \
+    tests/fm-backend-orca.test.sh tests/fm-pi-codex-native.test.sh tests/fm-remote-stand-in-path.test.sh tests/fm-remote-proc.test.sh \
+    tests/fm-remote-opt-in.test.sh tests/fm-remote-platform.test.sh tests/fm-remote-note.test.sh tests/fm-remote-behavior.test.sh
+  expect_code 0 "$RC" "skips that are not a missing required tool"$'\n'"$OUT"
+  assert_contains "$OUT" "FM_TEST_SUMMARY total=10 failed=0 skipped_gate=8" "optional tools, policy, and platform skips stay counted, and a behavior named skipped is no skip"
+  pass "an optional tool, a live opt-in, a platform skip, and a passing case that describes skipping do not fail the remote run"
 }
 
 test_a_busy_host_gate_is_a_wait_not_a_failure() {
@@ -665,6 +712,9 @@ wait_for_rows() {  # <name suffix> <count>
   fail "$1 never logged $2 rows in the line: $(cat "$LINE_LOG" 2>/dev/null)"
 }
 
+# The gate reads arrival from its log to the second, and two arrivals in one
+# second have no order, so each later arrival below starts in a later second.
+#
 # Two remote runs queue on the real gate's held firstmate line; the later
 # arrival retries far faster, and still the earlier arrival starts first.
 test_remote_runs_start_in_arrival_order_on_the_real_gate() {
@@ -676,6 +726,7 @@ test_remote_runs_start_in_arrival_order_on_the_real_gate() {
   start_remote_run "$TMP_ROOT/order/a.out" 2
   pid_a=$REMOTE_PID
   wait_for_rows "-$pid_a" 1
+  sleep 1.1
   start_remote_run "$TMP_ROOT/order/b.out" 0.3
   pid_b=$REMOTE_PID
   wait_for_rows "-$pid_b" 3
@@ -707,6 +758,7 @@ test_a_remote_run_that_arrived_first_starts_before_a_later_plain_gated_run() {
   start_remote_run "$TMP_ROOT/plain/a.out" 5
   pid_a=$REMOTE_PID
   wait_for_rows "-$pid_a" 1
+  sleep 1.1
   (while :; do
     env -i HOME="$FAKE_HOST_HOME" PATH="$FAKE_HOST_PATH" TMPDIR="$FAKE_HOST_TMP" \
       MACHINE_GATE_READ="$TMP_ROOT/plain/read.sh" MACHINE_LINE_NAME=plain-gated-proof MACHINE_GATE_FIRSTMATE_POLL=0.5 \
@@ -739,6 +791,7 @@ test_runs_the_suite_on_the_host_at_the_exact_head_and_cleans_up
 test_a_failing_suite_returns_its_exit_status
 test_uncommitted_changes_run_as_a_commit_over_head
 test_the_host_copy_carries_this_checkouts_branch_remotes_and_tags
+test_the_host_run_finds_what_the_login_environment_finds
 test_remote_urls_reach_the_host_without_user_info
 test_changed_base_and_json_cross_the_transport
 test_an_output_not_copied_back_fails_a_passing_run
@@ -746,8 +799,8 @@ test_fm_test_only_reaches_the_host
 test_a_live_switch_set_here_refuses_the_remote_run
 test_a_suite_skipping_for_a_missing_host_tool_fails_the_remote_run
 test_every_wording_of_a_missing_host_tool_fails_the_remote_run
-test_no_backend_adapter_or_harness_is_exempt_from_the_missing_tool_rule
-test_a_skip_that_is_not_a_missing_tool_stays_a_counted_skip
+test_a_missing_tool_fails_by_the_tool_named_never_by_the_suites_family
+test_a_skip_that_is_not_a_missing_required_tool_stays_a_counted_skip
 test_a_busy_host_gate_is_a_wait_not_a_failure
 test_transport_failures_stop_before_anything_runs
 test_a_host_copy_at_another_commit_runs_nothing

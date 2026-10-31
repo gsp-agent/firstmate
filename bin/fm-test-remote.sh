@@ -13,7 +13,8 @@
 # mode, so a missing key fails instead of prompting, and <scratch-root> is an
 # existing directory on that host. <script> is a repository-relative script,
 # run on the host as `<host bash> <script> [args...]` from the root of the
-# host's copy of the commit, with that bash's directory first on PATH.
+# host's copy of the commit, in that account's login environment, so it finds
+# the tools that account's agents find.
 #
 # In order, it:
 #   1. names the commit under test: this checkout's HEAD or, when the checkout
@@ -120,9 +121,8 @@ if [ "${1:-}" = __host ]; then
   attempt="$run/gate-try.log"
   waited_since=$(date +%s)
   said=
-  PATH="$(dirname "$BASH"):$PATH"
   TMPDIR="$run/tmp"
-  export PATH TMPDIR
+  export TMPDIR
   exec 3>&1 4>&2
   # No caller marker applies on the host: a gate marker would let the gate
   # skip firstmate, and FM_TASK_ID would read the host's plain clone as a
@@ -367,7 +367,7 @@ else
 fi
 run_cmd="cd $(quote_words "$RUN/repo")$copy_setup && git -c advice.detachedHead=false checkout -q -f $(quote_words "${checkout[@]}") $SHA && got=\$(git rev-parse HEAD) && [ \"\$got\" = $SHA ] || { printf 'fm-test-remote: the host copy is at %s, not %s; nothing ran\\n' \"\${got:-no commit}\" $SHA >&2; exit 2; }; exec $(quote_words ${host_env[@]+"${host_env[@]}"} "$REMOTE_BASH" "$RUN/repo/bin/fm-test-remote.sh" __host "$RUN" "$line_name" "$RETRY" -- "$@")"
 
-ssh -n "${SSH_OPTS[@]}" "$HOST" "$run_cmd" &
+ssh -n "${SSH_OPTS[@]}" "$HOST" "exec \"\$SHELL\" -lc $(quote_words "$run_cmd")" &
 SSH_PID=$!
 wait "$SSH_PID"
 rc=$?

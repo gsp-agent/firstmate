@@ -64,9 +64,10 @@
 #   --fail-on-missing-tool-skip
 #                   after each script, fail the run if it reports skipping
 #                   anything because this host lacks a tool, package, or version
-#                   it needs, in any suite's wording, on a "skip:" or "# skip:"
-#                   line or a passing "ok - ... skipped ..." line. --remote
-#                   always sets this on the host.
+#                   it needs, on a "skip:", "skip -", or "# skip" line or a
+#                   passing "ok - " or "note: " line that reports a skip. Only
+#                   the tools in OPTIONAL_HOST_TOOLS may be missing, whichever
+#                   suite names them. --remote always sets this on the host.
 #   --jobs N        run the selected scripts with up to N concurrent workers.
 #                   Plain --changed and a plain list of script paths use
 #                   min(4, cpus) workers when multiple selected scripts are
@@ -1911,13 +1912,21 @@ detect_gate_skip_token() {
   grep -F -q "skip: $token" "$file" 2>/dev/null
 }
 
+# Tools a host may lack because the laptop lacks them too: remove when the laptop has it.
+OPTIONAL_HOST_TOOLS='zellij|cmux|orca|native Pi adapter'
+
 # True when a skip line, or a passing line reporting a skip, says this host lacks
-# a tool, package, or version the script needs.
+# a tool, package, or version the script needs, and names no optional tool as
+# the thing it lacks.
 detect_missing_tool_skip() {
-  grep -Eq \
-    -e '^(# )?skip:.*( not found| absent| not installed| not executable|no supported .* installed|no C compiler|no long-running stand-in|no Bash [a-z]+ loadable|predates| is older than| is below)' \
-    -e '^ok - .*skipped.*( not found| absent| not installed| without |[:,] no )' \
-    "$1" 2>/dev/null
+  local lacks=' not found| absent| not installed| not executable| not resolved| needs? [a-z][a-z0-9_-]*( \(|\)|$)|predates| is older than| is below|no C compiler|no long-running stand-in|no Bash [a-z]+ loadable|no supported .* installed|markdown-only'
+  grep -E \
+    -e "^(# )?skip(-runner)?(:| -).*($lacks)" \
+    -e "^ok - .*skipped.*($lacks| without |[:,] no |: needs )" \
+    -e "^ok - SKIP.*($lacks)" \
+    -e '^(ok - |note: ).*( not found| not installed| absent)[,;] skipping' \
+    "$1" 2>/dev/null \
+    | grep -Ev "^(# )?skip(:| -) (live: )?($OPTIONAL_HOST_TOOLS)( |$)" >/dev/null
 }
 
 apply_exclude_families() {
