@@ -20,6 +20,7 @@
 ^ok - .*skipped on Darwin
 ^ok - .*skipped on non-Windows host
 ^ok - .*non-Darwin stat branch; skipped
+^ok - skipped on markdown-only tasks-axi:
 
 # Passing cases whose subject is something the product skips, not a skipped test.
 ^ok - .* is skipped

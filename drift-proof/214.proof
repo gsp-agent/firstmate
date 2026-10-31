@@ -1,0 +1,2 @@
+# Failing-first test: test_a_passing_case_named_skipped_is_a_pass_and_a_tool_skip_still_fails in tests/fm-test-remote.test.sh. Red on base 66ee5386, where the remote skip check fails a suite of passing cases named "skipped-test:" and "github/skipped:" (FM_TEST_SUMMARY total=2 failed=2); green here, where only the suite skipping for a missing tool fails.
+pr: 214
