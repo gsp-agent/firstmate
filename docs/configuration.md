@@ -1190,7 +1190,8 @@ A project name may begin with `#` when that `#` is written immediately against t
 A name that is `#`, or that begins with `#` and a space, cannot be declared, because that line is a comment.
 See [`bin/fm-project-capacity-lib.sh`'s occupancy contract](../bin/fm-project-capacity-lib.sh) for which working tasks hold a place across local homes and clones, and how PR handoffs release capacity.
 A failed or timed-out crew-state read conservatively holds a place and adds `(state unreadable)` to the holder list; it does not fail the count.
-A worker whose validation run waits on someone else, asleep on the shared test suite lock or with its CI step only watching the PR, holds no place while it waits and holds one again when the wait ends, so a project can briefly run more workers than its count.
+A worker whose validation run waits on someone else, asleep on the shared test suite lock or with its CI step only watching the PR, holds no place while it waits and holds one again when the wait ends.
+Workers that take their place back when a wait ends are never stopped, so a project's count can be exceeded until enough of them finish, for as long as such waits last.
 The wait itself prints no `Dispatch:` line, but `bin/fm-dispatch-ready.sh --freed-by` reads the same working check, so a status line the worker appends while its run waits gets one through the supervision host's `freed-place:` hand-back, and otherwise the next spawn counts the place as free.
 The declaration is matched by the spawning clone's directory name, so clones of the same origin share the cap only when they use that same directory name.
 A clone of that origin under a different directory name finds no declaration and is not capped, though its workers are still counted as holders for a same-origin clone that is capped.
