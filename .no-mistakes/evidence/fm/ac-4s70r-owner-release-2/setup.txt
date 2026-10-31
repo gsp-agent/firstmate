@@ -1,0 +1,13 @@
+total 784
+drwxr-xr-x@ 15 dalecarman  staff     480 Oct 31 06:50 .
+drwxr-xr-x@  3 dalecarman  staff      96 Oct 31 06:50 ..
+-rw-r--r--@  1 dalecarman  staff       0 Oct 31 06:50 .br-db-openers-b1c0060bb8cd59881d75ec6b.lock
+-rw-r--r--@  1 dalecarman  staff    1247 Oct 31 06:50 .gitignore
+-rw-r--r--@  1 dalecarman  staff  323584 Oct 31 06:50 beads.db
+-rw-------@  1 dalecarman  staff       0 Oct 31 06:50 beads.db-fsqlite-ns-gate
+-rw-------@  1 dalecarman  staff      40 Oct 31 06:50 beads.db-fsqlite-ns-use
+-rw-r--r--@  1 dalecarman  staff   32768 Oct 31 06:50 beads.db-shm
+-rw-r--r--@  1 dalecarman  staff      32 Oct 31 06:50 beads.db-wal
+firstmate: 1 windows (created Sat Oct 31 06:50:59 2026)
+not in a git or jj repository: git rev-parse --show-toplevel: fatal: not a git repository (or any of the parent directories): .git
+[]
