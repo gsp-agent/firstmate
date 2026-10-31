@@ -1304,9 +1304,12 @@ if [ "$HAVE_RUN" = 1 ]; then
         esac
       fi
       # Its own ${SEP} component, as for the human-decision gate above, so no
-      # text inside another component can read as a wait.
+      # text inside another component can read as a wait. A ci row reading
+      # running under a fixing run is a repair (nm_effective_ci_step_status),
+      # so it names no CI wait; a fix round asleep on the suite lock still does.
       if [ "$RUN_STATE" = working ]; then
         RUN_WAIT=$(fm_nm_run_wait "$RUN_OUT")
+        [ "$RUN_WAIT:$CI_STEP_STATUS" != CI:fixing ] || RUN_WAIT=
         [ -z "$RUN_WAIT" ] || RUN_DETAIL="$RUN_DETAIL${SEP}${FM_NM_RUN_WAITS_ON}$RUN_WAIT"
       fi
     fi

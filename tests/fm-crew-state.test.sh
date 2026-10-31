@@ -1516,6 +1516,13 @@ test_run_waiting_on_others_names_the_wait_and_holds_no_place() {
   out=$(run_crew_state "$d" feat-waits)
   assert_not_contains "$out" "waits on:" "a CI repair round before its agent starts waits on nothing"
   assert_equals 0 "$(place_verdict "$d" feat-waits)" "a CI repair round before its agent starts held no place"
+
+  # A fixing run outranks a ci row still reading running: it is a repair.
+  FM_FAKE_AXI_STATUS="$(run_active_step fm/feat-waits "ci,running,16h20m,1s,\"1s ago: log: issues detected: 2 CI checks failing\",\"\",fix 1" |
+    sed 's/^  status: running$/  status: fixing/')"
+  out=$(run_crew_state "$d" feat-waits)
+  assert_not_contains "$out" "waits on:" "a fixing run with a ci row still reading running waits on nothing"
+  assert_equals 0 "$(place_verdict "$d" feat-waits)" "a fixing run with a ci row still reading running held no place"
   pass "a run asleep on the suite lock or watching CI names the wait and holds no place; work keeps it"
 }
 

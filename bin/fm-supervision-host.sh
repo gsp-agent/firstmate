@@ -600,8 +600,8 @@ emit() {  # [line...]
 # The Dispatch lines for places freed by the signal rows in <reason>: each task
 # a signal row names (fm_wake_signal_task_ids reads every coalesced file in the
 # row), through bin/fm-dispatch-ready.sh --freed-by, which prints that task's
-# project line only when its worker stopped working and the line says to start
-# something. One line per project, in task order.
+# project line only when its worker no longer holds a place and the line says
+# to start something. One line per project, in task order.
 freed_place_dispatch_lines() {  # <reason>
   local id dispatch out=''
   while IFS= read -r id; do
@@ -1223,7 +1223,8 @@ while :; do
     exit_to_main "the captain returned while the away session was handling this wake, but the recorded outcomes could not be verified; main must review them" \
       "$(turn_outcome_lookup_warning)"
   fi
-  # A worker whose own status line took it off working freed its place with no
+  # A worker whose own status line took it off working, or whose working run
+  # waits on the shared test suite lock or on CI, freed its place with no
   # cleanup or PR handoff, and the branch that handled that signal has already
   # acknowledged it and cannot start work. Read that freed place first, so every
   # hand-back to main below carries its Dispatch line, whichever of them fires
@@ -1234,7 +1235,7 @@ while :; do
   if ! fm_afk_contract_away_present "$STATE"; then
     FREED_DISPATCH=$(freed_place_dispatch_lines "$REASON")
     [ -z "$FREED_DISPATCH" ] ||
-      FREED_LINES="supervision-host: freed-place: a worker's own status line took it off working and freed its place with no cleanup or PR; start the ready rows each Dispatch line below names with bin/fm-spawn.sh until a spawn defers with exit 75"$'\n'"$FREED_DISPATCH"
+      FREED_LINES="supervision-host: freed-place: a worker's crew state no longer holds a place, because its own status line took it off working or its working run waits on the shared test suite lock or on CI, which freed that place with no cleanup or PR; start the ready rows each Dispatch line below names with bin/fm-spawn.sh until a spawn defers with exit 75"$'\n'"$FREED_DISPATCH"
   fi
   # Attended captain outcomes are main's to process; away they wait for the
   # return, including when the captain left while this turn ran. The close
@@ -1257,7 +1258,7 @@ while :; do
   fi
   if [ -n "$FREED_DISPATCH" ]; then
     ARM_TEXT=
-    exit_to_main "freed-place: a worker's own status line took it off working and freed its place with no cleanup or PR; start the ready rows each Dispatch line below names with bin/fm-spawn.sh until a spawn defers with exit 75" \
+    exit_to_main "freed-place: a worker's crew state no longer holds a place, because its own status line took it off working or its working run waits on the shared test suite lock or on CI, which freed that place with no cleanup or PR; start the ready rows each Dispatch line below names with bin/fm-spawn.sh until a spawn defers with exit 75" \
       "$FREED_DISPATCH${HEALTH_NOTE:+$'\n'$HEALTH_NOTE}"
   fi
 
