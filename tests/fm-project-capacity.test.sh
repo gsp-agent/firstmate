@@ -2212,6 +2212,42 @@ test_one_home_keeps_one_place_from_any_checkout() {
   pass "one home keeps one place in the line from any checkout"
 }
 
+# chip on PR 196 at 4cfffa5b: the project lock's identity, and so the line's
+# directory, was a `git hash-object` digest of the origin, which follows the
+# object format of whatever repository the caller stands in, so a P0 joined
+# from a SHA-1 checkout and a P1 checking from a SHA-256 one met in two
+# lines, and the P1 saw no one ahead of it.
+one_pool_two_object_formats() {  # <dir>
+  local dir=$1 lock1 lock2
+  lock1=$(cd "$dir/sha1" && fm_treehouse_project_lock_path "$dir/project") || return 1
+  lock2=$(cd "$dir/sha256" && fm_treehouse_project_lock_path "$dir/project") || return 1
+  printf 'sha1-lock=%s\nsha256-lock=%s\n' "$lock1" "$lock2"
+  (cd "$dir/sha1" && fm_tree_wait_join "$(fm_tree_wait_dir "$lock1")" task-p0 0 "$dir/home/state" 1000) || return 1
+  (cd "$dir/sha256" && fm_tree_wait_ahead "$(fm_tree_wait_dir "$lock2")" task-p1 1 1000 "$dir/home/state" &&
+    printf 'ahead-of-p1=%s\n' "$FM_TREE_WAIT_AHEAD")
+}
+test_one_pool_keeps_one_line_from_any_checkout() {
+  local dir out origin=git@github.com:example/shared.git sha1_id
+  dir="$TMP_ROOT/tree-line-pool-object-formats"
+  mkdir -p "$dir/home/state"
+  git init -q "$dir/project" || fail "could not make the project"
+  git -C "$dir/project" remote add origin "$origin" || fail "could not give the project its origin"
+  git init -q --object-format=sha1 "$dir/sha1" || fail "could not make a SHA-1 repository"
+  if ! git init -q --object-format=sha256 "$dir/sha256" 2>/dev/null; then
+    pass "one pool keeps one line from any checkout (skipped: this git makes no SHA-256 repository)"
+    return 0
+  fi
+  # The lock every caller in a SHA-1 checkout has always named stays put.
+  sha1_id=$(cd "$dir/sha1" && printf '%s' "$origin" | git hash-object --stdin) || fail "could not hash the origin"
+  out=$(FM_HOME="$dir/home" tree_line_helpers one_pool_two_object_formats "$dir" 2>&1) || fail "the line's helpers failed: $out"
+  assert_contains "$out" "sha1-lock=$dir/home/state/.treehouse-project-$sha1_id.lock" \
+    "a SHA-1 caller's project lock moved: $out"
+  assert_contains "$out" "sha256-lock=$dir/home/state/.treehouse-project-$sha1_id.lock" \
+    "a SHA-256 caller named another lock for the same pool: $out"
+  assert_contains "$out" "ahead-of-p1=1" "a P1 from a SHA-256 checkout did not see the P0 waiting ahead of it: $out"
+  pass "one pool keeps one lock and one line from any checkout"
+}
+
 # chip on PR 196 at da35c20b: the wake's choice and write ran after the
 # project lock was released, so two trees returned at once could both see
 # the head's wake file empty and both wake the head. A preemption held at the
@@ -2437,6 +2473,7 @@ test_one_task_id_in_two_homes_keeps_two_places
 test_homes_with_one_checksum_keep_two_places
 test_two_returned_trees_wake_two_waiters
 test_one_home_keeps_one_place_from_any_checkout
+test_one_pool_keeps_one_line_from_any_checkout
 test_two_concurrent_returns_wake_two_waiters
 test_stale_waiter_stops_holding_the_line
 test_teardown_wakes_the_head_waiter_at_once

@@ -1763,7 +1763,9 @@ EOF
 # derives the identical path. Its identity is the project's resolved origin, so
 # separate clones of one origin share a single lock; an origin-less local-only
 # project falls back to its own worktree top instead of failing to resolve.
-# Project capacity names its extra-start record by this path's identity hash.
+# Project capacity names its extra-start record, and its tree line, by this
+# path's identity hash, which no caller's working directory can change
+# (fm_git_sha1_blob_id).
 fm_treehouse_project_lock_path() {  # <project-dir>
   local project=$1 root origin identity hash top
   [ -d "$project" ] || return 1
@@ -1781,9 +1783,27 @@ fm_treehouse_project_lock_path() {  # <project-dir>
     top=$(CDPATH='' cd -- "$top" 2>/dev/null && pwd -P) || return 1
     identity=$top
   fi
-  hash=$(printf '%s' "$identity" | git hash-object --stdin 2>/dev/null) || return 1
+  hash=$(fm_git_sha1_blob_id "$identity") || return 1
   [ -d "$root/state" ] || return 1
   printf '%s/.treehouse-project-%s.lock\n' "$root/state" "$hash"
+}
+
+# Git's SHA-1 blob id of <text>, computed without git. `git hash-object`
+# follows the object format of the repository the caller stands in, so a
+# caller in a SHA-256 checkout named another project lock, and another tree
+# line, for the same pool (chip on PR 196). Every caller now gets the id a
+# SHA-1 repository gives, so no existing lock path moves.
+fm_git_sha1_blob_id() {  # <text>
+  local LC_ALL=C sum
+  if command -v sha1sum >/dev/null 2>&1; then
+    sum=$(printf 'blob %s\0%s' "${#1}" "$1" | sha1sum) || return 1
+  else
+    sum=$(printf 'blob %s\0%s' "${#1}" "$1" | shasum -a 1) || return 1
+  fi
+  sum=${sum%% *}
+  [ "${#sum}" -eq 40 ] || return 1
+  case "$sum" in *[!0-9a-f]*) return 1 ;; esac
+  printf '%s\n' "$sum"
 }
 
 # A Treehouse slot has the managed pool's fixed <pool>/<slot>/<repo> layout.
