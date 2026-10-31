@@ -1,0 +1,2 @@
+# Measurement: bin/fm-drift-nightly.sh check prints "error: missing manifest entry for PR 194" with the base upstream-lean as the fork and does not with this PR's head as the fork; other PRs' missing entries may still print on both.
+pr: 213
