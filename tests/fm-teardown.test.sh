@@ -6029,7 +6029,7 @@ test_release_counts_only_as_the_owners_own_statement() {
   link_bead_home "$case_dir" "$beads" dev/heru-vr-vision-sim
   (
     unset FM_TASK_DATA_BEAD_LOCATIONS
-    export HOME="$case_dir/home" BEAD_FAKE_LOG="$case_dir/br.log" PATH="$case_dir/fakebin:$PATH"
+    export HOME="$case_dir/home" BEAD_FAKE_LOG="$case_dir/br.log"
     export FM_TASK_BEAD_TIMEOUT_SECS=180
     . "$ROOT/bin/fm-timeout-lib.sh"
     . "$ROOT/bin/fm-task-data-lib.sh"
@@ -6037,7 +6037,7 @@ test_release_counts_only_as_the_owners_own_statement() {
     check() { # <expected-author-or-empty> <text>
       seed_open_bead "$case_dir" "$beads" "$id" '' \
         "$(owner_release_comment 3100 "$author" "$OWNER_RELEASE_AT" "$2" | jq -s '.')"
-      fm_task_bead_read "$id" "$spawned" 2>/dev/null \
+      PATH="$case_dir/fakebin:$PATH" fm_task_bead_read "$id" "$spawned" 2>/dev/null \
         || fail "release wording: the bead read failed on: $2"
       [ "$FM_TASK_BEAD_RELEASE_AUTHOR" = "$1" ] \
         || fail "release wording: expected release author '$1', got '$FM_TASK_BEAD_RELEASE_AUTHOR' for: $2"
@@ -6088,6 +6088,15 @@ test_release_counts_only_as_the_owners_own_statement() {
     check '' "$S. Checked just now: the tree is clean."$'\n'"Only once the deploy read lands."
     check '' "$S. Checked just now: \"the tree is clean\"."
     check '' "$S. Checked just now: the second release wording is $S."
+    check '' "$S. Checked just now: the tree is clean. Pending the deploy read."
+    check '' "$S. Checked just now: provided the deploy read lands."
+    check '' "$S. Checked just now: as soon as heru-yyo lands."
+    check '' "$S. Checked just now: waiting for the deploy read."
+
+    # A hedge carried in the signature before the lead-in.
+    check '' "$author (not yet), $lead_in: $S."
+    check '' "$author (if deploy lands), $lead_in: $S."
+    check '' "$author (\"not yet\"), $lead_in: $S."
   ) || exit 1
   pass "fm-teardown: only a comment that is the owner's own statement of the sentence releases a tree"
 }

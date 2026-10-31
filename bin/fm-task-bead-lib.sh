@@ -37,16 +37,18 @@
 # the sentence "Firstmate may tear down this bead's tree", whose time is after
 # the task's current spawn, and whose author is the bead's assignee, its owning
 # EP, or its owning PM. The comment states the sentence when it opens with it,
-# or with "owner's word for the worktree pool:" then the sentence, either form
-# optionally signed first by its own author, and the sentence appears once.
-# After it comes only a period, or a note starting "Checked" that has no quote
-# mark and no condition, negation, or second mention of the release. Any other
-# comment is not the owner's own statement, so it releases nothing. That
-# sentence is the owner's record that the remaining step needs no tree. A
-# restored task is a new spawn, so it needs a fresh release. The screen of the
-# note cannot read every hedge: a mid-sentence "once" passes, because the live
-# releases use it for later work, not for the release. The assignee is the
-# issue's assignee field. The owning EP is
+# or with "owner's word for the worktree pool:" then the sentence, and the
+# sentence appears once. Only the lead-in form may be signed first by its own
+# author, and a quote mark or screened term in that signature voids the
+# release. After the sentence comes only a period, or a note starting
+# "Checked" with no quote mark, no screened condition or negation term, and no
+# second mention of the release. Any other comment is not the owner's own
+# statement, so it releases nothing. That sentence is the owner's record that
+# the remaining step needs no tree. A restored task is a new spawn, so it needs
+# a fresh release. The screened terms are the list in the filter below, so a
+# hedge worded outside that list passes: a mid-sentence "once" passes, because
+# the live releases use it for later work, not for the release. The assignee
+# is the issue's assignee field. The owning EP is
 # "ep-" plus the directory name of any dev/*/.beads path that resolves to the
 # owning database, links included. The owning PM is "pm-" plus the bead id or
 # its prefix, each dot spelled as a dash. A PM under any other name releases
@@ -98,12 +100,15 @@ fm_task_bead_release_from_json() { # <json> <authors> <spawn-epoch>
     --arg lead_in "owner's word for the worktree pool" --argjson spawned "$3" '
     def created: try (.created_at | fromdateiso8601) catch 0;
     def withdrawn:
-      test("[\"`]|\\b(?i:not|never|cannot|if|when|unless|until|while|after|before|except|but|however|still|hold|wait|stop|keep|withdraw\\w*|revoke\\w*|rescind\\w*|firstmate|tear|\\w+n[\\x27\\x{2019}]t)\\b|(?:[.!?;:]\\s+|\\n\\s*)(?i:no|only|once)\\b");
+      test("[\"`]|\\b(?i:not|never|cannot|if|when|unless|until|while|after|before|except|but|however|still|hold|wait|waiting|pending|provided|stop|keep|withdraw\\w*|revoke\\w*|rescind\\w*|firstmate|tear|\\w+n[\\x27\\x{2019}]t)\\b|(?i:\\bas soon as\\b)|(?:[.!?;:]\\s+|\\n\\s*)(?i:no|only|once)\\b");
     def stated:
       .author as $author
       | (.text | ltrimstr($author)) as $text
+      | (if $text | test("\\A \\(")
+         then ($text | capture("\\A \\((?<sig>[^()\\n]{1,40})\\)").sig) else "" end) as $sig
       | ($text | test("\\A(?:(?:(?: \\([^()\\n]{1,40}\\))?, )?" + $lead_in + ":[ \\t]+)?" + $sentence
                       + "(?:\\.?\\s*\\z|(?:\\.\\s+|\\s*\\n\\s*)Checked\\b)"))
+        and ($sig | withdrawn | not)
         and ($text | split($sentence) | length == 2 and (.[1] | withdrawn | not));
     def issue:
       if type == "array" and length == 1 and (.[0] | type) == "object" then .[0]

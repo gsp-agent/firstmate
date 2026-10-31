@@ -128,9 +128,10 @@ Switching harness is therefore one ordinary relaunch rather than a separate mech
 
 [`bin/fm-teardown.sh`](../bin/fm-teardown.sh) copies every ship or scout task record to `data/<id>/record/closed-task.meta` before it removes the record.
 A task that answers to a bead is not torn down while that bead is open, unless its assignee, owning EP, or owning PM has commented on the bead, since the task's current spawn, with the exact sentence "Firstmate may tear down this bead's tree", the release that the remaining step needs no tree (`bin/fm-task-bead-lib.sh`).
-The sentence counts only as the owner's own statement: the comment opens with it, or with "owner's word for the worktree pool:" and then it, either form optionally signed first by the comment's own author, and the sentence appears once.
-After it may come only a period or a note starting "Checked", and a quote mark, condition, negation, or second mention of the release in that note voids the release.
-The screen cannot read every hedge: a mid-sentence "once" in the note passes, because the live releases use it for later work.
+The sentence counts only as the owner's own statement: the comment opens with it, or with "owner's word for the worktree pool:" and then it, and the sentence appears once.
+Only the lead-in form may be signed first by the comment's own author, and a quote mark or screened term in that signature voids the release.
+After it may come only a period or a note starting "Checked", and a quote mark, a screened condition or negation term, or a second mention of the release in that note voids the release.
+The screened terms are a fixed list, so a hedge worded outside it passes: a mid-sentence "once" in the note passes, because the live releases use it for later work.
 A restored task is a new spawn, so it needs a fresh release.
 This copy is the recovery path for a close that happened anyway and for that release.
 `relaunch` of a task with no live record refuses as before, and names that archive when one exists.
