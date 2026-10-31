@@ -2282,6 +2282,47 @@ test_two_concurrent_returns_wake_two_waiters() {
   pass "two trees returned at once wake two waiters, never the head twice"
 }
 
+# chip on PR 196 at 607bb0f6: a wake runs without the project lock, and its
+# scan deleted an entry it had read as gone, so a retry that refreshed that
+# entry under the lock while the scan read it lost its place. The scan is
+# held in its liveness check of the old owner while a new owner refreshes.
+wake_beside_a_refresh() {  # <dir>
+  local dir=$1 old new w
+  sleep 30 &
+  old=$!
+  fm_tree_wait_join "$dir/line" task-a 1 "$dir/home/state" 4000 "$old" || return 1
+  kill "$old" && wait "$old" 2>/dev/null
+  (
+    # shellcheck disable=SC2329 # Called by the wake's liveness check.
+    fm_pid_alive() {
+      if [ "$1" = "$old" ]; then sleep 2; fi
+      kill -0 "$1" 2>/dev/null
+    }
+    fm_tree_wait_wake "$dir/line" 4000 >/dev/null
+  ) &
+  w=$!
+  sleep 0.5
+  sleep 30 &
+  new=$!
+  fm_tree_wait_join "$dir/line" task-a 1 "$dir/home/state" 4000 "$new" || return 1
+  wait "$w"
+  printf 'refreshed-owner=%s\n' "$(cat "$dir"/line/*/task-a 2>/dev/null | sed -n 's/^owner=//p')"
+  printf 'waiters=%s\n' "$(fm_tree_wait_order "$dir/line" 4000 | wc -l | tr -d ' ')"
+  printf 'new=%s\n' "$new"
+  kill "$new" 2>/dev/null
+  wait "$new" 2>/dev/null || true
+}
+test_wake_never_removes_a_refreshed_waiter() {
+  local dir out new
+  dir="$TMP_ROOT/tree-line-wake-refresh"
+  mkdir -p "$dir/home/state"
+  out=$(tree_line_helpers wake_beside_a_refresh "$dir" 2>&1) || fail "the line's helpers failed: $out"
+  new=$(printf '%s\n' "$out" | sed -n 's/^new=//p')
+  assert_contains "$out" "refreshed-owner=$new" "a wake deleted the entry a live retry had just refreshed: $out"
+  assert_contains "$out" "waiters=1" "the refreshed waiter lost its place in the line: $out"
+  pass "a wake never removes a waiter that a retry refreshed while the wake read the line"
+}
+
 # A waiter that no deferral refreshed within FM_TREE_WAIT_STALE seconds has no
 # caller retrying it, so it stops holding the line and a free tree is not kept
 # idle for it.
@@ -2475,6 +2516,7 @@ test_two_returned_trees_wake_two_waiters
 test_one_home_keeps_one_place_from_any_checkout
 test_one_pool_keeps_one_line_from_any_checkout
 test_two_concurrent_returns_wake_two_waiters
+test_wake_never_removes_a_refreshed_waiter
 test_stale_waiter_stops_holding_the_line
 test_teardown_wakes_the_head_waiter_at_once
 test_waiter_lives_as_long_as_its_owner

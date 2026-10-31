@@ -579,8 +579,9 @@ _fm_project_capacity_require_timeout() {
 # with one id, each in its own place. Every function here
 # runs while the caller holds that lock, except a waiter's own removal and
 # fm_tree_wait_wake, which a returner sends after releasing the lock so the
-# woken start can take it at once; a wake that races a change in the line
-# costs one fallback retry, never a place.
+# woken start can take it at once. The wake only reads the line and writes a
+# wake file, so a wake that races a change in the line costs one fallback
+# retry, never a place.
 #
 # The line is moved by events. Whatever returns a tree to the pool calls
 # fm_tree_wait_wake once per returned tree, which writes the wake file,
@@ -704,9 +705,13 @@ fm_tree_wait_gone() {  # <entry> <id> <now>
 }
 
 # The live waiters, one "<rank> <seq> <since> <home>/<id>" per line in line
-# order, after removing every entry that has left the line.
-fm_tree_wait_order() {  # <dir> <now>
-  local dir=$1 now=$2 entry id home seq
+# order, after removing every entry that has left the line. With <keep> it
+# removes nothing: fm_tree_wait_wake reads the line without the project lock,
+# so an entry it reads as gone may since have been refreshed by a join under
+# that lock, and deleting its path would take that waiter's place (chip on
+# PR 196 at 607bb0f6). Only a project-lock holder removes an entry.
+fm_tree_wait_order() {  # <dir> <now> [keep]
+  local dir=$1 now=$2 keep=${3:-} entry id home seq
   [ -d "$dir" ] || return 0
   for entry in "$dir"/*/*; do
     [ -f "$entry" ] || continue
@@ -714,7 +719,7 @@ fm_tree_wait_order() {  # <dir> <now>
     home=${entry%/*}
     home=${home##*/}
     if fm_tree_wait_gone "$entry" "$id" "$now"; then
-      fm_tree_wait_drop "$entry"
+      [ -n "$keep" ] || fm_tree_wait_drop "$entry"
       continue
     fi
     seq=$(fm_tree_wait_field "$entry" seq)
@@ -753,8 +758,9 @@ fm_tree_wait_ahead() {  # <dir> <id> <priority> <now> <state-dir>
 # Returners run this after releasing the project lock, so the choice and the
 # write are serialized by the line's own <dir>/.wake.lock (bin/fm-wake-lib.sh's
 # locks, which every caller loads): two trees returned at once wake two
-# waiters, never the head twice. Bounded: a wake that cannot take that lock
-# leaves the waiter's own retry as the fallback.
+# waiters, never the head twice. It removes no entry, since it holds no project
+# lock. Bounded: a wake that cannot take that lock leaves the waiter's own
+# retry as the fallback.
 FM_TREE_WAIT_WAKE_LOCK_WAIT=${FM_TREE_WAIT_WAKE_LOCK_WAIT:-10}
 fm_tree_wait_wake() {  # <dir> <now>
   local dir=$1 now=$2 key wake woken='' rc=0
@@ -766,7 +772,7 @@ fm_tree_wait_wake() {  # <dir> <now>
     printf '%s\n' "$now" >> "$wake" || rc=1
     [ "$rc" -ne 0 ] || woken=${key##*/}
     break
-  done < <(fm_tree_wait_order "$dir" "$now")
+  done < <(fm_tree_wait_order "$dir" "$now" keep)
   fm_lock_release "$dir/.wake.lock" || true
   [ -z "$woken" ] || printf '%s\n' "$woken"
   return "$rc"
