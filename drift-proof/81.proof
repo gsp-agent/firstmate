@@ -1,1 +1,2 @@
-pending-pr: 81 .agent-config-dtjsb
+# First-parent replay keeps this PR: on its first parent, whose ten teardown lock waits loop until the lock frees, test_held_meta_lock_teardown_gives_up_within_bound in tests/fm-teardown.test.sh never finishes and is killed at 900 seconds; at this PR's commit it passes.
+pr: 81
