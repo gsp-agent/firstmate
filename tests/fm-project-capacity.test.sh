@@ -374,6 +374,9 @@ test_claimed_idle_tree_is_never_handed_to_the_allocator() {
   assert_contains "$out" "holds a tree another task still claims with nothing running in it" "the deferral did not name the claimed tree"
   assert_contains "$out" "3 claimed by merged-a1" "the deferral did not name the claiming task"
   assert_nothing_created "$case_dir" "$home" task-a "$before" "$worktrees"
+  # It waits for that task's teardown to return the tree, so it waits in the
+  # project's tree line, where that return wakes it (chip on PR 196 at 765134d0).
+  [ -n "$(tree_wait_entry "$home" task-a)" ] || fail "the deferral beside a claimed idle tree took no place in the tree line"
   pass "a spawn beside a claimed idle tree defers with 75 and never asks the allocator, which would reset it"
 }
 
@@ -398,6 +401,7 @@ test_claimed_tree_idle_by_steering_is_never_handed_to_the_allocator() {
   assert_contains "$out" "holds a tree another task still claims with nothing running in it" "the deferral did not name the claimed tree"
   grep -q '^treehouse get' "$case_dir/calls.log" && fail "the spawn asked the allocator beside a claimed idle tree: $(grep '^treehouse' "$case_dir/calls.log")"
   assert_absent "$home/state/task-a.meta" "a deferred spawn published a task record"
+  [ -n "$(tree_wait_entry "$home" task-a)" ] || fail "the deferral at steering took no place in the tree line"
   pass "a claimed tree that goes idle before steering is seen by a fresh read, and the spawn never asks the allocator"
 }
 
@@ -2172,6 +2176,41 @@ test_undispatchable_start_holds_no_place() {
   pass "a start whose backlog item is not dispatchable holds no place in the line"
 }
 
+# chip on PR 196 at 765134d0: the line read the start's priority with a second
+# `tasks-axi show` after the backlog preflight had read the row, and a failed
+# second read left the start with no priority, behind every P0-P4. The line
+# takes the priority from the preflight's one read.
+test_line_priority_comes_from_the_preflight_read() {
+  local case_dir home out rc real
+  if [ "$HAVE_TASKS_AXI" != 1 ]; then
+    pass "the line takes the priority the preflight read (skipped: no tasks-axi for backlog priority)"
+    return 0
+  fi
+  case_dir=$(pool_case tree-line-one-read task-p0)
+  home="$case_dir/home"
+  set_priority "$home" task-p0 0
+  real=$(command -v tasks-axi)
+  # Every read of task-p0's row after the first fails.
+  cat > "$case_dir/fakebin/tasks-axi" <<SH
+#!/usr/bin/env bash
+if [ "\${1:-}" = show ] && [ "\${2:-}" = task-p0 ]; then
+  n=\$(cat "$case_dir/p0-shows" 2>/dev/null || echo 0)
+  n=\$((n + 1))
+  printf '%s\\n' "\$n" > "$case_dir/p0-shows"
+  [ "\$n" -le 1 ] || exit 1
+fi
+exec "$real" "\$@"
+SH
+  chmod +x "$case_dir/fakebin/tasks-axi"
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_FULL_STATUS spawn_ship "$case_dir" task-p0 "$case_dir/project") || rc=$?
+  rm -f -- "$case_dir/fakebin/tasks-axi"
+  expect_code "$DEFER_EXIT" "$rc" "the P0 did not defer on the full pool: $out"
+  assert_grep 'priority=0' "$(tree_wait_entry "$home" task-p0)" \
+    "the P0 joined the line without the priority its backlog preflight read: $(cat "$(tree_wait_entry "$home" task-p0)" 2>/dev/null)"
+  pass "the line takes the priority the backlog preflight read, with no second read to fail"
+}
+
 # The next two cases drive the line's own helpers, as chip reproduced them on
 # PR 196, because their setups (two homes with one task id on one origin, one
 # teardown returning two trees) have no cheap end-to-end fixture here.
@@ -2577,6 +2616,7 @@ test_later_arrival_of_one_priority_waits_behind
 test_same_second_arrivals_keep_their_order
 test_uncounted_pool_keeps_its_line
 test_undispatchable_start_holds_no_place
+test_line_priority_comes_from_the_preflight_read
 test_one_task_id_in_two_homes_keeps_two_places
 test_homes_with_one_checksum_keep_two_places
 test_two_returned_trees_wake_two_waiters

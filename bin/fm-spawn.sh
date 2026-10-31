@@ -4499,6 +4499,10 @@ spawn_machine_total_defer
 BACKLOG_TRANSITION=0
 BACKLOG_ROW_STATE=
 SPAWN_BACKLOG_PREFLIGHT_DONE=0
+# This task's own backlog priority, from the preflight's one read: a second
+# read that failed would leave the start with no priority, behind every P0-P4
+# (chip on PR 196 at 765134d0).
+SPAWN_TREE_PRIORITY=
 spawn_backlog_preflight() {
   [ "$SPAWN_BACKLOG_PREFLIGHT_DONE" = 0 ] || return 0
   SPAWN_BACKLOG_PREFLIGHT_DONE=1
@@ -4506,6 +4510,7 @@ spawn_backlog_preflight() {
     BACKLOG_TRANSITION=1
     if fm_backlog_row_probe "$DATA" "$ID"; then
       BACKLOG_ROW_STATE=$FM_BACKLOG_ROW_STATE
+      SPAWN_TREE_PRIORITY=$FM_BACKLOG_ROW_PRIORITY
     elif [ "$FM_BACKLOG_ROW_RESULT" = not_found ]; then
       echo "error: task $ID has no backlog item in this home, so dispatching it would leave a worker no record owns; add it first (bin/fm-tasks-axi.sh add $ID '<title>' --kind $KIND) and re-run" >&2
       exit 1
@@ -4532,22 +4537,12 @@ spawn_backlog_preflight() {
   fi
 }
 SPAWN_POOL_EXPOSED=
-SPAWN_TREE_PRIORITY=
-SPAWN_TREE_PRIORITY_READ=0
-# This task's own backlog priority, read once, only when the line needs it.
-spawn_tree_priority() {
-  [ "$SPAWN_TREE_PRIORITY_READ" = 0 ] || return 0
-  SPAWN_TREE_PRIORITY_READ=1
-  if fm_backlog_transition_applies "$CONFIG" "$DATA" "$KIND" && fm_backlog_row_probe "$DATA" "$ID"; then
-    SPAWN_TREE_PRIORITY=$FM_BACKLOG_ROW_PRIORITY
-  fi
-}
 # A caller whose retry loop outlives this spawn names itself as
 # FM_TREE_WAIT_OWNER_PID, so its entry lives as long as that loop, and blocks
 # on the wake file printed here until a freed tree is its turn.
 spawn_tree_wait_join() {
   [ -n "$SPAWN_TREE_WAIT_DIR" ] || return 0
-  spawn_tree_priority
+  spawn_backlog_preflight
   if fm_tree_wait_join "$SPAWN_TREE_WAIT_DIR" "$ID" "$SPAWN_TREE_PRIORITY" "$STATE" "$(date +%s)" "${FM_TREE_WAIT_OWNER_PID:-}"; then
     echo "tree-wait: $FM_TREE_WAIT_WAKE" >&2
   else
@@ -4570,7 +4565,7 @@ if { [ "$RELAUNCH" -eq 0 ] || [ "$RELAUNCH_FRESH" = 1 ]; } && [ "$KIND" != secon
     exit "$SPAWN_DEFER_EXIT"
   fi
   if [ -n "$SPAWN_TREE_WAIT_DIR" ] && [ -d "$SPAWN_TREE_WAIT_DIR" ]; then
-    spawn_tree_priority
+    spawn_backlog_preflight
     fm_tree_wait_ahead "$SPAWN_TREE_WAIT_DIR" "$ID" "$SPAWN_TREE_PRIORITY" "$(date +%s)" "$STATE"
     # A pool that cannot be counted reads as one free tree, so any live
     # waiter ahead takes it first.
@@ -4591,6 +4586,9 @@ if { [ "$RELAUNCH" -eq 0 ] || [ "$RELAUNCH_FRESH" = 1 ]; } && [ "$KIND" != secon
   # size it read nothing, and the fresh read before steering decides alone.
   SPAWN_POOL_EXPOSED=${FM_PROJECT_CAPACITY_POOL_EXPOSED:-}
   if [ -n "$SPAWN_POOL_EXPOSED" ] && [ -z "$(fm_treehouse_free_own_slot "$PROJ_ABS" "$BASE_BRANCH" || true)" ]; then
+    # It waits for that task's teardown to return the tree, and that return
+    # wakes the line (chip on PR 196 at 765134d0).
+    spawn_tree_wait_join
     echo "deferred: project $(basename "$PROJ_ABS")'s worktree pool holds a tree another task still claims with nothing running in it ($(printf '%s\n' "$SPAWN_POOL_EXPOSED" | awk -F '\t' 'NF { printf "%s%s claimed by %s", sep, $2, ($3 == "" ? "a task" : $3); sep = ", " }')), which treehouse get would reset, and no free tree of this clone can be entered by name; task $ID was not launched and its backlog item stays queued - dispatch it again once that task is torn down" >&2
     exit "$SPAWN_DEFER_EXIT"
   fi
@@ -6134,7 +6132,9 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   fi
   if [ -z "$SPAWN_ENTER_SLOT" ] && [ -n "$SPAWN_POOL_EXPOSED" ]; then
     # No free own-clone tree to enter by name, and the allocator would reset
-    # a claimed tree: defer rather than ask it.
+    # a claimed tree: defer rather than ask it, in the line that tree's
+    # return wakes.
+    spawn_tree_wait_join
     echo "deferred: project $(basename "$PROJ_ABS")'s worktree pool holds a tree another task still claims with nothing running in it, which treehouse get would reset, and no free tree of this clone can be entered by name; task $ID was not launched and its backlog item stays queued - dispatch it again once that task is torn down" >&2
     exit "$SPAWN_DEFER_EXIT"
   fi
