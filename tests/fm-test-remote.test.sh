@@ -825,7 +825,7 @@ printf '%s\n' bin/fm-stock-bash-check.sh bin/fm-timeout-lib.sh
 EOF
   chmod +x "$REPO/bin/fm-lint.sh"
   for suite in fm-fleet-snapshot-view:19 fm-bearings-snapshot:62 fm-public-followup:1 fm-watch-triage:1 \
-    fm-fork-free-helpers:16 fm-backend:2; do
+    fm-fork-free-helpers:19 fm-backend:2; do
     count=${suite#*:}
     # shellcheck disable=SC2016 # the stand-in suite expands its own variables
     printf '#!/usr/bin/env bash\ni=0\nwhile [ "$i" -lt %s ]; do i=$((i + 1)); echo "ok - stand-in $i"; done\n' \
