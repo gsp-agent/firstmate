@@ -1,0 +1,23 @@
+### 1-base fork=1342059cb4677b12d064850bca4555c7ff606764 exit=1 load: load averages: 365.57 367.85 340.58
+--- error and unmatched lines
+error: missing manifest entry for PR 193
+error: missing manifest entry for PR 194
+error: missing manifest entry for PR 200
+error: proof patch conflicts for PR 137: 446eb1e7f53f7d03dc580227a7488129263dadbf
+error: proof patch conflicts for PR 138: efbe1b61c798d790fe6f2cce77e3e90e8fab1034
+error: proof patch conflicts for PR 139: f96e6fa9d0be3d60c2aefb214674acb54b8425a3
+error: proof patch conflicts for PR 197: 2a33f467cdcf899cb16d5418a62f562cc7124acc
+--- line classifying PR 193's merge 43045f59
+unproven: 43045f59bbf1363dd4accb7b3344827838a0ff0b test: give watcher-exit waits one shared 300-poll bound (#193)
+
+### 2-target fork=5b80ff36835fc69ac86108f0c67078d801f80a08 exit=1
+--- error and unmatched lines
+error: missing manifest entry for PR 194
+error: missing manifest entry for PR 200
+error: proof patch conflicts for PR 137: 446eb1e7f53f7d03dc580227a7488129263dadbf
+error: proof patch conflicts for PR 138: efbe1b61c798d790fe6f2cce77e3e90e8fab1034
+error: proof patch conflicts for PR 139: f96e6fa9d0be3d60c2aefb214674acb54b8425a3
+error: proof patch conflicts for PR 197: 2a33f467cdcf899cb16d5418a62f562cc7124acc
+--- line classifying PR 193's merge 43045f59
+keep: 43045f59bbf1363dd4accb7b3344827838a0ff0b test: give watcher-exit waits one shared 300-poll bound (#193)
+

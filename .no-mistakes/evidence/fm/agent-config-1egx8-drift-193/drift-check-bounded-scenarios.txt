@@ -1,0 +1,50 @@
+### 1-base fork=1342059cb4677b12d064850bca4555c7ff606764 exit=1
+--- error lines, and unmatched lines for PRs 193, 200, 205
+error: missing manifest entry for PR 193
+error: missing manifest entry for PR 194
+error: missing manifest entry for PR 200
+--- line classifying PR 193's merge 43045f59
+unproven: 43045f59bbf1363dd4accb7b3344827838a0ff0b test: give watcher-exit waits one shared 300-poll bound (#193)
+
+### 2-target fork=5b80ff36835fc69ac86108f0c67078d801f80a08 exit=1
+--- error lines, and unmatched lines for PRs 193, 200, 205
+error: missing manifest entry for PR 194
+error: missing manifest entry for PR 200
+--- line classifying PR 193's merge 43045f59
+keep: 43045f59bbf1363dd4accb7b3344827838a0ff0b test: give watcher-exit waits one shared 300-poll bound (#193)
+
+### 3-squash-without-own-proof fork=d10767fd82b3967dfdb30c23fae28617afa39609 exit=1
+--- error lines, and unmatched lines for PRs 193, 200, 205
+error: missing manifest entry for PR 194
+error: missing manifest entry for PR 200
+error: missing manifest entry for PR 205
+--- line classifying PR 193's merge 43045f59
+keep: 43045f59bbf1363dd4accb7b3344827838a0ff0b test: give watcher-exit waits one shared 300-poll bound (#193)
+
+### 4-squash-with-own-proof fork=1c2c1ef1f5bfa7b94447063ea72c719818afedb7 exit=1
+--- error lines, and unmatched lines for PRs 193, 200, 205
+error: missing manifest entry for PR 194
+error: missing manifest entry for PR 200
+--- line classifying PR 193's merge 43045f59
+keep: 43045f59bbf1363dd4accb7b3344827838a0ff0b test: give watcher-exit waits one shared 300-poll bound (#193)
+
+### 5-wrong-number-in-193-proof fork=2c0c295b67dcee5d5162b5055a143de6caac59ab exit=2
+--- error lines, and unmatched lines for PRs 193, 200, 205
+error: drift-proof/193.proof holds an entry for another PR: pr: 194
+--- line classifying PR 193's merge 43045f59
+
+### 6-comment-only-193-proof fork=3b06f79974bfb0492b302844e486d5a272a27829 exit=1
+--- error lines, and unmatched lines for PRs 193, 200, 205
+error: missing manifest entry for PR 193
+error: missing manifest entry for PR 194
+error: missing manifest entry for PR 200
+--- line classifying PR 193's merge 43045f59
+unproven: 43045f59bbf1363dd4accb7b3344827838a0ff0b test: give watcher-exit waits one shared 300-poll bound (#193)
+
+### 7-guessed-200-no-own-proof fork=6b39af9b691fa1366664c352745d8c1a69a42b70 exit=1
+--- error lines, and unmatched lines for PRs 193, 200, 205
+error: missing manifest entry for PR 194
+error: missing manifest entry for PR 205
+--- line classifying PR 193's merge 43045f59
+keep: 43045f59bbf1363dd4accb7b3344827838a0ff0b test: give watcher-exit waits one shared 300-poll bound (#193)
+
