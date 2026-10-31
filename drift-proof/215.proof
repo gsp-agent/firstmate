@@ -1,0 +1,2 @@
+# Failing-first test: tests/fm-supervision-host.test.sh test_suite_exit_stops_a_watcher_held_before_its_pid_write is red 3/3 with suite_cleanup's sweep call removed ('the suite's exit cleanup left running a process of a watcher that had not yet written state/.watch.lock/pid') and green 3/3 with it, run alone through bin/fm-test-run.sh on the reviewed head 61b96649 at load1 175-225; later commits only reword a comment and the test's SC2015 check.
+pr: 215
