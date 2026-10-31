@@ -45,8 +45,13 @@
 #      gate is a wait, not a failure: each refused try records its arrival in
 #      the gate's line, and the next try follows within
 #      FM_TEST_REMOTE_RETRY_SECS, inside the gate's 180-second live-waiter
-#      window, so the gate's longest-live-waiter rule starts waiters in
-#      arrival order. Only the caller's own time budget bounds the wait.
+#      window, so the gate's longest-live-waiter rule starts remote runs in
+#      arrival order, and starts a remote run ahead of a plain gated run that
+#      arrives after it. Plain-first ordering is an open gap: a plain `run
+#      --needs firstmate` polling under the default MACHINE_GATE_FIRSTMATE_WAIT
+#      writes no busy row until its window ends, so a later remote run that logs
+#      its arrival can start first. Only the caller's own time budget bounds
+#      the wait.
 #   5. streams the script's output back, copies each --pull <name> from out/
 #      to <path> here (a relative <path> is relative to this checkout's root),
 #      and exits with the script's own status, or 2 when the script passed but
