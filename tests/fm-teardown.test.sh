@@ -6015,6 +6015,83 @@ test_released_open_bead_tears_down_and_frees_its_tree() {
   pass "fm-teardown: an open bead with its owner's recorded release is archived and its tree is returned; the bead stays open"
 }
 
+# What a comment says around the sentence decides whether it is the owner's own
+# statement, so each text goes through the bead read that teardown's gate uses.
+test_release_counts_only_as_the_owners_own_statement() {
+  local case_dir id=heru-word beads=dev/heru-vr-vision-sim-beads S=$OWNER_RELEASE_SENTENCE
+  local author=ep-heru-vr-vision-sim lead_in="owner's word for the worktree pool"
+  local spawned=${OWNER_RELEASE_SPAWN_GEN#s}
+  spawned=${spawned%%.*}
+  case_dir=$(make_case bead-release-wording)
+  mkdir -p "$case_dir/home"
+  make_bead_fake_br "$case_dir"
+  seed_open_bead "$case_dir" "$beads" "$id" '' '[]'
+  link_bead_home "$case_dir" "$beads" dev/heru-vr-vision-sim
+  (
+    unset FM_TASK_DATA_BEAD_LOCATIONS
+    export HOME="$case_dir/home" BEAD_FAKE_LOG="$case_dir/br.log" PATH="$case_dir/fakebin:$PATH"
+    export FM_TASK_BEAD_TIMEOUT_SECS=180
+    . "$ROOT/bin/fm-timeout-lib.sh"
+    . "$ROOT/bin/fm-task-data-lib.sh"
+    . "$ROOT/bin/fm-task-bead-lib.sh"
+    check() { # <expected-author-or-empty> <text>
+      seed_open_bead "$case_dir" "$beads" "$id" '' \
+        "$(owner_release_comment 3100 "$author" "$OWNER_RELEASE_AT" "$2" | jq -s '.')"
+      fm_task_bead_read "$id" "$spawned" 2>/dev/null \
+        || fail "release wording: the bead read failed on: $2"
+      [ "$FM_TASK_BEAD_RELEASE_AUTHOR" = "$1" ] \
+        || fail "release wording: expected release author '$1', got '$FM_TASK_BEAD_RELEASE_AUTHOR' for: $2"
+    }
+
+    check "$author" "$OWNER_RELEASE_LIVE_TEXT"
+    check "$author" "$S"
+    check "$author" "$S."
+    check "$author" "$S.  "
+    check "$author" "$lead_in: $S"
+    check "$author" "$lead_in: $S."
+    check "$author" "$author, $lead_in: $S."
+    check "$author" "$S"$'\n'"Checked just now: tree 5 is clean."
+
+    # On a later line than the words that quote, condition, or negate it.
+    check '' "Not yet:"$'\n'"$S."
+    check '' "If the deploy read lands:"$'\n\n'"$S."
+    check '' "Once the deploy read lands, I will write:"$'\n'"$S"
+    check '' "To release, write the exact sentence:"$'\n'"$S"
+    check '' '```'$'\n'"$S"$'\n''```'
+    check '' "Earlier release, for the record:"$'\n'"> $lead_in: $S."$'\n'"The restored task still needs this tree."
+
+    # After a lead-in that is not the owner's own word, with no listed hedge.
+    check '' "To release, the EP comments the exact sentence: $S."
+    check '' "pm-heru asking ep-heru, please record: $S."
+    check '' "I can't yet say: $S."
+    check '' "owner's word: $S."
+    check '' "ep-laptop (20a55171), $lead_in: $S."
+    check '' "Not yet, $lead_in: $S."
+
+    # Quoted or pasted, on any line.
+    check '' "\"$S\""
+    check '' "'$S'"
+    check '' "\`$S\`"
+    check '' "> $S"
+    check '' "teardown still refuses: or after that owner comments with the exact sentence \"$S\"."
+
+    # Withdrawn or conditioned by what follows it.
+    check '' "$S once the deploy read lands"
+    check '' "$S if the deploy read lands."
+    check '' "$S?"
+    check '' "$S. Wait for the deploy read first."
+    check '' "$S. Hold until heru-yyo lands."
+    check '' "$S"$'\n'"The restored task still needs this tree."
+    check '' "$S. Checked just now: the tree is clean. Not before the deploy read lands."
+    check '' "$S. Checked just now: the tree is clean, but hold until heru-yyo lands."
+    check '' "$S. Checked just now: the tree isn't clean."
+    check '' "$S. Checked just now: the tree is clean."$'\n'"Only once the deploy read lands."
+    check '' "$S. Checked just now: \"the tree is clean\"."
+    check '' "$S. Checked just now: the second release wording is $S."
+  ) || exit 1
+  pass "fm-teardown: only a comment that is the owner's own statement of the sentence releases a tree"
+}
+
 test_unreleased_open_bead_still_refuses() {
   local case_dir id=heru-hold1 shape comments out rc force gen author text
   local beads=dev/heru-vr-vision-sim-beads project=dev/heru-vr-vision-sim
@@ -6023,7 +6100,8 @@ test_unreleased_open_bead_still_refuses() {
   # with no spawn time has nothing a release can be newer than. An owner who
   # quotes, conditions, or negates the sentence has released nothing.
   for shape in none stranger named-pm other-home chatter stale no-spawn-time \
-    quoted-refusal conditional conditional-lead-in negated negated-after; do
+    quoted-refusal conditional conditional-lead-in negated negated-after \
+    later-line relayed-lead-in withdrawn-later; do
     case_dir=$(make_bead_case "bead-unreleased-$shape" "$id")
     gen=$OWNER_RELEASE_SPAWN_GEN
     author=ep-heru-vr-vision-sim
@@ -6051,6 +6129,9 @@ test_unreleased_open_bead_still_refuses() {
           conditional-lead-in) text="if the deploy read lands: $OWNER_RELEASE_SENTENCE." ;;
           negated) text="Not yet: $OWNER_RELEASE_SENTENCE." ;;
           negated-after) text="$OWNER_RELEASE_SENTENCE. Not before the deploy read lands." ;;
+          later-line) text="Not yet:"$'\n'"$OWNER_RELEASE_SENTENCE." ;;
+          relayed-lead-in) text="To release, the EP comments the exact sentence: $OWNER_RELEASE_SENTENCE." ;;
+          withdrawn-later) text="$OWNER_RELEASE_SENTENCE. Checked just now: the tree is clean. Hold until heru-yyo lands." ;;
         esac
         comments=$(owner_release_comment 3100 "$author" "$OWNER_RELEASE_AT" "$text" | jq -s '.')
         ;;
@@ -6102,6 +6183,7 @@ if [ "${FM_TEARDOWN_TEST_GROUP:-}" = bead-gate ]; then
   test_unreadable_bead_home_refuses_cleanup
   test_task_with_no_bead_is_cleaned_up_as_before_and_archived
   test_released_open_bead_tears_down_and_frees_its_tree
+  test_release_counts_only_as_the_owners_own_statement
   test_unreleased_open_bead_still_refuses
   exit 0
 fi
@@ -10576,6 +10658,7 @@ test_discovered_bead_home_gates_cleanup
 test_unreadable_bead_home_refuses_cleanup
 test_task_with_no_bead_is_cleaned_up_as_before_and_archived
 test_released_open_bead_tears_down_and_frees_its_tree
+test_release_counts_only_as_the_owners_own_statement
 test_unreleased_open_bead_still_refuses
 test_teardown_closes_a_gerrit_task_with_its_change_url_as_a_note
 test_teardown_manual_backend_leaves_the_backlog_to_the_operator

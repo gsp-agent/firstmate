@@ -738,7 +738,7 @@ teardown_require_task_bead_done() {
   esac
   if fm_task_bead_open "$FM_TASK_BEAD_STATUS"; then
     [ -z "$FM_TASK_BEAD_RELEASE_AUTHOR" ] || return 0
-    echo "REFUSED: task $ID answers to bead $FM_TASK_BEAD_ID, which is $FM_TASK_BEAD_STATUS. A merge or a measurement is a milestone; the bead's done decides when the task is done. No release by its assignee or owning EP or PM was recorded since this task's current spawn, and --force does not supply one. Its worker, pane, local copy, and backlog item stay with their owner; nothing was changed. Tear it down after the bead closes, or after that owner comments on the bead with the exact sentence \"Firstmate may tear down this bead's tree\" as their own statement: at the start of a line or after a short lead-in ending with a colon, not quoted, conditional, or negated." >&2
+    echo "REFUSED: task $ID answers to bead $FM_TASK_BEAD_ID, which is $FM_TASK_BEAD_STATUS. A merge or a measurement is a milestone; the bead's done decides when the task is done. No release by its assignee or owning EP or PM was recorded since this task's current spawn, and --force does not supply one. Its worker, pane, local copy, and backlog item stay with their owner; nothing was changed. Tear it down after the bead closes, or after that owner comments on the bead opening with the exact sentence \"Firstmate may tear down this bead's tree\", or with \"owner's word for the worktree pool:\" and then that sentence. After it may come only a period or a note starting \"Checked\", and a quote, condition, or negation there voids the release." >&2
     return 1
   fi
   if fm_task_merge_handoff_pending "$STATE/$ID.status" "$ID"; then

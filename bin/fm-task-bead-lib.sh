@@ -36,11 +36,17 @@
 # An owner's recorded release is the newest comment on an open bead that states
 # the sentence "Firstmate may tear down this bead's tree", whose time is after
 # the task's current spawn, and whose author is the bead's assignee, its owning
-# EP, or its owning PM. The sentence is stated when it starts a line, or follows
-# a short lead-in on that line ending with a colon, and then ends the text or is
-# followed by a period or a line break. A quoted, conditional, or negated
-# sentence is not stated. That sentence is the owner's record that the remaining
-# step needs no tree. A restored task is a new spawn, so it needs a fresh release. The assignee is the issue's assignee field. The owning EP is
+# EP, or its owning PM. The comment states the sentence when it opens with it,
+# or with "owner's word for the worktree pool:" then the sentence, either form
+# optionally signed first by its own author, and the sentence appears once.
+# After it comes only a period, or a note starting "Checked" that has no quote
+# mark and no condition, negation, or second mention of the release. Any other
+# comment is not the owner's own statement, so it releases nothing. That
+# sentence is the owner's record that the remaining step needs no tree. A
+# restored task is a new spawn, so it needs a fresh release. The screen of the
+# note cannot read every hedge: a mid-sentence "once" passes, because the live
+# releases use it for later work, not for the release. The assignee is the
+# issue's assignee field. The owning EP is
 # "ep-" plus the directory name of any dev/*/.beads path that resolves to the
 # owning database, links included. The owning PM is "pm-" plus the bead id or
 # its prefix, each dot spelled as a dash. A PM under any other name releases
@@ -88,12 +94,17 @@ EOF
 # JSON, or nothing when there is none. Returns 1 when the comment list cannot
 # be read. This filter is the release rule.
 fm_task_bead_release_from_json() { # <json> <authors> <spawn-epoch>
-  jq -r --arg authors "$2" --arg sentence "Firstmate may tear down this bead's tree" --argjson spawned "$3" '
+  jq -r --arg authors "$2" --arg sentence "Firstmate may tear down this bead's tree" \
+    --arg lead_in "owner's word for the worktree pool" --argjson spawned "$3" '
     def created: try (.created_at | fromdateiso8601) catch 0;
-    def hedge: "\\b(?i:not|no|never|cannot|don.t|if|when|unless|once|after|until|before|while|only|except|but)\\b";
+    def withdrawn:
+      test("[\"`]|\\b(?i:not|never|cannot|if|when|unless|until|while|after|before|except|but|however|still|hold|wait|stop|keep|withdraw\\w*|revoke\\w*|rescind\\w*|firstmate|tear|\\w+n[\\x27\\x{2019}]t)\\b|(?:[.!?;:]\\s+|\\n\\s*)(?i:no|only|once)\\b");
     def stated:
-      test("(?:\\A|\\n)[ \\t]*(?:(?:(?!" + hedge + ")[^\\n\":`]){1,120}:[ \\t]+)?" + $sentence
-           + "(?:\\.?\\s*\\z|(?:\\.\\s+|\\s*\\n\\s*)(?!\\s|" + hedge + "))");
+      .author as $author
+      | (.text | ltrimstr($author)) as $text
+      | ($text | test("\\A(?:(?:(?: \\([^()\\n]{1,40}\\))?, )?" + $lead_in + ":[ \\t]+)?" + $sentence
+                      + "(?:\\.?\\s*\\z|(?:\\.\\s+|\\s*\\n\\s*)Checked\\b)"))
+        and ($text | split($sentence) | length == 2 and (.[1] | withdrawn | not));
     def issue:
       if type == "array" and length == 1 and (.[0] | type) == "object" then .[0]
       else error("bead payload is not one issue") end;
@@ -107,7 +118,7 @@ fm_task_bead_release_from_json() { # <json> <authors> <spawn-epoch>
         | select(type == "object")
         | select((.author | type) == "string" and (.author | test("^[A-Za-z0-9._+@-]+$")))
         | select(.author as $author | $author == $assignee or any($authors | split("\n")[]; . == $author))
-        | select((.text | type) == "string" and (.text | stated))
+        | select((.text | type) == "string" and stated)
         | select(created > $spawned)
       ]
     | sort_by(created, .id)
