@@ -1,0 +1,2 @@
+# Failing-first measurement: bin/fm-drift-nightly.sh check --no-fetch --fork origin/upstream-lean (1342059c) prints 'error: missing manifest entry for PR 193'; with this PR's drift-proof/193.proof (head 5b80ff36) it no longer names PR 193.
+pr: 205

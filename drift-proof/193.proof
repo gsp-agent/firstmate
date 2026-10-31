@@ -1,0 +1,2 @@
+# Failing-first measurement, tests/fm-wake-queue.test.sh test_signal_catchup_without_running_watcher alone and interleaved: on the base 810d6ae3 its 40-poll watcher-exit bound failed 3/5 at load 250-420; at 300 polls (1be9a7fa) it passed 4/4 while 810d6ae3 failed 3/4 alongside; a never-exiting watcher still fails both changed cases at 300 polls (M2, M3 in no-mistakes run 01M63MYSTWXGMNWVFX80HHNFMZ's evidence).
+pr: 193
