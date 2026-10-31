@@ -41,6 +41,16 @@
 #                   parallel hints, falling back to serial weights if missing.
 #                   Every other selection uses serial weights alone.
 #                   Equal weights are ordered by path under LC_ALL=C.
+#   --remote <host>:<scratch-root>
+#                   run the selection on another Mac instead of here, against
+#                   this checkout's exact commit and its uncommitted changes,
+#                   and exit with that run's status. bin/fm-test-remote.sh owns
+#                   the transport, its failure modes, and the host's
+#                   one-suite-at-a-time gate. It takes no machine line here and
+#                   never falls back to a local run. It refuses when a live
+#                   switch is set here, and the host runs with
+#                   --fail-on-unpermitted-skip. --json is written there and
+#                   copied back; the inspection modes run here and ignore it.
 #   --base <ref>    with --changed, compare against this ref (default: origin/main)
 #   --exclude-family <name>
 #                   drop scripts whose primary family matches <name> after selection
@@ -51,6 +61,12 @@
 #                   "skip: <token>" (e.g. --fail-on-gate-skip 'herdr not found').
 #                   The required Herdr CI lane uses this so a missing pin cannot
 #                   silently pass as a gate skip.
+#   --fail-on-unpermitted-skip
+#                   after each script, fail the run if a line reporting a skip
+#                   ("skip:", "skip -", "# skip", or a passing "ok - ", "note: ",
+#                   or "# " line saying skipped) is not one that
+#                   tests/remote-permitted-skips.txt permits. --remote always
+#                   sets this on the host.
 #   --jobs N        run the selected scripts with up to N concurrent workers.
 #                   Plain --changed and a plain list of script paths use
 #                   min(4, cpus) workers when multiple selected scripts are
@@ -119,9 +135,9 @@
 #   retry behavior, nested runs, and timing across admission waits.
 #
 # Exit status is non-zero if any selected script exits non-zero, a configured
-# --fail-on-gate-skip token appears, the measured duration exceeds
-# --max-wall-ms, timing-artifact finalization fails, or a concurrent worker
-# violates its isolation check. Other gate skips (first meaningful line
+# --fail-on-gate-skip token or a --fail-on-unpermitted-skip line appears, the
+# measured duration exceeds --max-wall-ms, timing-artifact finalization fails,
+# or a concurrent worker violates its isolation check. Other gate skips (first meaningful line
 # matching ^skip:) remain successful and are counted as skipped_gate; each one
 # is logged with its reason and recorded in the timing artifact.
 #
@@ -194,9 +210,11 @@ FAMILY=
 LANE=
 BASE_REF=origin/main
 JSON_PATH=
+REMOTE=
 SCRIPTS=()
 EXCLUDE_FAMILIES=()
 FAIL_ON_GATE_SKIP=
+FAIL_ON_UNPERMITTED_SKIP=0
 JOBS=1
 JOBS_EXPLICIT=0
 JOBS_MAX=8
@@ -889,6 +907,7 @@ tests/fm-teardown.test.sh 202132
 tests/fm-test-fixture-cleanup.test.sh 866
 tests/fm-test-fixtures.test.sh 1802
 tests/fm-test-isolation-proof.test.sh 2866
+tests/fm-test-remote.test.sh 20000
 tests/fm-timeout-lib.test.sh 10750
 tests/fm-tmux-agent-liveness.test.sh 3770
 tests/fm-tool-update-check.test.sh 14383
@@ -1465,6 +1484,12 @@ families_for_changed_path() {
       # Only this script wraps each suite in run_script_bounded's fixture Git
       # isolation, and only a standalone-family script proves it.
       printf '%s\n' "__script__:fm-test-fixtures.test.sh"
+      # The remote transport and its skip check live in this runner, and
+      # only fm-test-remote.test.sh exercises them.
+      printf '%s\n' "__script__:fm-test-remote.test.sh"
+      ;;
+    tests/remote-permitted-skips.txt)
+      printf '%s\n' "__script__:fm-test-remote.test.sh"
       ;;
     bin/fm-test-isolation-proof.sh)
       # Same reason as the runner above: the proof drives every
@@ -1892,6 +1917,21 @@ detect_gate_skip_token() {
   grep -F -q "skip: $token" "$file" 2>/dev/null
 }
 
+# Print the first line in the script's output that reports a skip and that
+# tests/remote-permitted-skips.txt does not permit, or nothing.
+unpermitted_skip() {
+  grep -E \
+    -e '^(# )?skip(-runner)?(:| -)' \
+    -e '^ok - skip:' \
+    -e '^ok - (skipped|SKIP)' \
+    -e '^ok - .*(\(skipped|skipped (\(|without |because |where |on |as |for )|skipped: |: skipped|; skipped)' \
+    -e '^# .*skipped' \
+    -e '^(ok - |note: ).*[,;] skipping' \
+    "$1" 2>/dev/null \
+    | grep -Ev -f <(grep -Ev '^(#|$)' "$ROOT/tests/remote-permitted-skips.txt" 2>/dev/null) \
+    | head -n 1
+}
+
 apply_exclude_families() {
   local s fam keep ex
   local -a kept=()
@@ -2048,6 +2088,16 @@ while [ "$#" -gt 0 ]; do
       JSON_PATH=${1#--json=}
       shift
       ;;
+    --remote)
+      [ "$#" -gt 1 ] && [ -n "$2" ] || die "--remote requires <host>:<scratch-root>"
+      REMOTE=$2
+      shift 2
+      ;;
+    --remote=*)
+      REMOTE=${1#--remote=}
+      [ -n "$REMOTE" ] || die "--remote requires <host>:<scratch-root>"
+      shift
+      ;;
     --jobs)
       [ "$#" -gt 1 ] || die "--jobs requires a positive integer"
       JOBS=$2
@@ -2136,6 +2186,10 @@ while [ "$#" -gt 0 ]; do
       FAIL_ON_GATE_SKIP=${1#--fail-on-gate-skip=}
       shift
       ;;
+    --fail-on-unpermitted-skip)
+      FAIL_ON_UNPERMITTED_SKIP=1
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -2222,6 +2276,55 @@ if [ -n "${MODE:-}" ] && [ "$LIST_ONLY" -eq 0 ] && [ "$LIST_SCHEDULED" -eq 0 ]; 
   refuse_primary_checkout_for_task
 fi
 
+# Hand an executing run to bin/fm-test-remote.sh, which owns the transport.
+# The host runs this same runner on this checkout's commit, so the arguments
+# go across unchanged except four: --remote is dropped; --json is written on
+# the host and copied back; --changed's base is resolved here and sent as a
+# commit, because a relative base such as HEAD~1 names another commit there
+# when uncommitted changes add a commit over HEAD; and
+# --fail-on-unpermitted-skip is added, so a suite that could not run there is
+# not a pass.
+run_remote() {
+  local arg skip=0 rest=0 base_sha
+  local -a forward=() pre=(--fail-on-unpermitted-skip) opts=()
+  for arg in ${ORIGINAL_ARGS[@]+"${ORIGINAL_ARGS[@]}"}; do
+    if [ "$skip" -eq 1 ]; then
+      skip=0
+      continue
+    fi
+    if [ "$rest" -eq 0 ]; then
+      case "$arg" in
+        --remote | --json | --base)
+          skip=1
+          continue
+          ;;
+        --remote=* | --json=* | --base=*) continue ;;
+        --) rest=1 ;;
+      esac
+    fi
+    # A script named by its path in this checkout is the same path there.
+    case "$arg" in "$ROOT"/*) arg=${arg#"$ROOT"/} ;; esac
+    forward+=("$arg")
+  done
+  if [ -n "$JSON_PATH" ]; then
+    # The host runs this from <run>/repo and resolves a relative --json
+    # against that root, so ../out is the directory the transport copies from.
+    pre+=(--json ../out/timing.json)
+    opts+=(--pull "timing.json=$JSON_PATH")
+  fi
+  if [ "$MODE" = changed ]; then
+    base_sha=$(git -C "$ROOT" rev-parse --verify --quiet "$BASE_REF^{commit}") \
+      || die "changed-file base ref not found: $BASE_REF (pass --base <ref>)"
+    pre+=(--base "$base_sha")
+    opts+=(--base "$base_sha")
+  fi
+  exec "$BASH" "$ROOT/bin/fm-test-remote.sh" "$REMOTE" ${opts[@]+"${opts[@]}"} -- \
+    bin/fm-test-run.sh ${pre[@]+"${pre[@]}"} ${forward[@]+"${forward[@]}"}
+}
+if [ -n "$REMOTE" ] && [ -n "${MODE:-}" ] && [ "$LIST_ONLY" -eq 0 ] && [ "$LIST_SCHEDULED" -eq 0 ]; then
+  run_remote
+fi
+
 case "${MODE:-}" in
   all)
     select_all
@@ -2263,6 +2366,9 @@ if [ "${#EXCLUDE_FAMILIES[@]}" -gt 0 ]; then
 fi
 if [ -n "$FAIL_ON_GATE_SKIP" ]; then
   SELECTION_DESC="${SELECTION_DESC};fail-on-gate-skip=$FAIL_ON_GATE_SKIP"
+fi
+if [ "$FAIL_ON_UNPERMITTED_SKIP" -eq 1 ]; then
+  SELECTION_DESC="${SELECTION_DESC};fail-on-unpermitted-skip"
 fi
 if [ "$LIST_ONLY" -eq 1 ] || [ "$LIST_SCHEDULED" -eq 1 ]; then
   if [ "$LIST_SCHEDULED" -eq 1 ]; then
@@ -2486,7 +2592,7 @@ family_bump() {
 
 record_script_result() {
   local script=$1 rc=$2 duration=$3 out=$4 end_iso=$5
-  local base family expected gate_skip gate_reason fail_delta
+  local base family expected gate_skip gate_reason fail_delta unpermitted
   base=$(basename "$script")
   family=$(family_for_basename "$base")
   expected=$(expected_gate_skip_for_family "$family")
@@ -2494,6 +2600,13 @@ record_script_result() {
   if [ -n "$FAIL_ON_GATE_SKIP" ] && detect_gate_skip_token "$out" "$FAIL_ON_GATE_SKIP"; then
     log "required gate skip token seen in $script: skip: $FAIL_ON_GATE_SKIP"
     rc=1
+  fi
+  if [ "$FAIL_ON_UNPERMITTED_SKIP" -eq 1 ]; then
+    unpermitted=$(unpermitted_skip "$out")
+    if [ -n "$unpermitted" ]; then
+      log "$script reported a skip tests/remote-permitted-skips.txt does not permit: $unpermitted"
+      rc=1
+    fi
   fi
 
   gate_skip=false

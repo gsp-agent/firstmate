@@ -27,6 +27,7 @@ puts (val.nil? || val == false || val == "") ? "" : val.inspect
 
 # This fork's GitHub CI has no macOS job, so the trusted gate is the only
 # required stock Bash 3.2 run before push; an upstream merge must not drop it.
+# It runs on the Mac mini, off the machine running the pipeline.
 test_nm_declares_the_stock_bash_gate() {
   local val
   val=$(ruby -ryaml -e '
@@ -34,10 +35,12 @@ doc = YAML.load_file(ARGV[0]) || {}
 gate = Array(doc["gates"]).find { |g| g.is_a?(Hash) && g["name"] == "stock-macos-bash" }
 puts gate ? "#{gate["after"]} #{gate["command"]}" : ""
 ' "$NM") || fail "failed to parse .no-mistakes.yaml as YAML"
-  [ "$val" = "lint bin/fm-stock-bash-check.sh" ] \
-    || fail "the stock-macos-bash gate must run bin/fm-stock-bash-check.sh after lint; got: ${val:-no such gate}"
+  case "$val" in
+    "lint bin/fm-stock-bash-check.sh --remote "?*:/?*) ;;
+    *) fail "the stock-macos-bash gate must run bin/fm-stock-bash-check.sh --remote <host>:<scratch-root> after lint; got: ${val:-no such gate}" ;;
+  esac
   [ -x "$ROOT/bin/fm-stock-bash-check.sh" ] || fail "bin/fm-stock-bash-check.sh must be executable"
-  pass "no-mistakes runs the stock macOS Bash check as a gate after lint"
+  pass "no-mistakes runs the stock macOS Bash check on a remote host after lint"
 }
 
 test_nm_pins_gate_to_claude_then_codex() {

@@ -1,0 +1,27 @@
+# The skips a remote run may report and stay green, as extended regular
+# expressions, one per line; bin/fm-test-run.sh --fail-on-unpermitted-skip reads
+# this file. Any other skip fails the run, so an unknown wording is red until
+# someone decides it belongs here.
+
+# Tools the laptop lacks too: remove when the laptop has it.
+^(# )?skip(-runner)?(:| -) (live: )?(zellij|cmux|orca|omp|pi-signed)( |$)
+
+# Live suites not opted in.
+^skip: live: opt-in; set [A-Z0-9_]+=1 to run
+^note: FM_[A-Z0-9_]+=1 not set; skipping
+
+# Skips the laptop prints too, on any Mac or whatever is installed.
+^skip: native Pi adapter not installed
+^skip: native Windows Node required
+^skip: /proc not readable
+^skip: cursor executable not resolvable in this environment
+^# skip: unprivileged PID namespaces are unavailable here
+^ok - SKIP: no standalone Pi Calm extension is installed
+^ok - .*skipped on Darwin
+^ok - .*skipped on non-Windows host
+^ok - .*non-Darwin stat branch; skipped
+
+# Passing cases whose subject is something the product skips, not a skipped test.
+^ok - .* is skipped
+^ok - sweep: skipped entirely under FM_BOOTSTRAP_DETECT_ONLY
+^ok - an origin-less pooled worktree launches as-is, skipping the freshness gate
