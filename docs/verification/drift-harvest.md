@@ -139,11 +139,11 @@ PR 39 carries a deciding verdict from another of its tests; PRs 12 and 43 are un
 
 ## Not yet measured: not cut until measured
 
-Every PR listed here is still `pending-pr` without a deciding verdict: its own test has no table row, or its rows hold an `unproven` and no `keep` or `keep-rebase`.
+Every PR listed here is still `pending-pr` without a deciding verdict: a test file in its own diff has no table row, or its rows hold an `unproven` and no `keep` or `keep-rebase`, so every test file in that PR's own diff is still owed a replay.
 PRs 75, 76 and 77 carry no test.
 
 - PR 18: an upstream sync merge; `tests/fm-secondmate-liveness.test.sh`, `tests/fm-secondmate-safety.test.sh` and `tests/fm-self-repo-role.test.sh` equal upstream `7df545bf`'s, and `tests/fm-session-start.test.sh` equals the synced branch's version, so its cut replays them first.
 - PR 50: `tests/fm-nm-run-lib.test.sh`, from the PR's merge commit `24b06030`.
-- PRs 8, 12, 22, 27, 29, 33, 38, 43, 45, 49, 55, 60, 66, 67, 68, 70, 71, 79, 81, 82, 83, 84, 85, 89, 90, 91, 94, 96, 98, 110 and 130: their green runs never showed the red subtest passing; the tests are their `unproven` table rows, plus any `unmeasured` or `unmeasured-candidate` row on the same PR.
+- PRs 8, 12, 22, 27, 29, 33, 38, 43, 45, 49, 55, 60, 66, 67, 68, 70, 71, 79, 81, 82, 83, 84, 85, 89, 90, 91, 94, 96, 98, 110 and 130: their green runs never showed the red subtest passing; the tests are every test file the PR's own diff carries, plus any `unmeasured` or `unmeasured-candidate` row on the same PR, not only their `unproven` table rows.
 
-Each listed PR's cut first replays its tests red on upstream and green with the change, and a test that distinguishes makes it a keep.
+Each listed PR's cut first replays every test file in that PR's own diff red on upstream and green with the change, and a test that distinguishes makes it a keep.
