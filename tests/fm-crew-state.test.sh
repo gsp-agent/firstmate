@@ -1467,6 +1467,27 @@ test_run_waiting_on_others_names_the_wait_and_holds_no_place() {
   assert_not_contains "$out" "waits on:" "a Test step that took the suite lock waits on nothing"
   assert_equals 0 "$(place_verdict "$d" feat-waits)" "a Test step that took the suite lock held no place"
 
+  # A fix round re-enters the Test step, which takes the suite lock before its
+  # fix turn, so the step reads fixing while it sleeps there.
+  FM_FAKE_AXI_STATUS="$(run_active_step fm/feat-waits "test,fixing,1h2m,41m3s,\"4m1s ago: log: still waiting for test suite lock $lock (41m2s)\",\"\",auto-fix 1/3")"
+  out=$(run_crew_state "$d" feat-waits)
+  assert_contains "$out" "state: working · source: run-step · validating (running) · waits on: test suite lock" \
+    "a Test fix round asleep on the suite lock names the wait"
+  assert_equals 1 "$(place_verdict "$d" feat-waits)" "a Test fix round asleep on the suite lock held a place"
+
+  FM_FAKE_AXI_STATUS="$(run_active_step fm/feat-waits "test,fixing,1h2m,41m3s,\"4m1s ago: log: still waiting for test suite lock $lock (41m2s)\",\"\",auto-fix 1/3" |
+    sed 's/^  status: running$/  status: fixing/')"
+  out=$(run_crew_state "$d" feat-waits)
+  assert_contains "$out" "state: working · source: run-step · validating (fixing) · waits on: test suite lock" \
+    "a fixing run asleep on the suite lock names the wait"
+  assert_equals 1 "$(place_verdict "$d" feat-waits)" "a fixing run asleep on the suite lock held a place"
+
+  FM_FAKE_AXI_STATUS="$(run_active_step fm/feat-waits "test,fixing,1h40m,1m2s,\"8s ago: claude producing output\",\"4244\",auto-fix 1/3")"
+  out=$(run_crew_state "$d" feat-waits)
+  assert_contains "$out" "state: working" "a Test fix round running its agent is working"
+  assert_not_contains "$out" "waits on:" "a Test fix round running its agent waits on nothing"
+  assert_equals 0 "$(place_verdict "$d" feat-waits)" "a Test fix round running its agent held no place"
+
   FM_FAKE_AXI_STATUS="$(run_active_step fm/feat-waits "test,4h28m,\"2m48s ago: log: still waiting for test suite lock $lock (4h25m48s)\",\"\",starting" \
     "step,active_for,last_activity,agent_pid,round")"
   out=$(run_crew_state "$d" feat-waits)
@@ -1490,6 +1511,11 @@ test_run_waiting_on_others_names_the_wait_and_holds_no_place() {
   out=$(run_crew_state "$d" feat-waits)
   assert_not_contains "$out" "waits on:" "a CI repair round waits on nothing"
   assert_equals 0 "$(place_verdict "$d" feat-waits)" "a CI repair round held no place"
+
+  FM_FAKE_AXI_STATUS="$(run_active_step fm/feat-waits "ci,fixing,16h20m,1s,\"1s ago: log: repairing: 2 CI checks failing...\",\"\",fix 1")"
+  out=$(run_crew_state "$d" feat-waits)
+  assert_not_contains "$out" "waits on:" "a CI repair round before its agent starts waits on nothing"
+  assert_equals 0 "$(place_verdict "$d" feat-waits)" "a CI repair round before its agent starts held no place"
   pass "a run asleep on the suite lock or watching CI names the wait and holds no place; work keeps it"
 }
 

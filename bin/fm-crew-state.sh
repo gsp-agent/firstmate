@@ -1305,7 +1305,7 @@ if [ "$HAVE_RUN" = 1 ]; then
       fi
       # Its own ${SEP} component, as for the human-decision gate above, so no
       # text inside another component can read as a wait.
-      if [ "$RUN_STATE" = working ] && [ "$status" != fixing ]; then
+      if [ "$RUN_STATE" = working ]; then
         RUN_WAIT=$(fm_nm_run_wait "$RUN_OUT")
         [ -z "$RUN_WAIT" ] || RUN_DETAIL="$RUN_DETAIL${SEP}${FM_NM_RUN_WAITS_ON}$RUN_WAIT"
       fi

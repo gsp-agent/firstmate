@@ -546,9 +546,10 @@ FM_NM_RUN_WAITS_ON='waits on: '
 
 # Print what the run in captured `axi status` TOON $1 waits on when every
 # active step is proven to wait on someone else, and nothing otherwise:
-#   test suite lock - the Test step has not started: the daemon holds it on the
-#     shared test suite lock, so no agent runs and the step's newest activity is
-#     the daemon's own waiting line.
+#   test suite lock - the Test step, on its first pass or a fix round (which
+#     reads fixing), has not started its work: the daemon holds it on the
+#     shared test suite lock, so no agent runs and the step's newest activity
+#     is the daemon's own waiting line.
 #   CI - the ci step watches the PR: it reads running with no agent. A CI
 #     repair runs only inside a fix round, whose step reads fixing.
 # Columns are found by name in the active_steps header, whose layout differs
@@ -589,11 +590,12 @@ fm_nm_run_wait() {  # <toon-output>
       step = trim(f[col["step"]]); status = trim(f[col["status"]])
       activity = ("last_activity" in col) ? f[col["last_activity"]] : ""
       this = ""
-      if (status == "running" && trim(f[col["agent_pid"]]) == "") {
-        if (step == "test" && (index(activity, "log: waiting for test suite lock ") ||
+      if (trim(f[col["agent_pid"]]) == "") {
+        if (step == "test" && (status == "running" || status == "fixing") &&
+          (index(activity, "log: waiting for test suite lock ") ||
           index(activity, "log: still waiting for test suite lock ")))
           this = "test suite lock"
-        else if (step == "ci")
+        else if (step == "ci" && status == "running")
           this = "CI"
       }
       if (this == "") working = 1
