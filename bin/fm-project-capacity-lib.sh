@@ -709,7 +709,8 @@ fm_tree_wait_gone() {  # <entry> <id> <now>
 # removes nothing: fm_tree_wait_wake reads the line without the project lock,
 # so an entry it reads as gone may since have been refreshed by a join under
 # that lock, and deleting its path would take that waiter's place (chip on
-# PR 196 at 607bb0f6). Only a project-lock holder removes an entry.
+# PR 196 at 607bb0f6). Only a project-lock holder, or a task's own spawn
+# under its spawn lock, removes an entry.
 fm_tree_wait_order() {  # <dir> <now> [keep]
   local dir=$1 now=$2 keep=${3:-} entry id home seq
   [ -d "$dir" ] || return 0

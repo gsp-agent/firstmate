@@ -2086,6 +2086,15 @@ spawn_abort_cleanup() {
     SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=0
     fm_lock_release "$SPAWN_TREEHOUSE_PROJECT_LOCK" || true
   fi
+  # A start that failed without launching, other than by deferring, gives up
+  # its place in the tree line: a retry would be refused again, and the place
+  # would hold a free tree from the starts behind it (chip on PR 196 at
+  # 4f36385d). This task's spawn lock keeps any other start of it out. It
+  # leaves before the wakes below, so none of them goes to it.
+  if [ "$status" -ne 0 ] && [ "$status" -ne "$SPAWN_DEFER_EXIT" ] &&
+    [ "$SPAWN_LAUNCH_SENT" = 0 ] && [ -n "$SPAWN_TREE_WAIT_DIR" ]; then
+    fm_tree_wait_leave "$SPAWN_TREE_WAIT_DIR" "$ID" "$STATE"
+  fi
   # Each returned tree's wake goes out once the project lock is free, since the
   # woken start takes that lock at once; one wake per tree, so an abort that
   # returned its checkout and a separate target lease wakes two waiters.
@@ -4478,6 +4487,50 @@ spawn_machine_total_defer
 # fm_tree_wait_dir owns the order), so a freed tree goes by priority and wait,
 # not to whichever caller retries first. A relaunch replaces a running task
 # and is never in the line.
+# Backlog preflight (bin/fm-backlog-transition-lib.sh). This spawn is about to
+# become the sole owner of the row's In-flight transition, so prove the row is
+# transitionable BEFORE any endpoint, worktree, or record exists: a refusal here
+# costs nothing to unwind, while the same refusal after publication would strand
+# a live pane. The authoritative mutation still runs under the meta lock below.
+# It runs once: the pool-tree admission runs it before a start can join or be
+# counted in the project's tree line, so work that must be refused never holds
+# a place there (chip on PR 196 at 4f36385d), and the dispatch path runs it
+# again as a no-op.
+BACKLOG_TRANSITION=0
+BACKLOG_ROW_STATE=
+SPAWN_BACKLOG_PREFLIGHT_DONE=0
+spawn_backlog_preflight() {
+  [ "$SPAWN_BACKLOG_PREFLIGHT_DONE" = 0 ] || return 0
+  SPAWN_BACKLOG_PREFLIGHT_DONE=1
+  if fm_backlog_transition_applies "$CONFIG" "$DATA" "$KIND"; then
+    BACKLOG_TRANSITION=1
+    if fm_backlog_row_probe "$DATA" "$ID"; then
+      BACKLOG_ROW_STATE=$FM_BACKLOG_ROW_STATE
+    elif [ "$FM_BACKLOG_ROW_RESULT" = not_found ]; then
+      echo "error: task $ID has no backlog item in this home, so dispatching it would leave a worker no record owns; add it first (bin/fm-tasks-axi.sh add $ID '<title>' --kind $KIND) and re-run" >&2
+      exit 1
+    else
+      echo "error: task $ID's backlog item could not be read before dispatch ($FM_BACKLOG_ROW_ERROR)" >&2
+      exit 1
+    fi
+    spawn_preflight_actor=$(fm_lease_actor) || exit "$FM_LEASE_REFUSE_EXIT"
+    if [ "$spawn_preflight_actor" = branch ] && fm_lease_away_relocated; then
+      if [ "$BACKLOG_ROW_STATE" != "queued no no" ]; then
+        echo "error: spawn refused - the supervision branch under the away-posture record may dispatch only queued unblocked work (already queued, or filed by the branch from the captain's away words); task $ID has no dispatchable backlog item in this home" >&2
+        exit 1
+      fi
+    elif ! fm_backlog_row_dispatchable "$BACKLOG_ROW_STATE"; then
+      echo "error: this home's backlog item $ID is not dispatchable in state $BACKLOG_ROW_STATE; refusing before creating its endpoint or local copy" >&2
+      exit 1
+    fi
+  else
+    BACKLOG_GATE_STATUS=$?
+    if [ "$BACKLOG_GATE_STATUS" -eq 2 ]; then
+      echo "error: task $ID cannot be dispatched because its backlog data directory is inaccessible: $DATA ($FM_BACKLOG_TRANSITION_ERROR)" >&2
+      exit 1
+    fi
+  fi
+}
 SPAWN_POOL_EXPOSED=
 SPAWN_TREE_PRIORITY=
 SPAWN_TREE_PRIORITY_READ=0
@@ -4510,6 +4563,7 @@ if { [ "$RELAUNCH" -eq 0 ] || [ "$RELAUNCH_FRESH" = 1 ]; } && [ "$KIND" != secon
   if [ "$RELAUNCH" -eq 0 ]; then
     SPAWN_TREE_WAIT_DIR=$(fm_tree_wait_dir "$SPAWN_TREEHOUSE_PROJECT_LOCK") || SPAWN_TREE_WAIT_DIR=
   fi
+  [ -z "$SPAWN_TREE_WAIT_DIR" ] || spawn_backlog_preflight
   if [ "$FM_PROJECT_CAPACITY_POOL_KNOWN" = 1 ] && [ "$FM_PROJECT_CAPACITY_POOL_FREE" -le 0 ]; then
     spawn_tree_wait_join
     echo "deferred: project $(basename "$PROJ_ABS")'s worktree pool is full: max_trees $FM_PROJECT_CAPACITY_POOL_MAX in $PROJ_ABS/treehouse.toml and every tree is held (${FM_PROJECT_CAPACITY_POOL_HELD:-none listed}); task $ID was not launched and its backlog item stays queued - dispatch it again once a tree is returned" >&2
@@ -5169,41 +5223,8 @@ herdr_projection_existing_meta_allows_flat() { # <meta>
   esac
 }
 
-# Backlog preflight (bin/fm-backlog-transition-lib.sh). This spawn is about to
-# become the sole owner of the row's In-flight transition, so prove the row is
-# transitionable BEFORE any endpoint, worktree, or record exists: a refusal here
-# costs nothing to unwind, while the same refusal after publication would strand
-# a live pane. The authoritative mutation still runs under the meta lock below.
-BACKLOG_TRANSITION=0
-BACKLOG_ROW_STATE=
-if fm_backlog_transition_applies "$CONFIG" "$DATA" "$KIND"; then
-  BACKLOG_TRANSITION=1
-  if fm_backlog_row_probe "$DATA" "$ID"; then
-    BACKLOG_ROW_STATE=$FM_BACKLOG_ROW_STATE
-  elif [ "$FM_BACKLOG_ROW_RESULT" = not_found ]; then
-    echo "error: task $ID has no backlog item in this home, so dispatching it would leave a worker no record owns; add it first (bin/fm-tasks-axi.sh add $ID '<title>' --kind $KIND) and re-run" >&2
-    exit 1
-  else
-    echo "error: task $ID's backlog item could not be read before dispatch ($FM_BACKLOG_ROW_ERROR)" >&2
-    exit 1
-  fi
-  spawn_preflight_actor=$(fm_lease_actor) || exit "$FM_LEASE_REFUSE_EXIT"
-  if [ "$spawn_preflight_actor" = branch ] && fm_lease_away_relocated; then
-    if [ "$BACKLOG_ROW_STATE" != "queued no no" ]; then
-      echo "error: spawn refused - the supervision branch under the away-posture record may dispatch only queued unblocked work (already queued, or filed by the branch from the captain's away words); task $ID has no dispatchable backlog item in this home" >&2
-      exit 1
-    fi
-  elif ! fm_backlog_row_dispatchable "$BACKLOG_ROW_STATE"; then
-    echo "error: this home's backlog item $ID is not dispatchable in state $BACKLOG_ROW_STATE; refusing before creating its endpoint or local copy" >&2
-    exit 1
-  fi
-else
-  BACKLOG_GATE_STATUS=$?
-  if [ "$BACKLOG_GATE_STATUS" -eq 2 ]; then
-    echo "error: task $ID cannot be dispatched because its backlog data directory is inaccessible: $DATA ($FM_BACKLOG_TRANSITION_ERROR)" >&2
-    exit 1
-  fi
-fi
+# Backlog preflight (spawn_backlog_preflight, above the pool-tree admission).
+spawn_backlog_preflight
 
 if [ "$SPAWN_META_LOCK_HELD" != 1 ]; then
   SPAWN_META_LOCK=$(fm_meta_lock_path "$STATE/$ID.meta") || exit 1

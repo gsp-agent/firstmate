@@ -2133,6 +2133,45 @@ test_uncounted_pool_keeps_its_line() {
   pass "a pool that cannot be counted still has a line, and a start waits behind the waiter ahead"
 }
 
+# chip on PR 196 at 4f36385d: a start joined the line before the backlog
+# preflight that refuses work which is not dispatchable, so a Done P0 deferred
+# with 75, held a place, and kept a queued P1 from a free tree. Such a start is
+# now refused before it can join, and a waiter whose item stops being
+# dispatchable gives up its place when its next start is refused.
+test_undispatchable_start_holds_no_place() {
+  local case_dir home out rc
+  if [ "$HAVE_TASKS_AXI" != 1 ]; then
+    pass "an undispatchable start holds no place in the line (skipped: no tasks-axi for backlog state)"
+    return 0
+  fi
+  case_dir=$(pool_case tree-line-undispatchable done-p0 late-p0 queued-p1)
+  home="$case_dir/home"
+  set_priority "$home" done-p0 0
+  set_priority "$home" late-p0 0
+  set_priority "$home" queued-p1 1
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_FULL_STATUS spawn_ship "$case_dir" late-p0 "$case_dir/project") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "the queued P0 did not defer on the full pool: $out"
+  [ -n "$(tree_wait_entry "$home" late-p0)" ] || fail "the queued P0 took no place in the line"
+  tasks-axi "done" done-p0 --file "$home/data/backlog.md" >/dev/null || fail "could not mark done-p0 done"
+  tasks-axi "done" late-p0 --file "$home/data/backlog.md" >/dev/null || fail "could not mark late-p0 done"
+
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_FULL_STATUS spawn_ship "$case_dir" done-p0 "$case_dir/project") || rc=$?
+  expect_code 1 "$rc" "a Done item on a full pool was deferred, not refused: $out"
+  assert_contains "$out" "is not dispatchable" "the refusal did not say the item is not dispatchable"
+  [ -z "$(tree_wait_entry "$home" done-p0)" ] || fail "a Done item took a place in the line"
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_FULL_STATUS spawn_ship "$case_dir" late-p0 "$case_dir/project") || rc=$?
+  expect_code 1 "$rc" "a waiter whose item is now Done was deferred, not refused: $out"
+  [ -z "$(tree_wait_entry "$home" late-p0)" ] || fail "a waiter whose item is now Done kept its place in the line"
+
+  rc=0
+  out=$(FM_FAKE_TREEHOUSE_STATUS=$POOL_ONE_FREE_STATUS spawn_ship "$case_dir" queued-p1) || rc=$?
+  expect_code 0 "$rc" "a queued P1 did not take the free tree: $out"
+  pass "a start whose backlog item is not dispatchable holds no place in the line"
+}
+
 # The next two cases drive the line's own helpers, as chip reproduced them on
 # PR 196, because their setups (two homes with one task id on one origin, one
 # teardown returning two trees) have no cheap end-to-end fixture here.
@@ -2537,6 +2576,7 @@ test_freed_tree_goes_to_the_highest_priority_waiter
 test_later_arrival_of_one_priority_waits_behind
 test_same_second_arrivals_keep_their_order
 test_uncounted_pool_keeps_its_line
+test_undispatchable_start_holds_no_place
 test_one_task_id_in_two_homes_keeps_two_places
 test_homes_with_one_checksum_keep_two_places
 test_two_returned_trees_wake_two_waiters
