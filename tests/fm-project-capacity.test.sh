@@ -2124,29 +2124,40 @@ tree_line_helpers() {  # <command...> -> runs it with the line's helpers loaded
 # line is shared by every home on the machine. With entries keyed by id alone,
 # a secondmate home's same-task overwrote the primary's entry and wake file,
 # and each saw no one ahead of it.
-two_homes_one_id() {  # <dir>
-  local dir=$1
-  fm_tree_wait_join "$dir/line" same-task 1 "$dir/home-1/state" 1000 || return 1
-  fm_tree_wait_join "$dir/line" same-task 1 "$dir/home-2/state" 1000 || return 1
+two_homes_one_id() {  # <dir> <first-home> <second-home>
+  local dir=$1 first="$1/$2/state" second="$1/$3/state"
+  fm_tree_wait_join "$dir/line" same-task 1 "$first" 1000 || return 1
+  fm_tree_wait_join "$dir/line" same-task 1 "$second" 1000 || return 1
   printf 'waiters=%s\n' "$(fm_tree_wait_order "$dir/line" 1000 | wc -l | tr -d ' ')"
-  fm_tree_wait_ahead "$dir/line" same-task 1 1000 "$dir/home-2/state"
+  fm_tree_wait_ahead "$dir/line" same-task 1 1000 "$second"
   printf 'ahead-of-second=%s\n' "$FM_TREE_WAIT_AHEAD"
-  fm_tree_wait_ahead "$dir/line" same-task 1 1000 "$dir/home-1/state"
+  fm_tree_wait_ahead "$dir/line" same-task 1 1000 "$first"
   printf 'ahead-of-first=%s\n' "$FM_TREE_WAIT_AHEAD"
-  fm_tree_wait_leave "$dir/line" same-task "$dir/home-1/state"
-  fm_tree_wait_ahead "$dir/line" same-task 1 1000 "$dir/home-2/state"
+  fm_tree_wait_leave "$dir/line" same-task "$first"
+  fm_tree_wait_ahead "$dir/line" same-task 1 1000 "$second"
   printf 'after-first-left=%s/%s\n' "$(fm_tree_wait_order "$dir/line" 1000 | wc -l | tr -d ' ')" "$FM_TREE_WAIT_AHEAD"
 }
-test_one_task_id_in_two_homes_keeps_two_places() {
-  local dir out
-  dir="$TMP_ROOT/tree-line-two-homes"
-  mkdir -p "$dir/home-1/state" "$dir/home-2/state"
-  out=$(tree_line_helpers two_homes_one_id "$dir" 2>&1) || fail "the line's helpers failed: $out"
+assert_two_homes_keep_two_places() {  # <dir> <first-home> <second-home>
+  local out
+  mkdir -p "$1/$2/state" "$1/$3/state"
+  out=$(tree_line_helpers two_homes_one_id "$@" 2>&1) || fail "the line's helpers failed: $out"
   assert_contains "$out" "waiters=2" "two homes waiting with one task id hold one place between them: $out"
   assert_contains "$out" "ahead-of-second=1" "the second home's start sees no one ahead of it: $out"
   assert_contains "$out" "ahead-of-first=0" "the first home's start lost its place: $out"
   assert_contains "$out" "after-first-left=1/0" "the first home's start leaving took the second's place: $out"
+}
+test_one_task_id_in_two_homes_keeps_two_places() {
+  assert_two_homes_keep_two_places "$TMP_ROOT/tree-line-two-homes" home-1 home-2
   pass "one task id waiting from two homes keeps two places in the line"
+}
+
+# chip on PR 196 at b2810ac4: the home's place was the 32-bit POSIX cksum of
+# its state path, and these two homes' state paths share one under any parent
+# shorter than 200 bytes (a CRC is linear in the bytes that differ), so either
+# home's leave took the other's place.
+test_homes_with_one_checksum_keep_two_places() {
+  assert_two_homes_keep_two_places "$TMP_ROOT/tree-line-one-checksum" home-unfd6c6a5jh8 home-0msdy0y0wy9j
+  pass "two homes whose state paths share a 32-bit checksum keep two places in the line"
 }
 
 # chip on PR 196: a teardown that returns two trees wakes the line once per
@@ -2423,6 +2434,7 @@ test_freed_tree_goes_to_the_highest_priority_waiter
 test_later_arrival_of_one_priority_waits_behind
 test_same_second_arrivals_keep_their_order
 test_one_task_id_in_two_homes_keeps_two_places
+test_homes_with_one_checksum_keep_two_places
 test_two_returned_trees_wake_two_waiters
 test_one_home_keeps_one_place_from_any_checkout
 test_two_concurrent_returns_wake_two_waiters

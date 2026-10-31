@@ -611,15 +611,22 @@ fm_tree_wait_rank() {  # <priority>
 }
 
 # The place in a line for the home whose state directory is <state-dir>: the
-# POSIX cksum of its physical path, which no caller's working directory or git
+# SHA-256 of its physical path, which no caller's working directory or git
 # object format can change (chip on PR 196: git hash-object gave one home two
-# keys from a SHA-1 and a SHA-256 repository).
+# keys from a SHA-1 and a SHA-256 repository), and no two homes share (chip at
+# b2810ac4: two state paths had one 32-bit cksum, so each home's leave took
+# the other's place).
 fm_tree_wait_home() {  # <state-dir>
   local path sum
   path=$(cd -P -- "$1" 2>/dev/null && pwd -P) || path=$1
-  sum=$(printf '%s' "$path" | cksum) || return 1
+  if command -v sha256sum >/dev/null 2>&1; then
+    sum=$(printf '%s' "$path" | sha256sum) || return 1
+  else
+    sum=$(printf '%s' "$path" | shasum -a 256) || return 1
+  fi
   sum=${sum%% *}
-  case "$sum" in '' | *[!0-9]*) return 1 ;; esac
+  [ "${#sum}" -eq 64 ] || return 1
+  case "$sum" in *[!0-9a-f]*) return 1 ;; esac
   printf '%s\n' "$sum"
 }
 
