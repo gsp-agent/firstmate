@@ -49,7 +49,7 @@ EOF
   write_suite "$repo/tests/fm-bearings-snapshot.test.sh" 62
   write_suite "$repo/tests/fm-public-followup.test.sh" 1
   write_suite "$repo/tests/fm-watch-triage.test.sh" 1
-  write_suite "$repo/tests/fm-fork-free-helpers.test.sh" 16
+  write_suite "$repo/tests/fm-fork-free-helpers.test.sh" 19
   write_suite "$repo/tests/fm-backend.test.sh" 2
 }
 
@@ -220,7 +220,7 @@ while [ ! -e "$FM_TEST_LOAD.seen" ]; do sleep 0.1; done
 printf '0.50\n' > "$FM_TEST_LOAD"
 sleep 5
 i=0
-while [ "$i" -lt 16 ]; do
+while [ "$i" -lt 19 ]; do
   i=$((i + 1))
   echo "ok - stand-in $i"
 done
