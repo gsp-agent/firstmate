@@ -222,11 +222,45 @@ stop_home_processes() {  # <home>
     done
   done
 }
+# A watcher writes state/.watch.lock/pid, the only record stop_home_processes
+# and the arm's --stop find it by, when it takes its singleton lock, after it
+# has sourced its libraries. One still starting when the cleanup stops its arm
+# is in no record and runs on under launchd: one outlived case 48's red by 94 s
+# (.agent-config-1egx8). bin/fm-test-run.sh runs each script as the leader of
+# its own process group, and what a case starts stays in that group unless it
+# makes its own, so the suite's exit also stops what is left there, TERM and
+# then KILL, before the tree goes. A suite that does not lead its group shares
+# it with its caller, and leaves it alone.
+stop_own_group_leftovers() {
+  local pids left i=0
+  [ "$(ps -o pgid= -p "$$" 2>/dev/null | tr -d ' ')" = "$$" ] || return 0
+  pids=$(own_group_running "$(ps -Ao pid=,pgid= 2>/dev/null | awk -v g="$$" '$2 == g && $1 != g { print $1 }')")
+  [ -n "$pids" ] || return 0
+  # shellcheck disable=SC2086 # one pid per word
+  kill -TERM $pids 2>/dev/null || true
+  left=$pids
+  while [ -n "$left" ] && [ "$i" -lt 50 ]; do
+    sleep 0.1
+    i=$((i + 1))
+    left=$(own_group_running "$left")
+  done
+  # shellcheck disable=SC2086 # one pid per word
+  [ -z "$left" ] || kill -KILL $left 2>/dev/null || true
+}
+# The pids among <pids> that still run in this suite's process group: neither
+# exited (the listing's own ps and awk), nor zombies, nor moved to another group.
+own_group_running() {  # <pids>
+  [ -n "$1" ] || return 0
+  # shellcheck disable=SC2086 # one pid per word
+  ps -o pid=,pgid=,stat= -p "$(printf '%s\n' $1 | paste -s -d , -)" 2>/dev/null \
+    | awk -v g="$$" '$2 == g && $3 !~ /^Z/ { print $1 }'
+}
 suite_cleanup() {
   local home
   while IFS= read -r home; do
     [ -n "$home" ] && stop_home_processes "$home"
   done < <(cat "$HOMES_FILE" 2>/dev/null)
+  stop_own_group_leftovers
   fm_test_cleanup
 }
 trap suite_cleanup EXIT
@@ -2943,6 +2977,55 @@ test_home_teardown_leaves_no_arm_or_watcher_running() {
   pass "host: a home's teardown stops the successor left for main and its watcher before the home is removed"
 }
 
+# The leak of 2026-10-31 (.agent-config-1egx8): after case 48 went red, a
+# watcher still starting was in no record the cleanup reads and outlived the
+# suite under launchd. The fixture holds a real watcher before it takes its
+# singleton lock, so before state/.watch.lock/pid exists, in a child that
+# sources this suite and leaves through the suite's own exit cleanup as the
+# leader of its process group, as bin/fm-test-run.sh runs every script.
+test_suite_exit_stops_a_watcher_held_before_its_pid_write() {
+  local dir home held_bin f child rc watcher
+  dir="$TMP_ROOT/held-before-pid"
+  home="$dir/home"
+  held_bin="$dir/bin"
+  mkdir -p "$home/state" "$held_bin"
+  for f in "$ROOT"/bin/*; do
+    ln -s "$f" "$held_bin/${f##*/}"
+  done
+  # The watcher sources this library last before its singleton lock.
+  rm -f "$held_bin/fm-secondmate-liveness-lib.sh"
+  {
+    printf '%s\n' ': > "$FM_HOME/watcher-held"' '_fm_held_polls=0'
+    printf 'while [ ! -e "$FM_HOME/watcher-release" ] && [ "$_fm_held_polls" -lt %s ]; do\n' \
+      "$((FM_TEST_STUB_MAX_BLOCK_SECONDS * 10))"
+    printf '%s\n' '  sleep 0.1' '  _fm_held_polls=$((_fm_held_polls + 1))' 'done'
+    printf '. "%s"\n' "$ROOT/bin/fm-secondmate-liveness-lib.sh"
+  } > "$held_bin/fm-secondmate-liveness-lib.sh"
+  perl -e 'setpgrp(0, 0); exec @ARGV or die "exec: $!"' bash -c '
+    . "$1"
+    printf "%s\n" "$2" >> "$HOMES_FILE"
+    FM_HOME="$2" "$3/fm-watch.sh" > "$2/watcher.out" 2>&1 &
+    printf "%s\n" "$!" > "$2/watcher.pid"
+    wait_until 600 test -e "$2/watcher-held" || exit 3
+    exit 1
+  ' _ "$ROOT/tests/fm-supervision-host.test.sh" "$home" "$held_bin" > "$dir/child.out" 2>&1 &
+  child=$!
+  wait "$child"
+  rc=$?
+  watcher=$(cat "$home/watcher.pid" 2>/dev/null || true)
+  [ -n "$watcher" ] || fail "fixture: the child suite started no watcher: $(cat "$dir/child.out")"
+  if [ "$rc" = 3 ]; then
+    kill -KILL "$watcher" 2>/dev/null || true
+    fail "fixture: the watcher never reached its hold before the singleton lock: $(cat "$dir/child.out" "$home/watcher.out" 2>/dev/null)"
+  fi
+  [ ! -e "$home/state/.watch.lock/pid" ] || fail "fixture: the held watcher wrote state/.watch.lock/pid"
+  if ! wait_until 50 sh -c '! kill -0 "$1" 2>/dev/null' _ "$watcher"; then
+    kill -KILL "$watcher" 2>/dev/null || true
+    fail "the suite's exit cleanup left running a watcher that had not yet written state/.watch.lock/pid (pid $watcher)"
+  fi
+  pass "host: the suite's exit cleanup stops a watcher held before it writes state/.watch.lock/pid"
+}
+
 test_restarted_host_stops_what_a_killed_predecessor_left() {
   local home first_host arm watcher
   home=$(make_home away-crash away)
@@ -3766,6 +3849,7 @@ supervision_host_lane_b() {
   test_attended_latch_keeps_closes_on_main_and_records_recovery_off_main
   test_engine_turn_is_bounded_and_its_descendants_reaped
   test_home_teardown_leaves_no_arm_or_watcher_running
+  test_suite_exit_stops_a_watcher_held_before_its_pid_write
   test_restarted_host_stops_what_a_killed_predecessor_left
   test_teardown_lease_lock_at_activation_still_starts_the_watcher
   test_teardown_lease_lock_after_an_engine_turn_still_parks_on_the_successor
