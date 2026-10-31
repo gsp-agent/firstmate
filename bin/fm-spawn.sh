@@ -1620,6 +1620,7 @@ SPAWN_SLOT_CLAIMED=0
 # The project's waiting line for its next tree, once the pool check below
 # finds one (bin/fm-project-capacity-lib.sh's fm_tree_wait_dir).
 SPAWN_TREE_WAIT_DIR=
+# Trees this spawn's abort handed back, each owed one wake to that line.
 SPAWN_TREE_WAKE_PENDING=0
 SPAWN_SLOT_REFUSAL=0
 SPAWN_SKIP_LEASES=
@@ -1777,8 +1778,9 @@ spawn_refuse_unreturned_slot() { # <reason>
 }
 
 # Return the clean ship-branch checkout, or refuse and leave it in place.
-# On success the claim flag is cleared and the project lock, if retaken, stays
-# held for the release at the bottom of the abort trap. On refusal the claim
+# On success the claim flag is cleared, the project lock, if retaken, stays
+# held for the release at the bottom of the abort trap, and the returned tree's
+# wake to the project's line goes out after that release. On refusal the claim
 # stays so the checkout is still named.
 spawn_return_checked_out_ship_slot() {
   local reason marker out current_branch
@@ -1830,6 +1832,7 @@ spawn_return_checked_out_ship_slot() {
   fi
   rm -f -- "$marker" 2>/dev/null || true
   SPAWN_SLOT_CLAIMED=0
+  SPAWN_TREE_WAKE_PENDING=$((SPAWN_TREE_WAKE_PENDING + 1))
   return 0
 }
 
@@ -2062,7 +2065,7 @@ spawn_abort_cleanup() {
     spawn_lease_return_safe "$SPAWN_TARGET_LEASE"; then
     (cd "$PROJ_ABS" 2>/dev/null && treehouse return "$SPAWN_TARGET_LEASE" >/dev/null 2>&1 </dev/null) || true
     SPAWN_TARGET_LEASE=
-    SPAWN_TREE_WAKE_PENDING=1
+    SPAWN_TREE_WAKE_PENDING=$((SPAWN_TREE_WAKE_PENDING + 1))
   fi
   # An admitted extra start past project capacity that launched no worker
   # gives its window back (bin/fm-project-capacity-lib.sh owns the record).
@@ -2083,12 +2086,13 @@ spawn_abort_cleanup() {
     SPAWN_TREEHOUSE_PROJECT_LOCK_HELD=0
     fm_lock_release "$SPAWN_TREEHOUSE_PROJECT_LOCK" || true
   fi
-  # The returned tree's wake goes out once the project lock is free, since the
-  # woken start takes that lock at once.
-  if [ "$SPAWN_TREE_WAKE_PENDING" = 1 ]; then
-    SPAWN_TREE_WAKE_PENDING=0
+  # Each returned tree's wake goes out once the project lock is free, since the
+  # woken start takes that lock at once; one wake per tree, so an abort that
+  # returned its checkout and a separate target lease wakes two waiters.
+  while [ "$SPAWN_TREE_WAKE_PENDING" -gt 0 ]; do
+    SPAWN_TREE_WAKE_PENDING=$((SPAWN_TREE_WAKE_PENDING - 1))
     spawn_tree_wait_wake
-  fi
+  done
   if [ "$SPAWN_META_LOCK_HELD" = 1 ]; then
     SPAWN_META_LOCK_HELD=0
     fm_lock_release "$SPAWN_META_LOCK" || true
