@@ -9,9 +9,10 @@
 # rows name other projects. Each event that frees a place prints it, so the
 # wake that frees a place also says what to start in it: bin/fm-teardown.sh
 # after a cleanup, bin/fm-pr-check.sh after a recorded PR handoff, and
-# bin/fm-supervision-host.sh (through --freed-by below) when a worker's own
-# status line takes it off working. Main may run it at any time for any
-# project.
+# bin/fm-supervision-host.sh (through --freed-by below) for a signal wake whose
+# worker's crew state no longer holds a place. A run that starts waiting on
+# someone else frees a place with no line of its own. Main may run it at any
+# time for any project.
 #
 # Why it exists: main once judged capacity by counting the backlog's in-flight
 # rows. That count includes merged rows nobody closed and workers that already
@@ -62,15 +63,16 @@ DISPATCH_LIST_MAX=8
 DISPATCH_READY_TIMEOUT=${FM_DISPATCH_READY_TIMEOUT:-30}
 case "$DISPATCH_READY_TIMEOUT" in ''|*[!0-9]*|0) DISPATCH_READY_TIMEOUT=30 ;; esac
 
-# --freed-by <task-id>: the place a worker frees when its own status line takes
-# it off working, with no cleanup or PR handoff. bin/fm-supervision-host.sh
-# asks this for each signal wake the supervision branch handled, because that
-# branch cannot start work. Prints the project's first Dispatch line only when
-# the task's record is a worker (not a secondmate) with no recorded pr=, its
-# crew state no longer reads working (fm_project_capacity_is_working, the read
-# bin/fm-spawn.sh's count uses), and that line says to start something or that
-# the backlog could not be read (so main reads it itself); otherwise prints
-# nothing. Exits 0 either way.
+# --freed-by <task-id>: the place a worker no longer holds, with no cleanup or
+# PR handoff, because its own status line took it off working or its working
+# run waits on the shared test suite lock or on CI.
+# bin/fm-supervision-host.sh asks this for each signal wake the supervision
+# branch handled, because that branch cannot start work. Prints the project's
+# first Dispatch line only when the task's record is a worker (not a secondmate)
+# with no recorded pr=, its crew state no longer holds a place
+# (fm_project_capacity_is_working, the read bin/fm-spawn.sh's count uses), and
+# that line says to start something or that the backlog could not be read (so
+# main reads it itself); otherwise prints nothing. Exits 0 either way.
 if [ "${1:-}" = --freed-by ]; then
   [ "$#" -eq 2 ] || { echo "usage: fm-dispatch-ready.sh --freed-by <task-id>" >&2; exit 2; }
   case "$2" in '' | *[!A-Za-z0-9._-]*) echo "error: invalid task id: $2" >&2; exit 2 ;; esac

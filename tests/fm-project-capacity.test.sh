@@ -138,11 +138,13 @@ exit 0
 SH
   chmod +x "$fakebin/tmux" "$fakebin/treehouse"
   # The capacity count reads crew state through bin/fm-crew-state.sh; the
-  # fixture reader answers from the task's status log (working holds a slot).
+  # fixture reader answers from the task's status log (working holds a slot),
+  # and a `reads <line>` status line makes it answer exactly <line>.
   cat > "$fakebin/fm-crew-state-stub" <<'SH'
 #!/usr/bin/env bash
 line=$(tail -1 "$FM_STATE_OVERRIDE/$1.status" 2>/dev/null) || line=''
 case "$line" in
+  'reads '*) printf '%s\n' "${line#reads }" ;;
   working*) echo "state: working - source: status-log - fixture" ;;
   paused*) echo "state: paused - source: status-log - fixture" ;;
   done*) echo "state: done - source: status-log - fixture" ;;
@@ -630,6 +632,44 @@ test_release_frees_a_place() {
   out=$(spawn_ship "$case_dir" task-d) || rc=$?
   expect_code 0 "$rc" "cleanup did not free a place: $out"
   pass "a recorded PR handoff or a cleanup each frees exactly one place"
+}
+
+# A worker whose run sleeps on the shared test suite lock, or whose CI step
+# only watches its PR, waits on someone else: it gives its place up while
+# bin/fm-crew-state.sh names that wait, and takes it back once the reading no
+# longer does. Only the run-step reading counts; a worker's own status note
+# carrying the same words still holds its place.
+test_run_waiting_on_others_holds_no_place() {
+  local case_dir home out rc=0
+  case_dir=$(make_case run-waits task-d task-e)
+  home="$case_dir/home"
+  declare_capacity "$home" "project 2"
+  write_live "$home" live-a "$case_dir/project"
+  write_live "$home" live-b "$case_dir/project"
+  write_live "$home" live-c "$case_dir/project"
+  printf '%s\n' 'reads state: working · source: run-step · validating (running) · waits on: test suite lock · run: 01RUNB' \
+    > "$home/state/live-b.status"
+  printf '%s\n' 'reads state: working · source: run-step · validating (running) · waits on: CI · run: 01RUNC' \
+    > "$home/state/live-c.status"
+  out=$(spawn_ship "$case_dir" task-d) || rc=$?
+  expect_code 0 "$rc" "workers waiting on the suite lock and on CI kept their places: $out"
+  printf 'working [at=1790000001]: fixture worker\n' >> "$home/state/task-d.status"
+  rc=0
+  out=$(spawn_ship "$case_dir" task-e "$case_dir/unused") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "the waiting workers' places admitted a second worker: $out"
+  assert_contains "$out" "and 2 already hold a place (live-a, task-d)" \
+    "the holders named a worker that waits on someone else"
+
+  printf '%s\n' 'reads state: working · source: run-step · validating (running) · run: 01RUNB' \
+    >> "$home/state/live-b.status"
+  printf '%s\n' 'reads state: working · source: status-log · fixture · waits on: CI' \
+    >> "$home/state/live-c.status"
+  rc=0
+  out=$(spawn_ship "$case_dir" task-e "$case_dir/unused") || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a full project admitted a worker: $out"
+  assert_contains "$out" "and 4 already hold a place (live-a, live-b, live-c, task-d)" \
+    "a worker whose wait ended, or whose own note names a wait, held no place"
+  pass "a run waiting on the suite lock or CI frees its place and takes it back when the wait ends"
 }
 
 # Only workers on the same project identity hold places: a secondmate record, a
@@ -2575,6 +2615,7 @@ test_spaced_project_name_is_declared
 test_hash_prefixed_project_name_is_declared
 test_symlinked_home_counts_each_worker_once
 test_release_frees_a_place
+test_run_waiting_on_others_holds_no_place
 test_restart_does_not_count_its_own_record
 test_occupancy_counts_only_this_projects_workers
 test_capacity_is_shared_by_every_local_home

@@ -4292,7 +4292,7 @@ fi
 spawn_machine_total_defer() {
   [ -n "$SPAWN_MACHINE_CAPACITY" ] || return 0
   [ "$FM_PROJECT_CAPACITY_TOTAL_OCCUPANTS" -lt "$SPAWN_MACHINE_CAPACITY" ] && return 0
-  echo "deferred: this machine admits $SPAWN_MACHINE_CAPACITY worker(s) at once across every project ($FM_PROJECT_CAPACITY_TOTAL_FILE) and $FM_PROJECT_CAPACITY_TOTAL_OCCUPANTS already hold a place ($FM_PROJECT_CAPACITY_TOTAL_OCCUPANT_IDS); task $ID was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR, stops working or is cleaned up" >&2
+  echo "deferred: this machine admits $SPAWN_MACHINE_CAPACITY worker(s) at once across every project ($FM_PROJECT_CAPACITY_TOTAL_FILE) and $FM_PROJECT_CAPACITY_TOTAL_OCCUPANTS already hold a place ($FM_PROJECT_CAPACITY_TOTAL_OCCUPANT_IDS); task $ID was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR, stops working, starts waiting on the shared test suite lock or on CI, or is cleaned up" >&2
   exit "$SPAWN_DEFER_EXIT"
 }
 
@@ -4450,7 +4450,7 @@ if [ -n "$SPAWN_PROJECT_CAPACITY" ]; then
     fi
     if [ "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" != admit ] &&
       [ "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" != within ]; then
-      SPAWN_CAPACITY_DEFER="deferred: project $(basename "$PROJ_ABS") admits $SPAWN_PROJECT_CAPACITY worker(s) at once on this machine ($FM_PROJECT_CAPACITY_FILE) and $FM_PROJECT_CAPACITY_OCCUPANTS already hold a place ($FM_PROJECT_CAPACITY_OCCUPANT_IDS); task $ID was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR, stops working or is cleaned up"
+      SPAWN_CAPACITY_DEFER="deferred: project $(basename "$PROJ_ABS") admits $SPAWN_PROJECT_CAPACITY worker(s) at once on this machine ($FM_PROJECT_CAPACITY_FILE) and $FM_PROJECT_CAPACITY_OCCUPANTS already hold a place ($FM_PROJECT_CAPACITY_OCCUPANT_IDS); task $ID was not launched and its backlog item stays queued - dispatch it again once one of them records its ready PR, stops working, starts waiting on the shared test suite lock or on CI, or is cleaned up"
       case "${FM_PROJECT_CAPACITY_OVERSHARE:-no}" in
         off) ;;
         spent)
