@@ -1,2 +1,1 @@
-# Harvest replay keeps this PR for rebase: tests/fm-control-relaunch.test.sh distinguishes upstream from this PR; its proof is keyed for its rebase series.
-pr: 130
+pending-pr: 130 .agent-config-dtjsb

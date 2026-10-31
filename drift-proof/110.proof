@@ -1,2 +1,1 @@
-# Harvest replay keeps this PR for rebase: tests/fm-watch-recovery-loop.test.sh distinguishes upstream from this PR; its proof is keyed for its rebase series.
-pr: 110
+pending-pr: 110 .agent-config-dtjsb

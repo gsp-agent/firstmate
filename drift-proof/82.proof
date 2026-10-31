@@ -1,2 +1,1 @@
-# Harvest replay keeps this PR for rebase: tests/fm-ask-user-authority.test.sh distinguishes upstream from this PR; its proof is keyed for its rebase series.
-pr: 82
+pending-pr: 82 .agent-config-dtjsb

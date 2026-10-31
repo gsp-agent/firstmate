@@ -1,2 +1,1 @@
-# Harvest replay keeps this PR for rebase: tests/fm-spawn-worker-git-identity.test.sh distinguishes upstream from this PR; its proof is keyed for its rebase series.
-pr: 71
+pending-pr: 71 .agent-config-dtjsb
