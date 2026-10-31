@@ -308,7 +308,7 @@ PY
 # client on the task tab. The last two refuse, so the pane must stay and be named.
 # shellcheck disable=SC2030 # This test intentionally isolates its environment in a subshell.
 test_pool_full_herdr_cleanup_is_confirmed() (
-  local layout=$1 close_mode=$2 pane_shape=${3:-} rec id out status lock_path focus_unreadable left
+  local layout=$1 close_mode=$2 pane_shape=${3:-} rec id out status lock_path focus_unreadable left wake
   id="settle-herdr-$layout-$close_mode${pane_shape:+-$pane_shape}"
   rec=$(make_settle_case "$id" "$id" 100000)
   read_settle_record "$rec"
@@ -371,6 +371,12 @@ test_pool_full_herdr_cleanup_is_confirmed() (
     # Confirmed closed and nothing launched: a full pool is a capacity deferral.
     [ "$status" -eq 75 ] || fail "a confirmed-closed full-pool refusal did not defer with 75 (got $status)"$'\n'"$out"
     assert_contains "$out" "deferred: the worktree pool of project" "the confirmed-closed refusal did not say it deferred"
+    # This project declares no max_trees, so only `treehouse get` finds the
+    # pool full; that deferral still takes a place in the project's tree line
+    # (chip on PR 196 at 924c8af1).
+    wake=$(printf '%s\n' "$out" | sed -n 's/^tree-wait: //p')
+    [ -n "$wake" ] && [ -f "${wake%/*}/$id" ] ||
+      fail "the allocator's full-pool deferral took no place in the tree line"$'\n'"$out"
   else
     if [ "$close_mode" != unknown ]; then
       jq -e --arg label "fm-$id" 'any(.tabs[]; .label == $label)' "$CASE_DIR/herdr.json" >/dev/null || fail "the refused close did not leave a pane to report"

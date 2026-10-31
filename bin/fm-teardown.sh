@@ -1948,22 +1948,26 @@ teardown_destroy_out_of_root_slot() {  # <worktree> <project-dir>
 # file instead of at its next retry (bin/fm-project-capacity-lib.sh's
 # fm_tree_wait_dir owns the line). The wake is sent once this teardown has
 # released its locks (teardown_release_locks), because the woken start takes
-# the project lock at once. Best effort: a wake that cannot be written leaves
-# the waiter's own retry as the fallback.
+# the project lock at once. The line is named when the tree returns, while the
+# project still exists: a forced secondmate teardown removes the home holding
+# a child's project before the wakes go out (chip on PR 196 at 924c8af1).
+# Best effort: a wake that cannot be written leaves the waiter's own retry as
+# the fallback.
 TEARDOWN_TREE_WAKES=()
 teardown_wake_tree_line() {  # <project-dir>
-  TEARDOWN_TREE_WAKES+=("$1")
-}
-teardown_send_tree_wakes() {
-  local project lock dir
-  [ "${#TEARDOWN_TREE_WAKES[@]}" -gt 0 ] || return 0
-  if ! command -v fm_tree_wait_wake >/dev/null 2>&1; then
+  local lock dir
+  if ! command -v fm_tree_wait_dir >/dev/null 2>&1; then
     # shellcheck source=bin/fm-project-capacity-lib.sh
     . "$SCRIPT_DIR/fm-project-capacity-lib.sh" || return 0
   fi
-  for project in "${TEARDOWN_TREE_WAKES[@]}"; do
-    lock=$(fm_treehouse_project_lock_path "$project") || continue
-    dir=$(fm_tree_wait_dir "$lock") || continue
+  lock=$(fm_treehouse_project_lock_path "$1") || return 0
+  dir=$(fm_tree_wait_dir "$lock") || return 0
+  TEARDOWN_TREE_WAKES+=("$dir")
+}
+teardown_send_tree_wakes() {
+  local dir
+  [ "${#TEARDOWN_TREE_WAKES[@]}" -gt 0 ] || return 0
+  for dir in "${TEARDOWN_TREE_WAKES[@]}"; do
     fm_tree_wait_wake "$dir" "$(date +%s)" >/dev/null || true
   done
   TEARDOWN_TREE_WAKES=()

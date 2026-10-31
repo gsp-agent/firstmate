@@ -4503,7 +4503,11 @@ spawn_tree_wait_join() {
 }
 if { [ "$RELAUNCH" -eq 0 ] || [ "$RELAUNCH_FRESH" = 1 ]; } && [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   fm_project_capacity_pool "$PROJ_ABS"
-  if [ "$RELAUNCH" -eq 0 ] && [ "$FM_PROJECT_CAPACITY_POOL_KNOWN" = 1 ]; then
+  # Every fresh start has a line, counted pool or not: a pool with no
+  # top-level max_trees, or a Treehouse without `status --json`, is full only
+  # when `treehouse get` says so, and that deferral joins the line too (chip
+  # on PR 196 at 924c8af1).
+  if [ "$RELAUNCH" -eq 0 ]; then
     SPAWN_TREE_WAIT_DIR=$(fm_tree_wait_dir "$SPAWN_TREEHOUSE_PROJECT_LOCK") || SPAWN_TREE_WAIT_DIR=
   fi
   if [ "$FM_PROJECT_CAPACITY_POOL_KNOWN" = 1 ] && [ "$FM_PROJECT_CAPACITY_POOL_FREE" -le 0 ]; then
@@ -4514,9 +4518,18 @@ if { [ "$RELAUNCH" -eq 0 ] || [ "$RELAUNCH_FRESH" = 1 ]; } && [ "$KIND" != secon
   if [ -n "$SPAWN_TREE_WAIT_DIR" ] && [ -d "$SPAWN_TREE_WAIT_DIR" ]; then
     spawn_tree_priority
     fm_tree_wait_ahead "$SPAWN_TREE_WAIT_DIR" "$ID" "$SPAWN_TREE_PRIORITY" "$(date +%s)" "$STATE"
-    if [ "$FM_TREE_WAIT_AHEAD" -ge "$FM_PROJECT_CAPACITY_POOL_FREE" ]; then
+    # A pool that cannot be counted reads as one free tree, so any live
+    # waiter ahead takes it first.
+    if [ "$FM_PROJECT_CAPACITY_POOL_KNOWN" = 1 ]; then
+      SPAWN_TREE_FREE=$FM_PROJECT_CAPACITY_POOL_FREE
+      SPAWN_TREE_FREE_TEXT="$FM_PROJECT_CAPACITY_POOL_FREE free tree(s) go"
+    else
+      SPAWN_TREE_FREE=1
+      SPAWN_TREE_FREE_TEXT="next free tree goes"
+    fi
+    if [ "$FM_TREE_WAIT_AHEAD" -ge "$SPAWN_TREE_FREE" ]; then
       spawn_tree_wait_join
-      echo "deferred: project $(basename "$PROJ_ABS")'s $FM_PROJECT_CAPACITY_POOL_FREE free tree(s) go first to the start(s) waiting ahead of task $ID in its line: $FM_TREE_WAIT_AHEAD_IDS; task $ID was not launched, it keeps its place in the line, and its backlog item stays queued - dispatch it again once a tree is returned" >&2
+      echo "deferred: project $(basename "$PROJ_ABS")'s $SPAWN_TREE_FREE_TEXT first to the start(s) waiting ahead of task $ID in its line: $FM_TREE_WAIT_AHEAD_IDS; task $ID was not launched, it keeps its place in the line, and its backlog item stays queued - dispatch it again once a tree is returned" >&2
       exit "$SPAWN_DEFER_EXIT"
     fi
   fi

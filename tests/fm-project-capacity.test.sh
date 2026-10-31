@@ -2107,6 +2107,32 @@ test_same_second_arrivals_keep_their_order() {
   pass "arrivals of one priority within one second keep their order, whatever their task ids"
 }
 
+# chip on PR 196 at 924c8af1: a project whose pool cannot be counted (here no
+# top-level max_trees) had no line, so its full-pool deferrals from
+# `treehouse get` held no place and a freed tree went to whichever retry came
+# first. It has a line now, read as one free tree: a start with a live waiter
+# ahead of it defers behind that waiter.
+join_uncounted_line() {  # <case-dir> <id>
+  local lock
+  lock=$(fm_treehouse_project_lock_path "$1/project") || return 1
+  fm_tree_wait_join "$(fm_tree_wait_dir "$lock")" "$2" 0 "$1/home/state" "$(date +%s)"
+}
+test_uncounted_pool_keeps_its_line() {
+  local case_dir home out rc
+  case_dir=$(make_case tree-line-uncounted task-b)
+  home="$case_dir/home"
+  out=$(FM_HOME="$home" tree_line_helpers join_uncounted_line "$case_dir" task-a 2>&1) ||
+    fail "could not put task-a in the line: $out"
+  rc=0
+  out=$(spawn_ship "$case_dir" task-b) || rc=$?
+  expect_code "$DEFER_EXIT" "$rc" "a start passed the waiter ahead of it in a pool that cannot be counted: $out"
+  assert_contains "$out" "next free tree goes first to the start(s) waiting ahead of task task-b in its line: task-a (P0, waiting since" \
+    "the deferral did not name the waiter ahead of it"
+  [ -n "$(tree_wait_entry "$home" task-b)" ] || fail "the deferred start took no place in the line"
+  assert_absent "$home/state/task-b.meta" "the deferred start published a record"
+  pass "a pool that cannot be counted still has a line, and a start waits behind the waiter ahead"
+}
+
 # The next two cases drive the line's own helpers, as chip reproduced them on
 # PR 196, because their setups (two homes with one task id on one origin, one
 # teardown returning two trees) have no cheap end-to-end fixture here.
@@ -2510,6 +2536,7 @@ test_away_spend_cap_is_rechecked_at_publication
 test_freed_tree_goes_to_the_highest_priority_waiter
 test_later_arrival_of_one_priority_waits_behind
 test_same_second_arrivals_keep_their_order
+test_uncounted_pool_keeps_its_line
 test_one_task_id_in_two_homes_keeps_two_places
 test_homes_with_one_checksum_keep_two_places
 test_two_returned_trees_wake_two_waiters
