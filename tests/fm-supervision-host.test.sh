@@ -3080,8 +3080,9 @@ suite_exit_stops_held_watcher() {  # <under-arm|reparented|orphaned-arm>
     fi
   done
   [ "$rc" = 1 ] || fail "the wrapper's exit is not the suite's own 1 ($1): got $rc: $(cat "$dir/child.out")"
-  grep -qx 'before cleanup' "$dir/child.out" && grep -qx 'after cleanup' "$dir/child.out" \
-    || fail "the suite's output did not reach its reader through the cleanup ($1): $(cat "$dir/child.out")"
+  if ! { grep -qx 'before cleanup' "$dir/child.out" && grep -qx 'after cleanup' "$dir/child.out"; }; then
+    fail "the suite's output did not reach its reader through the cleanup ($1): $(cat "$dir/child.out")"
+  fi
 }
 test_suite_exit_stops_a_watcher_held_before_its_pid_write() {
   suite_exit_stops_held_watcher under-arm
