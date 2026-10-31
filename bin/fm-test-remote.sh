@@ -23,7 +23,8 @@
 #      a temporary index, so HEAD, the index, and the branch are untouched.
 #      Both are printed.
 #   2. makes a fresh run directory <scratch-root>/fm-test-remote.XXXXXX on the
-#      host, holding an empty repo/, out/, and tmp/. The scratch root must
+#      host, holding an empty repo/, out/, and tmp/, and a marker saying this
+#      script made it. The scratch root must
 #      already exist: this never creates it, so an unmounted volume refuses
 #      rather than putting the run on the host's system disk.
 #   3. pushes that commit, --base's commit, and this checkout's branches,
@@ -45,10 +46,20 @@
 #      arrival order. Only the caller's own time budget bounds the wait.
 #   5. streams the script's output back, copies each --pull <name> from out/
 #      to <path> here (a relative <path> is relative to this checkout's root),
-#      removes the run directory, and exits with the script's own status, or
-#      2 when the script passed but a --pull file did not come back. Any file
-#      already at a --pull <path> is removed before step 1, so after any exit
-#      that path holds this run's file or nothing.
+#      and exits with the script's own status, or 2 when the script passed but
+#      a --pull file did not come back. Any file already at a --pull <path> is
+#      removed before step 1, so after any exit that path holds this run's file
+#      or nothing.
+#
+# The host owns the end of a run. A supervisor there runs the script in its own
+# process group, and when the script ends, the laptop's heartbeat stops for 180
+# seconds or its connection closes, or the supervisor is signalled, it ends the
+# group and every other process with a working directory or open file under the
+# run directory, then removes the directory. Only out/ waits, for a --pull, and
+# this script removes it after copying. So a cut-off run leaves no queue place,
+# process, or directory behind. Each run also removes what earlier runs left: a
+# directory with the marker, whose supervisor is gone or never started within an
+# hour, and that no process uses. A directory without the marker is left alone.
 #
 # It never runs a suite or takes a machine line on this machine, and it never
 # falls back to a local run: a failure before or during the remote run is
@@ -68,7 +79,8 @@
 #
 # Exit status: the script's own; 2 when nothing ran (a live switch set here, no
 # ssh connection, an ssh key the host refused, a missing scratch root, a failed
-# push or checkout, a rev-parse mismatch, or no machine gate on the host), when
+# push or checkout, a rev-parse mismatch, or no machine gate, lsof, or perl on
+# the host), when
 # the connection dropped mid-run, so the verdict is unknown, or when the script
 # passed but a --pull file was not copied back. A failing script keeps its own
 # status.
@@ -106,17 +118,113 @@ if [ "${1:-}" = __admitted ]; then
   exec "$@"
 fi
 
-# On the host, from the checked-out commit: queue on the host's gate and run.
-# Each try's own output goes to a file, so a refused try prints one wait line
-# instead of the gate's text every few seconds; an admitted run writes to the
-# descriptors saved here.
+# Set UNDER to the processes other than this one with a working directory or an
+# open file under the directory. lsof replaces its subshell, which would otherwise
+# hold this script open and be counted.
+processes_under() {  # <dir>
+  local pid
+  UNDER=
+  for pid in $(exec lsof -t +D "$1" 2>/dev/null); do
+    [ "$pid" = "$$" ] || UNDER="$UNDER $pid"
+  done
+}
+
+# Remove the directories other runs left under this run's scratch root: those
+# carrying this script's marker, whose supervisor is gone, or that never got one
+# within an hour of being made, and that no process still uses. A directory
+# without the marker is not this script's to remove.
+sweep_abandoned_runs() {  # <this run>
+  local dir pid
+  for dir in "$(dirname "$1")"/fm-test-remote.*; do
+    [ "$dir" != "$1" ] && [ -e "$dir/.fm-test-remote-run" ] || continue
+    pid=$(cat "$dir/host.pid" 2>/dev/null)
+    if [ -n "$pid" ]; then
+      ! kill -0 "$pid" 2>/dev/null || continue
+    else
+      [ -n "$(find "$dir/.fm-test-remote-run" -mmin +60 2>/dev/null)" ] || continue
+    fi
+    processes_under "$dir"
+    [ -z "$UNDER" ] || continue
+    rm -rf -- "$dir"
+  done
+}
+
+# End the run's process group and whatever else still uses the run directory,
+# then remove it, or all but out/ and the marker when the caller still has to
+# copy from out/. The marker's fresh time then keeps a sweep off it.
+end_run() {  # <keep out/: 0 or 1>
+  local round signal=TERM
+  trap '' TERM HUP INT
+  [ -z "$watcher" ] || kill "$watcher" 2>/dev/null
+  kill -TERM -- "-$worker" 2>/dev/null
+  for round in 1 2 3 4 5 6 7 8 9 10; do
+    kill -0 -- "-$worker" 2>/dev/null || break
+    sleep 0.5
+  done
+  kill -KILL -- "-$worker" 2>/dev/null
+  for round in 1 2 3 4 5 6; do
+    processes_under "$run"
+    [ -n "$UNDER" ] || break
+    # shellcheck disable=SC2086 # one word per process id
+    kill -"$signal" $UNDER 2>/dev/null
+    sleep 1
+    [ "$round" -lt 3 ] || signal=KILL
+  done
+  [ -z "$UNDER" ] || say "processes still under $run on $host after KILL:$UNDER"
+  if [ "$1" = 1 ]; then
+    rm -rf -- "$run/repo" "$run/tmp" "$run/host.pid" "$run/admitted" "$run/gate-try.log"
+    touch "$run/.fm-test-remote-run"
+  else
+    rm -rf -- "$run"
+  fi
+}
+
+# On the host, the run's supervisor: it owns the run directory from here. The
+# suite runs in its own session, so the group can be ended, and when the suite
+# ends, the laptop's heartbeat stops, or this is signalled, the run ends with it.
 if [ "${1:-}" = __host ]; then
+  run=$2 name=$3 retry=$4 keep_out=$5
+  shift 5
+  [ "${1:-}" = -- ] && shift
+  host=$(hostname -s 2>/dev/null || hostname)
+  gate="$HOME/.agent-state/machine-gate.sh"
+  [ -x "$gate" ] || die "$host has no machine gate at $gate, so it cannot hold one Firstmate suite at a time; nothing ran"
+  command -v lsof >/dev/null 2>&1 || die "$host has no lsof, so it cannot end what a run leaves behind; nothing ran"
+  command -v perl >/dev/null 2>&1 || die "$host has no perl, so it cannot give a run its own process group; nothing ran"
+  printf '%s\n' "$$" >"$run/host.pid" || die "cannot write to $run on $host; nothing ran"
+  sweep_abandoned_runs "$run"
+  worker=
+  watcher=
+  trap 'end_run 0; exit 143' TERM
+  trap 'end_run 0; exit 129' HUP
+  trap 'end_run 0; exit 130' INT
+  exec 5<&0
+  perl -e 'use POSIX; POSIX::setsid(); exec @ARGV or exit 127' \
+    "$BASH" "$SELF" __queue "$run" "$name" "$retry" -- "$@" </dev/null 5<&- &
+  worker=$!
+  (
+    while IFS= read -r -t 180 _; do :; done
+    kill -TERM "$$"
+  ) <&5 >/dev/null 2>&1 5<&- &
+  watcher=$!
+  exec 5<&- </dev/null
+  cd /
+  wait "$worker"
+  rc=$?
+  end_run "$keep_out"
+  exit "$rc"
+fi
+
+# On the host, in the run's own session, from the checked-out commit: queue on
+# the host's gate and run. Each try's own output goes to a file, so a refused
+# try prints one wait line instead of the gate's text every few seconds; an
+# admitted run writes to the descriptors saved here.
+if [ "${1:-}" = __queue ]; then
   run=$2 name=$3 retry=$4
   shift 4
   [ "${1:-}" = -- ] && shift
   host=$(hostname -s 2>/dev/null || hostname)
   gate="$HOME/.agent-state/machine-gate.sh"
-  [ -x "$gate" ] || die "$host has no machine gate at $gate, so it cannot hold one Firstmate suite at a time; nothing ran"
   marker="$run/admitted"
   attempt="$run/gate-try.log"
   waited_since=$(date +%s)
@@ -315,10 +423,10 @@ cleanup() {
   if [ -n "$RUN" ]; then
     case "$RUN" in
       "$SCRATCH_ROOT"/fm-test-remote.*)
-        if ssh -n "${SSH_OPTS[@]}" "$HOST" "rm -rf -- $(quote_words "$RUN")" 2>/dev/null; then
-          say "removed $RUN on $HOST"
+        if ssh -n "${SSH_OPTS[@]}" "$HOST" "p=\$(cat $(quote_words "$RUN/host.pid") 2>/dev/null); [ -n \"\$p\" ] && kill -0 \"\$p\" 2>/dev/null || rm -rf -- $(quote_words "$RUN")" 2>/dev/null; then
+          say "$RUN on $HOST is removed, or its host is removing it"
         else
-          say "could not remove $RUN on $HOST; it is left there"
+          say "could not reach $HOST to remove $RUN; a later run there removes it"
         fi
         ;;
       *) say "not removing '$RUN' on $HOST: it is not under $SCRATCH_ROOT/fm-test-remote.*" ;;
@@ -334,7 +442,7 @@ trap 'exit 129' HUP
 # shellcheck disable=SC2016 # The host's shell expands these.
 setup="root=$(quote_words "$SCRATCH_ROOT")"'
 [ -d "$root" ] || { printf "scratch root %s does not exist on this host\n" "$root" >&2; exit 3; }
-run=$(mktemp -d "$root/fm-test-remote.XXXXXX") && mkdir "$run/repo" "$run/out" "$run/tmp" && git init -q "$run/repo" && git -C "$run/repo" config receive.denyCurrentBranch ignore && printf "%s\n" "$run"'
+run=$(mktemp -d "$root/fm-test-remote.XXXXXX") && mkdir "$run/repo" "$run/out" "$run/tmp" && : >"$run/.fm-test-remote-run" && git init -q "$run/repo" && git -C "$run/repo" config receive.denyCurrentBranch ignore && printf "%s\n" "$run"'
 remote_setup "$setup" || die "could not make a run directory under $SCRATCH_ROOT on $HOST (${SETUP_ERR:-no reason given}); nothing ran"
 case "$SETUP_OUT" in
   "$SCRATCH_ROOT"/fm-test-remote.*) RUN=$SETUP_OUT ;;
@@ -360,14 +468,21 @@ while IFS= read -r remote; do
     copy_setup="$copy_setup && git symbolic-ref $(quote_words "refs/remotes/$remote/HEAD" "$remote_head")"
   fi
 done < <(git -C "$ROOT" remote)
+keep_out=0
+[ "${#PULLS[@]}" -eq 0 ] || keep_out=1
 if [ -n "$BRANCH" ]; then
   checkout=(-B "$BRANCH")
 else
   checkout=(--detach)
 fi
-run_cmd="cd $(quote_words "$RUN/repo")$copy_setup && git -c advice.detachedHead=false checkout -q -f $(quote_words "${checkout[@]}") $SHA && got=\$(git rev-parse HEAD) && [ \"\$got\" = $SHA ] || { printf 'fm-test-remote: the host copy is at %s, not %s; nothing ran\\n' \"\${got:-no commit}\" $SHA >&2; exit 2; }; exec $(quote_words ${host_env[@]+"${host_env[@]}"} "$REMOTE_BASH" "$RUN/repo/bin/fm-test-remote.sh" __host "$RUN" "$line_name" "$RETRY" -- "$@")"
+run_cmd="cd $(quote_words "$RUN/repo")$copy_setup && git -c advice.detachedHead=false checkout -q -f $(quote_words "${checkout[@]}") $SHA && got=\$(git rev-parse HEAD) && [ \"\$got\" = $SHA ] || { printf 'fm-test-remote: the host copy is at %s, not %s; nothing ran\\n' \"\${got:-no commit}\" $SHA >&2; exit 2; }; exec $(quote_words ${host_env[@]+"${host_env[@]}"} "$REMOTE_BASH" "$RUN/repo/bin/fm-test-remote.sh" __host "$RUN" "$line_name" "$RETRY" "$keep_out" -- "$@")"
 
-ssh -n "${SSH_OPTS[@]}" "$HOST" "exec \"\$SHELL\" -lc $(quote_words "$run_cmd")" &
+ssh "${SSH_OPTS[@]}" "$HOST" "exec \"\$SHELL\" -lc $(quote_words "$run_cmd")" < <(
+  while kill -0 "$$" 2>/dev/null; do
+    echo
+    sleep 2
+  done 2>/dev/null
+) &
 SSH_PID=$!
 wait "$SSH_PID"
 rc=$?

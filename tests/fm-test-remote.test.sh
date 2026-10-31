@@ -408,7 +408,7 @@ host_without() {
   local dir tool
   dir="$(dirname "$FAKE_HOST_HOME")/host-bin"
   mkdir -p "$dir"
-  ln -sf /bin/* /usr/bin/* "$dir/"
+  ln -sf /bin/* /usr/bin/* /sbin/* /usr/sbin/* "$dir/"
   ln -sf "$BASH" "$dir/bash"
   ln -sf "$GIT_BIN_DIR/git" "$dir/git"
   for tool in "$@"; do
@@ -492,7 +492,7 @@ skip: live: no supported runner (claude, pi, pi-signed) installed
 skip: no C compiler, so the compiled stand-in cannot build
 skip: a-tool-no-suite-names-yet not installed
 skip: installed tasks-axi predates 0.3.0, so the real backlog mutations cannot run
-skip: installed cmux is older than the verified minimum
+skip: installed jq is older than the verified minimum
 skip: this herdr build is below the events.subscribe capability
 skip: no long-running stand-in survives a rename, so the descendant case cannot run
 skip: no Bash stat loadable beside /fixture/bash, so the per-log budget is not enforced here
@@ -523,6 +523,25 @@ EOF
   assert_contains "$OUT" "FM_TEST_SUMMARY total=$((n + 2)) failed=$((n + 1)) skipped_gate=0" "each report, and only those, fails"
   assert_contains "$OUT" "tests/fm-remote-wording-mid-run.test.sh exit=1" "a case-level skip mid-run fails the suite"
   pass "each way a suite reports a tool the host lacks fails the remote run"
+}
+
+test_a_skip_for_what_an_installed_tool_lacks_fails_the_remote_run() {
+  new_world installed
+  host_without pi
+  declare_suite_tools pi
+  printf '#!/bin/sh\nexit 0\n' >"$FAKE_HOST_PATH/pi"
+  chmod +x "$FAKE_HOST_PATH/pi"
+  cat >"$REPO/tests/fm-remote-approve.test.sh" <<'EOF'
+#!/usr/bin/env bash
+command -v pi >/dev/null 2>&1 || { echo "not ok - the host should have pi here"; exit 1; }
+echo "# fm-pi-seeded-home-trust-live-e2e: skipped (no --approve on installed pi)"
+EOF
+  chmod +x "$REPO/tests/fm-remote-approve.test.sh"
+  commit_all "a suite that skips for what its installed tool lacks"
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-approve.test.sh
+  expect_code 1 "$RC" "a skip for what the installed pi lacks"$'\n'"$OUT"
+  assert_contains "$OUT" "FM_TEST_SUMMARY total=1 failed=1" "the summary counts it as a failure"
+  pass "a suite that reads as a plain pass after skipping for what its installed tool lacks fails the remote run"
 }
 
 test_a_probe_whose_command_is_missing_fails_the_remote_run() {
@@ -587,7 +606,8 @@ test_a_skip_that_is_not_a_missing_required_tool_stays_a_counted_skip() {
     'ok - run wrapper: an unrecognized or absent source takes the helm rather than skipping it' \
     'ok - SKIP: no standalone Pi Calm extension is installed, so dual-install coverage used the pinned contract' \
     'note: FM_FIXTURE=1 not set; skipping the real-agent check' \
-    '# skip - inaccessible launch configuration requires a non-root user'
+    '# skip - inaccessible launch configuration requires a non-root user' \
+    '# a-suite: skipped (no origin remote to read)'
   commit_all "suites whose skips are not a missing required tool"
   run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" --jobs 1 tests/fm-backend-zellij-smoke.test.sh tests/fm-backend-cmux-smoke.test.sh \
     tests/fm-backend-orca.test.sh tests/fm-pi-codex-native.test.sh tests/fm-remote-stand-in-path.test.sh tests/fm-remote-proc.test.sh \
@@ -596,6 +616,122 @@ test_a_skip_that_is_not_a_missing_required_tool_stays_a_counted_skip() {
   expect_code 0 "$RC" "skips that are not a missing required tool"$'\n'"$OUT"
   assert_contains "$OUT" "FM_TEST_SUMMARY total=14 failed=0 skipped_gate=9" "optional tools, policy, and platform skips stay counted, and a behavior named skipped is no skip"
   pass "an optional tool including omp and pi-signed, a tool the host has, a live opt-in, a platform skip, and a passing case that describes skipping do not fail the remote run"
+}
+
+# write_server_suite: a suite that leaves a server in its own session, its cwd in
+# the host's copy, and records it, then sleeps while <home>/suite-sleeps exists.
+write_server_suite() {
+  cat >"$REPO/tests/fm-remote-server.test.sh" <<EOF
+#!/usr/bin/env bash
+perl -e 'use POSIX; POSIX::setsid(); exec @ARGV' sleep 300 </dev/null >/dev/null 2>&1 &
+echo \$! >"$FAKE_HOST_HOME/server.pid"
+echo \$\$ >"$FAKE_HOST_HOME/suite.pid"
+while [ -e "$FAKE_HOST_HOME/suite-sleeps" ]; do sleep 0.2; done
+echo "ok - the suite ended"
+EOF
+  chmod +x "$REPO/tests/fm-remote-server.test.sh"
+  commit_all "a suite that leaves a server behind"
+}
+
+wait_until() {  # <what> <command...>: up to 45 seconds
+  local what=$1
+  shift
+  for _ in $(seq 1 225); do
+    "$@" && return 0
+    sleep 0.2
+  done
+  fail "$what"$'\n'"$(cat "$FAKE_SSH_LOG" 2>/dev/null | tail -n 2)"
+}
+
+process_gone() {  # <pid file>
+  ! kill -0 "$(cat "$1")" 2>/dev/null
+}
+
+scratch_is_empty() {
+  [ -z "$(find "$SCRATCH" -mindepth 1 -maxdepth 1 2>/dev/null)" ]
+}
+
+test_a_finished_run_ends_what_it_left_and_removes_its_directory() {
+  new_world server
+  write_server_suite
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-server.test.sh
+  expect_code 0 "$RC" "a suite that leaves a server behind"$'\n'"$OUT"
+  wait_until "the server a finished suite started is still running" process_gone "$FAKE_HOST_HOME/server.pid"
+  OUT=
+  assert_scratch_empty "a finished run that left a server"
+  pass "a finished run ends the server its suite left in another session and removes its directory"
+}
+
+# cut_off_run <signal>: the run is under way on the host when its laptop end gets
+# the signal. Everything on the host then ends, and the directory goes.
+cut_off_run() {
+  local signal=$1 pid
+  new_world "cut-$signal"
+  : >"$FAKE_HOST_HOME/suite-sleeps"
+  write_server_suite
+  start_remote_run "$TMP_ROOT/cut-$signal/out" 1 tests/fm-remote-server.test.sh
+  pid=$REMOTE_PID
+  wait_until "the cut-off suite never started: $(cat "$TMP_ROOT/cut-$signal/out")" test -s "$FAKE_HOST_HOME/suite.pid"
+  wait_until "the cut-off suite never recorded its server" test -s "$FAKE_HOST_HOME/server.pid"
+  kill "-$signal" "$pid"
+  wait "$pid" 2>/dev/null
+  wait_until "a run cut off by $signal left its suite running" process_gone "$FAKE_HOST_HOME/suite.pid"
+  wait_until "a run cut off by $signal left its server running" process_gone "$FAKE_HOST_HOME/server.pid"
+  wait_until "a run cut off by $signal left its directory: $(find "$SCRATCH" -mindepth 1 -maxdepth 1)" scratch_is_empty
+}
+
+test_a_cut_off_run_leaves_nothing_on_the_host() {
+  cut_off_run KILL
+  cut_off_run TERM
+  pass "a run whose laptop end is killed or stopped leaves no suite, server, or directory on the host"
+}
+
+test_a_cut_off_wait_gives_up_its_place_in_the_hosts_line() {
+  local pid tries
+  new_world cut-wait
+  echo 100000 >"$FAKE_HOST_HOME/busy-tries"
+  start_remote_run "$TMP_ROOT/cut-wait/out" 0.2
+  pid=$REMOTE_PID
+  wait_until "the run never reached the host's gate" test -s "$FAKE_HOST_HOME/gate.log"
+  kill -KILL "$pid"
+  wait "$pid" 2>/dev/null
+  wait_until "a cut-off wait left its directory" scratch_is_empty
+  tries=$(grep -c '^try: ' "$FAKE_HOST_HOME/gate.log")
+  sleep 1
+  [ "$(grep -c '^try: ' "$FAKE_HOST_HOME/gate.log")" -eq "$tries" ] || fail "a cut-off wait kept asking the host's gate"
+  pass "a run cut off while it waits stops asking the host's gate and removes its directory"
+}
+
+test_a_run_sweeps_only_abandoned_runs_of_its_own_making() {
+  local dead holder
+  new_world sweep
+  sh -c 'exit 0' &
+  dead=$!
+  wait "$dead"
+  mkdir -p "$SCRATCH/fm-test-remote.abandoned/repo" "$SCRATCH/fm-test-remote.never-started" \
+    "$SCRATCH/fm-test-remote.no-marker/repo" "$SCRATCH/fm-test-remote.running" "$SCRATCH/fm-test-remote.setting-up" \
+    "$SCRATCH/fm-test-remote.in-use"
+  for name in abandoned never-started running setting-up in-use; do
+    : >"$SCRATCH/fm-test-remote.$name/.fm-test-remote-run"
+  done
+  echo "$dead" >"$SCRATCH/fm-test-remote.abandoned/host.pid"
+  echo "$dead" >"$SCRATCH/fm-test-remote.no-marker/host.pid"
+  echo "$dead" >"$SCRATCH/fm-test-remote.in-use/host.pid"
+  echo "$$" >"$SCRATCH/fm-test-remote.running/host.pid"
+  touch -t 202001010000 "$SCRATCH/fm-test-remote.never-started/.fm-test-remote-run"
+  (cd "$SCRATCH/fm-test-remote.in-use" && exec sleep 60) &
+  holder=$!
+  run_remote bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-probe.test.sh
+  kill "$holder" 2>/dev/null
+  wait "$holder" 2>/dev/null
+  expect_code 0 "$RC" "a run beside other directories"$'\n'"$OUT"
+  [ ! -e "$SCRATCH/fm-test-remote.abandoned" ] || fail "a run whose supervisor is gone was not swept"
+  [ ! -e "$SCRATCH/fm-test-remote.never-started" ] || fail "a run that never started was not swept"
+  [ -d "$SCRATCH/fm-test-remote.no-marker/repo" ] || fail "a directory without the marker was removed"
+  [ -d "$SCRATCH/fm-test-remote.running" ] || fail "a running run's directory was removed"
+  [ -d "$SCRATCH/fm-test-remote.setting-up" ] || fail "a run still being set up was removed"
+  [ -d "$SCRATCH/fm-test-remote.in-use" ] || fail "a directory a process still uses was removed"
+  pass "a run sweeps runs of its own making that are gone, and leaves running, unmarked, and in-use directories alone"
 }
 
 test_a_busy_host_gate_is_a_wait_not_a_failure() {
@@ -746,11 +882,11 @@ real_gate_world() {
   done
 }
 
-# start_remote_run <out> <retry seconds>: a remote run of the probe in the
-# background; sets REMOTE_PID, which ends its line name.
+# start_remote_run <out> <retry seconds> [suite]: a remote run of the suite, the
+# probe by default, in the background; sets REMOTE_PID, which ends its line name.
 start_remote_run() {
   (cd "$REPO" && exec env PATH="$TMP_ROOT/bin:$PATH" FM_TEST_REMOTE_BASH="$BASH" FM_TEST_REMOTE_RETRY_SECS="$2" \
-    bin/fm-test-run.sh --remote "fakehost:$SCRATCH" tests/fm-remote-probe.test.sh) >"$1" 2>&1 &
+    bin/fm-test-run.sh --remote "fakehost:$SCRATCH" "${3:-tests/fm-remote-probe.test.sh}") >"$1" 2>&1 &
   REMOTE_PID=$!
 }
 
@@ -853,7 +989,12 @@ test_fm_test_only_reaches_the_host
 test_a_live_switch_set_here_refuses_the_remote_run
 test_a_suite_skipping_for_a_missing_host_tool_fails_the_remote_run
 test_each_way_a_suite_reports_a_missing_host_tool_fails_the_remote_run
+test_a_skip_for_what_an_installed_tool_lacks_fails_the_remote_run
 test_a_probe_whose_command_is_missing_fails_the_remote_run
+test_a_finished_run_ends_what_it_left_and_removes_its_directory
+test_a_cut_off_run_leaves_nothing_on_the_host
+test_a_cut_off_wait_gives_up_its_place_in_the_hosts_line
+test_a_run_sweeps_only_abandoned_runs_of_its_own_making
 test_a_missing_tool_fails_by_the_tool_named_never_by_the_suites_family
 test_a_skip_that_is_not_a_missing_required_tool_stays_a_counted_skip
 test_a_busy_host_gate_is_a_wait_not_a_failure
